@@ -5,6 +5,16 @@ const { createRequire } = require("node:module");
 
 const compilers = new Map();
 
+// A resolvable `typescript` package is not enough: TypeScript 7+ ships a native compiler whose
+// package exports no JavaScript compiler API. Accept only a package that can build a syntax
+// tree, as the YAML loader accepts only a parser with parseDocument and visit.
+function hasCompilerApi(compiler) {
+  return typeof compiler?.createSourceFile === "function"
+    && typeof compiler.flattenDiagnosticMessageText === "function"
+    && compiler.ScriptTarget !== undefined
+    && compiler.ScriptKind !== undefined;
+}
+
 function loadTypeScript(rootDir) {
   const projectRoot = path.resolve(rootDir);
   if (compilers.has(projectRoot)) return compilers.get(projectRoot);
@@ -13,8 +23,13 @@ function loadTypeScript(rootDir) {
     const projectRequire = createRequire(path.join(projectRoot, "package.json"));
     compiler = projectRequire("typescript");
   } catch {}
+  if (!hasCompilerApi(compiler)) compiler = null;
   compilers.set(projectRoot, compiler);
   return compiler;
+}
+
+function isTypeScriptAvailable(rootDir) {
+  return loadTypeScript(rootDir) !== null;
 }
 
 function scriptKindFor(file, ts) {
@@ -153,6 +168,7 @@ function identifierUsage(body, name, ts) {
 }
 
 module.exports = {
+  isTypeScriptAvailable,
   parse,
   visit,
   span,

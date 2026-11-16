@@ -9,6 +9,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 export const repoRoot = path.resolve(here, "..", "..", "..", "..", "..");
 const rawReader = require(path.join(repoRoot, ".claude", "scripts", "lib", "spec-carrier-reader.cjs"));
 const configLoader = require(path.join(repoRoot, ".claude", "hooks", "lib", "project-config-loader.cjs"));
+const jsParser = require(path.join(repoRoot, ".claude", "scripts", "lib", "spec-carrier-js-parser.cjs"));
+const yamlCarrier = require(path.join(repoRoot, ".claude", "scripts", "lib", "spec-carrier-yaml.cjs"));
 export const rawReadSpecCarriers = rawReader.readSpecCarriers;
 
 // These fixtures model a project that opted into native carriers. They are deliberately
@@ -38,10 +40,19 @@ export const carrierTestProfile = {
   },
 };
 
+// Fixture projects live under the repository root, so they resolve the same parser packages it does.
+// Availability uses each reader's own check: a package that resolves but lacks the parser API
+// (TypeScript 7+ exports no JavaScript compiler) is unavailable to the reader and skips here too.
+const parserAvailable = {
+  typescript: () => jsParser.isTypeScriptAvailable(repoRoot),
+  yaml: () => yamlCarrier.isYamlParserAvailable(repoRoot),
+};
+
 export function skipMissingCarrierParsers(t, ...packages) {
   const missing = packages.filter(name => {
-    try { require.resolve(name); return false; }
-    catch { return true; }
+    const available = parserAvailable[name];
+    if (!available) throw new Error(`no availability check for parser package "${name}"`);
+    return !available();
   });
   if (missing.length === 0) return false;
   t.skip(`optional project parser package(s) unavailable: ${missing.join(", ")}`);

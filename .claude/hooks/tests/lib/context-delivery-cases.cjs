@@ -10,7 +10,7 @@ const route = require('../../lib/workflow-route-delivery.cjs');
 const delivery = require('../../lib/protocol-delivery.cjs');
 const core = require('../../core-principles-inject.cjs');
 const { childEnv } = require('./hook-runner.cjs');
-const { createEnvSaver } = require('./test-utils.cjs');
+const { createEnvSaver, otherInode } = require('./test-utils.cjs');
 const read = file => { try { return fs.readFileSync(file, 'utf8'); } catch { return null; } };
 const FIXTURES = '.claude/hooks/tests/fixtures/context-delivery';
 const PROTOCOLS = '.claude/skills/shared/protocols';
@@ -736,9 +736,9 @@ const cases = {
             // Unit seam isolates the opened-inode check from size/time guards. Native
             // replacement and FIFO behavior remain covered above, without fake stats.
             const fstat = fs.fstatSync; let statCalls = 0;
-            fs.fstatSync = fd => {
-                const stat = fstat(fd);
-                if (++statCalls === 1) stat.ino++;
+            fs.fstatSync = (fd, ...args) => {
+                const stat = fstat(fd, ...args);
+                if (++statCalls === 1) stat.ino = otherInode(stat.ino);
                 return stat;
             };
             try { assert.throws(() => readWorldFile(dir, target), /world-file-changed/, 'opened inode alone must match the inspected identity'); }

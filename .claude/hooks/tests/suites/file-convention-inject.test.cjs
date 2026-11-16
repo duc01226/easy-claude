@@ -17,6 +17,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 const { isFrameworkRepo } = require('../lib/framework-repo-guard.cjs');
+const { otherInode } = require('../lib/test-utils.cjs');
 
 const HOOKS_DIR = path.resolve(__dirname, '../..');
 const HOOK = path.join(HOOKS_DIR, 'file-convention-inject.cjs');
@@ -379,7 +380,7 @@ const tests = [
             try {
                 fs.readSync = (fd, buffer, ...args) => { if (buffer.length === Buffer.byteLength(body)) rejectedContentReads += 1; return nativeRead(fd, buffer, ...args); };
                 fs.closeSync = fd => { closes += 1; return nativeClose(fd); };
-                fs.fstatSync = fd => { const stat = nativeStat(fd); stat.ino += 1; return stat; };
+                fs.fstatSync = (fd, ...args) => { const stat = nativeStat(fd, ...args); stat.ino = otherInode(stat.ino); return stat; };
                 assert.equal(ledger.scanEvidence(transcript, evidence, opts), null, 'opened identity differs from resolved file');
                 assert.equal(closes, 2, 'both transcript and rejected current-content fd closed');
                 assert.equal(rejectedContentReads, 0, 'an unidentified descriptor is never read before rejection');
@@ -402,7 +403,7 @@ const tests = [
             try {
                 fs.statSync = (file, ...args) => {
                     const stat = nativePathStat(file, ...args);
-                    if (file === fs.realpathSync(fx.abs(doc)) && ++pathStats === 2) stat.ino += 1;
+                    if (file === fs.realpathSync(fx.abs(doc)) && ++pathStats === 2) stat.ino = otherInode(stat.ino);
                     return stat;
                 };
                 assert.equal(ledger.scanEvidence(transcript, evidence, opts), null, 'replaced pathname has a different identity');

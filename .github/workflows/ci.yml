@@ -1,0 +1,239 @@
+# CI for the easy-claude framework repository. MANUAL ONLY: it never runs on push, merge or pull request.
+#
+# Start a run (GitHub UI "Run workflow", or gh):
+#   gh workflow run ci.yml -f scope=changed -f ref=<branch|sha|refs/pull/<n>/merge> [-f base=<ref>; one commit: <sha>~1]
+#   gh workflow run ci.yml -f scope=full -f ref=<branch|sha>
+# scope=full runs every lane and the unfiltered hook aggregate (count guard included): merge evidence.
+# scope=changed runs only the lanes and hook suites the changed files affect (advisory), as planned by
+#   node .claude/scripts/framework-ci.cjs --plan
+# which owns the lane commands and runs the same lanes locally. GitHub runs the workflow file of the branch the run
+# is started on (`gh workflow run --ref <branch>`): a PR that changes this file must be started on its own branch. A lane the plan did not select is skipped;
+# the aggregates accept a skip only for an unselected lane. The trigger, the gate plan step, the lane
+# gating and the concurrency group are pinned by .claude/scripts/tests/framework-ci.test.cjs.
+# Lanes run on Linux, macOS and Windows, after installing the declared Node (package-lock.json, plus the task-track
+# skill's own lockfile for the hook suites) and Python (.claude/scripts/requirements.txt) dependencies. The pinned
+# startup-install-platform-security job runs on all three OSes on every dispatch, whatever the scope. Job names, the native startup-install matrix and the required
+# aggregate are pinned by `.claude/hooks/tests/suites/startup-install.test.cjs`
+# ("CI native platform matrix is pinned and fail-closed in the required aggregate"); change them
+# only together with that test. No job uses continue-on-error: every leg must be green.
+# `ci-required` is the single summary check: it passes only when the pinned aggregate and every
+# selected hook-suite leg succeeded on every OS. `gate` tests the `ref` input (default: the dispatched branch).
+
+name: CI
+
+on:
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: "changed = only the lanes and hook suites the changes affect (advisory); full = every lane and suite (merge evidence)"
+        type: choice
+        options: [changed, full]
+        default: changed
+      ref:
+        description: "Branch, SHA, or refs/pull/<n>/merge to test what a PR will merge (empty = the branch this run is started on)"
+        type: string
+        default: ""
+      base:
+        description: "changed scope only: compare with the merge-base of this ref (empty = origin/main; one commit = <sha>~1)"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ inputs.ref || github.ref }}-${{ inputs.scope }}-${{ inputs.base }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: gate
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.target.outputs.sha }}
+      scope: ${{ steps.plan.outputs.scope }}
+      run_sync: ${{ steps.plan.outputs.run_sync }}
+      run_hook_unit: ${{ steps.plan.outputs.run_hook_unit }}
+      run_hook_suites: ${{ steps.plan.outputs.run_hook_suites }}
+      hook_suites: ${{ steps.plan.outputs.hook_suites }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "24"
+      - id: target
+        name: Resolve the commit under test
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - id: plan
+        name: Plan the lanes (framework-ci)
+        shell: bash
+        env:
+          SCOPE: ${{ inputs.scope }}
+          BASE: ${{ inputs.base }}
+        run: node .claude/scripts/framework-ci.cjs --plan --scope="$SCOPE" --base="${BASE:-origin/main}" --head="$(git rev-parse HEAD)" --github-output="$GITHUB_OUTPUT" --github-summary="$GITHUB_STEP_SUMMARY"
+
+  repo-checks:
+    name: repo-checks (${{ matrix.os }})
+    needs: gate
+    if: ${{ needs.gate.outputs.run_sync == 'true' }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.gate.outputs.sha }}
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "24"
+      - run: npm ci --ignore-scripts
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: "3.12"
+      - name: Install declared Python dependencies
+        run: python -m pip install -r .claude/scripts/requirements.txt
+      - name: Codex mirror and tooling gates
+        run: node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --verify-only
+
+  unit-tests:
+    name: unit-tests (${{ matrix.os }})
+    needs: gate
+    if: ${{ needs.gate.outputs.run_hook_unit == 'true' }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.gate.outputs.sha }}
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "24"
+      - run: npm ci --ignore-scripts
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: "3.12"
+      - name: Install declared Python dependencies
+        run: python -m pip install -r .claude/scripts/requirements.txt
+      - name: Hook tests
+        run: node .claude/hooks/tests/test-all-hooks.cjs
+
+  startup-install-platform-security:
+    name: startup-install-platform-security (${{ matrix.os }})
+    needs: gate
+    if: ${{ !cancelled() }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    steps:
+      - name: Require a resolved gate
+        if: ${{ needs.gate.result != 'success' || needs.gate.outputs.sha == '' }}
+        shell: bash
+        run: |
+          echo "gate did not resolve a commit to test"
+          exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.gate.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "24"
+      - name: Native startup-install suite
+        run: node .claude/hooks/tests/run-all-tests.cjs --filter=startup-install --verbose
+
+  static-and-unit:
+    name: static-and-unit
+    needs: [gate, repo-checks, unit-tests, startup-install-platform-security]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every required job succeeded
+        shell: bash
+        env:
+          RUN_SYNC: ${{ needs.gate.outputs.run_sync }}
+          RUN_HOOK_UNIT: ${{ needs.gate.outputs.run_hook_unit }}
+        run: |
+          echo "gate: ${{ needs.gate.result }}"
+          echo "repo-checks: ${{ needs.repo-checks.result }} (selected: $RUN_SYNC)"
+          echo "unit-tests: ${{ needs.unit-tests.result }} (selected: $RUN_HOOK_UNIT)"
+          echo "startup-install-platform-security: ${{ needs.startup-install-platform-security.result }}"
+          # A lane the plan selected must succeed; one it did not select must be skipped, never failed or cancelled.
+          expect() { if [ "$3" = true ]; then want=success; else want=skipped; fi; test "$2" = "$want" || { echo "required: $1: $want (got $2)"; exit 1; }; }
+          test "${{ needs.gate.result }}" = success
+          expect repo-checks "${{ needs.repo-checks.result }}" "$RUN_SYNC"
+          expect unit-tests "${{ needs.unit-tests.result }}" "$RUN_HOOK_UNIT"
+          test "${{ needs.startup-install-platform-security.result }}" = success || { echo "required: startup-install-platform-security: success"; exit 1; }
+
+  integration-test-shards:
+    name: integration-test-shards (${{ matrix.os }})
+    needs: [gate, static-and-unit]
+    if: ${{ needs.gate.outputs.run_hook_suites == 'true' }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.gate.outputs.sha }}
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "24"
+      - run: npm ci --ignore-scripts
+      # The task-tracking suites read records through the task-track skill's own pinned parser
+      # (.claude/skills/task-track/package-lock.json); without it they refuse with MISSING_PARSER.
+      - name: Install the task-track skill's declared dependencies
+        run: npm ci --ignore-scripts --prefix .claude/skills/task-track
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: "3.12"
+      - name: Install declared Python dependencies
+        run: python -m pip install -r .claude/scripts/requirements.txt
+      - name: Hook suites (all = the full aggregate with its count guard; otherwise the planned suites)
+        shell: bash
+        env:
+          HOOK_SUITES: ${{ needs.gate.outputs.hook_suites }}
+        run: node .claude/scripts/framework-ci.cjs --lane=hook-suites --suites="$HOOK_SUITES"
+
+  ci-required:
+    name: ci-required
+    needs: [gate, static-and-unit, integration-test-shards]
+    # always(): a cancelled run, or a selected leg that was skipped, must turn the check red, never read as passing.
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every selected leg on every OS succeeded
+        shell: bash
+        env:
+          RUN_HOOK_SUITES: ${{ needs.gate.outputs.run_hook_suites }}
+        run: |
+          echo "gate: ${{ needs.gate.result }}"
+          echo "static-and-unit: ${{ needs.static-and-unit.result }}"
+          echo "integration-test-shards: ${{ needs.integration-test-shards.result }} (selected: $RUN_HOOK_SUITES)"
+          test "${{ needs.gate.result }}" = success
+          test "${{ needs.static-and-unit.result }}" = success
+          if [ "$RUN_HOOK_SUITES" = true ]; then want=success; else want=skipped; fi
+          test "${{ needs.integration-test-shards.result }}" = "$want" || { echo "required: integration-test-shards: $want"; exit 1; }

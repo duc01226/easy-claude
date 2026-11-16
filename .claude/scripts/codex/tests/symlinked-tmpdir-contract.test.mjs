@@ -26,11 +26,13 @@ function linkDir(target, link) {
 // Mirrors the macOS layout: a symlinked ANCESTOR above a real leaf, with a trailing separator.
 function symlinkedTmp(t) {
   // Windows' native directory alias is a junction. Node can stall before the first assertion when
-  // `mkdtemp` traverses a junction beneath the OS temp tree (notably its 8.3 user path), so keep the
-  // disposable Windows fixture under the repository's ignored tmp/ owner. The alias itself and all
+  // `mkdtemp` traverses a junction beneath the OS temp tree's 8.3 short user path, so on Windows the
+  // fixture sits under the long-path spelling of the OS temp dir. It must stay outside this checkout:
+  // the hook suites run with this temp dir and treat their fixtures as outside any repository (the
+  // review gate finds a repository by walking up to a .git marker). The alias itself and all
   // redirected temp variables remain unchanged. POSIX/macOS retain the native /var -> /private/var
   // shape this contract was created to exercise.
-  const fixtureParent = process.platform === "win32" ? path.join(repoRoot, "tmp") : os.tmpdir();
+  const fixtureParent = process.platform === "win32" ? fs.realpathSync.native(os.tmpdir()) : os.tmpdir();
   fs.mkdirSync(fixtureParent, { recursive: true });
   const base = fs.realpathSync.native(fs.mkdtempSync(path.join(fixtureParent, "symlinked-tmpdir-contract-")));
   t.after(() => fs.rmSync(base, { recursive: true, force: true }));

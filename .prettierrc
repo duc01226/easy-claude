@@ -2,7 +2,7 @@
     "arrowParens": "avoid",
     "overrides": [
         {
-            "files": "**/*.yaml",
+            "files": "**/*.{yaml,yml}",
             "options": {
                 "singleQuote": false,
                 "tabWidth": 2

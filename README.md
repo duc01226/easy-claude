@@ -422,6 +422,8 @@ Run the Codex mirror and compatibility verification suite:
 node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=tests,scripts-tests,tech-spec-freshness,feature-registry,hooks-count-drift,hooks-parity,hooks-doc-sync,wf-cycle,sk-proto,residue,sdd,review-validate-coverage,sync-adoption-parity,provenance-markers,sync-divergence
 ```
 
+CI (`.github/workflows/ci.yml`) is manual only: merging to `main` or opening a pull request starts no runner. Dispatch it on Linux, macOS and Windows with `gh workflow run ci.yml -f scope=changed -f ref=<branch|sha|refs/pull/<n>/merge>` (only the lanes and hook suites the changes affect; add `-f base=<sha>~1` for one commit) or `-f scope=full` (every lane and the full hook aggregate). The pinned startup-install job runs on all three OSes in every run, whatever the scope. `node .claude/scripts/framework-ci.cjs` plans and runs the same lanes locally: `--scope=changed` (default, advisory), `--scope=full` (the gate before a pull request merges) and `--plan` to preview. The `ci-required` check passes only when every selected leg is green. The job layout is pinned by `.claude/hooks/tests/suites/startup-install.test.cjs` and `.claude/scripts/tests/framework-ci.test.cjs`, so change them together.
+
 ## Further Reading
 
 | Document                                                              | Description                                 |
