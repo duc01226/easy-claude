@@ -105,13 +105,29 @@ async function optionalStageSkipReason(stageId) {
     return null;
 }
 
+// Live stage processes. A termination signal is passed on to them (forwardTerminationSignals), so a
+// killed pipeline never leaves a test process running in a checkout whose test-run lock is then free.
+const children = new Set();
+function track(child) {
+    children.add(child);
+    child.once("exit", () => children.delete(child));
+    return child;
+}
+
+// The test-run lock library, absent from a bundle copied without .claude/scripts/lib (a fixture).
+const lockFile = path.join(rootDir, ".claude", "scripts", "lib", "test-run-lock.cjs");
+const slotsFile = path.join(rootDir, ".claude", "scripts", "lib", "test-run-slots.cjs");
+function optionalLib(file) {
+    return require("node:fs").existsSync(file) ? require(file) : null;
+}
+
 function runCaptured(cmd, argv, env = process.env) {
     return new Promise((resolve, reject) => {
-        const child = spawn(cmd, argv, {
+        const child = track(spawn(cmd, argv, {
             cwd: rootDir,
             env,
             stdio: ["ignore", "pipe", "pipe"],
-        });
+        }));
         let stdout = "";
         let stderr = "";
         child.stdout.on("data", data => { stdout += data.toString(); });
@@ -156,6 +172,16 @@ const supportsTestConcurrencyFlag = nodeMajor >= 21
     || (nodeMajor === 20 && nodeMinor >= 10)
     || (nodeMajor === 18 && nodeMinor >= 19);
 const scriptsTestConcurrencyArgs = supportsTestConcurrencyFlag ? ["--test-concurrency=1"] : [];
+// The Codex tests are light, independent files: run as many at once as the machine can give this run
+// now (its share of the cores among the runs holding machine slots, the idle cores, available memory),
+// instead of node's default of one per core, which a dozen parallel runs turn into a few hundred.
+function codexTestConcurrencyArgs() {
+    const slots = optionalLib(slotsFile);
+    if (!supportsTestConcurrencyFlag || !slots) return [];
+    const workers = slots.testWorkerCount();
+    process.stdout.write(`[codex-sync] test-codex: ${workers} test file(s) at a time\n`);
+    return [`--test-concurrency=${workers}`];
+}
 // Test flags are selected from this process's version, so test children must use this exact Node
 // executable rather than a potentially different `node` found later on PATH (npx/absolute launches
 // can otherwise make the gate and its child disagree).
@@ -193,7 +219,7 @@ const stages = [
     // Fills the COUNT markers of the listed documents before any gate reads them, so a new skill, hook or
     // Markdown file never fails `hooks-count-drift` on a figure nobody retyped (ADR-0002).
     { id: "counts",   label: "inject-count-markers", cmd: "node", mutate: true, args: [path.join(sourceScriptsDir, "inject-count-markers.mjs")] },
-    { id: "tests",    label: "test-codex",       test: true, cmd: testNodeCommand, argsAsync: async () => ["--test", ...await listTestFiles(codexTestsDir)] },
+    { id: "tests",    label: "test-codex",       test: true, cmd: testNodeCommand, argsAsync: async () => ["--test", ...codexTestConcurrencyArgs(), ...await listTestFiles(codexTestsDir)] },
     // General .claude tooling unit tests (*.test.mjs and *.test.cjs).
     // Listed via readdir so the stage works without shell glob expansion (PowerShell does not expand
     // globs the way POSIX shells do; the npm script relied on that, the runner does not).
@@ -338,13 +364,13 @@ async function runStage(stage, index, total) {
 
     const startedAt = Date.now();
     return new Promise((resolve, reject) => {
-        const child = spawn(stage.cmd, argv, {
+        const child = track(spawn(stage.cmd, argv, {
             cwd: rootDir,
             // Verification exercises hooks even when the user's chat runtime is off.
             // This child-only override never changes their saved preference or chat.
             env: stage.test ? { ...process.env, CK_FRAMEWORK_MODE: "on" } : process.env,
             stdio: verbose ? "inherit" : ["ignore", "pipe", "pipe"],
-        });
+        }));
 
         let stdoutBuf = "";
         let stderrBuf = "";
@@ -433,19 +459,19 @@ async function main() {
         process.exit(1);
     }
 
-    // Test stages share the live tree with the hook suite: hold the checkout's test-run lock so the two
-    // never run at once (false ENOENT). A run with no test stage (a single verifier) needs no lock;
-    // children of a lock holder inherit CK_TEST_RUN_LOCK_HELD and skip it. A runner copied without
-    // .claude/scripts/lib (a fixture) runs unlocked.
-    const lockFile = path.join(rootDir, ".claude", "scripts", "lib", "test-run-lock.cjs");
-    if (active.some(stage => stage.test) && require("node:fs").existsSync(lockFile)) {
-        const { acquireTestRunLock, conflictMessage } = require(lockFile);
-        const lock = acquireTestRunLock({ rootDir, command: "run-codex-sync" });
-        if (!lock.acquired && !lock.nested) {
-            console.error(conflictMessage(lock));
+    // Test stages share the live tree with the hook suite: wait for the checkout's test-run lock so the
+    // two never run at once (false ENOENT), then for a machine-wide slot. A run with no test stage (a
+    // single verifier) needs neither; children of a lock holder inherit CK_TEST_RUN_LOCK_HELD and are
+    // admitted at once. A runner copied without .claude/scripts/lib (a fixture) runs unlocked.
+    const lockLib = optionalLib(lockFile);
+    if (lockLib) lockLib.forwardTerminationSignals(children);
+    if (active.some(stage => stage.test) && lockLib) {
+        const admission = await lockLib.admitTestRun({ rootDir, command: "run-codex-sync" });
+        if (!admission.admitted) {
+            console.error(admission.message);
             process.exit(2);
         }
-        process.on("exit", lock.release);
+        process.on("exit", admission.release);
     }
 
     console.log(`[codex-sync] running ${active.length} stage(s) from ${rootDir}`);

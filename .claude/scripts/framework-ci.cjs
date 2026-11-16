@@ -22,7 +22,19 @@
  * escalate to full; a hook no suite names escalates to full; more than half of the suites selected escalates to
  * full. Selection is a heuristic: it is advisory, and only the full scope is merge evidence.
  *
- * Exit codes: 0 every selected lane passed (or nothing to run) · 1 a lane failed · 2 usage or git error.
+ * Parallel runs: a run that executes lanes is admitted once, for all its lanes (lanes run nested and are
+ * admitted at once). It waits for this checkout's test-run lock, because the lanes share the live tree,
+ * then for a machine-wide slot, so many worktrees on one machine never run more full runs than it holds.
+ * Slots are sized when each run starts, from the cores, total memory (a container limit included), the
+ * memory available now and the load; the first run is always admitted. Inside a run, the Codex test
+ * stage runs as many test files at once as this run's share of the idle cores and free memory allows.
+ * A waiting run prints what it waits for; it fails (exit 2) only after CK_TEST_RUN_WAIT_MINUTES (120).
+ * Overrides: CK_TEST_RUN_SLOTS=<n>|off, CK_TEST_CONCURRENCY=<n>. A termination signal is passed on to the
+ * running lane, so a killed run leaves no test process behind. Owners: .claude/scripts/lib/test-run-lock.cjs
+ * (admitTestRun) and test-run-slots.cjs.
+ *
+ * Exit codes: 0 every selected lane passed (or nothing to run) · 1 a lane failed · 2 usage or git error, or
+ * no admission within the wait bound.
  * Paths are repository-relative with `/` separators on every OS; processes start from literal argv, never a shell.
  */
 
@@ -330,13 +342,38 @@ function suiteRuns(names, allNames) {
     return runs;
 }
 
-function runNode(root, argv) {
+function runNode(root, argv, children) {
     const started = Date.now();
-    const result = childProcess.spawnSync(process.execPath, argv, { cwd: root, stdio: 'inherit', env: process.env });
-    return { ok: result.status === 0, status: result.error ? result.error.message : result.status, seconds: Math.round((Date.now() - started) / 1000) };
+    return new Promise(resolve => {
+        const child = childProcess.spawn(process.execPath, argv, { cwd: root, stdio: 'inherit', env: process.env });
+        children.add(child);
+        const done = status => {
+            children.delete(child);
+            resolve({ ok: status === 0, status, seconds: Math.round((Date.now() - started) / 1000) });
+        };
+        child.once('error', error => done(error.message));
+        child.once('close', (code, signal) => done(code ?? signal));
+    });
 }
 
-function runLanes(root, lanes, allSuiteNames) {
+function loadLockLib(root) {
+    const file = path.join(root, '.claude', 'scripts', 'lib', 'test-run-lock.cjs');
+    return fs.existsSync(file) ? require(file) : null;
+}
+
+/** Run the selected lanes, admitted once for all of them. Resolves true when every lane passed. */
+async function runLanes(root, lanes, allSuiteNames) {
+    const lockLib = loadLockLib(root);
+    const children = new Set();
+    if (lockLib) {
+        lockLib.forwardTerminationSignals(children);
+        const admission = await lockLib.admitTestRun({ rootDir: root, command: 'framework-ci' });
+        if (!admission.admitted) {
+            console.error(admission.message);
+            throw new UsageError('no admission within the wait bound');
+        }
+        process.on('exit', admission.release);
+    }
     const results = [];
     for (const lane of LANES) {
         const value = lanes[lane.id];
@@ -344,12 +381,12 @@ function runLanes(root, lanes, allSuiteNames) {
         if (lane.id === 'hook-suites' && value !== 'all') {
             for (const name of suiteRuns(value, allSuiteNames)) {
                 console.log(`\n[framework-ci] ${lane.title}: --filter=${name}`);
-                results.push({ lane: `${lane.id}:${name}`, ...runNode(root, [...lane.argv, `--filter=${name}`]) });
+                results.push({ lane: `${lane.id}:${name}`, ...(await runNode(root, [...lane.argv, `--filter=${name}`], children)) });
             }
             continue;
         }
         console.log(`\n[framework-ci] ${lane.title}: node ${lane.argv.join(' ')}`);
-        results.push({ lane: lane.id, ...runNode(root, lane.argv) });
+        results.push({ lane: lane.id, ...(await runNode(root, lane.argv, children)) });
     }
     console.log('\n[framework-ci] Summary');
     for (const result of results)
@@ -410,6 +447,7 @@ function laneOnlyPlan(options, allSuiteNames) {
     return lanes;
 }
 
+/** Returns the exit code; a run that executes lanes returns a promise of it. */
 function main(argv = process.argv.slice(2), root = REPO_ROOT) {
     const options = parseArgs(argv);
     if (options.help) {
@@ -418,7 +456,7 @@ function main(argv = process.argv.slice(2), root = REPO_ROOT) {
     }
     const index = buildIndex(root);
     const allSuiteNames = index.suites.map(suite => suite.name);
-    if (options.lane) return runLanes(root, laneOnlyPlan(options, allSuiteNames), allSuiteNames) ? 0 : 1;
+    if (options.lane) return runLanes(root, laneOnlyPlan(options, allSuiteNames), allSuiteNames).then(ok => (ok ? 0 : 1));
 
     const range = options.scope === 'full' ? null : collectChanges({ root, base: options.base, head: options.head });
     const plan = planScope({ scope: options.scope, changes: range ? range.changes : [], index });
@@ -431,7 +469,7 @@ function main(argv = process.argv.slice(2), root = REPO_ROOT) {
         console.log('::warning::No changes between base and head, so nothing was tested. Pass base=<sha>~1 for one commit, or scope=full.');
     }
     if (options.plan) return 0;
-    return runLanes(root, plan.lanes, allSuiteNames) ? 0 : 1;
+    return runLanes(root, plan.lanes, allSuiteNames).then(ok => (ok ? 0 : 1));
 }
 
 module.exports = {
@@ -452,11 +490,16 @@ module.exports = {
 };
 
 if (require.main === module) {
-    try {
-        process.exitCode = main();
-    } catch (error) {
-        if (!(error instanceof UsageError)) throw error;
-        console.error(`[framework-ci] ${error.message}`);
-        process.exitCode = 2;
-    }
+    Promise.resolve()
+        .then(() => main())
+        .then(
+            code => {
+                process.exitCode = code;
+            },
+            error => {
+                if (!(error instanceof UsageError)) throw error;
+                console.error(`[framework-ci] ${error.message}`);
+                process.exitCode = 2;
+            }
+        );
 }

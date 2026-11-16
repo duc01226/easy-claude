@@ -211,7 +211,12 @@ const NOT_FRAMEWORK_SWITCHES = new Map([
     // test seam: replaces a spawned graph process in hook tests
     ['CK_GRAPH_SPAWN_STUB', 'test seam'],
     // test-run coordination: set by a test runner holding the checkout's test-run lock for its children
-    ['CK_TEST_RUN_LOCK_HELD', 'test-run lock marker']
+    ['CK_TEST_RUN_LOCK_HELD', 'test-run lock marker'],
+    // test-run admission: machine-wide slot and worker sizing for full test runs, never a hook behavior
+    ['CK_TEST_RUN_SLOTS', 'test-run admission'],
+    ['CK_TEST_RUN_SLOTS_DIR', 'test-run admission'],
+    ['CK_TEST_RUN_WAIT_MINUTES', 'test-run admission'],
+    ['CK_TEST_CONCURRENCY', 'test-run admission']
 ]);
 
 /** Every `.cjs`/`.mjs`/`.js` file under `dir`, skipping test folders and installed packages. */
