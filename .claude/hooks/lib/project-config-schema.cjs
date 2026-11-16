@@ -1593,6 +1593,12 @@ const SCHEMA = {
                 required: false,
                 describe:
                     'Default false. true = the commit skill writes the author-declared Fix-Origin trailer (feedback | regression | not-applicable) on new commits only; existing commits are never reworded to add it.'
+            },
+            bugClassTrailer: {
+                type: 'boolean',
+                required: false,
+                describe:
+                    "Default false. true = the commit skill writes a Bug-Class: <class> trailer on new commits that fix a bug, with the class from the fix's prevention record (closed vocabulary of hooks/lib/prevention-record.cjs); existing commits are never reworded to add it."
             }
         }
     },

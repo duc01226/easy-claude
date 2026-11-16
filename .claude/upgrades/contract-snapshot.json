@@ -157,8 +157,8 @@
       "by": "baseline"
     },
     "config:commit": {
-      "hash": "557ac9d62fbd",
-      "by": "baseline"
+      "hash": "1ef4272c73e1",
+      "by": "enable-bug-class-trailer"
     },
     "config:commitSkillRoute": {
       "hash": "0bbbeef8227b",
@@ -409,8 +409,8 @@
       "by": "baseline"
     },
     "workflow:workflow-bugfix": {
-      "hash": "93ec79ac75fc",
-      "by": "harness-readiness-active"
+      "hash": "52575d2bc61b",
+      "by": "bug-class-prevention"
     },
     "workflow:workflow-code-to-spec": {
       "hash": "40fe9f929301",
@@ -453,8 +453,8 @@
       "by": "baseline"
     },
     "workflow:workflow-review-changes": {
-      "hash": "74aef8a00138",
-      "by": "baseline"
+      "hash": "47b67b23d8c2",
+      "by": "bug-class-prevention"
     },
     "workflow:workflow-seed-test-data": {
       "hash": "e36f05f1dfbe",

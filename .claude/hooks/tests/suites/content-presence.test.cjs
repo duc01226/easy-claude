@@ -3679,46 +3679,85 @@ module.exports = {
             }
         },
         {
-            // Guards the post-fix lesson check: every verified fix names its bug class, and a generic,
-            // likely-recurring lesson reaches /learn only after the user confirms, never silently.
-            name: '[content-presence] fix and workflow-bugfix run the post-fix lesson check after the review and before the single verify; it saves a generic recurring lesson through /learn only after the user confirms',
+            // Guards the bug-class prevention task (BR-GWF-24), which replaced the post-fix lesson check: every
+            // fix names its bug class and guards the class before its reviews and verify, a generic recurring
+            // lesson reaches /learn only after the user confirms, and the workflow close refuses without a record.
+            name: '[content-presence] TC-GWF-099 fix, workflow-bugfix and workflow-end run and check the bug-class prevention task before the reviews and the verify; /learn only after the user confirms',
             fn: () => {
-                // Given the check's one owner and both skills that run it
-                const check = readFile(path.join(SKILLS_DIR, 'fix', 'references', 'post-fix-lesson-check.md'));
+                // Given the task's one owner and the skills that run or check it
+                const check = readFile(path.join(SKILLS_DIR, 'fix', 'references', 'mode-prevent.md'));
                 const fix = readSkill('fix');
                 const bugfix = readSkill('workflow-bugfix');
+                const end = readSkill('workflow-end');
+                const debug = readFile(path.join(SKILLS_DIR, 'investigate', 'references', 'mode-debug.md'));
+                const trailers = readFile(path.join(SKILLS_DIR, 'commit', 'references', 'trailers.md'));
+                const commit = readSkill('commit');
+                const patterns = readFile(path.join(SKILLS_DIR, 'integration-test', 'references', 'integration-test-patterns.md'));
                 // When their text is read
                 const gaps = [
-                    ...(/`\/why-review` → post-fix lesson check \(`references\/post-fix-lesson-check\.md`\) → verify once/.test(fix)
+                    ...(/spec-check → bug-class prevention task \(`references\/mode-prevent\.md`\) → changes-review \(production code\) → `\/why-review` → verify once/.test(
+                        fix
+                    )
                         ? []
-                        : ['fix: the standalone order does not run the check between the review and the verify']),
-                    ...(/post-fix lesson check \(`\.\.\/fix\/references\/post-fix-lesson-check\.md`\) after `\/workflow-review-changes` converges and before `\/integration-test --mode=verify`/.test(
+                        : ['fix: the standalone order does not run the prevention task before the reviews and the verify']),
+                    ...(/run the bug-class prevention gate \(`\/fix --mode=prevent`, `\.\.\/fix\/references\/mode-prevent\.md`\) right after `\/fix` and before `\/workflow-review-changes`/.test(
                         bugfix
                     )
                         ? []
-                        : ['workflow-bugfix: the check does not run between the converged review and the verify']),
-                    ...(/under any other caller[^\n]*records the bug class and any lesson candidate[^\n]*hands them back/.test(fix)
+                        : ['workflow-bugfix: the prevention gate does not run between the fix and the review']),
+                    ...(/under any other caller it runs the task itself before it returns/.test(fix)
                         ? []
-                        : ['fix: a nested step under another caller no longer hands its lesson candidate back']),
-                    ...(/§5 `\/why-review` gates and the §5a post-fix lesson check/.test(fix)
+                        : ['fix: a nested step under another caller no longer runs the task itself']),
+                    ...(/the §4a bug-class prevention task, the production-code `\/changes-review` gate and §5 `\/why-review` gates/.test(fix)
                         ? []
-                        : ['fix: the standalone --target branches no longer inherit the check']),
+                        : ['fix: the standalone --target branches no longer inherit the prevention task']),
+                    ...(/created with this spine at the start of every direct `\/fix` \(no flag or any `--target`\)/.test(fix)
+                        ? []
+                        : ['fix: a direct /fix no longer creates the task at its start']),
+                    ...(/It first runs `node \.claude\/hooks\/lib\/prevention-record\.cjs check --file=<the §4a record>`/.test(fix)
+                        ? []
+                        : ['fix: the verify no longer checks the record first']),
                     ...(/^> 6\. \*\*Verify once\*\*[^\n]*the final todo/m.test(fix) ? [] : ['fix: the verify is no longer the final todo']),
+                    ...(/`recurrence-guarded`: run `node \.claude\/hooks\/lib\/prevention-record\.cjs check --file=<record>`[^\n]*`MISSING` or `INVALID` blocks the close/.test(
+                        end
+                    )
+                        ? []
+                        : ['workflow-end: step 0 no longer refuses to close without a valid prevention record']),
+                    ...(/run `check --proof --since=</.test(end) ? [] : ['workflow-end: the fallback scan no longer skips not-applicable records']),
+                    ...(/`Bug class: <class>` from the closed vocabulary/.test(debug)
+                        ? []
+                        : ['investigate --mode=debug: the hand-off no longer names the bug class']),
+                    ...(/write the line in exactly this form, `Bug-Class: <class>`/i.test(trailers) &&
+                    /`commit\.bugClassTrailer: true`/.test(trailers) &&
+                    /never reword history to add one/.test(trailers)
+                        ? []
+                        : ['commit/references/trailers.md: the opt-in Bug-Class trailer contract changed']),
+                    ...(/`references\/trailers\.md`/.test(commit) ? [] : ['commit: the skill no longer points at its trailer reference']),
+                    ...(/\*\*Stateful variant — an entity with lifecycle states\.\*\*/.test(patterns) &&
+                    /`fc\.commands` with `fc\.modelRun`/.test(patterns) &&
+                    /`RuleBasedStateMachine`/.test(patterns) &&
+                    /`ActionChain`/.test(patterns) &&
+                    /Installing a property library is a dependency change: ask the user first/.test(patterns)
+                        ? []
+                        : ['integration-test-patterns.md: Pattern 9 lost its stateful variant']),
                     ...[
-                        ['classifies the bug class', /\*\*Classify the bug class\*\*/],
+                        ['names the bug class', /\*\*Name the bug class\*\*/],
+                        ['asks why the class can happen', /\*\*Ask why this class can happen at all\.\*\*/],
                         ['keeps business rules out of lessons', /\*\*Generic\*\* — it names no business rule/],
                         ['keeps only likely-recurring lessons', /\*\*Likely to recur\*\*/],
                         ['skips a lesson a check or doc already covers', /\*\*Not already covered\*\*/],
-                        ['asks the user before saving', /ask through the host question tool whether to save it/],
+                        ['asks the user before a lesson or a bigger guard', /ask through the host question tool, the chosen tier first as `\(Recommended\)`/],
                         ['saves through /learn', /invoke `\/learn` with the generalized lesson/],
-                        ['records the outcome', /`Lesson: none — <reason>`/],
-                        ['never saves without an answer', /never save without the user's answer/]
+                        ['records no-guard with an owner', /`no-guard`: `siblings`, `reason` and `owner`/],
+                        ['checks the record', /`node \.claude\/hooks\/lib\/prevention-record\.cjs check --file=<record path>`/],
+                        ['names the state-transition test tier', /`state-transition` → a stateful property test/],
+                        ['never saves without an answer', /never save a lesson or install a tool without the user's answer/]
                     ]
                         .filter(([, pattern]) => !pattern.test(check))
-                        .map(([label]) => `post-fix-lesson-check.md no longer ${label}`)
+                        .map(([label]) => `mode-prevent.md no longer ${label}`)
                 ];
-                // Then both skills run it at the right point and it keeps every guard
-                assertTrue(gaps.length === 0, `post-fix lesson check gaps:\n  ${gaps.join('\n  ')}`);
+                // Then every route runs it at the right point and it keeps every guard
+                assertTrue(gaps.length === 0, `bug-class prevention gaps:\n  ${gaps.join('\n  ')}`);
             }
         },
         {

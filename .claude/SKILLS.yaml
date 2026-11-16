@@ -289,7 +289,7 @@ skills:
       path: fix/SKILL.md
       description: '[Implementation] Use when a workflow step or the user asks for
         root-cause fixes with regression coverage. --target={ci|issue|logs|review|test|types|ui}
-        scopes the issue.'
+        scopes the issue; --mode=prevent guards the bug class after a fix.'
       category: other
       has_scripts: false
       has_references: true

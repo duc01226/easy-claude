@@ -36,6 +36,7 @@ roadmap_status: null
 | Scope anchor          | `.claude/skills/workflow-implement-spec/SKILL.md`, `.claude/skills/plan/SKILL.md`, `.claude/skills/plan/references/mode-review.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Workflow records the baseline identity before plan; plan and one-pass review enforce scope. |
 | Usage reading         | `.claude/hooks/lib/session-usage.cjs`, `.claude/scripts/session-usage-report.cjs`, `.claude/hooks/token-budget-checkpoint.cjs`                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Usage totals, the usage report and the spend checkpoint.                            |
 | Readiness check       | `.claude/scripts/harness-readiness.cjs`, `.claude/skills/harness-setup/references/readiness-mode.md`, `.claude/skills/integration-test/SKILL.md` | The task-start readiness check, the setup it offers, and the regression-test route without a test project (BR-GWF-21, BR-GWF-22). |
+| Bug-class prevention  | `.claude/skills/fix/references/mode-prevent.md`, `.claude/hooks/lib/prevention-record.cjs`, `.claude/skills/commit/references/trailers.md` | The prevention task, its record checker and the opt-in commit line (BR-GWF-24, BR-GWF-25). |
 | Session report opener | `.claude/scripts/open-report.cjs`, `.claude/skills/watzup/SKILL.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Opens the session report safely (BR-GWF-18).                                        |
 | Test suites (planned) | `.claude/hooks/tests/suites/workflow.test.cjs`, `.claude/hooks/tests/suites/content-presence.test.cjs`, `.claude/hooks/tests/suites/scope-guard.test.cjs`, `.claude/hooks/tests/suites/session-usage.test.cjs`, `.claude/hooks/tests/suites/session-usage-report.test.cjs`, `.claude/hooks/tests/suites/token-budget-checkpoint.test.cjs`, `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs`, `.claude/scripts/codex/tests/workflow-skills-catalog.test.mjs`, `.claude/scripts/tests/open-report.test.cjs`, `.claude/hooks/tests/suites/watzup-session-summary.test.cjs`, `.claude/scripts/tests/harness-readiness.test.cjs` | Executors for Section 8.                                                            |
 
@@ -67,6 +68,8 @@ Every workflow states the goal it must reach and the quality results a finished 
 | Outcome Gate       | A quality result a finished run must prove, such as "tests pass" or "review converged"                                                                  | Declared per workflow, with the steps that can satisfy it and an optional condition           |
 | Step               | One entry of a workflow: a skill to run, with its arguments                                                                                             | Has exactly one step role                                                                     |
 | Step Role          | How freely a step may be flexed: gate, core or optional                                                                                                 | Declared on the step itself; a step with no declared role is core                             |
+| Bug Class          | The kind of mistake a fixed bug was, apart from its business subject, from a closed list (for example a forbidden state change, an ordering race, a replayed request) | Named by the investigation; counted through the optional commit line                          |
+| Prevention Record  | The short record a fix leaves: the bug class, why it can happen, the sibling search, and the guard or the reason there is none, with an owner | Checked before the final test run and at the close                                            |
 | Gate Step          | A step that produces an outcome gate's evidence or closes the run                                                                                       | Never skipped, merged away or moved                                                           |
 | Core Step          | A step the workflow normally runs                                                                                                                       | May be flexed with a logged reason                                                            |
 | Optional Step      | A step that runs only when its run condition holds                                                                                                      | Carries a run condition and a declared skip reason                                            |
@@ -225,6 +228,21 @@ Every workflow states the goal it must reach and the quality results a finished 
 - **AC-GWF-37** — **Given** a bug fix in a project with no test project **When** the regression-test step runs **Then** it offers to set up a test runner, or writes the regression test with a runner the project can already execute and records who owns creating a test project; it never stops at "create one yourself"
 - **AC-GWF-38** — **Given** a direct answer, a single skill, a custom-simple route or a follow-up inside a running session **When** work starts **Then** no readiness offer appears (a documented gap), and the first-prompt rule for projects without a config is unchanged
 
+### US-GWF-10: Every bug fix guards its whole class
+
+**As a** developer, or the AI assistant, fixing a bug
+**I want** every fix to end by asking why this kind of bug can happen at all and guarding that kind, not only the one instance
+**So that** the same mistake cannot quietly return elsewhere, and the kinds that keep recurring can be counted
+
+**Acceptance Criteria:**
+
+- **AC-GWF-40** — **Given** a bug fixed through the bug-fix workflow **When** the fix is written **Then** a required prevention step runs before the change review: it names the bug class from a closed list, why the class can happen, the sibling search (query, count, locations), and either a guard that exists in the project or "no guard" with a reason and an owner; the run does not close without that record
+- **AC-GWF-41** — **Given** a change review that fixed a finding **When** the finding was a behavior defect (wrong behavior, crash, data error, security or performance fault) **Then** the review runs the prevention step once and needs its record; **When** every fixed finding was style, naming, documentation or coverage only **Then** the step is skipped with that reason, no guard record is needed, and the fix step leaves only a one-line "not applicable" record so the commit reminder stays quiet
+- **AC-GWF-42** — **Given** a fix asked for directly, outside any workflow, under any scope **When** the fix starts **Then** its prevention task is created with it and must hold a valid record before the reviews and the final test run
+- **AC-GWF-43** — **Given** a prevention record **When** it is checked **Then** a "not applicable" record with its reason is valid but never proves the "recurrence guarded" outcome, and a missing class, a class outside the list, "no guard" without an owner, a guard location that is missing from the project or ignored by version control, an environment cause without evidence, or a value shaped like a secret makes it invalid, and the check names the field, why it matters and the fix
+- **AC-GWF-44** — **Given** a fix that started in this session **When** the assistant commits with no valid record written after the fix **Then** the commit gets one warning line saying why it matters and how to clear it (a refusal only when the project opted into strict checks); with a valid record, or with no fix, nothing is said
+- **AC-GWF-45** — **Given** a project that turned on the bug-class commit line **When** a commit fixes a bug whose record is valid **Then** its message carries `Bug-Class: <class>` in exactly that form; with the setting off, or without a valid record, no such line is written
+
 ---
 
 ## 4. Business Rules
@@ -255,6 +273,8 @@ Every workflow states the goal it must reach and the quality results a finished 
 | BR-GWF-20 | Splitting or merging workflows keeps every step and gate                 | Quality      | [HARD]      |
 | BR-GWF-21 | Readiness is checked at the start of three catalog workflows             | Quality      | [HARD]      |
 | BR-GWF-22 | The regression-test step never dead-ends without a test project          | Quality      | [HARD]      |
+| BR-GWF-24 | Every bug fix ends with a bug-class prevention record                    | Quality      | [HARD]      |
+| BR-GWF-25 | A prevention record is checked, holds no secret, and the commit line warns by default | Quality      | [HARD]      |
 
 ### BR-GWF-01: Gate steps are fixed [HARD]
 
@@ -429,6 +449,14 @@ IF the route starts no catalog workflow
 
 **Statement:** When the bug-fix workflow's regression-test step finds no test project, it offers the readiness setup for a test runner. After a no, or in a team-owned repository, it writes the regression test with a runner the project can already execute — the language's built-in runner when nothing else exists — beside the code it guards, and records that no test project exists and who owns creating one. The regression gate is never skipped and never reported done without a test that fails before the fix.
 
+### BR-GWF-24: Every bug fix ends with a bug-class prevention record [HARD]
+
+**Statement:** Every route that repairs a product defect ends the fix with one prevention task, owned in one place. The bug-fix workflow runs it as a gate step right after the fix and before the change review, so the guard is reviewed and tested with the fix, and its close requires the "recurrence guarded" outcome. The change-review workflow runs it once, after its fix step, only when a fixed finding was a behavior defect; its "recurrence guarded" outcome is conditional on that. A direct fix creates the task at its start and finishes it before its reviews and final test run; a fix nested under a caller that has no prevention step runs the task itself. The task names the bug class from a closed list that includes forbidden state changes, ordering races and replayed requests; asks why the class can happen at all; searches for sibling instances and reports them, never fixing them silently outside the change; and picks the strongest affordable guard in order — impossible by design, an automatic check whose message names the fix with a frozen list of existing cases, a test, a hook, and a written lesson last, only with the user's agreement — or records "no guard" with a reason and an owner. For a forbidden state change, the test level is a stateful property test that runs random command sequences against a simple model and checks the spec's transition invariants after every step.
+
+### BR-GWF-25: A prevention record is checked, holds no secret, and the commit line warns by default [HARD]
+
+**Statement:** A deterministic checker, runnable on its own, validates the record and answers valid, missing or invalid with each problem, why it matters and the fix: a guard location must exist in the project and not be ignored by version control, "no guard" needs an owner, an environment-only cause needs its evidence, a fix that repaired no behavior defect records only its reason as "not applicable" (this clears the commit reminder but never satisfies "recurrence guarded"), a guard must be a file, and a value shaped like a secret is refused and never echoed back. The close and the direct fix trust only the checker's answer. When a fix started in the session and no valid record was written after it, a commit gets one warning line under the default verify setting, a refusal only under its opted-in strict setting, and nothing when verification is off; a fault in that check never blocks, and a fix marker expires after a working day. A project may opt into a `Bug-Class: <class>` commit line, written in exactly that form only for a fix with a valid record and only on new commits.
+
 ## 5. Domain Model
 
 ### Relationships (overview)
@@ -561,6 +589,7 @@ ReadinessCheck N──0..1 ReadinessDecision (the recorded answer that covers it
 | Spec synced       | The spec matches the changed behavior (conditional)            |
 | Plan approved     | The plan was approved before building                          |
 | Root cause traced | A bug's cause was traced to its owner before the fix           |
+| Recurrence guarded | A fixed bug's class has a valid prevention record: a guard in the project, or no guard with a reason and an owner (conditional in the change review) |
 
 ### Enum: DeviationKind
 
@@ -659,7 +688,7 @@ ReadinessCheck N──0..1 ReadinessDecision (the recorded answer that covers it
 
 > Business-readable acceptance scenarios. The "user" of this capability is a developer, a framework maintainer or the AI assistant; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output (no screen exists, so the UI dimension is stated as not applicable).
 
-> Numbering note: the IDs were pre-allocated by the release plan so implementation phases could reference them in parallel; categories below group them by behavior rather than by decade. TC-GWF-057…062 were added for intent-first flexible execution, TC-GWF-063…067 for the session report opener (BR-GWF-18), TC-GWF-068 for the order of a clean-up rewrite (BR-GWF-14), TC-GWF-071…073 for workflow-step mode, the triage batch close and the optional session report, and TC-GWF-078…088 for readiness at task start (BR-GWF-21, BR-GWF-22).
+> Numbering note: the IDs were pre-allocated by the release plan so implementation phases could reference them in parallel; categories below group them by behavior rather than by decade. TC-GWF-057…062 were added for intent-first flexible execution, TC-GWF-063…067 for the session report opener (BR-GWF-18), TC-GWF-068 for the order of a clean-up rewrite (BR-GWF-14), TC-GWF-071…073 for workflow-step mode, the triage batch close and the optional session report, TC-GWF-078…088 for readiness at task start (BR-GWF-21, BR-GWF-22), and TC-GWF-090…099 for bug-class prevention (BR-GWF-24, BR-GWF-25).
 
 > Size note: this spec holds more than forty cases. It stays one document because every case guards one capability — how a workflow run executes and what it costs — and the pre-allocated IDs are referenced by the implementation plan; a split into a continuation part is a follow-up for the spec owner.
 
@@ -669,10 +698,10 @@ ReadinessCheck N──0..1 ReadinessDecision (the recorded answer that covers it
 
 | Priority  | Count  | Automated | Manual |
 | --------- | ------ | --------- | ------ |
-| P0        | 21     | 19        | 2      |
-| P1        | 57     | 55        | 2      |
+| P0        | 25     | 23        | 2      |
+| P1        | 63     | 61        | 2      |
 | P2        | 8      | 8         | 0      |
-| **Total** | **86** | **82**    | **4**  |
+| **Total** | **96** | **92**    | **4**  |
 
 | Category                  | TCs                                                                                                                                                        |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -685,14 +714,15 @@ ReadinessCheck N──0..1 ReadinessDecision (the recorded answer that covers it
 | Usage Report Tests        | TC-GWF-031, TC-GWF-032, TC-GWF-033, TC-GWF-054                                                                                                             |
 | Spend Checkpoint Tests    | TC-GWF-034, TC-GWF-035, TC-GWF-036, TC-GWF-037, TC-GWF-038, TC-GWF-039, TC-GWF-040, TC-GWF-050, TC-GWF-053, TC-GWF-055                                     |
 | Session Report Tests      | TC-GWF-063, TC-GWF-064, TC-GWF-065, TC-GWF-066, TC-GWF-067, TC-GWF-073                                                                                     |
+| Bug-Class Prevention Tests | TC-GWF-090, TC-GWF-091, TC-GWF-092, TC-GWF-093, TC-GWF-094, TC-GWF-095, TC-GWF-096, TC-GWF-097, TC-GWF-098, TC-GWF-099 |
 | Harness Readiness Tests   | TC-GWF-078, TC-GWF-079, TC-GWF-080, TC-GWF-081, TC-GWF-082, TC-GWF-083, TC-GWF-084, TC-GWF-085, TC-GWF-086, TC-GWF-087, TC-GWF-088 |
 
 ### Planned Executors
 
 | Executor                                                       | TCs                                                                                                                                                                                                                                |
 | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.claude/hooks/tests/suites/workflow.test.cjs`                 | TC-GWF-001, TC-GWF-002, TC-GWF-003, TC-GWF-004, TC-GWF-005, TC-GWF-011, TC-GWF-012, TC-GWF-013, TC-GWF-014, TC-GWF-015, TC-GWF-017, TC-GWF-018, TC-GWF-022, TC-GWF-043, TC-GWF-044, TC-GWF-052, TC-GWF-057, TC-GWF-061, TC-GWF-062, TC-GWF-068, TC-GWF-073, TC-GWF-074, TC-GWF-075, TC-GWF-076, TC-GWF-077 |
-| `.claude/hooks/tests/suites/content-presence.test.cjs`         | TC-GWF-006, TC-GWF-007, TC-GWF-010, TC-GWF-019, TC-GWF-020, TC-GWF-041, TC-GWF-042, TC-GWF-044, TC-GWF-058, TC-GWF-059, TC-GWF-060, TC-GWF-071, TC-GWF-072                                                                         |
+| `.claude/hooks/tests/suites/workflow.test.cjs`                 | TC-GWF-001, TC-GWF-002, TC-GWF-003, TC-GWF-004, TC-GWF-005, TC-GWF-011, TC-GWF-012, TC-GWF-013, TC-GWF-014, TC-GWF-015, TC-GWF-017, TC-GWF-018, TC-GWF-022, TC-GWF-043, TC-GWF-044, TC-GWF-052, TC-GWF-057, TC-GWF-061, TC-GWF-062, TC-GWF-068, TC-GWF-073, TC-GWF-074, TC-GWF-075, TC-GWF-076, TC-GWF-077, TC-GWF-090, TC-GWF-091 |
+| `.claude/hooks/tests/suites/content-presence.test.cjs`         | TC-GWF-006, TC-GWF-007, TC-GWF-010, TC-GWF-019, TC-GWF-020, TC-GWF-041, TC-GWF-042, TC-GWF-044, TC-GWF-058, TC-GWF-059, TC-GWF-060, TC-GWF-071, TC-GWF-072, TC-GWF-099                                                                         |
 | Manual-QC (dry run or live replay)                             | TC-GWF-008, TC-GWF-009, TC-GWF-041, TC-GWF-051, TC-GWF-058, TC-GWF-088                                                                                                                                                             |
 | `.claude/scripts/tests/harness-readiness.test.cjs`             | TC-GWF-078, TC-GWF-079, TC-GWF-080, TC-GWF-081, TC-GWF-082, TC-GWF-083, TC-GWF-084, TC-GWF-085, TC-GWF-086, TC-GWF-087 |
 | `.claude/hooks/tests/suites/review-commit-gate.test.cjs`       | TC-GWF-042                                                                                                                                                                                                                         |
@@ -704,6 +734,7 @@ ReadinessCheck N──0..1 ReadinessDecision (the recorded answer that covers it
 | `.claude/hooks/tests/suites/token-budget-checkpoint.test.cjs`  | TC-GWF-034, TC-GWF-035, TC-GWF-036, TC-GWF-037, TC-GWF-038, TC-GWF-039, TC-GWF-040, TC-GWF-050, TC-GWF-053, TC-GWF-055                                                                                                             |
 | `.claude/scripts/tests/open-report.test.cjs`                   | TC-GWF-063, TC-GWF-064, TC-GWF-065, TC-GWF-066                                                                                                                                                                                     |
 | `.claude/hooks/tests/suites/watzup-session-summary.test.cjs`   | TC-GWF-067                                                                                                                                                                                                                         |
+| `.claude/hooks/tests/suites/prevention-record.test.cjs`        | TC-GWF-092, TC-GWF-093, TC-GWF-094, TC-GWF-095, TC-GWF-096, TC-GWF-097, TC-GWF-098 |
 
 ### Rule Coverage
 
@@ -731,6 +762,8 @@ ReadinessCheck N──0..1 ReadinessDecision (the recorded answer that covers it
 | BR-GWF-20 | TC-GWF-075, TC-GWF-076, TC-GWF-077                                                             |
 | BR-GWF-21 | TC-GWF-078, TC-GWF-079, TC-GWF-080, TC-GWF-081, TC-GWF-082, TC-GWF-083, TC-GWF-084, TC-GWF-085, TC-GWF-087, TC-GWF-088 |
 | BR-GWF-22 | TC-GWF-086                                                                                     |
+| BR-GWF-24 | TC-GWF-090, TC-GWF-091, TC-GWF-099                                                             |
+| BR-GWF-25 | TC-GWF-092, TC-GWF-093, TC-GWF-094, TC-GWF-095, TC-GWF-096, TC-GWF-097, TC-GWF-098, TC-GWF-099 |
 
 ### Step Role and Gate Tests
 
@@ -3237,6 +3270,580 @@ boundaryCounterCase: 'a team-owned project → proposed'
 > **Evidence:** `[Source: operation/journey/novice-readiness]`
 > **Related Behaviors:** `operation/journey/novice-readiness`
 > **CoveredBy:** Manual-QC (live replay) · **Status:** Planned — the live journey runs with the plan's final verify; the deterministic outcomes are proven by TC-GWF-079, TC-GWF-082 and TC-GWF-083
+
+---
+
+### Bug-Class Prevention Tests
+
+> Every fix guards its bug class (US-GWF-10).
+
+#### TC-GWF-090: The bug-fix workflow guards the bug class with a required step before the review [P0]
+
+**Objective:** Prove that the bug-fix workflow holds a gate prevention step right after its fix and before its change review, and an unconditional "recurrence guarded" outcome satisfied by it; removing the step, making it optional, moving it after the review or making the outcome conditional is detected.
+
+**Business Intent / Invariant Guarded:** No bug fix closes without guarding its class, and the guard is reviewed and tested with the fix (BR-GWF-24).
+
+**Traces:** AC-GWF-40 / BR-GWF-24 / BR-GWF-01
+
+**Preconditions:**
+
+- The framework registry and the workflow resolver
+
+**Real-World Reachability:** Every run of the bug-fix workflow.
+
+**Demo Flow:** Read the bug-fix workflow's steps and outcome gates.
+
+```gherkin
+Given the bug-fix workflow
+When its steps and outcome gates are read
+Then a gate prevention step follows the fix and precedes the change review
+And "recurrence guarded" is required and satisfied by that step
+And a registry that drops, weakens or moves the step is detected
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation |
+| ----------------------- | ----------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
+| **System behavior**     | Validates |
+| **Business data state** | No change to product data; at most one prevention record in the temporary work area |
+| **Data shown on UI**    | The workflow whose prevention wiring differs |
+
+**Acceptance Criteria:**
+
+- ✅ Gate step between fix and review; required outcome
+- ❌ The step removed, optional, moved, or the outcome conditional
+
+**Test Data:**
+
+```yaml
+inputDomain: 'the bug-fix workflow registry entry and four mutations of it'
+invariant: 'a gate prevention step sits between the fix and the review, with a required outcome'
+boundaryCounterCase: 'the step made optional → detected'
+```
+
+**Edge Cases:**
+
+- A registry without phases still resolves the same check
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/workflows/bug-class-prevention-gate]`
+> **Related Behaviors:** `rule/workflows/bug-class-prevention-gate`
+> **CoveredBy:** `.claude/hooks/tests/suites/workflow.test.cjs::[guided-workflow] TC-GWF-090 workflow-bugfix guards the bug class with a gate prevention step and a required recurrence-guarded gate` · **Status:** Implemented — evidence: written with the change; run at the change's final verify
+
+---
+
+#### TC-GWF-091: A change review runs prevention only after a fixed behavior defect; older registries still validate [P1]
+
+**Objective:** Prove that "recurrence guarded" is an accepted outcome kind, that a registry without it still validates, that the change review's writing mode holds an optional prevention step after its fix step with a conditional outcome that names behavior defects and excludes style findings, and that its report-only mode holds neither.
+
+**Business Intent / Invariant Guarded:** A defect fixed inside a review is guarded like any other fix, and a style-only finding never triggers the gate (BR-GWF-24).
+
+**Traces:** AC-GWF-41 / BR-GWF-24 / BR-GWF-12
+
+**Preconditions:**
+
+- The outcome-gate schema, the resolver and the change-review registry entry
+
+**Real-World Reachability:** A pull-request review that fixes a crash, and one that only renames variables.
+
+**Demo Flow:** Read the schema and the change review's two modes.
+
+```gherkin
+Given the outcome-gate schema and the change-review workflow
+When a registry declares "recurrence guarded"
+Then it validates, and a registry without it still validates
+And the writing mode runs prevention only after a fixed behavior defect
+And the report-only mode has no prevention step
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation |
+| ----------------------- | ----------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
+| **System behavior**     | Validates |
+| **Business data state** | No change to product data; at most one prevention record in the temporary work area |
+| **Data shown on UI**    | The mode whose prevention wiring differs |
+
+**Acceptance Criteria:**
+
+- ✅ Conditional outcome naming behavior defects only
+- ❌ A style-only finding requiring a prevention record
+
+**Test Data:**
+
+```yaml
+inputDomain: 'outcome kinds and the two change-review modes'
+invariant: 'prevention runs only after a fixed behavior defect'
+boundaryCounterCase: 'the conditional outcome removed → detected'
+```
+
+**Edge Cases:**
+
+- A nested review inside the bug-fix workflow may still run its own prevention step for a defect it fixed
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/workflows/review-prevention-conditional]`
+> **Related Behaviors:** `rule/workflows/review-prevention-conditional`
+> **CoveredBy:** `.claude/hooks/tests/suites/workflow.test.cjs::[guided-workflow] TC-GWF-091 recurrence-guarded is a schema gate id; review-changes runs prevention only after a fixed behavior defect` · **Status:** Implemented — evidence: written with the change; run at the change's final verify
+
+---
+
+#### TC-GWF-092: A guarded record, a no-guard record with an owner, and an environment cause with evidence are valid [P0]
+
+**Objective:** Prove that the checker accepts a record whose guard exists in the project, a "no guard" record with a reason and an owner, and an environment-only cause with evidence, and that the closed class list holds forbidden state changes, ordering races and replayed requests.
+
+**Business Intent / Invariant Guarded:** A legitimate record is never refused, so the gate costs a cheap fix only one honest line (BR-GWF-25).
+
+**Traces:** AC-GWF-43 / BR-GWF-25
+
+**Preconditions:**
+
+- A throwaway project folder with one guard file
+
+**Real-World Reachability:** A one-line typo fix recorded as "no guard" with an owner.
+
+**Demo Flow:** Validate three records.
+
+```gherkin
+Given a guarded record, a no-guard record and an environment record
+When each is checked
+Then each is valid
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation |
+| ----------------------- | ----------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
+| **System behavior**     | Accepts the record |
+| **Business data state** | No change to product data; at most one prevention record in the temporary work area |
+| **Data shown on UI**    | Valid |
+
+**Acceptance Criteria:**
+
+- ✅ All three accepted
+- ❌ A legitimate record refused
+
+**Test Data:**
+
+```yaml
+inputDomain: 'the three outcomes'
+invariant: 'every complete record is valid'
+boundaryCounterCase: 'a class outside the list → invalid'
+```
+
+**Edge Cases:**
+
+- The class "other" needs a short class name
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/workflows/prevention-record-valid]`
+> **Related Behaviors:** `rule/workflows/prevention-record-valid`
+> **CoveredBy:** `.claude/hooks/tests/suites/prevention-record.test.cjs::TC-GWF-092 a guarded record and a no-guard record with an owner are valid` · **Status:** Implemented — evidence: written with the change; run at the change's final verify
+
+---
+
+#### TC-GWF-093: An incomplete record is invalid and says why and how to fix it [P0]
+
+**Objective:** Prove that a record without a class, with a class outside the list, a placeholder text, "no guard" without an owner, a guard location missing from the project or outside it, a missing sibling search, or an environment cause without evidence is invalid, and that each problem names the field, why it matters and the fix.
+
+**Business Intent / Invariant Guarded:** A record cannot pass without the guard or the reason it describes, and the message teaches the fix (BR-GWF-25).
+
+**Traces:** AC-GWF-43 / BR-GWF-25
+
+**Preconditions:**
+
+- A throwaway project folder
+
+**Real-World Reachability:** A record written in a hurry with the template text left in.
+
+**Demo Flow:** Validate each broken record.
+
+```gherkin
+Given a record missing one required part
+When it is checked
+Then it is invalid
+And the problem names the field, why it matters and the fix
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation |
+| ----------------------- | ----------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
+| **System behavior**     | Refuses with each problem |
+| **Business data state** | No change to product data; at most one prevention record in the temporary work area |
+| **Data shown on UI**    | Each field, problem and fix |
+
+**Acceptance Criteria:**
+
+- ✅ Every gap named with its fix
+- ❌ A record with a gap accepted
+
+**Test Data:**
+
+```yaml
+inputDomain: 'one missing or wrong field at a time'
+invariant: 'each gap yields exactly that field as the problem'
+boundaryCounterCase: 'sweep count 3 with no locations → invalid'
+```
+
+**Edge Cases:**
+
+- A location with a line suffix is checked without the suffix
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/workflows/prevention-record-invalid]`
+> **Related Behaviors:** `rule/workflows/prevention-record-invalid`
+> **CoveredBy:** `.claude/hooks/tests/suites/prevention-record.test.cjs::TC-GWF-093 a record without a bug class, an owner, a guard in the tree or evidence is invalid and says why and how to fix it` · **Status:** Implemented — evidence: written with the change; run at the change's final verify
+
+---
+
+#### TC-GWF-094: A guard ignored by version control and a secret-shaped value are refused [P1]
+
+**Objective:** Prove that a guard placed in a location version control ignores is refused, because it would never reach the project, and that a value shaped like a secret is refused without the finding repeating it.
+
+**Business Intent / Invariant Guarded:** A guard must land in the project, and a record never carries a credential (BR-GWF-25).
+
+**Traces:** AC-GWF-43 / BR-GWF-25
+
+**Preconditions:**
+
+- A throwaway repository that ignores its temporary work area
+
+**Real-World Reachability:** A test written in the temporary folder by mistake; a token pasted into the root cause.
+
+**Demo Flow:** Validate both records in the repository.
+
+```gherkin
+Given a guard in an ignored location, or a token in a field
+When the record is checked
+Then it is invalid
+And the finding never repeats the token
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation |
+| ----------------------- | ----------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
+| **System behavior**     | Refuses |
+| **Business data state** | No change to product data; at most one prevention record in the temporary work area |
+| **Data shown on UI**    | The field name only |
+
+**Acceptance Criteria:**
+
+- ✅ Both refused, no token echoed
+- ❌ An ignored guard accepted or a token echoed
+
+**Test Data:**
+
+```yaml
+inputDomain: 'guard locations and field texts'
+invariant: 'only a trackable guard and secret-free text pass'
+boundaryCounterCase: 'the same guard in a tracked folder → valid'
+```
+
+**Edge Cases:**
+
+- Without version control the existence check alone applies
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/workflows/prevention-record-safety]`
+> **Related Behaviors:** `rule/workflows/prevention-record-safety`
+> **CoveredBy:** `.claude/hooks/tests/suites/prevention-record.test.cjs::TC-GWF-094 a git-ignored guard and a secret-shaped value are rejected` · **Status:** Implemented — evidence: written with the change; run at the change's final verify
+
+---
+
+#### TC-GWF-095: The checker runs on its own and answers valid, missing or invalid [P1]
+
+**Objective:** Prove that the checker runs directly with a structured answer: missing with the reason and the fix when no record exists, the newest valid record otherwise, invalid with each problem for a named file, missing for records older than a given time, and an error for an unknown option; the class list and an unfillable template are printable.
+
+**Business Intent / Invariant Guarded:** Every route trusts one answer from one checker (BR-GWF-25).
+
+**Traces:** AC-GWF-42 / AC-GWF-43 / BR-GWF-25
+
+**Preconditions:**
+
+- A throwaway repository
+
+**Real-World Reachability:** The close step and a direct fix each run the checker.
+
+**Demo Flow:** Run the checker before and after records exist.
+
+```gherkin
+Given no record, then an old invalid and a new valid record
+When the checker runs
+Then it answers missing, then valid for the newest record
+And invalid for the named old record
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation |
+| ----------------------- | ----------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
+| **System behavior**     | Answers with exit status and structured output |
+| **Business data state** | No change to product data; at most one prevention record in the temporary work area |
+| **Data shown on UI**    | The verdict, the record and its problems |
+
+**Acceptance Criteria:**
+
+- ✅ Each verdict right
+- ❌ A missing record reported as valid
+
+**Test Data:**
+
+```yaml
+inputDomain: 'record sets and options'
+invariant: 'the newest valid record wins; nothing else passes'
+boundaryCounterCase: 'a time after every record → missing'
+```
+
+**Edge Cases:**
+
+- A file that is not structured text is invalid, not a crash
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/workflows/prevention-record-cli]`
+> **Related Behaviors:** `rule/workflows/prevention-record-cli`
+> **CoveredBy:** `.claude/hooks/tests/suites/prevention-record.test.cjs::TC-GWF-095 the checker CLI runs directly: MISSING exits 1, the newest valid record exits 0, an invalid file lists its problems` · **Status:** Implemented — evidence: written with the change; run at the change's final verify
+
+---
+
+#### TC-GWF-096: Only a real start of the fix records the session marker [P1]
+
+**Objective:** Prove that starting the fix skill by the assistant, by a typed command or by a second-host prompt records the session's fix marker, while reading the fix instructions, starting another skill, or an event without a session records nothing, and a failing recorder never breaks the reminder.
+
+**Business Intent / Invariant Guarded:** A maintainer reading the fix instructions is not mistaken for a fix (BR-GWF-25).
+
+**Traces:** AC-GWF-44 / BR-GWF-25
+
+**Preconditions:**
+
+- The skill-start reminder with a stand-in recorder
+
+**Real-World Reachability:** A framework maintainer edits the fix instructions in the same session as a real fix.
+
+**Demo Flow:** Send seven skill events through the reminder, including a review's fix of its findings, which is recorded too.
+
+```gherkin
+Given skill-start events
+When the fix skill starts for real
+Then the marker is recorded
+And a read of its instructions records nothing
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation |
+| ----------------------- | ----------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
+| **System behavior**     | Records or ignores |
+| **Business data state** | No change to product data; at most one prevention record in the temporary work area |
+| **Data shown on UI**    | Nothing |
+
+**Acceptance Criteria:**
+
+- ✅ Four real starts recorded (a review's fix included), three others ignored
+- ❌ A read of the instructions recorded as a fix
+
+**Test Data:**
+
+```yaml
+inputDomain: 'seven skill events'
+invariant: 'only a real fix start records'
+boundaryCounterCase: 'no session id → nothing'
+```
+
+**Edge Cases:**
+
+- A recorder fault leaves the reminder silent and unbroken
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/workflows/fix-marker]`
+> **Related Behaviors:** `rule/workflows/fix-marker`
+> **CoveredBy:** `.claude/hooks/tests/suites/prevention-record.test.cjs::TC-GWF-096 a real fix activation records the marker; a read of fix/SKILL.md, another skill or no session records nothing` · **Status:** Implemented — evidence: written with the change; run at the change's final verify
+
+---
+
+#### TC-GWF-097: The commit line warns once after a fix with no record, and is silent otherwise [P0]
+
+**Objective:** Prove that with a fix marker and no valid record written after it the commit check gives one warning line naming why it matters and how to clear it; that a record written before the fix does not count; that an invalid record is named; that a valid record or no fix is silent; that strict mode refuses, off says nothing, another session never applies, and an expired marker is ignored.
+
+**Business Intent / Invariant Guarded:** A forgotten prevention task is visible at commit time without trapping unrelated commits (BR-GWF-25).
+
+**Traces:** AC-GWF-44 / BR-GWF-25
+
+**Preconditions:**
+
+- A throwaway project folder
+
+**Real-World Reachability:** An assistant commits right after a quick fix.
+
+**Demo Flow:** Record a fix, then add records one by one.
+
+```gherkin
+Given a fix in this session
+When a commit is checked with no valid record after the fix
+Then one warning line names why and how to clear it
+And a valid record after the fix silences it
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation |
+| ----------------------- | ----------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
+| **System behavior**     | Warns, refuses under strict mode, or stays silent |
+| **Business data state** | No change to product data; at most one prevention record in the temporary work area |
+| **Data shown on UI**    | The warning line |
+
+**Acceptance Criteria:**
+
+- ✅ One line, with the why and the fix
+- ❌ A warning with a valid record, or a block by default
+
+**Test Data:**
+
+```yaml
+inputDomain: 'marker age, record timing and validity, verify mode, session'
+invariant: 'warn only for a live marker without a later valid record'
+boundaryCounterCase: 'record written before the fix → still warns'
+```
+
+**Edge Cases:**
+
+- A marker older than a working day is ignored
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/workflows/commit-prevention-line]`
+> **Related Behaviors:** `rule/workflows/commit-prevention-line`
+> **CoveredBy:** `.claude/hooks/tests/suites/prevention-record.test.cjs::TC-GWF-097 the commit line: no record after the fix warns, a valid record or no fix is silent, enforce refuses, off says nothing` · **Status:** Implemented — evidence: written with the change; run at the change's final verify
+
+---
+
+#### TC-GWF-098: The commit check adds the line only after the review check, and a fault never blocks [P1]
+
+**Objective:** Prove that a reviewed commit with no fix in the session passes silently, that a fix marker without a record adds the warning line to an allowed commit, that a fault in the prevention check never blocks, and that a strict finding refuses.
+
+**Business Intent / Invariant Guarded:** The prevention line never weakens or replaces the review gate, and its own failure never traps a commit (BR-GWF-25).
+
+**Traces:** AC-GWF-44 / BR-GWF-25 / BR-GWF-03
+
+**Preconditions:**
+
+- A throwaway repository with a reviewed staged change
+
+**Real-World Reachability:** A commit right after a fix, and one in a session with no fix.
+
+**Demo Flow:** Commit the reviewed change in four situations.
+
+```gherkin
+Given a reviewed staged change
+When the commit is checked
+Then no fix is silent, a fix without a record warns, a fault passes and a strict finding refuses
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation |
+| ----------------------- | ----------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
+| **System behavior**     | Allows, warns or refuses |
+| **Business data state** | No change to product data; at most one prevention record in the temporary work area |
+| **Data shown on UI**    | The warning line |
+
+**Acceptance Criteria:**
+
+- ✅ Four outcomes as stated
+- ❌ A fault in the prevention check blocking the commit
+
+**Test Data:**
+
+```yaml
+inputDomain: 'four commit situations'
+invariant: 'the prevention line is advisory unless strict'
+boundaryCounterCase: 'strict finding → refused'
+```
+
+**Edge Cases:**
+
+- An unreviewed commit is still refused by the review gate first
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/workflows/commit-gate-prevention]`
+> **Related Behaviors:** `rule/workflows/commit-gate-prevention`
+> **CoveredBy:** `.claude/hooks/tests/suites/prevention-record.test.cjs::TC-GWF-098 the commit gate adds the prevention line after the review check, and a fault in it never blocks` · **Status:** Implemented — evidence: written with the change; run at the change's final verify
+
+---
+
+#### TC-GWF-099: Every fix route runs and checks the prevention task, and the close refuses without a record [P1]
+
+**Objective:** Prove that the instructions keep the prevention task in one owner, run it before the reviews and the final test run on every fix route, check the record before that run, name the bug class at the end of the investigation, refuse the close without a valid record, ask the user before a lesson or a bigger guard, keep the opt-in commit line in its exact form, and describe the stateful property test for forbidden state changes.
+
+**Business Intent / Invariant Guarded:** Instruction text cannot silently drop the task, its order or its consent rules (BR-GWF-24, BR-GWF-25).
+
+**Traces:** AC-GWF-40 / AC-GWF-42 / AC-GWF-45 / BR-GWF-24 / BR-GWF-25
+
+**Preconditions:**
+
+- The fix, bug-fix workflow, close, investigation, commit and integration-test instructions
+
+**Real-World Reachability:** Any fix the assistant makes.
+
+**Demo Flow:** Read the instructions.
+
+```gherkin
+Given the instructions that run or check the prevention task
+When they are read
+Then each states its part of the task in order
+And the close refuses without a valid record
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation |
+| ----------------------- | ----------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
+| **System behavior**     | States the rules |
+| **Business data state** | No change to product data; at most one prevention record in the temporary work area |
+| **Data shown on UI**    | Nothing |
+
+**Acceptance Criteria:**
+
+- ✅ Every rule present
+- ❌ A rule lost from any instruction
+
+**Test Data:**
+
+```yaml
+inputDomain: 'seven instruction files'
+invariant: 'each holds its part of the prevention contract'
+boundaryCounterCase: 'the close refusal removed → detected'
+```
+
+**Edge Cases:**
+
+- The commit line stays optional and never rewrites history
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/workflows/prevention-instructions]`
+> **Related Behaviors:** `rule/workflows/prevention-instructions`
+> **CoveredBy:** `.claude/hooks/tests/suites/content-presence.test.cjs::[content-presence] TC-GWF-099 fix, workflow-bugfix and workflow-end run and check the bug-class prevention task before the reviews and the verify; /learn only after the user confirms`, `.claude/hooks/tests/suites/project-config-refactor-keys.test.cjs::[project-config-refactor-keys] commit.fixOriginTrailer is an optional boolean section` · **Status:** Implemented — evidence: written with the change; run at the change's final verify
 
 ---
 

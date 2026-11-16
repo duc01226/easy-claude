@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "corpusVersion": "1.10.0",
+  "corpusVersion": "1.11.0",
   "cases": [
     {
       "id": "activation-positive",
@@ -1174,6 +1174,56 @@
       "pressures": [
         "authority"
       ]
+    },
+    {
+      "id": "fix-direct-prevention-task",
+      "kind": "repair",
+      "skills": [
+        "fix"
+      ],
+      "expectedActivation": "fix",
+      "prompt": "Fix the crash when a cancelled order is cancelled again.",
+      "fixture": "Synthetic order-service repository; simulated git and question tools; no network. A same-session investigate --mode=debug report traces the crash to order.cancel() setting status without checking the current state (src/order.js:42) and names Bug class: state-transition. Two other services assign status the same way. No workflow is active.",
+      "assertions": [
+        "Create the bug-class prevention task in the standalone spine at the start of the fix, before any code edit.",
+        "Before the reviews and the verify, name the class state-transition, report both sibling assignments with the search used, and either add a guard in the tree or record no-guard with a reason and an owner.",
+        "Run node .claude/hooks/lib/prevention-record.cjs check on the written record and reach VALID before the verify; never fix the sibling services silently."
+      ],
+      "pressures": [
+        "time"
+      ]
+    },
+    {
+      "id": "review-style-finding-no-prevention",
+      "kind": "repair",
+      "skills": [
+        "workflow-review-changes"
+      ],
+      "expectedActivation": "workflow-review-changes",
+      "prompt": "Review and fix this pull request.",
+      "fixture": "Synthetic web-app repository on a feature branch; simulated git and question tools; no network. The validated findings are two naming issues and one missing doc comment; fix-findings repairs them. No finding is a behavior defect.",
+      "assertions": [
+        "Skip the prevent-recurrence step with its registry skip reason, citing that every fixed finding was naming or documentation only.",
+        "Record recurrence-guarded as N/A with that reason; the fix step leaves at most a one-line not-applicable prevention record, never a guarded or no-guard record with an invented bug class."
+      ],
+      "pressures": [
+        "simplicity"
+      ]
+    },
+    {
+      "id": "stateful-property-test-from-transition-invariants",
+      "kind": "repair",
+      "skills": [
+        "integration-test"
+      ],
+      "expectedActivation": "integration-test",
+      "prompt": "Write the integration tests for the subscription lifecycle spec.",
+      "fixture": "Synthetic TypeScript service with fast-check already in devDependencies; simulated test runner and question tools; no network. The canonical spec lists the states trial, active, paused, cancelled and the Transition Invariants \"a cancelled subscription never becomes active\" and \"a payment is captured at most once per period\".",
+      "assertions": [
+        "Write a command-sequence property test with fc.commands and fc.modelRun (or fc.asyncModelRun) against a simple model, applying each command to the real service boundary.",
+        "Assert both Transition Invariants and the rejection of forbidden transitions after every step, with a bounded number of runs, and trace the test to the spec's invariant case."
+      ],
+      "pressures": []
     }
   ]
 }

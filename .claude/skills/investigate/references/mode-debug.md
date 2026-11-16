@@ -120,6 +120,7 @@ Append evidence incrementally to `tmp/reports/debug-investigate-{YYMMDD}-{slug}.
 - Root cause or "hypothesis, not confirmed", confidence, `file:line` chain, affected files and gaps.
 - `Debugger Trace: End -> Start`, feeder statuses, hypothesis matrix and data flow.
 - Invariant owner, proposed correction, forward convergence, tests/proof and full report link.
+- `Bug class: <class>` from the closed vocabulary (`node .claude/hooks/lib/prevention-record.cjs classes`: `state-transition`, `concurrency-ordering`, `idempotency-replay`, `missing-value`, `boundary`, `error-handling`, `contract-drift`, `duplicated-rule`, `data-integrity`, `security`, `performance`, `test-reliability`, `configuration`, `build-tooling`, or `other` with a short name), plus one line on why that class can happen in this code. The fix's bug-class prevention task (`fix/references/mode-prevent.md`) starts from it; an environment-only cause says `Bug class: not a code defect` with the discriminator.
 
 **Standalone next steps:** Use `ask user question tool`; never auto-continue. Offer the appropriate full workflow (recommended), `/fix`, `/plan`, or manual continuation. Skip this choice ONLY for `nested=true`: a linked step of an active `[Workflow]` row with its own phase tasks; an abandoned/existing row alone does not qualify. Return nested findings to the parent.
 

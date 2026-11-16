@@ -1,6 +1,6 @@
 ---
 name: workflow-end
-version: 1.0.0
+version: 1.1.0
 description: "[Process] Use when the active workflow has finished its steps or the user asks to close it: checks outcome evidence and owned changes, then closes the workflow; recovery state stays until an explicit /clear."
 ---
 
@@ -72,6 +72,7 @@ This skill closes workflow state. In workflows with `/watzup`, it runs after fin
     - `tests-pass`: cite the test command and its output; those tests cover every behaviour the run changed and ran green in this run (BR-GWF-15). Unrelated green tests are not evidence. The green run must be on the final tree: an edit to any source or test file after the cited run invalidates it, so re-run the verify (`SYNC:verify-last-order`) before closing. Also cite the mutation-check result (`mutants killed n/n`, or `N/A — reason`); a code-changing run with neither is missing evidence. When the project configures verify commands, also cite `node .claude/hooks/lib/verify-receipt.cjs check` for the final tree (its verdict and new failures) and report the baseline entries remaining and now passing; report them only, never prune at close.
     - `spec-synced`: cite the spec-sync diff, or a "no behavior change" statement with the diff stat.
     - `root-cause-traced`: cite the root-cause trace (`file:line`) from the investigation report.
+    - `recurrence-guarded`: run `node .claude/hooks/lib/prevention-record.cjs check --file=<record>` on the prevention record the satisfying step (`fix --mode=prevent`) reported, and read its JSON (with no reported path, run `check --proof --since=<when this run started, such as its workflow report's creation time>`, so a record from an earlier run never counts and a later `not-applicable` record from a style-only review fix never hides the run's guard). `VALID` with `provesRecurrenceGuard: true` passes and is cited with its class and guard (or `no-guard` owner); a `not-applicable` record (`provesRecurrenceGuard: false`) proves nothing for this gate; `MISSING` or `INVALID` blocks the close with the problems it lists, and the step that produces the record is `/fix --mode=prevent`. A conditional gate whose `when` does not hold (review-changes: no fixed finding was a behavior defect) is `N/A` with that reason.
     - `plan-approved`: cite the workflow's declared plan approval evidence, such as `/plan --mode=validate`, an explicit user decision, or another registry-declared approval gate.
     - **Nested children:** for each workflow this run ran nested in a writing mode (not `--review-only` or `--report-only`, whose findings are handed off as diagnostics) whose own close was skipped because it ran nested (for example `workflow-e2e`), check that child's outcome gates the same way from its evidence; a child gate without evidence blocks this close like the run's own.
     - `run-closed`: proved by steps 4–7 of this skill; confirm at step 9.

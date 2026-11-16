@@ -2,7 +2,7 @@
 
 > **Purpose:** the one-page map of the portable `.claude/` framework — what it does, how the parts fit, how to use it day to day, and where each topic's detailed owner doc lives. Read it first when you adopt the framework, change it, or need to explain a hook block, a routing decision or a workflow step.
 >
-> **Framework inventory:** <!-- COUNT:hooks -->38<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->77<!-- /COUNT --> hook-library modules · <!-- COUNT:skills -->108<!-- /COUNT --> skills · <!-- COUNT:workflows -->17<!-- /COUNT --> workflows · <!-- COUNT:agents -->25<!-- /COUNT --> agents · <!-- COUNT:shared -->16<!-- /COUNT --> shared reference/protocol entries.
+> **Framework inventory:** <!-- COUNT:hooks -->38<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->78<!-- /COUNT --> hook-library modules · <!-- COUNT:skills -->108<!-- /COUNT --> skills · <!-- COUNT:workflows -->17<!-- /COUNT --> workflows · <!-- COUNT:agents -->25<!-- /COUNT --> agents · <!-- COUNT:shared -->16<!-- /COUNT --> shared reference/protocol entries.
 >
 > **Visual overview:** `.claude/docs/claude-ai-agent-framework-guide.html`. Use this Markdown guide for current inventories and source-owner pointers.
 
@@ -150,7 +150,7 @@ A workflow is an **intent** plus **outcome gates** plus an ordered list of **ste
 - **Parallel groups** run as waves: all members spawn in one message; the next step waits until every member returns.
 - **Nested workflows** run as sub-agents that return a summary — except `workflow-review-changes`, which always runs inline in the main session (its loop owns the session Stop hook); its own reviewers stay sub-agents.
 - **Run record** — run id, mode, fingerprint and occurrence ids persist, so a resume detects a changed definition and stops instead of silently switching.
-- **Evidence-gated close** — `workflow-end` refuses to close until every outcome gate (`root-cause-traced`, `plan-approved`, `tests-pass`, `spec-synced`, `review-converged`, `run-closed`) has evidence: a review receipt or cited report, test command output, and so on.
+- **Evidence-gated close** — `workflow-end` refuses to close until every outcome gate (`root-cause-traced`, `recurrence-guarded`, `plan-approved`, `tests-pass`, `spec-synced`, `review-converged`, `run-closed`) has evidence: a review receipt or cited report, test command output, and so on.
 
 ### Workflow Catalog (17 Workflows)
 
@@ -384,11 +384,11 @@ Codex transforms `/skill` into `$skill`, `Agent` into `spawn_agent` and strips C
 | Runner                                  | Tests  | Covers                                                                 |
 | --------------------------------------- | ------ | ---------------------------------------------------------------------- |
 | `test-all-hooks.cjs` (primary gate)  | **133** | Hook behaviors, bridged suites and the count guard                     |
-| `run-all-tests.cjs` (full aggregate) | **2351** | 137 `tests/suites/*.test.cjs` files; primary gate runs separately |
+| `run-all-tests.cjs` (full aggregate) | **2361** | 138 `tests/suites/*.test.cjs` files; primary gate runs separately |
 | `node --test .claude/scripts/codex/tests` | —      | Mirror generators and verifiers                                        |
 | `run-codex-sync.mjs --verify-only`      | —      | Every read-only gate before a commit                                   |
 
-> Source-declared inventory: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 2351 executors across 137 suite files. Both runners fail when these numbers drift from the docs. Counts do not establish runtime results; read the actual runner output for outcomes.
+> Source-declared inventory: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 2361 executors across 138 suite files. Both runners fail when these numbers drift from the docs. Counts do not establish runtime results; read the actual runner output for outcomes.
 
 **Portable test contract** — shipped tests must pass in any project layout on Windows, macOS and Linux: build a temp fixture project instead of reading this repository's config or git state; blank inherited feature switches and provider keys; point `HOME`, `USERPROFILE`, `TMPDIR`, `TEMP` and `TMP` at the temp dir; name OS differences explicitly (paths, symlinks, `py -3` vs `python3`); run the full suite twice to prove repeatability.
 
@@ -407,6 +407,7 @@ Codex transforms `/skill` into `$skill`, `Agent` into `spawn_agent` and strips C
 | Startup dependency install      | `hooks.startupInstall.enabled`                    | on               |
 | Post-edit formatter             | `formatting.formatter` (`none` disables)          | Prettier         |
 | Commit `Fix-Origin` trailer     | `commit.fixOriginTrailer`                         | off              |
+| Commit `Bug-Class` trailer      | `commit.bugClassTrailer`                          | off              |
 | PR target branch                | `pullRequest.targetBranch`                        | `main`           |
 | PR pushed-branch update         | `pullRequest.pushedBranchUpdate` (`merge`/`rebase`) | `merge`        |
 | Skill visibility                | `skillProfile.preset`                             | `full`           |

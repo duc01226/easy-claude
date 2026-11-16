@@ -832,6 +832,10 @@ A `checkpointTokens` value outside the range, or not a whole number, is a valida
 
 `docs/project-config.json` `commit.fixOriginTrailer` (boolean, default `false`) opts a project into the author-declared `Fix-Origin: <feedback|regression|not-applicable>` trailer. When `true`, the `commit` skill writes it on new commits only; existing commits are never reworded to add it. When omitted or `false`, commit messages carry no `Fix-Origin` trailer.
 
+### Commit `Bug-Class` trailer
+
+`docs/project-config.json` `commit.bugClassTrailer` (boolean, default `false`) opts a project into a `Bug-Class: <class>` trailer on commits that fix a bug. The class comes from the fix's bug-class prevention record (`/fix --mode=prevent`, checked by `node .claude/hooks/lib/prevention-record.cjs check`) and is one word of a closed vocabulary (`state-transition`, `concurrency-ordering`, `idempotency-replay` and the others `prevention-record.cjs classes` prints), so tools can count which classes recur. When `true`, the `commit` skill writes it on new commits only (`.claude/skills/commit/references/trailers.md`); existing commits are never reworded to add it.
+
 ### Pull-request target branch
 
 `docs/project-config.json` `pullRequest.targetBranch` (string, default `main`) is the base branch the `pull-request` skill branches from and opens PRs into. Two things take precedence over it: a base branch named in the request, and the base of a PR already open for the current branch. When omitted, the skill uses `main`.

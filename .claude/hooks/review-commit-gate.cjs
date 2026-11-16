@@ -29,6 +29,11 @@ if ((require.main === module || !require.main) && require('./lib/framework-runti
  * gets a warning that names the new failures and the fix, or is refused under enforce. Off skips it.
  * Warn mode stays silent while no verify command is configured; readiness setup owns that nudge.
  *
+ * The same mode governs one bug-class prevention line (BR-GWF-24, `lib/prevention-record.cjs`): when a
+ * `/fix` ran in this session (its marker) and no valid prevention record was written after it, warn
+ * adds one warning line, enforce refuses the commit, off says nothing. A fault in that check never
+ * blocks: the marker can be stale (an abandoned fix, another branch), so it stays advisory.
+ *
  * Composes AFTER `doc-sync-gate.cjs`.
  *
  * @hook PreToolUse
@@ -885,6 +890,16 @@ function branchReceiptCovers(repository, snapshot, capture) {
     }
 }
 
+/** `reviewGate.verify` for the prevention line; an unreadable setting reads as the default warn (advisory). */
+function preventionMode(repository) {
+    try {
+        const policy = require('../scripts/lib/commit-review-policy.cjs');
+        return typeof policy.resolveVerifyGate === 'function' ? policy.resolveVerifyGate({ rootDir: repository }).mode : 'warn';
+    } catch {
+        return 'warn';
+    }
+}
+
 /** `reviewGate.verify` when the verify check itself failed: unreadable settings read as enforce; no policy module reads as off. */
 function verifyModeAfterFault(repository) {
     let policy;
@@ -933,6 +948,10 @@ function evaluate(input, dependencies = {}) {
     const capture = dependencies.captureReviewTarget || captureReviewTarget;
     // Loaded only for a commit the review gate allows: most Bash calls never reach it.
     const verifyCheck = dependencies.verifyGateFinding || (options => require('./lib/verify-receipt.cjs').verifyGateFinding(options));
+    const preventionCheck =
+        dependencies.preventionGateFinding ||
+        (options => require('./lib/prevention-record.cjs').preventionGateFinding({ ...options, mode: preventionMode(options.repository) }));
+    const preventionChecked = new Set();
     const warnings = [];
     for (const [index, descriptor] of resolved.descriptors.entries()) {
         const repository = descriptor.repository;
@@ -976,6 +995,19 @@ function evaluate(input, dependencies = {}) {
         }
         if (finding?.level === 'block') return { code: 2, stderr: `${finding.message}\n`, decision: 'block' };
         if (finding) warnings.push(finding.message);
+
+        // One prevention line per repository and commit statement: a fix with no guard record after it.
+        if (!preventionChecked.has(repository)) {
+            preventionChecked.add(repository);
+            let prevention = null;
+            try {
+                prevention = preventionCheck({ repository, sessionId: input?.session_id });
+            } catch (error) {
+                reportHookInternalError('review-commit-gate', 'prevention check failed', error);
+            }
+            if (prevention?.level === 'block') return { code: 2, stderr: `${prevention.message}\n`, decision: 'block' };
+            if (prevention) warnings.push(prevention.message);
+        }
     }
     if (warnings.length) {
         const text = [...new Set(warnings)].join('\n\n');

@@ -41,8 +41,8 @@
       "required": ["id", "satisfiedBy"],
       "properties": {
         "id": {
-          "description": "Outcome a finished run must prove. tests-pass = changed behaviour is tested and green; review-converged = the review loop converged; spec-synced = specs match the changed behaviour; plan-approved = the plan was reviewed and approved; root-cause-traced = a bug's root cause is traced before the fix; run-closed = the run closed through its close step.",
-          "enum": ["tests-pass", "review-converged", "spec-synced", "plan-approved", "root-cause-traced", "run-closed"],
+          "description": "Outcome a finished run must prove. tests-pass = changed behaviour is tested and green; review-converged = the review loop converged; spec-synced = specs match the changed behaviour; plan-approved = the plan was reviewed and approved; root-cause-traced = a bug's root cause is traced before the fix; recurrence-guarded = a fixed bug's class has a valid prevention record (a guard, or no-guard with a reason and an owner); run-closed = the run closed through its close step.",
+          "enum": ["tests-pass", "review-converged", "spec-synced", "plan-approved", "root-cause-traced", "recurrence-guarded", "run-closed"],
           "type": "string"
         },
         "satisfiedBy": {

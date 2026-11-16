@@ -1,7 +1,7 @@
 ---
 name: investigate
 description: '[Fix & Debug] Use when a workflow step or the user asks for read-only code-flow investigation. --mode=debug finds bug root causes; --mode=explain narrates purpose, flow and impact. Plans/decisions: understand.'
-version: 2.3.0
+version: 2.4.0
 ---
 
 > **[BLOCKING] Mode routing — detect FIRST.** Explicit `--mode=debug` or `--mode=explain` selects that mode; no mode is the default read-only code-flow investigation (everything below, unchanged). `/investigate --mode=debug <bug>` is the former `/debug-investigate` (root-cause investigation of a bug).

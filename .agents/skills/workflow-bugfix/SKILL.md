@@ -24,9 +24,9 @@ Mode selection and registry loading prepare tracking; any 'first action' below m
 
 Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
 
-- Mode `default`: [`$harness-setup --mode=readiness`](../harness-setup/SKILL.md) (optional; conditional) → [`$investigate --mode=debug`](../investigate/SKILL.md) (gate) → [`$spec [mode=amend]`](../spec/SKILL.md) (optional; conditional) → [`$work-item --mode=mockup --explore`](../work-item/SKILL.md) (optional; conditional) → [`$plan`](../plan/SKILL.md) (optional; conditional) → [`$spec [mode=tests]`](../spec/SKILL.md) (optional; conditional) → [`$work-item --mode=review --type=spec-tests`](../work-item/SKILL.md) (optional; conditional) → [`$integration-test`](../integration-test/SKILL.md) (gate) → [`$fix`](../fix/SKILL.md) (core) → [`$spec [mode=sync]`](../spec/SKILL.md) (optional; conditional) → [`$workflow-review-changes --tests=defer`](../workflow-review-changes/SKILL.md) (gate) → [`$integration-test --mode=verify`](../integration-test/SKILL.md) (gate) → [`$workflow-e2e --source=context`](../workflow-e2e/SKILL.md) (optional; conditional) → [`$demo-guide`](../demo-guide/SKILL.md) (optional; conditional) → [`$workflow-end`](../workflow-end/SKILL.md) (gate) → [`$watzup`](../watzup/SKILL.md) (optional; conditional)
-  Phase todos: Discover (2; exit root-cause-traced) → Specify (2) → Plan (3) → Build (3; exit spec-synced) → Review (1; exit review-converged) → Verify (3; exit tests-pass) → Close (2; exit run-closed)
-<!-- workflow-mode:default fingerprint:ceecbecc5a998b4898077e26c6ad077efaeea93f920c959b5e12679a2818fa88 -->
+- Mode `default`: [`$harness-setup --mode=readiness`](../harness-setup/SKILL.md) (optional; conditional) → [`$investigate --mode=debug`](../investigate/SKILL.md) (gate) → [`$spec [mode=amend]`](../spec/SKILL.md) (optional; conditional) → [`$work-item --mode=mockup --explore`](../work-item/SKILL.md) (optional; conditional) → [`$plan`](../plan/SKILL.md) (optional; conditional) → [`$spec [mode=tests]`](../spec/SKILL.md) (optional; conditional) → [`$work-item --mode=review --type=spec-tests`](../work-item/SKILL.md) (optional; conditional) → [`$integration-test`](../integration-test/SKILL.md) (gate) → [`$fix`](../fix/SKILL.md) (core) → [`$fix --mode=prevent`](../fix/SKILL.md) (gate) → [`$spec [mode=sync]`](../spec/SKILL.md) (optional; conditional) → [`$workflow-review-changes --tests=defer`](../workflow-review-changes/SKILL.md) (gate) → [`$integration-test --mode=verify`](../integration-test/SKILL.md) (gate) → [`$workflow-e2e --source=context`](../workflow-e2e/SKILL.md) (optional; conditional) → [`$demo-guide`](../demo-guide/SKILL.md) (optional; conditional) → [`$workflow-end`](../workflow-end/SKILL.md) (gate) → [`$watzup`](../watzup/SKILL.md) (optional; conditional)
+  Phase todos: Discover (2; exit root-cause-traced) → Specify (2) → Plan (3) → Build (4; exit recurrence-guarded, spec-synced) → Review (1; exit review-converged) → Verify (3; exit tests-pass) → Close (2; exit run-closed)
+<!-- workflow-mode:default fingerprint:331c18b9fb460400fbf42cbc75b80a9941771c268d153c3e1e3f25152f898e0d -->
 
 Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`$sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
 <!-- WORKFLOW-CALLS:END -->
@@ -45,7 +45,7 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 - **MUST** trace the root cause end-to-start before any fix, classify Code Bug vs Spec Bug before any regression test, and prove the regression test catches the bug (RED with the fix reverted) and passes with it (GREEN) in the single verify.
 - **MUST** fix at the layer that owns the violated invariant; converge the change review; sync the spec when a canonical spec or specified behavior changed.
 - **NEVER** encode the buggy behavior into a spec or test, and NEVER weaken a test to turn it green.
-- **MUST** run the post-fix lesson check (`../fix/references/post-fix-lesson-check.md`) after `$workflow-review-changes` converges and before `$integration-test --mode=verify`: name the bug class, report its sibling instances, and offer the strongest guard structure-first (a structural check before a `$learn` lesson) only after the user confirms.
+- **MUST** run the bug-class prevention gate (`$fix --mode=prevent`, `../fix/references/mode-prevent.md`) right after `$fix` and before `$workflow-review-changes`: name the bug class, report its sibling instances, add the strongest affordable guard structure-first (a `$learn` lesson last, only after the user confirms) or record `no-guard` with a reason and an owner, and write the prevention record `$workflow-end` checks.
 
 ## Contents
 
@@ -83,8 +83,9 @@ Non-negotiable — `$workflow-end` checks each against its evidence before the r
 3. **Regression guard RED → GREEN** — the `$integration-test` step (gate) writes a test that reproduces the bug before `$fix`, without running it; `$fix` adjusts that test when the fix changes its seams; the verify step's mutation check reverts `$fix` and the test FAILS (RED), with the fix it PASSES (GREEN). A test that passes without the fix does not catch the bug. Each regression test names its `Business Intent / Invariant Guarded`; lifecycle/state logic asserts state before/after and invalid-transition rejection. For a dependency advisory the scanner is the regression check: with the old lock it reports the advisory (RED), with the new lock it does not (GREEN); each breaking change the upgrade brings still gets its own failing-then-passing test. A reproducing test that cannot run here is `ENVIRONMENT-BLOCKED` and escalated, never assumed green.
 4. **Tests pass** (`$integration-test --mode=verify`, gate) — every behavior the fix changed is covered by tests that ran green in THIS run.
 5. **Spec synced** — when a canonical spec or test-case artifact governs the affected area and behavior or a public contract changed, or that spec lacked the case the bug exposed. No canonical spec governs the area → the gate is N/A: record that fact with the searched paths and offer `$spec` as a follow-up.
-6. **Review converged** (`$workflow-review-changes`, gate, INLINE in the main session) — validated blocking findings fixed and the fixed state re-reviewed over the whole package (spec + tests + fix).
-7. **Goal satisfied and run closed** — the Goal Satisfaction matrix (PASS/FAIL/BLOCKED) maps root cause and RED/GREEN evidence to the saved success criteria; `$workflow-end` closes the run (top-level only).
+6. **Recurrence guarded** (`$fix --mode=prevent`, gate, right after `$fix`) — a valid prevention record (`node .claude/hooks/lib/prevention-record.cjs check`) names the bug class, why it can happen, the sibling sweep, and the guard in the tree or `no-guard` with a reason and an owner; the guard is reviewed and verified with the fix.
+7. **Review converged** (`$workflow-review-changes`, gate, INLINE in the main session) — validated blocking findings fixed and the fixed state re-reviewed over the whole package (spec + tests + fix + guard).
+8. **Goal satisfied and run closed** — the Goal Satisfaction matrix (PASS/FAIL/BLOCKED) maps root cause and RED/GREEN evidence to the saved success criteria; `$workflow-end` closes the run (top-level only).
 
 > **[BLOCKING] Code Bug vs Spec Bug Gate** (the bugfix instance of `SYNC:spec-drift-adjudication` in `shared/sdd-artifact-contract.md`):
 >
@@ -109,6 +110,7 @@ Non-negotiable — `$workflow-end` checks each against its evidence before the r
 | `$work-item --mode=review --type=spec-tests` | optional | TC quality |
 | `$integration-test` | gate | guard written — write the regression test that reproduces the bug, before the fix (not run here) |
 | `$fix` | core | the change, at the owning layer; adjusts the pre-written regression test when the fix changes its seams (not run here) |
+| `$fix --mode=prevent` | gate | recurrence guarded — the bug class, its sibling sweep and the strongest affordable guard (or `no-guard` with an owner) in one prevention record; before the review, so the guard is reviewed and verified with the fix |
 | `$spec [mode=sync]` | optional | spec synced |
 | `$workflow-review-changes --tests=defer` | gate | review converged — INLINE in the main session |
 | `$integration-test --mode=verify` | gate | tests pass — the one verify, after the review: full suite + mutation check (RED proof) |
@@ -121,7 +123,7 @@ Non-negotiable — `$workflow-end` checks each against its evidence before the r
 
 Without `$plan`, `$fix` plans inline and the investigation report records the fix layer, blast radius and rollback.
 
-Outcome gates: root cause traced · tests pass · spec synced (when a canonical spec governs the area and behavior or a public contract changed, or that spec lacked the case the bug exposed) · review converged · run closed.
+Outcome gates: root cause traced · recurrence guarded · tests pass · spec synced (when a canonical spec governs the area and behavior or a public contract changed, or that spec lacked the case the bug exposed) · review converged · run closed.
 
 A recommended step the triage shows would do no real work is not run; record it through the Step Execution Protocol with its evidence.
 
@@ -134,7 +136,7 @@ A recommended step the triage shows would do no real work is not run; record it 
 You choose inline vs sub-agent, parallel waves vs sequential, batching and order — optimize wall-clock and token cost at equal quality. **Main session only:** the mockup scope gate and pick (`work-item --mode=mockup` Step 0) never run inside a delegated sub-agent. Fixed constraints (data dependencies):
 
 - The root-cause trace exists before any fix plan, regression TC or fix; the RED proof is the verify step's mutation check (revert the fix, the regression test must fail) — no separate RED run.
-- A change exists before it is reviewed or tested; the spec sync runs before the review that checks it; tests run once, last, after the static review (`--tests=defer`); a fix made by the verify step re-runs `$workflow-review-changes --tests=defer`, and a fix made by that re-review re-runs the verify (`SYNC:verify-last-order`); `$workflow-end` runs last.
+- A change exists before it is reviewed or tested; the prevention gate and the spec sync run before the review that checks them; tests run once, last, after the static review (`--tests=defer`); a fix made by the verify step re-runs `$workflow-review-changes --tests=defer`, and a fix made by that re-review re-runs the verify (`SYNC:verify-last-order`); `$workflow-end` runs last.
 - `$workflow-review-changes` runs INLINE in the main session — never as a sub-agent — and owns the test-quality review, the docs/domain-entity reference refresh and experience acceptance; do not repeat them here.
 - Gates awaiting user approval (Ambiguous classification, plan approval) are never parallelized.
 
@@ -147,7 +149,7 @@ Recommended: XS/S work inline without sub-agents; independent read-only investig
 - **Goal Contract:** resolve the active goal at start per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `goals/{YYMMDD-HHmm}-{slug}/goal.md` under the plans root, default `plans/`, relocated by `docsRoots.plans.path` in `docs/project-config.json` → create from the bug report); pass the same goal file to every child step; emit the Goal Satisfaction matrix before `$workflow-end`.
 - **Spec context:** when the business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides) holds a spec for the affected module, read its rules and contracts before investigating.
 - **Fix path:** validate a finding (evidence-backed, reproducible) before fixing it; fix at the owning layer; re-run the reviewer or test that raised it, plus a holistic pass when fixes were non-trivial. When the bug touches a `[HARD]` rule or invariant, regression TCs add invariant/property cases whose bar is a killed mutant, not line coverage, and each behavior-changing finding updates BOTH spec and tests.
-- **Post-fix lesson check:** after `$workflow-review-changes` converges and before `$integration-test --mode=verify`, read `../fix/references/post-fix-lesson-check.md` and run it once for the run, so a lesson saved through `$learn` lands before the single verify and its green run covers it; write its `Siblings:` and `Lesson:` lines into the workflow report so `$workflow-end` carries them into the recap.
+- **Bug-class prevention:** the `$fix --mode=prevent` gate runs once for the run, right after `$fix`, and follows `../fix/references/mode-prevent.md`; it writes the prevention record under `tmp/prevention/records/` and its `Prevention:` line (class, siblings, guard or `no-guard`) into the workflow report, so `$workflow-end` checks the record for `recurrence-guarded` and carries the line into the recap. A defect the review loop fixes later is covered by that workflow's own optional prevention step.
 - **Loop bounds:** round 1 exits on zero open validated findings (LOW deferral); from round 2 only CRITICAL/HIGH/MEDIUM block and LOW-only findings are deferred; cap 3 review rounds; failed checks block and at the three-round cap require explicit user-approved bounded extension; no progress → escalate via `ask user question tool`. Single-occurrence review steps converge inside their own skill loop.
 
 ## Activation
@@ -156,7 +158,7 @@ Activate the `workflow-bugfix` workflow: run `$start-workflow workflow-bugfix` w
 
 Recommended default order (roles in the table above):
 
-**IMPORTANT MANDATORY Steps:** $harness-setup --mode=readiness -> $investigate --mode=debug -> $spec [mode=amend] -> $work-item --mode=mockup --explore -> $plan -> $spec [mode=tests] -> $work-item --mode=review --type=spec-tests -> $integration-test -> $fix -> $spec [mode=sync] -> $workflow-review-changes --tests=defer -> $integration-test --mode=verify -> $workflow-e2e --source=context -> $demo-guide -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $harness-setup --mode=readiness -> $investigate --mode=debug -> $spec [mode=amend] -> $work-item --mode=mockup --explore -> $plan -> $spec [mode=tests] -> $work-item --mode=review --type=spec-tests -> $integration-test -> $fix -> $fix --mode=prevent -> $spec [mode=sync] -> $workflow-review-changes --tests=defer -> $integration-test --mode=verify -> $workflow-e2e --source=context -> $demo-guide -> $workflow-end -> $watzup
 
 <!-- PROTOCOL-GUIDES:START -->
 
@@ -223,5 +225,5 @@ Recommended default order (roles in the table above):
 - **MUST ATTENTION** triage size, kind and risk FIRST; run only the recommended skills the triage shows do real work, and log every deviation with evidence.
 - **MUST ATTENTION** root cause before fix: `$investigate --mode=debug` (gate) produces the trace, feeder paths, hypothesis matrix, owning fix layer and forward convergence proof; classify Code Bug vs Spec Bug before any regression test.
 - **MUST ATTENTION** regression guard: the `$integration-test` step (gate) writes the regression test before `$fix` without running it, and `$fix` adjusts it when the fix changes its seams; the one `$integration-test --mode=verify` (gate, after the static review) proves it FAILS with the fix reverted by hand-edit (never `git checkout`/`restore`/`stash`) and PASSES with it in this run; NEVER encode buggy behavior or weaken a test to go green.
-- **MUST ATTENTION** after `$workflow-review-changes` converges and before `$integration-test --mode=verify`, run the post-fix lesson check (`../fix/references/post-fix-lesson-check.md`); its sibling sweep is reported, and its guard (a structural check before a `$learn` lesson) is added only after the user confirms.
+- **MUST ATTENTION** right after `$fix` and before `$workflow-review-changes`, run the `$fix --mode=prevent` gate (`../fix/references/mode-prevent.md`): its sibling sweep is reported, never fixed silently; its guard is structure-first (a `$learn` lesson last, only after the user confirms) or a `no-guard` record with a reason and an owner; `$workflow-end` refuses to close without a valid prevention record.
 - **MUST ATTENTION** `$workflow-review-changes` runs INLINE in the main session and converges the whole package; sync the spec when a canonical spec or specified behavior changed; emit the Goal Satisfaction matrix and close with `$workflow-end`.

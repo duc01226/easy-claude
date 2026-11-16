@@ -451,6 +451,12 @@
           ]
         },
         {
+          "id": "recurrence-guarded",
+          "satisfiedBy": [
+            "fix --mode=prevent"
+          ]
+        },
+        {
           "id": "tests-pass",
           "satisfiedBy": [
             "integration-test --mode=verify"
@@ -477,7 +483,7 @@
         }
       ],
       "preActions": {
-        "injectContext": "BUG FIX (lean, TDD-first). Read .claude/skills/workflow-bugfix/SKILL.md (triage, gates, Code Bug vs Spec Bug gate); /start-workflow \u2192 Step Execution Protocol owns step flex.\nFIRST: triage size (XS/S/M/L/XL), kind and risk; it selects which optional steps run.\nNON-NEGOTIABLE:\n- /investigate --mode=debug owns discovery AND root cause: an end-to-start trace from the observed final state backward through every feeder path, a hypothesis matrix that weighs environment causes, the owning fix layer and a forward convergence proof, before any fix.\n- CODE BUG vs SPEC BUG before any regression case or test: Spec Bug \u2192 /spec [mode=amend] first; Ambiguous \u2192 ask the user. Never encode buggy behavior into specs or tests.\n- RED/GREEN (verify last): the regression test is written before /fix and not run; /fix adjusts it when the fix changes its seams. Tests run once, after the static /workflow-review-changes --tests=defer, in /integration-test --mode=verify, whose mutation check reverts the fix by hand-edit (never git checkout/restore/stash) to prove RED, then GREEN. DEPENDENCY ADVISORY kind: /package-upgrade --mode=remediate is the fix; RED = the scanner reports the advisory on the old lock, GREEN = not on the new one, plus a failing-then-passing test per breaking change. Tests name the Business Intent / Invariant Guarded.\n- /workflow-review-changes runs INLINE in the main session over the whole package (spec + tests + fix).\nPERFORMANCE-SDD ROUTE: a performance bug runs /performance-review with SLA/benchmark evidence (target metric, baseline, measurement command, regression budget); keep functional no-regression checks when behavior can change; update specs/docs for a changed SLA or behavior boundary.\nNEW UI (size M+ only): /work-item --mode=mockup --explore before plan, main session only.",
+        "injectContext": "BUG FIX (lean, TDD-first). Read .claude/skills/workflow-bugfix/SKILL.md (triage, gates, Code Bug vs Spec Bug gate); /start-workflow \u2192 Step Execution Protocol owns step flex.\nFIRST: triage size (XS/S/M/L/XL), kind and risk; it selects which optional steps run.\nNON-NEGOTIABLE:\n- /investigate --mode=debug owns discovery AND root cause: an end-to-start trace from the observed final state backward through every feeder path, a hypothesis matrix that weighs environment causes, the owning fix layer and a forward convergence proof, before any fix.\n- CODE BUG vs SPEC BUG before any regression case or test: Spec Bug \u2192 /spec [mode=amend] first; Ambiguous \u2192 ask the user. Never encode buggy behavior into specs or tests.\n- RED/GREEN (verify last): the regression test is written before /fix and not run; /fix adjusts it when the fix changes its seams. Tests run once, after the static /workflow-review-changes --tests=defer, in /integration-test --mode=verify, whose mutation check reverts the fix by hand-edit (never git checkout/restore/stash) to prove RED, then GREEN. DEPENDENCY ADVISORY kind: /package-upgrade --mode=remediate is the fix; RED = the scanner reports the advisory on the old lock, GREEN = not on the new one, plus a failing-then-passing test per breaking change. Tests name the Business Intent / Invariant Guarded.\n- BUG-CLASS PREVENTION (gate, right after /fix): /fix --mode=prevent asks why this class of bug can happen, sweeps and reports its siblings (never fixes them silently), adds the strongest affordable guard (impossible > automatic check with a frozen baseline > test > hook > /learn prose with consent) or records no-guard with a reason and an owner, and writes the prevention record that /workflow-end checks for recurrence-guarded. The guard is reviewed and verified with the fix.\n- /workflow-review-changes runs INLINE in the main session over the whole package (spec + tests + fix + guard).\nPERFORMANCE-SDD ROUTE: a performance bug runs /performance-review with SLA/benchmark evidence (target metric, baseline, measurement command, regression budget); keep functional no-regression checks when behavior can change; update specs/docs for a changed SLA or behavior boundary.\nNEW UI (size M+ only): /work-item --mode=mockup --explore before plan, main session only.",
         "readFiles": [
           ".claude/skills/workflow-bugfix/SKILL.md"
         ]
@@ -556,6 +562,12 @@
         {
           "id": "bugfix-fix",
           "skill": "fix"
+        },
+        {
+          "id": "bugfix-prevent",
+          "skill": "fix",
+          "args": "--mode=prevent",
+          "role": "gate"
         },
         {
           "id": "bugfix-spec-sync",
@@ -645,9 +657,11 @@
           "steps": [
             "bugfix-regression-red",
             "bugfix-fix",
+            "bugfix-prevent",
             "bugfix-spec-sync"
           ],
           "exit": [
+            "recurrence-guarded",
             "spec-synced"
           ]
         },
@@ -3533,7 +3547,7 @@
       "name": "Review Current Changes",
       "preActions": {
         "domainEntityReferenceRefresh": "Use the registered domain-refresh occurrence once, immediately before documentation-update, when its condition applies. Otherwise record the cited skip reason.",
-        "injectContext": "Triage all requested files and intent; write a short risk/coverage plan and create occurrence, validation, fix and fresh re-review todo tasks before reviewing. Choose inline work, related groups or specialists from risk, dependencies and context headroom, without fixed file/line/byte caps. Default --fix-loop covers every review child under one main-session fixing coordinator; children passed --loop-owner=caller stay read-only. Explicit --review-only/--report-only overrides the default and stops after validated reports. Run the first applicable specialist passes once and wait for every report before repair. changes-review owns the sole whole-target why-review call on each pass. The investigate, fix, domain-refresh and documentation-update occurrences run at most once; do the refresh and docs update after the initial repair batch (or initial review if no repair). Only changes-review and conditional why-review findings validation repeat; subsequent repairs stay with the coordinator. Any fix, simplification, spec/doc/test repair or validated blocking finding the fix step rejects needs that fresh review of the whole settled target; a narrower spot check never replaces it. Reconcile changed specialist coverage against current evidence and keep missing required proof blocking. In fix-loop mode, run test proof once after static convergence, or hand it to the named later verifier under --tests=defer. One shared three-round budget by default, enforced by the coordinator through the review-policy eligibility helper. Child lenses, repair re-reviews and resumed or nested invocations retain the same spent budget. Current clean proof ends early; LOW-only at cap is accepted with disclosure. At round 3, MEDIUM/HIGH/CRITICAL, unresolved required evidence or failed required checks ask the user whether to extend by a stated bounded number of rounds or stop with the unresolved report. Wait for an explicit answer before further fixes or review rounds; silence never extends the budget. Record approval and the extra-round limit, preserve inherited findings/scope and spent rounds, and ask again at each exhausted extension. An exhausted executable record requires an approved linked bounded run, never an automatic reset. Preserve required tests, spec/test/code consistency, docs and parity; no staging/commit/push authority.\nMULTILINGUAL UI SYNC CHECK: When UI changes affect a multilingual project, verify its translation updates and retain missing coverage as a finding for authorized repair or caller handoff. State/lifecycle changes need persisted-state assertions and invalid-transition rejection coverage.",
+        "injectContext": "Triage all requested files and intent; write a short risk/coverage plan and create occurrence, validation, fix and fresh re-review todo tasks before reviewing. Choose inline work, related groups or specialists from risk, dependencies and context headroom, without fixed file/line/byte caps. Default --fix-loop covers every review child under one main-session fixing coordinator; children passed --loop-owner=caller stay read-only. Explicit --review-only/--report-only overrides the default and stops after validated reports. Run the first applicable specialist passes once and wait for every report before repair. changes-review owns the sole whole-target why-review call on each pass. The investigate, fix, prevent-recurrence, domain-refresh and documentation-update occurrences run at most once; do the refresh and docs update after the initial repair batch (or initial review if no repair). Only changes-review and conditional why-review findings validation repeat; subsequent repairs stay with the coordinator. Any fix, simplification, spec/doc/test repair or validated blocking finding the fix step rejects needs that fresh review of the whole settled target; a narrower spot check never replaces it. Reconcile changed specialist coverage against current evidence and keep missing required proof blocking. In fix-loop mode, run test proof once after static convergence, or hand it to the named later verifier under --tests=defer. One shared three-round budget by default, enforced by the coordinator through the review-policy eligibility helper. Child lenses, repair re-reviews and resumed or nested invocations retain the same spent budget. Current clean proof ends early; LOW-only at cap is accepted with disclosure. At round 3, MEDIUM/HIGH/CRITICAL, unresolved required evidence or failed required checks ask the user whether to extend by a stated bounded number of rounds or stop with the unresolved report. Wait for an explicit answer before further fixes or review rounds; silence never extends the budget. Record approval and the extra-round limit, preserve inherited findings/scope and spent rounds, and ask again at each exhausted extension. An exhausted executable record requires an approved linked bounded run, never an automatic reset. Preserve required tests, spec/test/code consistency, docs and parity; no staging/commit/push authority.\nMULTILINGUAL UI SYNC CHECK: When UI changes affect a multilingual project, verify its translation updates and retain missing coverage as a finding for authorized repair or caller handoff. State/lifecycle changes need persisted-state assertions and invalid-transition rejection coverage.",
         "readFiles": [
           ".claude/skills/workflow-review-changes/SKILL.md"
         ]
@@ -3672,6 +3686,16 @@
           }
         },
         {
+          "id": "prevent-recurrence",
+          "skill": "fix",
+          "args": "--mode=prevent",
+          "role": "optional",
+          "applicability": {
+            "when": "fix-findings repaired at least one validated finding that was a behavior defect (wrong behavior, crash, data error, security or performance fault), so its bug class needs a prevention record.",
+            "skipReason": "No behavior defect was fixed: fix-findings did not run, or every fixed finding was style, naming, documentation, test-coverage or design-only (fix-findings then left a one-line not-applicable prevention record); cite the validated report."
+          }
+        },
+        {
           "id": "domain-refresh",
           "skill": "scan",
           "args": "--target=domain-entities",
@@ -3730,6 +3754,9 @@
           "executionMode": "inline"
         },
         "trace-untraced-defects": {
+          "executionMode": "inline"
+        },
+        "prevent-recurrence": {
           "executionMode": "inline"
         }
       },
@@ -4036,6 +4063,16 @@
               }
             },
             {
+              "id": "prevent-recurrence",
+              "skill": "fix",
+              "args": "--mode=prevent",
+              "role": "optional",
+              "applicability": {
+                "when": "fix-findings repaired at least one validated finding that was a behavior defect (wrong behavior, crash, data error, security or performance fault), so its bug class needs a prevention record.",
+                "skipReason": "No behavior defect was fixed: fix-findings did not run, or every fixed finding was style, naming, documentation, test-coverage or design-only (fix-findings then left a one-line not-applicable prevention record); cite the validated report."
+              }
+            },
+            {
               "id": "domain-refresh",
               "skill": "scan",
               "args": "--target=domain-entities",
@@ -4094,6 +4131,13 @@
                 "investigate --mode=debug"
               ],
               "when": "A validated finding is a defect whose owning cause the review evidence does not already trace"
+            },
+            {
+              "id": "recurrence-guarded",
+              "satisfiedBy": [
+                "fix --mode=prevent"
+              ],
+              "when": "A fixed finding was a behavior defect (wrong behavior, crash, data error, security or performance fault), not a style, naming, documentation or coverage-only finding"
             }
           ],
           "stepMeta": {
@@ -4110,6 +4154,9 @@
               "executionMode": "inline"
             },
             "trace-untraced-defects": {
+              "executionMode": "inline"
+            },
+            "prevent-recurrence": {
               "executionMode": "inline"
             }
           },
@@ -4131,12 +4178,14 @@
                 "validate-findings",
                 "trace-untraced-defects",
                 "fix-findings",
+                "prevent-recurrence",
                 "domain-refresh",
                 "documentation-update"
               ],
               "exit": [
                 "review-converged",
-                "root-cause-traced"
+                "root-cause-traced",
+                "recurrence-guarded"
               ]
             },
             {
