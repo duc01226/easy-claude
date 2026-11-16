@@ -113,6 +113,37 @@ const SCHEMA = {
             reinjectAfterTokens: { type: 'number', required: false, min: 20000, max: 2000000 }
         }
     },
+    // Edit-time lint (post-edit-prettier.cjs via lib/edit-time-lint.cjs). Off by default; `enabled: true`
+    // (or CK_EDIT_TIME_LINT=1) lints each edited file with testing.commands.lintFile.
+    editTimeLint: {
+        type: 'object',
+        required: false,
+        describe:
+            'Edit-time lint: after an edit, the post-edit hook lints the edited file with testing.commands.lintFile (team project config) and tells the assistant only the problems on lines that differ from the last commit, so legacy problems never flood the conversation. Needs git to find changed lines. Supported output: ESLint JSON (--format json), or one path:line[:column]: message line per problem. Layers, later wins per key: the framework-shipped .claude/.ck.json, the team project config, ~/.claude/.ck.json, then the checkout .claude/.ck.local.json.',
+        properties: {
+            enabled: {
+                type: 'boolean',
+                required: false,
+                describe:
+                    'Turns edit-time lint on; default false. Env CK_EDIT_TIME_LINT=1 (or 0) overrides every file layer. Quiet runtime mode keeps formatting and skips lint.'
+            },
+            // Mirrors edit-time-lint.cjs MAX_TIMEOUT_SECONDS; the hook uses its default for any other value.
+            timeoutSeconds: {
+                type: 'number',
+                required: false,
+                min: 1,
+                max: 15,
+                describe:
+                    'Seconds the one-file lint may run before it is stopped (and a once-per-session note says so); default 10, integer 1..15. Lint also gets no more than what formatting leaves of the whole post-edit hook budget (about 17 s), which keeps the hook inside the shortest host hook limit (OpenCode, 20 s).'
+            },
+            fileExtensions: {
+                type: 'array',
+                required: false,
+                itemType: 'string',
+                describe: 'Extensions to lint, for example [".js", ".ts"]; omitted = every edited file is handed to lintFile.'
+            }
+        }
+    },
     frameworkRuntime: {
         type: 'object',
         required: false,

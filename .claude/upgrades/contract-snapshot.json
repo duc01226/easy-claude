@@ -188,6 +188,10 @@
       "hash": "f903c3ba554e",
       "by": "baseline"
     },
+    "config:editTimeLint": {
+      "hash": "f9c8019f390c",
+      "by": "enable-edit-time-lint"
+    },
     "config:experienceVerification": {
       "hash": "f0e437ec898d",
       "by": "baseline"
