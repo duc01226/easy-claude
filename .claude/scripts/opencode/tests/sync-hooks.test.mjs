@@ -164,6 +164,13 @@ async function createProject(settings = defaultSettings()) {
     return root;
 }
 
+// The bridge starts hook processes without awaiting them, so a hook that already recorded its payload can still be
+// exiting inside the project. Windows refuses to remove a directory a live process uses (EBUSY/EPERM) until it exits;
+// retry as the shared hook-test cleanup does (.claude/hooks/tests/lib/test-utils.cjs).
+async function removeProject(root) {
+    await fs.rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+}
+
 async function loadBridge(pluginPath) {
     const module = await import(`${pathToFileURL(pluginPath).href}?t=${Date.now()}-${Math.random()}`);
     assert.equal(typeof module.EasyClaudeHooks, 'function', 'generated plugin must export EasyClaudeHooks');
@@ -358,7 +365,7 @@ test('materializeOpencodeHooks writes the plugin, report, and is idempotent', as
         assert.equal(drifted.ok, false);
         assert.match(drifted.reason, /stale/);
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -376,7 +383,7 @@ test('pruneLegacyNotification backs up then removes the legacy plugin', async ()
         const second = await pruneLegacyNotification({ rootDir: root });
         assert.equal(second.removed, false);
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -391,7 +398,7 @@ test('generated bridge blocks PreToolUse via exit code 2', async () => {
             /blocked: git commit forbidden/
         );
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -411,7 +418,7 @@ test('generated bridge leaves non-matching tools untouched and rewrites matching
         assert.equal(editOutput.args.command, 'echo safe');
         assert.equal(editOutput.args.filePath, 'a.ts');
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -425,7 +432,7 @@ test('generated bridge appends PostToolUse additionalContext to tool output', as
         await hooks['tool.execute.after']({ tool: 'edit', sessionID: 's1', callID: 'c1', args: {} }, output);
         assert.match(output.output, /done\n\nHELLO_CONTEXT/);
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -459,7 +466,7 @@ test('generated bridge delivers pre-tool context once after a blocked tool witho
         await hooks['experimental.chat.system.transform']({ sessionID: 'blocked' }, again);
         assert.deepEqual(again.system, []);
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -506,7 +513,7 @@ test("generated bridge delivers pre-tool context with the completed tool's outpu
         assert.equal(await after('completed', 'next'), 'next\n\nHELLO_CONTEXT', 'a later tool does not carry the context again');
         assert.deepEqual(await model('bystander'), ['OTHER_SESSION'], "a completed tool takes only its own session's pending context");
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -529,7 +536,7 @@ test('generated bridge keeps pre-tool context for the next system prompt when th
         await hooks['tool.execute.after'](call, later);
         assert.equal(later.output, 'done', 'context the system prompt delivered is not added to a later tool output');
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -561,7 +568,7 @@ test('generated bridge bounds pending pre-tool text and sessions without mixing 
         await before('after-drain', 'new-context');
         assert.deepEqual(await model('after-drain'), ['new-context'], 'consumption frees a session slot');
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -590,7 +597,7 @@ test('generated bridge discards pre-tool context still pending when its session 
         await hooks['tool.execute.after']({ tool: 'bash', sessionID: 'compacting', args: {} }, completed);
         assert.equal(completed.output, 'done', 'a tool that completes after the compaction does not carry the discarded context');
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -609,7 +616,7 @@ test('generated bridge injects UserPromptSubmit context and SessionStart system 
         await hooks['experimental.chat.system.transform']({ sessionID: 's1' }, system);
         assert.deepEqual(system.system, ['base', 'SESSION_CTX']);
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -687,7 +694,7 @@ test('TC-SAP-007 real policy reaches OpenCode main/child sessions, keeps commit 
     } finally {
         for (const key of Object.keys(process.env)) if (!(key in savedEnv)) delete process.env[key];
         Object.assign(process.env, savedEnv);
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -720,7 +727,7 @@ test('generated bridge injects plain-text UserPromptSubmit stdout as context, ke
         assert.deepEqual(injected, ['PLAIN_PROMPT_CTX', 'PROMPT_CTX']);
         assert.equal(message.parts[0].text, 'hello', "the user's own text part is preserved");
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -740,7 +747,7 @@ test('generated bridge injects nothing when every UserPromptSubmit hook prints n
         await hooks['chat.message']({ sessionID: 's1' }, message);
         assert.deepEqual(message.parts, userMessage('hello', { sessionID: 's1' }).parts);
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -785,7 +792,7 @@ test('generated bridge gives every injected UserPromptSubmit part the id, sessio
         }
         assert.deepEqual(message.parts[0], userMessage('hello', identity).parts[0], "the user's own part is unchanged");
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -809,7 +816,7 @@ test('generated bridge drops UserPromptSubmit context rather than push a part op
         // Then no part lacking the required keys is pushed, so the prompt is not failed
         assert.deepEqual(message.parts, [{ type: 'text', text: 'hello' }]);
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -875,7 +882,7 @@ process.stdin.on("end", () => {
         assert.match(observed.path, /^C:\\Program Files\\Git\\cmd;/);
         assert.match(observed.input, /"hook_event_name":"SessionStart"/);
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -915,7 +922,7 @@ test('[TC-PDL-015] generated bridge reports session.compacted to the protocol-de
         await hooks['experimental.chat.system.transform']({ sessionID: 'ses_delivered' }, system);
         assert.deepEqual(system.system, ['SESSION_CTX']);
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -937,7 +944,7 @@ test('[TC-PDL-015] generated bridge keeps session.compacted working when the pro
         await hooks['experimental.chat.system.transform']({ sessionID: 's1' }, system);
         assert.deepEqual(system.system, ['SESSION_CTX']);
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -957,7 +964,7 @@ test('[TC-NT-011] generated bridge forwards question requests to the notificatio
         assert.equal(payload.tool_name, 'AskUserQuestion');
         assert.equal(payload.session_id, 's1');
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -971,7 +978,7 @@ test('generated plugin exports the opencode V2 definition (id + setup) and keeps
         assert.equal(typeof module.default.server, 'function', 'V1 reads server() from the default object');
         assert.equal(module.default.server, module.EasyClaudeHooks, 'both host generations drive the same bridge');
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -1009,7 +1016,7 @@ test('[TC-NT-011] V2 setup raises one question alert from form.created and defer
             cleanup();
         }
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -1039,7 +1046,7 @@ test('V2 setup ignores events that belong to another project location', async ()
             cleanup();
         }
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -1071,7 +1078,7 @@ test("V2 setup keeps a location-less turn-complete alert in the session's own pr
             cleanup();
         }
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -1104,7 +1111,7 @@ test('V2 setup resolves a location-less turn from the session API when creation 
             cleanup();
         }
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -1130,7 +1137,7 @@ test('V2 setup fails closed when a location-less turn cannot be attributed to an
             cleanup();
         }
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -1172,8 +1179,8 @@ test('V2 setup raises exactly one turn-complete alert when two project instances
             otherCleanup();
         }
     } finally {
-        await fs.rm(owner, { recursive: true, force: true });
-        await fs.rm(other, { recursive: true, force: true });
+        await removeProject(owner);
+        await removeProject(other);
     }
 });
 
@@ -1200,7 +1207,7 @@ test('V2 setup names the project root, not the worktree folder, on an alert', as
             cleanup();
         }
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -1228,7 +1235,7 @@ test('[TC-NT-011] V2 setup forwards permission.asked to the permission_prompt no
             cleanup();
         }
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -1273,7 +1280,7 @@ test('V2 setup forwards a failed tool to PostToolUseFailure and appends its cont
             cleanup();
         }
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -1315,7 +1322,7 @@ test('V2 setup maps a child session.created to SubagentStart and delivers its co
             cleanup();
         }
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -1354,7 +1361,7 @@ test('V2 setup maps a typed /command to UserPromptExpansion and delivers its con
             cleanup();
         }
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -1402,7 +1409,7 @@ test('[TC-NT-014] V2 setup maps execution completion to Stop and suppresses the 
             cleanup();
         }
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -1444,7 +1451,7 @@ test('[TC-NT-071] V2 setup forwards SessionEnd with delegated and unknown marker
             cleanup();
         }
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -1483,7 +1490,7 @@ test('V2 setup delivers tool context and prompt/session context through the V2 h
             cleanup();
         }
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -1531,7 +1538,7 @@ test('V2 setup delivers queued pre-tool and failed-tool context through the mode
             cleanup();
         }
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -1575,7 +1582,7 @@ test("V2 setup keeps Claude's PreToolUse block/rewrite and PermissionRequest dec
             cleanup();
         }
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -1607,7 +1614,7 @@ test('V2 setup maps session.compaction.ended to the compact SessionStart hooks',
             cleanup();
         }
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -1654,7 +1661,7 @@ test('[TC-NT-071] generated bridge forwards every SessionEnd for cleanup but mar
         assert.match(routeThroughRealRouter(delegated, root), /Skipped: subagent SessionEnd/);
         assert.doesNotMatch(routeThroughRealRouter(main, root), /Skipped/);
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -1684,7 +1691,7 @@ test('[TC-NT-071] generated bridge still runs SessionEnd cleanup when session me
         // And the real notification router raises no session-ended alert for it
         assert.match(routeThroughRealRouter(payload, root), /Skipped: SessionEnd for a conversation of unknown kind/);
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -1726,7 +1733,7 @@ test("[TC-NT-014] generated bridge marks a child session going idle so only the 
         assert.match(routeThroughRealRouter(childB, root), /Skipped: subagent Stop/);
         assert.doesNotMatch(routeThroughRealRouter(main, root), /Skipped/);
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -1760,7 +1767,7 @@ test('[TC-NT-014] generated bridge recognizes a child session announced by a fla
         assert.match(routeThroughRealRouter(child, root), /Skipped: subagent Stop/);
         assert.doesNotMatch(routeThroughRealRouter(main, root), /Skipped/);
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -1790,7 +1797,7 @@ test('[TC-NT-011] generated bridge defers only the question tool precursor so on
         // And the real notification router skips the deferred precursor, leaving question.asked as the one alert
         assert.match(routeThroughRealRouter(question, root), /Skipped: deferred question precursor/);
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -1842,7 +1849,7 @@ test("[TC-PDL-068] generated bridge checks a handler's Read condition before it 
         assert.equal((await readMarkerLines(root, 'probe.jsonl')).length, 2, 'the probe started for a file that is not a skill file');
         assert.equal((await readRecordedPayloads(root)).length, 5, 'the unconditioned hook runs for every read');
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -1881,7 +1888,7 @@ test('generated bridge merges a slow earlier hook before a fast later one (confi
         await hooks['experimental.chat.system.transform']({ sessionID: 'order' }, system);
         assert.deepEqual(system.system, ['FIRST', 'SECOND'], 'contexts merge in configured order');
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -1895,7 +1902,7 @@ test('generated plugin imports only node built-ins (portable)', async () => {
             assert.ok(specifier.startsWith('node:'), `unexpected non-builtin import: ${specifier}`);
         }
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });
 
@@ -1944,6 +1951,6 @@ test("generated bridge runs an event's matching hooks concurrently and merges th
         await hooks['experimental.chat.system.transform']({ sessionID: 'parallel' }, system);
         assert.deepEqual(system.system, ['FIRST met', 'SECOND met'], 'both hooks ran at once, and outcomes merge in configured order');
     } finally {
-        await fs.rm(root, { recursive: true, force: true });
+        await removeProject(root);
     }
 });

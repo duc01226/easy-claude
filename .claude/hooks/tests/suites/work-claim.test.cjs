@@ -217,7 +217,6 @@ const tests = [
     },
     ...['regular checkout', 'linked worktree'].map(layout => ({
         name: `TC-WCL-010 Claude and Codex get the claim rule before an edit in a detached ${layout}`,
-        skip: !posix, // runCodexLauncher uses the POSIX command from the generated mirror.
         fn: () =>
             project(REMIND, ({ root, home }) => {
                 const checkout = layout === 'linked worktree' ? path.join(home, 'linked') : root;
