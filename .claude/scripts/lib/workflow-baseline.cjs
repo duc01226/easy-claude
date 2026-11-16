@@ -17,7 +17,7 @@ const crypto = require('node:crypto');
 const { execFileSync } = require('node:child_process');
 const { TextDecoder } = require('node:util');
 const { hasApprovalPrefix, stripApprovalPrefix, classifySensitivePath } = require('../../hooks/lib/sensitive-path-policy.cjs');
-const { isAbsolutePathWithin: isWithin } = require('../../hooks/lib/ck-path-utils.cjs');
+const { isAbsolutePathWithin: isWithin, sameFileIdentity } = require('../../hooks/lib/ck-path-utils.cjs');
 
 const MAX_FILE_BYTES = 256 * 1024;
 const MAX_RUN_BYTES = 2 * 1024 * 1024;
@@ -226,10 +226,12 @@ function relativeCandidate(rootDir, suppliedPath) {
 function inspectCandidate(rootDir, value) {
     const candidate = relativeCandidate(rootDir, value);
     try {
-        const stat = fs.lstatSync(candidate.lexical);
+        // Bigint stats keep 64-bit file IDs exact (NTFS IDs exceed 2^53); see sameFileIdentity.
+        // `size` is the Number copy the byte budgets add up.
+        const stat = fs.lstatSync(candidate.lexical, { bigint: true });
         if (looksLikeReparse(stat)) return { ...candidate, ok: false, reason: 'symlink/reparse point' };
         if (!stat.isFile()) return { ...candidate, ok: false, reason: 'not a regular file' };
-        return { ...candidate, ok: true, stat };
+        return { ...candidate, ok: true, stat, size: Number(stat.size) };
     } catch (error) {
         if (error && error.code === 'ENOENT') return { ...candidate, ok: false, reason: 'file does not exist' };
         return { ...candidate, ok: false, reason: `metadata read failed: ${error.message}` };
@@ -392,7 +394,7 @@ function captureBaseline({
             record.reason = 'user-private temp privacy guarantee unavailable';
             continue;
         }
-        if (metadata.stat.size > MAX_FILE_BYTES) {
+        if (metadata.size > MAX_FILE_BYTES) {
             record.kind = 'excluded';
             record.reason = `file exceeds ${MAX_FILE_BYTES} byte limit`;
             continue;
@@ -402,14 +404,14 @@ function captureBaseline({
             record.reason = `run exceeds ${MAX_SNAPSHOT_FILES} file limit`;
             continue;
         }
-        if (usedBytes + metadata.stat.size > MAX_RUN_BYTES) {
+        if (usedBytes + metadata.size > MAX_RUN_BYTES) {
             record.kind = 'excluded';
             record.reason = `run exceeds ${MAX_RUN_BYTES} byte budget`;
             continue;
         }
         pending.push({ requestedPath, metadata });
         usedFiles += 1;
-        usedBytes += metadata.stat.size;
+        usedBytes += metadata.size;
     }
 
     for (const item of pending) {
@@ -426,9 +428,9 @@ function captureBaseline({
         const after = inspectCandidate(root, item.requestedPath);
         if (
             !after.ok ||
-            after.stat.size !== item.metadata.stat.size ||
-            after.stat.mtimeMs !== item.metadata.stat.mtimeMs ||
-            after.stat.ino !== item.metadata.stat.ino
+            after.size !== item.metadata.size ||
+            after.stat.mtimeNs !== item.metadata.stat.mtimeNs ||
+            !sameFileIdentity(after.stat, item.metadata.stat)
         ) {
             record.kind = 'ambiguous';
             record.reason = 'file changed during bounded snapshot (TOCTOU ambiguous)';
@@ -563,7 +565,7 @@ function checkpointBaseline({
         if (!result.reason && !result.expectedHash) result.expectedHash = hashText(expectedBefore);
         const metadata = inspectCandidateSafe(loaded.manifest.rootDir, result.path);
         if (!result.reason && !metadata.ok) result.reason = metadata.reason;
-        else if (!result.reason && metadata.stat.size > MAX_FILE_BYTES) result.reason = `file exceeds ${MAX_FILE_BYTES} byte limit`;
+        else if (!result.reason && metadata.size > MAX_FILE_BYTES) result.reason = `file exceeds ${MAX_FILE_BYTES} byte limit`;
         else if (!result.reason) {
             try {
                 const buffer = fs.readFileSync(metadata.lexical);

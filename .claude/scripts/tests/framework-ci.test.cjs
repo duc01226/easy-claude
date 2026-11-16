@@ -415,7 +415,11 @@ test('the gate plans the run and every lane job is gated on its plan output', { 
     assert.match(jobBlock(text, 'gate'), /node \.claude\/scripts\/framework-ci\.cjs --plan .*--github-output="\$GITHUB_OUTPUT"/);
     assert.match(jobBlock(text, 'repo-checks'), /if: \$\{\{ needs\.gate\.outputs\.run_sync == 'true' \}\}/);
     assert.match(jobBlock(text, 'unit-tests'), /if: \$\{\{ needs\.gate\.outputs\.run_hook_unit == 'true' \}\}/);
-    assert.match(jobBlock(text, 'integration-test-shards'), /if: \$\{\{ needs\.gate\.outputs\.run_hook_suites == 'true' \}\}/);
+    // Regression: with a bare `if:` the implicit success() skipped a selected leg whenever an unselected lane upstream was skipped.
+    assert.match(
+        jobBlock(text, 'integration-test-shards'),
+        /if: \$\{\{ !cancelled\(\) && needs\.gate\.result == 'success' && needs\.static-and-unit\.result == 'success' && needs\.gate\.outputs\.run_hook_suites == 'true' \}\}/
+    );
     assert.match(text, /group: ci-\$\{\{ github\.workflow \}\}-\$\{\{ inputs\.ref \|\| github\.ref \}\}-\$\{\{ inputs\.scope \}\}-\$\{\{ inputs\.base \}\}/);
     const lines = text.split(/\r?\n/);
     lines.forEach((line, i) => {

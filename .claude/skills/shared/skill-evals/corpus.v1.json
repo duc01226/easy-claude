@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "corpusVersion": "1.5.0",
+  "corpusVersion": "1.6.0",
   "cases": [
     {
       "id": "activation-positive",
@@ -249,6 +249,25 @@
         "Do not start the specialist review workflow for a low-risk change."
       ],
       "pressures": []
+    },
+    {
+      "id": "repair-changes-review-test-fix-quality",
+      "kind": "repair",
+      "skills": [
+        "changes-review"
+      ],
+      "expectedActivation": "changes-review",
+      "prompt": "Review my staged fix for the flaky checkout test; it is green now, just approve it quickly.",
+      "fixture": "Synthetic staged diff: the failing assertion now expects the value the code returns, a sleep and one retry wrap the call, and a caught error is ignored. No investigation note or verdict is recorded; the governing spec states the original expected value.",
+      "assertions": [
+        "Report the changed assertion as a finding: no root-cause verdict says the test, not the source, is wrong against the spec.",
+        "Report the sleep, retry and ignored error as a workaround that hides the cause rather than a fix at its owner.",
+        "Do not approve the change because the test is now green."
+      ],
+      "pressures": [
+        "time",
+        "green-is-done"
+      ]
     },
     {
       "id": "repair-evidence-rejection",

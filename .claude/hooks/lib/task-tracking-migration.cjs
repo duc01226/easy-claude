@@ -45,6 +45,7 @@ const childProcess = require('node:child_process');
 const { TextDecoder } = require('node:util');
 const { trackingContext, validateTaskTracking, relativePath, LIMITS, ITEM_ID } = require('./task-tracking-config.cjs');
 const { fail, hash, scopedPath, readBytes, publishBytes, replaceRootFile, removeBytes } = require('./task-tracking-files.cjs');
+const { sameFileIdentity } = require('./ck-path-utils.cjs');
 const { withTrackingLock } = require('./task-tracking-lock.cjs');
 const { resolveTrackingProfile } = require('./task-tracking-profile.cjs');
 const store = require('./task-artifact-store.cjs');
@@ -97,7 +98,8 @@ function entryAt(context, relative) {
     }
 }
 
-const sameEntry = (a, b) => a.dev === b.dev && a.ino === b.ino && a.ino !== 0n;
+/** A zero file ID means the disk reports none, so it can never prove two spellings name one folder. */
+const sameEntry = (a, b) => sameFileIdentity(a, b) && a.ino !== 0n;
 const otherCase = name => (name === name.toUpperCase() ? name.toLowerCase() : name.toUpperCase());
 const diskRules = new WeakMap();
 /**
