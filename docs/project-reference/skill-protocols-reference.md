@@ -23,7 +23,7 @@ Two gates are always on: **adding** never stores raw wording — the skill draft
 
 | Target       | Scope | Name         | Description                                                      | Updated | Body |
 | ------------ | ----- | ------------ | ---------------------------------------------------------------- | ------- | ---- |
-| _(none yet)_ | —     | _(none yet)_ | Run `/project-skill-protocol add …` to create the first overlay. | —       | —    |
+| pull-request | exact | pr-local-ci-before-merge | Use when the pull-request skill prepares, readies or merges a PR in this repository — requires a local full CI run and the review fix loop on the final head, bypassed only on the user's explicit request. | 2026-11-17 | [pr-local-ci-before-merge.md](../project-protocols/pr-local-ci-before-merge.md) |
 
 - **Target** — an exact skill name (`plan`), a glob (`*-review`), or `*` (all skills).
 - **Scope** — `exact` | `glob` | `all`; the precedence key, written explicitly so resolution never re-derives it.
