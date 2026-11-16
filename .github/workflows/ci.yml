@@ -3,7 +3,8 @@
 # Runs the same commands as the local gate (docs/project-config.json -> testing.commands):
 #   node .claude/hooks/tests/run-all-tests.cjs
 #   node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --verify-only
-# on Linux, macOS and Windows. Job names, the native startup-install matrix and the required
+# on Linux, macOS and Windows, after installing the declared Node (package-lock.json) and Python
+# (.claude/scripts/requirements.txt) dependencies. Job names, the native startup-install matrix and the required
 # aggregate are pinned by `.claude/hooks/tests/suites/startup-install.test.cjs`
 # ("CI native platform matrix is pinned and fail-closed in the required aggregate"); change them
 # only together with that test. No job uses continue-on-error: every leg must be green.
@@ -57,6 +58,11 @@ jobs:
         with:
           node-version: "24"
       - run: npm ci --ignore-scripts
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: "3.12"
+      - name: Install declared Python dependencies
+        run: python -m pip install -r .claude/scripts/requirements.txt
       - name: Codex mirror and tooling gates
         run: node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --verify-only
 
@@ -79,6 +85,11 @@ jobs:
         with:
           node-version: "24"
       - run: npm ci --ignore-scripts
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: "3.12"
+      - name: Install declared Python dependencies
+        run: python -m pip install -r .claude/scripts/requirements.txt
       - name: Hook tests
         run: node .claude/hooks/tests/test-all-hooks.cjs
 
@@ -146,6 +157,11 @@ jobs:
         with:
           node-version: "24"
       - run: npm ci --ignore-scripts
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: "3.12"
+      - name: Install declared Python dependencies
+        run: python -m pip install -r .claude/scripts/requirements.txt
       - name: Full suite (every hook suite, count guard included)
         run: node .claude/hooks/tests/run-all-tests.cjs
 

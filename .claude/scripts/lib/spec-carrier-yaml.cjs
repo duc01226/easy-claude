@@ -10,6 +10,8 @@ const yamlParser = rootDir => {
   try { return createRequire(path.join(path.resolve(rootDir), "package.json"))("yaml"); }
   catch { return null; }
 };
+const hasYamlApi = yaml => typeof yaml?.parseDocument === "function" && typeof yaml.visit === "function";
+const isYamlParserAvailable = rootDir => hasYamlApi(yamlParser(rootDir));
 const spanOf = (source, node, spanFor) => {
   const range = node?.range;
   return Array.isArray(range) && Number.isInteger(range[0])
@@ -50,7 +52,7 @@ const stringList = (yaml, node, label) => {
 const configuredScalar = (fields, name) => typeof fields?.[name] === "string" && WORD.test(fields[name]) ? fields[name] : null;
 function parseYamlCarrier({ rootDir, source, file, profile, carrier, spanFor }) {
   const yaml = yamlParser(rootDir);
-  if (!yaml?.parseDocument || !yaml.visit) {
+  if (!hasYamlApi(yaml)) {
     return { records: [], unknown: [unknown(file, null, "configured YAML parser is unavailable", "MISSING_PARSER")] };
   }
   let document;
@@ -157,4 +159,4 @@ function parseYamlCarrier({ rootDir, source, file, profile, carrier, spanFor }) 
   if (records.length === 0 && unknowns.length === 0) unknowns.push(unknown(file, spanOf(source, listNodes[0]?.node, spanFor), "YAML carrier contains no supported case rows"));
   return { records, caseLists: listNodes.map(item => item.name), unknown: unknowns };
 }
-module.exports = { parseYamlCarrier };
+module.exports = { isYamlParserAvailable, parseYamlCarrier };

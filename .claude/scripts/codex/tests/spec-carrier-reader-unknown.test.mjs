@@ -146,3 +146,23 @@ test("an unavailable TypeScript parser reports MISSING_PARSER", async () => {
   assert.deepEqual(missing.records, []);
   assert.ok(missing.unknown.some(item => item.code === "MISSING_PARSER" && item.file === missingFile));
 });
+
+test("a TypeScript package without the JavaScript compiler API reports MISSING_PARSER, not a parse failure", async t => {
+  // Given: the adopter root resolves a `typescript` package that exports only its version, as TypeScript 7+ does.
+  // When: the reader parses a selected JS carrier from that root.
+  // Then: the carrier is MISSING_PARSER with no records, the same outcome as an absent package.
+  // Business Intent / Invariant Guarded: an installed package counts as a parser only when it can build a syntax tree.
+  // Failure Signal: an UNKNOWN "TypeScript parser failed" entry, any record, or no MISSING_PARSER entry fails this test.
+  await withTempProject(t, async rootDir => {
+    const file = "checks/unit/native-only.test.ts";
+    await writeProjectFile(rootDir, "node_modules/typescript/package.json", JSON.stringify({ name: "typescript", version: "7.0.2", main: "lib/version.cjs" }));
+    await writeProjectFile(rootDir, "node_modules/typescript/lib/version.cjs", "module.exports = { version: '7.0.2', versionMajorMinor: '7.0' };\n");
+    await writeProjectFile(rootDir, file, "describe('SCN-BATCH-001', () => { it('runs', () => {}); });\n");
+
+    const result = await readSpecCarriers({ rootDir, profile: carrierTestProfile, selectedFiles: [file], readText: diskReader(rootDir) });
+
+    assert.deepEqual(result.records, []);
+    assert.ok(result.unknown.some(item => item.code === "MISSING_PARSER" && item.file === file), JSON.stringify(result.unknown));
+    assert.ok(!result.unknown.some(item => /TypeScript parser failed/.test(item.reason ?? "")), JSON.stringify(result.unknown));
+  });
+});
