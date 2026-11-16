@@ -15,7 +15,7 @@ Read this index when locating the authoritative document for a project question 
 - Resolve configured roots; regenerate category globs into a normalized unique-path union.
 - Compare broad `docs/**/*.md` results with the category union and expose every remainder.
 - Verify relationships and lookup paths; keep every path real, unique, and traceable to the current tree.
-- Index <!-- COUNT:markdown:authored -->593<!-- /COUNT --> unique authored Markdown files across 13 categories; `docs/` contains <!-- COUNT:markdown:docs -->67<!-- /COUNT --> files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
+- Index <!-- COUNT:markdown:authored -->595<!-- /COUNT --> unique authored Markdown files across 13 categories; `docs/` contains <!-- COUNT:markdown:docs -->68<!-- /COUNT --> files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
 
 ## Contents
 
@@ -45,7 +45,7 @@ Read this index when locating the authoritative document for a project question 
 
 ## Documentation System
 
-<!-- COUNT:markdown:authored -->593<!-- /COUNT --> unique authored markdown files across 13 indexed categories. Last scanned: 2026-10-22. Benchmark inventory/navigation impact verified: 2026-10-27.
+<!-- COUNT:markdown:authored -->595<!-- /COUNT --> unique authored markdown files across 13 indexed categories. Last scanned: 2026-10-22. Benchmark inventory/navigation impact verified: 2026-10-27.
 
 **Relocatable roots.** Resolve these configurable roots before running their category globs:
 
@@ -70,7 +70,7 @@ The **Reproducible scope** column states each glob relative to its category's ro
 | Knowledge Reports      |              2 | `docs/knowledge/**/*.md`                                                             |
 | Knowledge Packs        | <!-- COUNT:markdown:knowledge-packs -->3<!-- /COUNT --> | `*.md` in the packs directory named by `knowledge-base-reference.md` (default `docs/knowledge-base/`) |
 | Framework Docs         |             43 | `.claude/docs/**/*.md`                                                                |
-| Skill Markdown         | <!-- COUNT:markdown:skills -->480<!-- /COUNT --> | `rg --files .claude/skills -g '*.md'`                                                 |
+| Skill Markdown         | <!-- COUNT:markdown:skills -->481<!-- /COUNT --> | `rg --files .claude/skills -g '*.md'`                                                 |
 
 The unique total is the normalized union returned by `rg --files` for Root-Level Docs, all `docs/**/*.md`, Framework Docs, and Skill Markdown. Design System is nested inside Project Reference, so its count is informative rather than additive. For this inventory, the authored/tracked scope includes generated protocol projections deliberately published as reader-facing documentation; Codex/OpenCode mirrors are excluded. Ignored dependency artifacts such as skill-local `.venv/` files are excluded.
 
@@ -83,7 +83,7 @@ easy-claude/
 ├── AGENTS.md                                      # Codex/agent instructions
 ├── CLAUDE.md                                      # Claude project instructions
 ├── README.md                                      # Project overview and adoption entry point
-├── docs/                                          # <!-- COUNT:markdown:docs -->67<!-- /COUNT --> markdown files
+├── docs/                                          # <!-- COUNT:markdown:docs -->68<!-- /COUNT --> markdown files
 │   ├── adr/                                       # 8 architecture decisions
 │   │   ├── 0001-skill-lifecycle.md
 │   │   ├── 0002-canonical-count-metrics.md
@@ -117,10 +117,11 @@ easy-claude/
 │   ├── release/                                   # 1 release-note archive
 │   ├── release-notes/                             # 2 release-doc skill outputs (+ HTML renders)
 │   ├── specs/                                     # Canonical business Feature Specs
-│   │   ├── Adoption/                              # 2 Feature Specs (3 files) + 1 bucket catalog
+│   │   ├── Adoption/                              # 3 Feature Specs (4 files) + 1 bucket catalog
 │   │   │   ├── INDEX.md
 │   │   │   ├── README.AdoptionSwitches.md
 │   │   │   ├── README.AdoptionSwitches-Part2.md
+│   │   │   ├── README.FrameworkUpdate.md
 │   │   │   └── README.SkillActivationPolicy.md
 │   │   ├── ContextDelivery/                       # 6 Feature Specs + 1 bucket catalog
 │   │   │   ├── INDEX.md
@@ -164,7 +165,7 @@ easy-claude/
 │   ├── hooks/                                     # 3
 │   ├── skills/                                    # 2
 │   └── team-artifacts/templates/                  # 6
-└── .claude/skills/                                # <!-- COUNT:markdown:skills -->480<!-- /COUNT --> authored/tracked markdown assets
+└── .claude/skills/                                # <!-- COUNT:markdown:skills -->481<!-- /COUNT --> authored/tracked markdown assets
 ```
 
 Absent whitelist branches: Operations only.
@@ -201,6 +202,7 @@ CLAUDE.md
 docs/specs/Adoption/INDEX.md
 ├── README.AdoptionSwitches-Part2.md
 │   └── README.AdoptionSwitches.md   # parent_spec / See also
+├── README.FrameworkUpdate.md
 └── README.SkillActivationPolicy.md
 
 docs/specs/ContextDelivery/INDEX.md

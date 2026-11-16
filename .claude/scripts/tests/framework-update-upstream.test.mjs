@@ -126,3 +126,30 @@ test('a cache left broken by an interrupted clone, or cloned from another addres
     assert.equal(git(cache, 'rev-parse', 'main'), git(f.upstream, 'rev-parse', 'main'), 'a fresh clone replaced the broken folder');
     assert.equal(fs.existsSync(path.join(cache, 'partial-download')), false);
 });
+
+test("an old skill's agent still sees the pending upgrade entries: the upstream engine prints the NEXT block [TC-FWU-001]", t => {
+    const f = fixture(t);
+    f.write(f.upstream, '.claude/scripts/framework-update.mjs', ENGINE);
+    f.write(
+        f.upstream,
+        '.claude/upgrades/actions/heads-up.md',
+        '---\nid: heads-up\nkind: notice\ntitle: Upgrade entries arrive with updates\nadded: 2026-11-16\n---\n\nTell the user.\n'
+    );
+    f.commit(f.upstream, 'v2 with a notice');
+    // The project's own copy of the wrapper is what an old skill runs; the engine comes from upstream.
+    const wrapper = path.join(
+        path.dirname(url.fileURLToPath(import.meta.url)),
+        '..',
+        '..',
+        'skills',
+        'framework-update',
+        'scripts',
+        'update-from-upstream.mjs'
+    );
+    const result = spawnSync(process.execPath, [wrapper, `--upstream=${f.remote}`, `--project=${f.project}`, '--no-sync'], {
+        cwd: f.project,
+        encoding: 'utf8'
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /NEXT 1 upgrade entry to handle[\s\S]*heads-up \[notice\] Upgrade entries arrive with updates/);
+});

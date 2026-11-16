@@ -1,0 +1,449 @@
+{
+  "schemaVersion": 1,
+  "about": "Accepted hash of each consumer-facing surface, written only by upgrade-contract.mjs (--init, --refresh). A hash changes only together with an upgrade entry or a waiver that covers it; see .claude/upgrades/README.md.",
+  "baseline": {
+    "config:contextDelivery": "16a9bb7d277a",
+    "config:knowledgeRoute": "28a3243c553e",
+    "config:commitSkillRoute": "0bbbeef8227b",
+    "config:judgementIntegrityRoute": "0bbbeef8227b",
+    "config:aiFeatureRoute": "0bbbeef8227b",
+    "config:qualitySkillReminder": "0bbbeef8227b",
+    "config:corePrinciplesInject": "58bbdc4f2f50",
+    "config:frameworkRuntime": "185f06a503a7",
+    "config:taskTracking": "475bf8473520",
+    "config:schemaVersion": "6bf30c5de888",
+    "config:project": "361cf612ad47",
+    "config:backendServices": "5d786e27ebdb",
+    "config:frontendApps": "4a79f8e3f343",
+    "config:designSystem": "ae5434f33bb2",
+    "config:uiReview": "435b68da4381",
+    "config:specArtifacts": "a3ff0976998c",
+    "config:specRoots": "428519ccf02e",
+    "config:docsRoots": "ca30437211ba",
+    "config:techSpecScan": "45806283552a",
+    "config:scss": "8bf5701599bf",
+    "config:componentFinder": "f1972774dd99",
+    "config:sharedNamespace": "730ea74e9288",
+    "config:modules": "affe100dc5e4",
+    "config:contextGroups": "4ffec011c943",
+    "config:conventionInjection": "4e41062208b7",
+    "config:styling": "258b02929595",
+    "config:componentSystem": "47d99b4b053f",
+    "config:formatting": "85301b0c337f",
+    "config:framework": "eae4380689d3",
+    "config:testing": "36449300354a",
+    "config:dependencySecurity": "1c1f4399021a",
+    "config:e2eTesting": "f903c3ba554e",
+    "config:experienceVerification": "f0e437ec898d",
+    "config:databases": "a3ff0976998c",
+    "config:messaging": "12674034ea8b",
+    "config:api": "b8857a06f306",
+    "config:infrastructure": "89869daccd21",
+    "config:referenceDocs": "fcbfa8ba87a8",
+    "config:graphConnectors": "abbcfb74a7dc",
+    "config:architectureRules": "44fe59e504ed",
+    "config:codebaseHealth": "449c2b251148",
+    "config:integrationTestVerify": "416bb5fa5530",
+    "config:workflowPatterns": "188c53e3561d",
+    "config:localization": "30c11e91354e",
+    "config:portability": "7914a26fdab9",
+    "config:skillConventions": "9614ee863e6e",
+    "config:hooks": "75f92b09f169",
+    "config:commit": "557ac9d62fbd",
+    "config:workTracking": "4a3c98e81da1",
+    "config:pullRequest": "8ba7680c2ef2",
+    "config:reviewGate": "67f7a27074d2",
+    "config:skillProfile": "12097fefe426",
+    "config:WORKFLOW_ACTIVATION_TIERS": "4ce3643e8606",
+    "config:WORKFLOW_ROUTE_MODES": "984a9622e732",
+    "config:DECISION_SUPPORT_MODES": "d30f0df05a37",
+    "config:TOKEN_BUDGET_CHECKPOINT_RANGE": "235501c0d383",
+    "config:SKILL_PROFILE_PRESETS": "e91c1b06072d",
+    "config:SKILL_PROFILE_LISTS": "cb389e1f13f8",
+    "workflow:workflow-big-feature": "ba9249761f74",
+    "workflow:workflow-bugfix": "80e2d51268fc",
+    "workflow:workflow-e2e": "7ef6f5557274",
+    "workflow:workflow-feature": "bab4bd2ee815",
+    "workflow:workflow-implement-spec": "a2a24082ed6b",
+    "workflow:workflow-feature-spec": "21bd5744fa81",
+    "workflow:workflow-greenfield-init": "c1313ae30b92",
+    "workflow:workflow-planned-work": "99410771e96b",
+    "workflow:workflow-refactor": "f93e2a554aea",
+    "workflow:workflow-research": "57f11ffa5773",
+    "workflow:workflow-review-changes": "74aef8a00138",
+    "workflow:workflow-architecture-audit": "a2da7ba0b037",
+    "workflow:workflow-code-to-spec": "40fe9f929301",
+    "workflow:workflow-spec-to-mockup": "a052c92ef3a1",
+    "workflow:workflow-spec-sync": "6144b65bf2ce",
+    "workflow:workflow-seed-test-data": "e36f05f1dfbe",
+    "workflow:workflow-integration-test": "005aa656bfa9",
+    "hooks:Notification": "007d37ac438f",
+    "hooks:PermissionRequest": "faec0b89f6d3",
+    "hooks:PostToolUse": "32b196edd51b",
+    "hooks:PostToolUseFailure": "a76d9b4f6945",
+    "hooks:PreToolUse": "09915ca22353",
+    "hooks:SessionEnd": "89942e268103",
+    "hooks:SessionStart": "5fd6f027395e",
+    "hooks:Stop": "faec0b89f6d3",
+    "hooks:SubagentStart": "bf17020b0252",
+    "hooks:UserPromptExpansion": "d56e02b6764d",
+    "hooks:UserPromptSubmit": "40ff35c20f2e",
+    "scan-targets": "9851d48f04a5",
+    "skills": "d114576c93f9"
+  },
+  "surfaces": {
+    "config:contextDelivery": {
+      "hash": "16a9bb7d277a",
+      "by": "baseline"
+    },
+    "config:knowledgeRoute": {
+      "hash": "28a3243c553e",
+      "by": "baseline"
+    },
+    "config:commitSkillRoute": {
+      "hash": "0bbbeef8227b",
+      "by": "baseline"
+    },
+    "config:judgementIntegrityRoute": {
+      "hash": "0bbbeef8227b",
+      "by": "baseline"
+    },
+    "config:aiFeatureRoute": {
+      "hash": "0bbbeef8227b",
+      "by": "baseline"
+    },
+    "config:qualitySkillReminder": {
+      "hash": "0bbbeef8227b",
+      "by": "baseline"
+    },
+    "config:corePrinciplesInject": {
+      "hash": "58bbdc4f2f50",
+      "by": "baseline"
+    },
+    "config:frameworkRuntime": {
+      "hash": "185f06a503a7",
+      "by": "baseline"
+    },
+    "config:taskTracking": {
+      "hash": "475bf8473520",
+      "by": "baseline"
+    },
+    "config:schemaVersion": {
+      "hash": "6bf30c5de888",
+      "by": "baseline"
+    },
+    "config:project": {
+      "hash": "361cf612ad47",
+      "by": "baseline"
+    },
+    "config:backendServices": {
+      "hash": "5d786e27ebdb",
+      "by": "baseline"
+    },
+    "config:frontendApps": {
+      "hash": "4a79f8e3f343",
+      "by": "baseline"
+    },
+    "config:designSystem": {
+      "hash": "ae5434f33bb2",
+      "by": "baseline"
+    },
+    "config:uiReview": {
+      "hash": "435b68da4381",
+      "by": "baseline"
+    },
+    "config:specArtifacts": {
+      "hash": "a3ff0976998c",
+      "by": "baseline"
+    },
+    "config:specRoots": {
+      "hash": "428519ccf02e",
+      "by": "baseline"
+    },
+    "config:docsRoots": {
+      "hash": "ca30437211ba",
+      "by": "baseline"
+    },
+    "config:techSpecScan": {
+      "hash": "45806283552a",
+      "by": "baseline"
+    },
+    "config:scss": {
+      "hash": "8bf5701599bf",
+      "by": "baseline"
+    },
+    "config:componentFinder": {
+      "hash": "f1972774dd99",
+      "by": "baseline"
+    },
+    "config:sharedNamespace": {
+      "hash": "730ea74e9288",
+      "by": "baseline"
+    },
+    "config:modules": {
+      "hash": "affe100dc5e4",
+      "by": "baseline"
+    },
+    "config:contextGroups": {
+      "hash": "4ffec011c943",
+      "by": "baseline"
+    },
+    "config:conventionInjection": {
+      "hash": "4e41062208b7",
+      "by": "baseline"
+    },
+    "config:styling": {
+      "hash": "258b02929595",
+      "by": "baseline"
+    },
+    "config:componentSystem": {
+      "hash": "47d99b4b053f",
+      "by": "baseline"
+    },
+    "config:formatting": {
+      "hash": "85301b0c337f",
+      "by": "baseline"
+    },
+    "config:framework": {
+      "hash": "eae4380689d3",
+      "by": "baseline"
+    },
+    "config:testing": {
+      "hash": "36449300354a",
+      "by": "baseline"
+    },
+    "config:dependencySecurity": {
+      "hash": "1c1f4399021a",
+      "by": "baseline"
+    },
+    "config:e2eTesting": {
+      "hash": "f903c3ba554e",
+      "by": "baseline"
+    },
+    "config:experienceVerification": {
+      "hash": "f0e437ec898d",
+      "by": "baseline"
+    },
+    "config:databases": {
+      "hash": "a3ff0976998c",
+      "by": "baseline"
+    },
+    "config:messaging": {
+      "hash": "12674034ea8b",
+      "by": "baseline"
+    },
+    "config:api": {
+      "hash": "b8857a06f306",
+      "by": "baseline"
+    },
+    "config:infrastructure": {
+      "hash": "89869daccd21",
+      "by": "baseline"
+    },
+    "config:referenceDocs": {
+      "hash": "fcbfa8ba87a8",
+      "by": "baseline"
+    },
+    "config:graphConnectors": {
+      "hash": "abbcfb74a7dc",
+      "by": "baseline"
+    },
+    "config:architectureRules": {
+      "hash": "44fe59e504ed",
+      "by": "baseline"
+    },
+    "config:codebaseHealth": {
+      "hash": "449c2b251148",
+      "by": "baseline"
+    },
+    "config:integrationTestVerify": {
+      "hash": "416bb5fa5530",
+      "by": "baseline"
+    },
+    "config:workflowPatterns": {
+      "hash": "188c53e3561d",
+      "by": "baseline"
+    },
+    "config:localization": {
+      "hash": "30c11e91354e",
+      "by": "baseline"
+    },
+    "config:portability": {
+      "hash": "7914a26fdab9",
+      "by": "baseline"
+    },
+    "config:skillConventions": {
+      "hash": "9614ee863e6e",
+      "by": "baseline"
+    },
+    "config:hooks": {
+      "hash": "75f92b09f169",
+      "by": "baseline"
+    },
+    "config:commit": {
+      "hash": "557ac9d62fbd",
+      "by": "baseline"
+    },
+    "config:workTracking": {
+      "hash": "4a3c98e81da1",
+      "by": "baseline"
+    },
+    "config:pullRequest": {
+      "hash": "8ba7680c2ef2",
+      "by": "baseline"
+    },
+    "config:reviewGate": {
+      "hash": "67f7a27074d2",
+      "by": "baseline"
+    },
+    "config:skillProfile": {
+      "hash": "12097fefe426",
+      "by": "baseline"
+    },
+    "config:WORKFLOW_ACTIVATION_TIERS": {
+      "hash": "4ce3643e8606",
+      "by": "baseline"
+    },
+    "config:WORKFLOW_ROUTE_MODES": {
+      "hash": "984a9622e732",
+      "by": "baseline"
+    },
+    "config:DECISION_SUPPORT_MODES": {
+      "hash": "d30f0df05a37",
+      "by": "baseline"
+    },
+    "config:TOKEN_BUDGET_CHECKPOINT_RANGE": {
+      "hash": "235501c0d383",
+      "by": "baseline"
+    },
+    "config:SKILL_PROFILE_PRESETS": {
+      "hash": "e91c1b06072d",
+      "by": "baseline"
+    },
+    "config:SKILL_PROFILE_LISTS": {
+      "hash": "cb389e1f13f8",
+      "by": "baseline"
+    },
+    "workflow:workflow-big-feature": {
+      "hash": "ba9249761f74",
+      "by": "baseline"
+    },
+    "workflow:workflow-bugfix": {
+      "hash": "80e2d51268fc",
+      "by": "baseline"
+    },
+    "workflow:workflow-e2e": {
+      "hash": "7ef6f5557274",
+      "by": "baseline"
+    },
+    "workflow:workflow-feature": {
+      "hash": "bab4bd2ee815",
+      "by": "baseline"
+    },
+    "workflow:workflow-implement-spec": {
+      "hash": "a2a24082ed6b",
+      "by": "baseline"
+    },
+    "workflow:workflow-feature-spec": {
+      "hash": "21bd5744fa81",
+      "by": "baseline"
+    },
+    "workflow:workflow-greenfield-init": {
+      "hash": "c1313ae30b92",
+      "by": "baseline"
+    },
+    "workflow:workflow-planned-work": {
+      "hash": "99410771e96b",
+      "by": "baseline"
+    },
+    "workflow:workflow-refactor": {
+      "hash": "f93e2a554aea",
+      "by": "baseline"
+    },
+    "workflow:workflow-research": {
+      "hash": "57f11ffa5773",
+      "by": "baseline"
+    },
+    "workflow:workflow-review-changes": {
+      "hash": "74aef8a00138",
+      "by": "baseline"
+    },
+    "workflow:workflow-architecture-audit": {
+      "hash": "a2da7ba0b037",
+      "by": "baseline"
+    },
+    "workflow:workflow-code-to-spec": {
+      "hash": "40fe9f929301",
+      "by": "baseline"
+    },
+    "workflow:workflow-spec-to-mockup": {
+      "hash": "a052c92ef3a1",
+      "by": "baseline"
+    },
+    "workflow:workflow-spec-sync": {
+      "hash": "6144b65bf2ce",
+      "by": "baseline"
+    },
+    "workflow:workflow-seed-test-data": {
+      "hash": "e36f05f1dfbe",
+      "by": "baseline"
+    },
+    "workflow:workflow-integration-test": {
+      "hash": "005aa656bfa9",
+      "by": "baseline"
+    },
+    "hooks:Notification": {
+      "hash": "007d37ac438f",
+      "by": "baseline"
+    },
+    "hooks:PermissionRequest": {
+      "hash": "faec0b89f6d3",
+      "by": "baseline"
+    },
+    "hooks:PostToolUse": {
+      "hash": "32b196edd51b",
+      "by": "baseline"
+    },
+    "hooks:PostToolUseFailure": {
+      "hash": "a76d9b4f6945",
+      "by": "baseline"
+    },
+    "hooks:PreToolUse": {
+      "hash": "09915ca22353",
+      "by": "baseline"
+    },
+    "hooks:SessionEnd": {
+      "hash": "89942e268103",
+      "by": "baseline"
+    },
+    "hooks:SessionStart": {
+      "hash": "5fd6f027395e",
+      "by": "baseline"
+    },
+    "hooks:Stop": {
+      "hash": "faec0b89f6d3",
+      "by": "baseline"
+    },
+    "hooks:SubagentStart": {
+      "hash": "bf17020b0252",
+      "by": "baseline"
+    },
+    "hooks:UserPromptExpansion": {
+      "hash": "d56e02b6764d",
+      "by": "baseline"
+    },
+    "hooks:UserPromptSubmit": {
+      "hash": "40ff35c20f2e",
+      "by": "baseline"
+    },
+    "scan-targets": {
+      "hash": "9851d48f04a5",
+      "by": "baseline"
+    },
+    "skills": {
+      "hash": "d114576c93f9",
+      "by": "baseline"
+    }
+  },
+  "waivers": []
+}

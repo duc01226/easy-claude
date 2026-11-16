@@ -162,7 +162,9 @@ test('record-only marks a hand-made sync as the base, so later project changes a
     f.write(f.project, '.claude/hooks/a.cjs', 'one\ntwo (v2)\nthree\n');
     f.write(f.project, '.claude/hooks/b.cjs', 'alpha (project)\nbeta\ngamma\n');
     f.commit(f.project, 'manual sync');
-    assert.equal(f.run('--record-only', `--ref=${v2}`), 0);
+    // With no lock, --base names the version the project held before the hand sync.
+    assert.throws(() => f.run('--record-only', `--ref=${v2}`), /--record-only needs --base=/);
+    assert.equal(f.run('--record-only', `--ref=${v2}`, `--base=${f.base}`), 0);
     assert.equal(f.read(f.project, '.claude/hooks/b.cjs'), 'alpha (project)\nbeta\ngamma\n', 'record-only changes no file');
     f.commit(f.project, 'record lock');
     f.write(f.upstream, '.claude/hooks/a.cjs', 'one\ntwo (v3)\nthree\n');

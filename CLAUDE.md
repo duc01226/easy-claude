@@ -158,7 +158,7 @@ docs/knowledge-base/  (3 files)
 docs/project-reference/  (20 files)
 docs/release/  (1 files)
 docs/release-notes/  (2 files)
-docs/specs/  (30 files)
+docs/specs/  (31 files)
 docs/templates/  (1 files)
 ```
 

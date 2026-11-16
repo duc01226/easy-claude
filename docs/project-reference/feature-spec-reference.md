@@ -18,7 +18,7 @@ Use the current bucket indexes for discovery rather than copying a census into t
 
 | Read when changing… | Canonical owner/router |
 | --- | --- |
-| Adoption behavior or automatic skill selection | `docs/specs/Adoption/INDEX.md`; ADS main owner `docs/specs/Adoption/README.AdoptionSwitches.md` and continuation; SAP owner `docs/specs/Adoption/README.SkillActivationPolicy.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
+| Adoption behavior, automatic skill selection or framework updates | `docs/specs/Adoption/INDEX.md`; ADS main owner `docs/specs/Adoption/README.AdoptionSwitches.md` and continuation; SAP owner `docs/specs/Adoption/README.SkillActivationPolicy.md`; FWU owner `docs/specs/Adoption/README.FrameworkUpdate.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
 | Context injection, protocol delivery, prompt history, workflow routing | `docs/specs/ContextDelivery/INDEX.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
 | Assistant session notifications | `docs/specs/Notifications/INDEX.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
 | Presentation deck standards | `docs/specs/Presentation/INDEX.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
@@ -61,6 +61,7 @@ Local capability codes are discoverable through owner frontmatter and bucket ind
 | --- | --- | --- |
 | ADS | Adoption Switches | `docs/specs/Adoption/README.AdoptionSwitches.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
 | SAP | Framework Skill Activation Policy | `docs/specs/Adoption/README.SkillActivationPolicy.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
+| FWU | Framework Update and Upgrade Entries | `docs/specs/Adoption/README.FrameworkUpdate.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
 | PFCI | Per-File Convention Injection | `docs/specs/ContextDelivery/README.PerFileConventionInjection.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
 | KNW | Knowledge Delivery | `docs/specs/ContextDelivery/README.KnowledgeDelivery.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
 | PCI | Project Context Intake | `docs/specs/ContextDelivery/README.ProjectContextIntake.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
