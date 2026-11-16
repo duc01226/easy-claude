@@ -305,17 +305,19 @@ export function transcriptCompleted(host, jsonl, status) {
 /** Spawn errors that mean the host cannot run at all, so every later run would fail the same way. */
 const SETUP_ERRORS = new Set(['ENOENT', 'EACCES', 'EPERM', 'ENOEXEC']);
 
-/** One host run: `{ outcome: 'ok', started }`, or `{ outcome: 'error' | 'timeout', detail }`. Throws only when
- * the host executable cannot be started. */
-export function runOnce({ host, prompt, cwd, timeoutMs, env = process.env }) {
+/** One host process for `argv` (default: `hostArgv` for `prompt`), with optional stdin `input`:
+ * `{ outcome: 'ok', stdout }`, or `{ outcome: 'error' | 'timeout', detail }`. Throws only when the host
+ * executable cannot be started. Shared by this runner and the routing evals (skill-evals/run-routing-evals.mjs). */
+export function runHost({ host, prompt, argv, input, cwd, timeoutMs, env = process.env }) {
     const bin = env.SKILL_EVAL_HOST_BIN || host;
-    const result = spawnSync(bin, hostArgv(host, prompt, env.SKILL_EVAL_MODEL), {
+    const result = spawnSync(bin, argv || hostArgv(host, prompt, env.SKILL_EVAL_MODEL), {
         cwd,
         env: hostEnv(host, env),
         encoding: 'utf8',
         timeout: timeoutMs,
         windowsHide: true,
-        maxBuffer: 64 * 1024 * 1024
+        maxBuffer: 64 * 1024 * 1024,
+        ...(input === undefined ? {} : { input })
     });
     if (result.error && SETUP_ERRORS.has(result.error.code)) throw new Error(`${bin}: ${result.error.message}`);
     if (result.error?.code === 'ETIMEDOUT') return { outcome: 'timeout', detail: `no result within ${timeoutMs} ms` };
@@ -323,12 +325,20 @@ export function runOnce({ host, prompt, cwd, timeoutMs, env = process.env }) {
         const reason = result.error?.message || (result.signal ? `signal ${result.signal}` : `status ${result.status}, no completed turn`);
         return { outcome: 'error', detail: `${reason}${result.stderr ? `: ${String(result.stderr).trim().slice(-300)}` : ''}` };
     }
-    const started = host === 'claude' ? claudeStartedSkills(result.stdout) : codexStartedSkills(result.stdout);
+    return { outcome: 'ok', stdout: result.stdout };
+}
+
+/** One host run: `{ outcome: 'ok', started }`, or `{ outcome: 'error' | 'timeout', detail }`. Throws only when
+ * the host executable cannot be started. */
+export function runOnce({ host, prompt, cwd, timeoutMs, env = process.env }) {
+    const run = runHost({ host, prompt, cwd, timeoutMs, env });
+    if (run.outcome !== 'ok') return run;
+    const started = host === 'claude' ? claudeStartedSkills(run.stdout) : codexStartedSkills(run.stdout);
     return { outcome: 'ok', started: [...started].sort() };
 }
 
 /** The host's `--version` line, or null; part of the report so runs on two machines can be compared. */
-function hostVersion(host, env) {
+export function hostVersion(host, env) {
     const result = spawnSync(env.SKILL_EVAL_HOST_BIN || host, ['--version'], { env: hostEnv(host, env), encoding: 'utf8', timeout: 30000, windowsHide: true });
     return result.error || result.status !== 0 ? null : String(result.stdout).trim().split(/\r?\n/)[0] || null;
 }

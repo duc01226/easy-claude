@@ -1,5 +1,5 @@
 ---
-description: "[Quality] Use when a workflow step or the user asks for an agent quality harness with project guidance and automated/review feedback."
+description: "[Quality] Use when a workflow step or the user asks for an agent quality harness with project guidance and automated/review feedback. --mode=readiness checks it at task start."
 ---
 
 <!-- GENERATED OPENCODE COMMAND (sync-skills.mjs) for .claude/skills/harness-setup/SKILL.md — do not hand-edit; re-run:

@@ -1902,6 +1902,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > - **Clarity:** Verify commands and paths; state each rule's trigger, action and observable check. Use emphasis sparingly; it does not enforce compliance.
 > - **Maintenance:** Review/version shared instructions and prune stale entries. Diagnose recurring mistakes before adding rules; consolidate existing guidance and check whether behavior improves.
 > - **Mechanism:** Put reusable procedures in skills and mechanical guarantees in tested deterministic checks/hooks. Verify activation, coverage and failure handling; model-based checks remain judgment calls. Edit canonical owners and regenerate mirrors.
+> - **Practice rules name their mechanism:** A rule that sets a practice (a convention, a required step, a preferred tool or pattern) names the mechanism that produces or checks it (a command, script, hook, lint rule, test, skill or workflow step) or states why it stays prose. A practice rule with neither is a finding.
 >
 > Record material findings and justified exceptions in the task report; repair applicable gaps at their owner before claiming the audit complete. Length alone never proves quality. Loading guidance: [Claude Code memory](https://code.claude.com/docs/en/memory); maintenance guidance: [best practices](https://code.claude.com/docs/en/best-practices).
 

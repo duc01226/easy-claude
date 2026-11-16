@@ -139,7 +139,7 @@ In long working sessions an AI assistant loses track of what the user originally
 
 ### BR-SPL-05: Presence decides re-delivery [HARD]
 
-**Statement:** After the pin note, the digest is delivered at a prompt, a session resume or a task checkpoint unless it is present. It is present when a delivery record exists, that delivery happened at or after the latest condensation, and the conversation grew by less than the distance limit since (default 1000000 bytes of history); when growth cannot be measured, less than the time limit elapsed (default 45 minutes). A history shorter than at delivery counts as absent.
+**Statement:** After the pin note, the digest is delivered at a prompt, a session resume or a task checkpoint unless it is present. It is present when a delivery record exists, that delivery happened at or after the latest condensation, and the conversation grew by less than the distance limit since (default 1000000 bytes of history, counting conversation bytes only: host request records and pasted image payloads above their token worth are left out, as in Protocol Delivery BR-PDL-02); when growth cannot be measured, less than the time limit elapsed (default 45 minutes). A history shorter than at delivery counts as absent.
 
 | Delivery record | At/after last condensation | Distance below limit | Outcome |
 | --------------- | -------------------------- | -------------------- | ------- |
