@@ -422,6 +422,8 @@ Run the Codex mirror and compatibility verification suite:
 node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=tests,scripts-tests,tech-spec-freshness,feature-registry,hooks-count-drift,hooks-parity,hooks-doc-sync,wf-cycle,sk-proto,residue,sdd,review-validate-coverage,sync-adoption-parity,provenance-markers,sync-divergence
 ```
 
+CI (`.github/workflows/ci.yml`) runs the local gate on every pull request on Linux, macOS and Windows: the full hook suite (`node .claude/hooks/tests/run-all-tests.cjs`) and the Codex mirror, tooling and scripts tests (`node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --verify-only`). The local full run and CI are the same gate; the `ci-required` check passes only when every leg is green. The job layout is pinned by `.claude/hooks/tests/suites/startup-install.test.cjs`, so change the two together.
+
 ## Further Reading
 
 | Document                                                              | Description                                 |

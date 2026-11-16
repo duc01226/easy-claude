@@ -1,0 +1,165 @@
+# CI for the easy-claude framework repository.
+#
+# Runs the same commands as the local gate (docs/project-config.json -> testing.commands):
+#   node .claude/hooks/tests/run-all-tests.cjs
+#   node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --verify-only
+# on Linux, macOS and Windows. Job names, the native startup-install matrix and the required
+# aggregate are pinned by `.claude/hooks/tests/suites/startup-install.test.cjs`
+# ("CI native platform matrix is pinned and fail-closed in the required aggregate"); change them
+# only together with that test. No job uses continue-on-error: every leg must be green.
+# `ci-required` is the single required status check: it passes only when both the pinned aggregate
+# and the full-suite shards succeeded on every OS. `gate` tests github.sha, which on pull_request
+# events is the merge commit with the base branch.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: gate
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.target.outputs.sha }}
+    steps:
+      - id: target
+        name: Resolve the commit under test
+        shell: bash
+        run: echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
+  repo-checks:
+    name: repo-checks (${{ matrix.os }})
+    needs: gate
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.gate.outputs.sha }}
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "24"
+      - run: npm ci --ignore-scripts
+      - name: Codex mirror and tooling gates
+        run: node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --verify-only
+
+  unit-tests:
+    name: unit-tests (${{ matrix.os }})
+    needs: gate
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.gate.outputs.sha }}
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "24"
+      - run: npm ci --ignore-scripts
+      - name: Hook tests
+        run: node .claude/hooks/tests/test-all-hooks.cjs
+
+  startup-install-platform-security:
+    name: startup-install-platform-security (${{ matrix.os }})
+    needs: gate
+    if: ${{ !cancelled() }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    steps:
+      - name: Require a resolved gate
+        if: ${{ needs.gate.result != 'success' || needs.gate.outputs.sha == '' }}
+        shell: bash
+        run: |
+          echo "gate did not resolve a commit to test"
+          exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.gate.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "24"
+      - name: Native startup-install suite
+        run: node .claude/hooks/tests/run-all-tests.cjs --filter=startup-install --verbose
+
+  static-and-unit:
+    name: static-and-unit
+    needs: [gate, repo-checks, unit-tests, startup-install-platform-security]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every required job succeeded
+        shell: bash
+        run: |
+          echo "gate: ${{ needs.gate.result }}"
+          echo "repo-checks: ${{ needs.repo-checks.result }}"
+          echo "unit-tests: ${{ needs.unit-tests.result }}"
+          echo "startup-install-platform-security: ${{ needs.startup-install-platform-security.result }}"
+          test "${{ needs.gate.result }}" = success
+          test "${{ needs.repo-checks.result }}" = success
+          test "${{ needs.unit-tests.result }}" = success
+          test "${{ needs.startup-install-platform-security.result }}" = success || { echo "required: startup-install-platform-security: success"; exit 1; }
+
+  integration-test-shards:
+    name: integration-test-shards (${{ matrix.os }})
+    needs: [gate, static-and-unit]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.gate.outputs.sha }}
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "24"
+      - run: npm ci --ignore-scripts
+      - name: Full suite (every hook suite, count guard included)
+        run: node .claude/hooks/tests/run-all-tests.cjs
+
+  ci-required:
+    name: ci-required
+    needs: [static-and-unit, integration-test-shards]
+    # always(): a cancelled or skipped run must turn the required check red, never read as passing.
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every leg on every OS succeeded
+        shell: bash
+        run: |
+          echo "static-and-unit: ${{ needs.static-and-unit.result }}"
+          echo "integration-test-shards: ${{ needs.integration-test-shards.result }}"
+          test "${{ needs.static-and-unit.result }}" = success
+          test "${{ needs.integration-test-shards.result }}" = success
