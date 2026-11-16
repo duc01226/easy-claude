@@ -310,6 +310,25 @@ function joinRoot(root, ...segments) {
     return wantsTrailingSlash ? `${joined}/` : joined;
 }
 
+/**
+ * Whether two stats name the same file: equal device and equal file ID.
+ *
+ * The ONE identity check behind the guards that detect a file swapped between a path lookup
+ * and an open, or between two observations. Take both stats with `{ bigint: true }`: a
+ * Number-mode stat rounds the 64-bit file ID to a double, and NTFS file IDs routinely exceed
+ * 2^53, where two different files — or `ino` and `ino + 1` — compare equal. A stat without
+ * bigint `dev` and `ino` is never "the same file", so a caller that forgets the option fails
+ * closed instead of matching by accident.
+ *
+ * @param {import('fs').BigIntStats} a
+ * @param {import('fs').BigIntStats} b
+ * @returns {boolean}
+ */
+function sameFileIdentity(a, b) {
+    const exact = stat => Boolean(stat) && typeof stat.dev === 'bigint' && typeof stat.ino === 'bigint';
+    return exact(a) && exact(b) && a.dev === b.dev && a.ino === b.ino;
+}
+
 module.exports = {
     INVALID_FILENAME_CHARS,
     sanitizeSlug,
@@ -323,5 +342,6 @@ module.exports = {
     convertMsysToWindows,
     buildBoundaryAllowlist,
     isAbsolutePath,
-    sanitizePath
+    sanitizePath,
+    sameFileIdentity
 };

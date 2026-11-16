@@ -17,6 +17,7 @@ const experiment = require('../../skills/framework-benchmark/lib/experiment.cjs'
 const evaluation = require('../../skills/framework-benchmark/lib/evaluation.cjs');
 const cli = require('../../skills/framework-benchmark/scripts/benchmark.cjs');
 const journey = require('../../skills/framework-benchmark/lib/journey.cjs');
+const { LARGE_FILE_ID, withLargeFileIds } = require('../../hooks/tests/lib/large-file-ids.cjs');
 
 const scratch = path.resolve(__dirname, '../../..', 'tmp', 'tests');
 function fixture() {
@@ -428,6 +429,37 @@ test('TC-FBM-081: changed ownership markers prevent deletion and recovery retent
         if (session) {
             session.retained = false;
             worktrees.remove(session);
+        }
+        f.cleanup();
+    }
+});
+
+test('TC-FBM-081: a replaced worktree root prevents deletion, also when file IDs exceed 2^53 and differ only in the last bit', () => {
+    const f = fixture();
+    let session;
+    try {
+        const parent = fs.realpathSync(f.root);
+        const rootIds = id => (method, target) =>
+            method === 'lstatSync' && path.dirname(String(target)) === parent && path.basename(String(target)).startsWith('native-') ? id : undefined;
+        // Small IDs, and NTFS-sized IDs whose Number forms are equal although the folders differ.
+        for (const createdId of [5n, LARGE_FILE_ID]) {
+            session = withLargeFileIds(fs, rootIds(createdId), () => worktrees.create([row('app.cjs', 'original')], f.root));
+            assert.throws(
+                () => withLargeFileIds(fs, rootIds(createdId + 1n), () => worktrees.remove(session)),
+                /identity changed/,
+                `root ID ${createdId + 1n} is another folder`
+            );
+            assert(fs.existsSync(session.work), 'a refused cleanup deletes nothing');
+            const cleanup = withLargeFileIds(fs, rootIds(createdId), () => worktrees.remove(session));
+            session = null;
+            assert(cleanup.temporaryRootRemoved, `same root ID ${createdId} is cleaned up`);
+        }
+    } finally {
+        // A session left by a failed assertion carries a simulated ID; the fixture cleanup removes its folder.
+        try {
+            if (session) worktrees.remove(session);
+        } catch {
+            /* removed with the fixture below */
         }
         f.cleanup();
     }

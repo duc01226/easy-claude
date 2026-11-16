@@ -24,6 +24,7 @@ const crypto = require('crypto');
 const { CK_TMP_DIR } = require('./ck-paths.cjs');
 const { DEFAULTS, CONTENT_LIMITS, toRepoRelative } = require('./file-conventions.cjs');
 const { isPrivacySensitive } = require('./sensitive-path-policy.cjs');
+const { sameFileIdentity } = require('./ck-path-utils.cjs');
 
 const MAIN_SCOPE = 'main';
 const ID_MAX = 80;
@@ -548,31 +549,27 @@ function createEvidenceReader(projectDir) {
             const physical = fs.realpathSync(absolute);
             const physicalRelative = toRepoRelative(physical, physicalRoot, physicalRoot);
             if (physicalRelative === null || isPrivacySensitive(physicalRelative)) return null;
-            const before = fs.statSync(physical);
-            if (!before.isFile() || before.size === 0 || before.size > CONTENT_LIMITS.maxFileBytes || before.size > remaining) return null;
+            // Bigint stats keep 64-bit file IDs exact (NTFS IDs exceed 2^53); see sameFileIdentity.
+            const before = fs.statSync(physical, { bigint: true });
+            const size = Number(before.size);
+            if (!before.isFile() || size === 0 || size > CONTENT_LIMITS.maxFileBytes || size > remaining) return null;
             // O_NONBLOCK also prevents a raced-in special file from stalling this advisory scanner.
             fd = fs.openSync(physical, fs.constants.O_RDONLY | (fs.constants.O_NONBLOCK || 0) | (fs.constants.O_NOFOLLOW || 0));
-            const opened = fs.fstatSync(fd);
-            if (!opened.isFile() || opened.dev !== before.dev || opened.ino !== before.ino || opened.size !== before.size) return null;
-            remaining -= opened.size;
-            const buffer = Buffer.alloc(opened.size);
+            const opened = fs.fstatSync(fd, { bigint: true });
+            if (!opened.isFile() || !sameFileIdentity(opened, before) || opened.size !== before.size) return null;
+            remaining -= size;
+            const buffer = Buffer.alloc(size);
             let offset = 0;
             while (offset < buffer.length) {
                 const read = fs.readSync(fd, buffer, offset, buffer.length - offset, offset);
                 if (!read) return null;
                 offset += read;
             }
-            const after = fs.fstatSync(fd);
-            const current = fs.statSync(physical);
-            if (
-                current.dev !== after.dev ||
-                current.ino !== after.ino ||
-                current.size !== after.size ||
-                current.mtimeMs !== after.mtimeMs ||
-                current.ctimeMs !== after.ctimeMs
-            )
+            const after = fs.fstatSync(fd, { bigint: true });
+            const current = fs.statSync(physical, { bigint: true });
+            if (!sameFileIdentity(current, after) || current.size !== after.size || current.mtimeNs !== after.mtimeNs || current.ctimeNs !== after.ctimeNs)
                 return null;
-            if (after.size !== before.size || after.mtimeMs !== before.mtimeMs || after.ctimeMs !== before.ctimeMs || fs.realpathSync(absolute) !== physical)
+            if (after.size !== before.size || after.mtimeNs !== before.mtimeNs || after.ctimeNs !== before.ctimeNs || fs.realpathSync(absolute) !== physical)
                 return null;
             const decoded = buffer.toString('utf8');
             if (!buffer.includes(0) && Buffer.from(decoded, 'utf8').equals(buffer)) text = decoded;
