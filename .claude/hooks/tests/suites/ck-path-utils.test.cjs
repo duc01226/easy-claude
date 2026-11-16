@@ -93,8 +93,8 @@ const tests = [
         fn: () => {
             // Given: the guards that check resolved-path containment for traversal or symlink escape.
             const adopters = [
-                ['.claude/hooks/lib/project-reference-registry.cjs', /require\('\.\/ck-path-utils\.cjs'\)/],
-                ['.claude/scripts/lib/workflow-baseline.cjs', /require\("\.\.\/\.\.\/hooks\/lib\/ck-path-utils\.cjs"\)/],
+                ['.claude/hooks/lib/project-reference-registry.cjs', /require\(['"]\.\/ck-path-utils\.cjs['"]\)/],
+                ['.claude/scripts/lib/workflow-baseline.cjs', /require\(['"]\.\.\/\.\.\/hooks\/lib\/ck-path-utils\.cjs['"]\)/],
                 ['.claude/scripts/doc-impact-map.cjs', /pathUtils && pathUtils\.isAbsolutePathWithin/]
             ];
             for (const [relativePath, bindingPattern] of adopters) {

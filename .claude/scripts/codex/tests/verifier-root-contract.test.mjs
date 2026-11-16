@@ -158,7 +158,7 @@ for (const name of names) {
                 mutations.push(
                     ['options.rootDir = resolvedRoot;', 'options.rootDir = process.cwd();', 0],
                     ['async function main(resolvedRoot)', 'async function main(_resolvedRoot, resolvedRoot)', 0],
-                    ['}).rootDir);', '}).rootDir && process.cwd());', 0]
+                    ['}).rootDir\n', '}).rootDir && process.cwd()\n', 0]
                 );
             else if (name === 'sync-adoption-parity' || name === 'sdd-semantic-compliance') mutations.push(['}).rootDir;', '}).rootDir && process.cwd();', 0]);
             else mutations.push(['const rootDir = rootResolution.rootDir;', 'const rootDir = process.cwd();', 0]);
@@ -167,8 +167,8 @@ for (const name of names) {
                     // Replace ONLY the root resolver: the entry gate must still run the CLI, or the
                     // mutant would die at startup and count as killed for the wrong reason.
                     [
-                        '({ resolveProjectRoot, isInvokedAsScript } = require("../lib/project-root.cjs"));',
-                        '({ isInvokedAsScript } = require("../lib/project-root.cjs")); resolveProjectRoot = ({ cwd }) => ({ rootDir: cwd });',
+                        "({ resolveProjectRoot, isInvokedAsScript } = require('../lib/project-root.cjs'));",
+                        "({ isInvokedAsScript } = require('../lib/project-root.cjs')); resolveProjectRoot = ({ cwd }) => ({ rootDir: cwd });",
                         0
                     ],
                     ['getChangedFiles(rootDir, { enforceChanged, staged })', 'getChangedFiles(process.cwd(), { enforceChanged, staged })', 0],

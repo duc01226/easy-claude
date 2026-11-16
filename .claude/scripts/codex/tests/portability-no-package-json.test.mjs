@@ -258,7 +258,7 @@ function bareSpecifiers(source, relativeFile = '') {
         scanSource += char;
     }
     const sourceLines = source.split(/\r?\n/);
-    const optionalAdopterLine = ['const document = req', 'uire("yaml").parseDocument(yamlSource); // portability:optional-adopter-dependency'].join('');
+    const optionalAdopterLine = ['const document = req', "uire('yaml').parseDocument(yamlSource); // portability:optional-adopter-dependency"].join('');
     const isAllowedOptionalLoad = (specifier, lineIndex) =>
         relativeFile === '.claude/scripts/codex/tests/spec-carrier-reader-yaml-normalization.test.mjs' &&
         specifier === 'yaml' &&

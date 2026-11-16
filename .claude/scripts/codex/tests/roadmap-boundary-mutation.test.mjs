@@ -48,7 +48,7 @@ test('roadmap boundary mutation harness kills all four named mutants', async () 
         {
             name: 'MUT-ROADMAP-001-no-default-writer',
             expectedCode: 'ROADMAP-DEFAULT-WRITER',
-            transform: input => input.replace('    noDefaultWriter: true,\n', ''),
+            transform: input => input.replace('        noDefaultWriter: true,\n', ''),
             dirty: policy => ({
                 routes: policy.defaultRouteIds.map((routeId, index) => ({
                     routeId,
@@ -60,7 +60,7 @@ test('roadmap boundary mutation harness kills all four named mutants', async () 
         {
             name: 'MUT-ROADMAP-002-missing-or-operand',
             expectedCode: 'ROADMAP-DECOMPOSITION-SCHEMA',
-            transform: input => input.replace('    "oversizedTaskThatMustSplit",\n', ''),
+            transform: input => input.replace(", 'oversizedTaskThatMustSplit']", ']'),
             dirty: () => ({ signals: signals({ oversizedTaskThatMustSplit: true }) })
         },
         {
@@ -68,8 +68,8 @@ test('roadmap boundary mutation harness kills all four named mutants', async () 
             expectedCode: 'ROADMAP-DECOMPOSITION-SCHEMA',
             transform: input =>
                 input
-                    .replace('    "deferred_work_owner",\n', '')
-                    .replace('  deferred_work_owner: ["item", "owner", "follow_up_artifact", "target_slice"],\n', ''),
+                    .replace(", 'deferred_work_owner']", ']')
+                    .replace(",\n    deferred_work_owner: ['item', 'owner', 'follow_up_artifact', 'target_slice']\n", '\n'),
             dirty: () => {
                 const decomposition = fullDecomposition();
                 delete decomposition.deferred_work_owner;
@@ -79,7 +79,7 @@ test('roadmap boundary mutation harness kills all four named mutants', async () 
         {
             name: 'MUT-ROADMAP-004-writer-guard',
             expectedCode: 'ROADMAP-EXPLICIT-ROUTE',
-            transform: input => input.replace('    explicitRequestOnly: true,\n', ''),
+            transform: input => input.replace(',\n        explicitRequestOnly: true\n', '\n'),
             dirty: () => ({
                 standalone: {
                     explicitRequest: false,

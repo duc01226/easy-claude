@@ -505,8 +505,8 @@ test('seeded semantic mutants: existing invariant tests kill fallback, duplicate
     const mutants = [
         [
             'unknown-mode fallback',
-            'const mode = own(options, "mode") ? options.mode : (entry.defaultMode ?? "default");',
-            'const mode = modes.includes(options.mode) ? options.mode : (entry.defaultMode ?? "default");',
+            "const mode = own(options, 'mode') ? options.mode : (entry.defaultMode ?? 'default');",
+            "const mode = modes.includes(options.mode) ? options.mode : (entry.defaultMode ?? 'default');",
             'variants: unknown modes',
             /Missing expected exception/
         ],

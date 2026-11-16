@@ -446,8 +446,9 @@ test('seeded expiry mutant is killed by the exact-boundary counter-case', t => {
         fs.mkdirSync(path.dirname(file), { recursive: true });
     }
     const source = fs.readFileSync(modulePath, 'utf8');
-    const before = 'at < createdAt || at >= expiresAt || at - createdAt >= MAX_AGE_MS';
-    assert.equal(source.split(before).length, 2, 'expiry mutation target must exist exactly once');
+    // The boundary expression may wrap across lines; the mutant turns both `>=` into `>`.
+    const before = /at < createdAt \|\|\s+at >= expiresAt \|\|\s+at - createdAt >= MAX_AGE_MS/g;
+    assert.equal(source.match(before)?.length, 1, 'expiry mutation target must exist exactly once');
     hookLibDeps.forEach((name, index) => fs.copyFileSync(path.join(repoRoot, '.claude', 'hooks', 'lib', name), copiedDeps[index]));
     fs.copyFileSync(fileURLToPath(import.meta.url), copiedTest);
     const env = { ...process.env, TMPDIR: parent, TEMP: parent, TMP: parent };
@@ -472,7 +473,11 @@ test('seeded expiry mutant is killed by the exact-boundary counter-case', t => {
     assert.match(control.stdout, /(?:#|ℹ) pass 1\b/);
     assert.match(control.stdout, /(?:#|ℹ) fail 0\b/);
 
-    fs.writeFileSync(mutantModule, source.replace(before, 'at < createdAt || at > expiresAt || at - createdAt > MAX_AGE_MS'), 'utf8');
+    fs.writeFileSync(
+        mutantModule,
+        source.replace(before, target => target.replaceAll('>=', '>')),
+        'utf8'
+    );
     const child = runCounterCase();
     assert.equal(child.error, undefined);
     assert.equal(child.status, 1, `${child.stdout}\n${child.stderr}`);

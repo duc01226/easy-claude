@@ -224,8 +224,10 @@ test('TC-EXP-CONFIG-009: actual required-field and type weakenings are killed by
 
 test('TC-EXP-CONFIG-010: actual disabled-warning deletion is killed by its diagnostic oracle', () => {
     const source = readSchemaSource();
-    const anchor = `warnings.push('${disabledWarning}');`;
-    assert.equal(source.split(anchor).length, 2, 'one warning mutation site');
+    // The call may wrap across lines; the mutant removes the whole push.
+    const escaped = disabledWarning.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const anchor = new RegExp(`warnings\\.push\\(\\s*'${escaped}'\\s*\\);`, 'g');
+    assert.equal(source.match(anchor)?.length, 1, 'one warning mutation site');
     const mutant = loadSchemaSource(source.replace(anchor, '/* warning removed */'));
     const result = mutant(surfaceConfig(false));
     assert.equal(result.valid, true, 'warning removal must not prevent schema execution');

@@ -495,7 +495,7 @@ const tests = [
             assert.match(read(SKILLS, 'workflow-e2e', 'SKILL.md'), /`workflow-integration-test` \(`--mode=green` \/ `--mode=write`\)/);
             // the workflow verifier's goal-contract roster names the merged skill
             const verifier = read(REPO_ROOT, '.claude', 'scripts', 'codex', 'verify-workflow-cycle-compliance.mjs');
-            assert.match(verifier, /"workflow-integration-test",\s*"workflow-code-to-spec"/);
+            assert.match(verifier, /["']workflow-integration-test["'],\s*["']workflow-code-to-spec["']/);
         }
     }
 ];

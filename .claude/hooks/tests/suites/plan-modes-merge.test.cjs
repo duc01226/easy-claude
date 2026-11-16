@@ -463,9 +463,9 @@ const tests = [
             );
             // And the shipped default is auto, so a standalone plan validates without a question first
             const loader = read(REPO_ROOT, '.claude', 'hooks', 'lib', 'ck-config-loader.cjs');
-            assert.match(loader, /validation: \{\s*mode: "auto"/);
+            assert.match(loader, /validation: \{\s*mode: ["']auto["']/);
             assert.equal(JSON.parse(read(REPO_ROOT, '.claude', '.ck.json')).plan.validation.mode, 'auto');
-            assert.match(read(REPO_ROOT, '.claude', 'hooks', 'session-init.cjs'), /"CK_VALIDATION_MODE", validation\.mode \|\| "auto"/);
+            assert.match(read(REPO_ROOT, '.claude', 'hooks', 'session-init.cjs'), /["']CK_VALIDATION_MODE["'], validation\.mode \|\| ["']auto["']/);
             // And every place that states the default agrees with the loader: the settings help and the option catalogue
             const help = read(REPO_ROOT, '.claude', 'scripts', 'ck-help.py');
             assert.match(help, /"mode": "auto",\s+\/\/ "auto" \| "prompt" \| "off"/);
