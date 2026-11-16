@@ -343,7 +343,7 @@ launcherTests.push(
         assert.ok(args[2].includes('import yaml'));
         assert.ok(args[2].includes('yaml.__file__'));
         assert.equal(args[2].includes("sys.platform = 'win32'"), false);
-        assert.equal(options.timeout, 75000);
+        assert.equal(options.timeout, 105000);
         assert.equal(options.shell, undefined);
         return { status: 0, stdout: JSON.stringify(modulePath) };
       } });

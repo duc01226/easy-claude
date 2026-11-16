@@ -6,12 +6,15 @@ Centralized utility scripts for Claude Code skills.
 
 `scan_skills.py` and `generate_catalogs.py` recover missing PyYAML on use through
 `lib/python_dependencies.py`. They reuse an existing local target first, then try
-one interpreter-wide install and one local target under project-root
-`tmp/claude-temp/python-packages`. Each attempt has a 30-second deadline, uses
-literal argv and noninteractive wheel-only pip, and verifies the actual import.
-Managed Python or denied/offline installs fall back without overriding system
-protection. If both attempts fail, the required tool exits 3 with its existing
-installation recipe; it never reports a skipped check as passing.
+one interpreter-wide wheel install and one wheel install into the local target
+under project-root `tmp/claude-temp/python-packages`. If that also fails, typically
+because the interpreter is newer than PyYAML's published wheels (for example CPython
+3.15 with PyYAML 6.0.3), a third attempt builds only PyYAML from source into that
+target; its build dependencies stay wheel-only. Each attempt has a 30-second deadline, uses literal argv and
+noninteractive pip, and verifies the actual import. Managed Python or denied/offline
+installs fall back without overriding system protection. If every attempt fails,
+the helper prints pip's last error line and the required tool exits 3 with its
+existing installation recipe; it never reports a skipped check as passing.
 
 Set `CK_AUTO_INSTALL_DEPENDENCIES=0` to disable automatic attempts. Python `-S`
 probes intentionally disable recovery too. Broken transitive imports still surface.
