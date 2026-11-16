@@ -215,7 +215,7 @@ export function hostArgv(host, prompt, model) {
  * operator chose: the framework mode, quiet project rules, quiet native policy and native auto-apply
  * (`framework-runtime.cjs`), the workflow route mode, decision-support mode and skill auto-trigger preference
  * (`workflow-routing-config.cjs`), the commit review mode
- * (`commit-review-policy.cjs`), the prompt ledger switch (`prompt-ledger-store.cjs`) and each prompt router's
+ * (`commit-review-policy.cjs`), the prompt ledger switch (`prompt-ledger-store.cjs`), the edit-time lint switch (`edit-time-lint.cjs`) and each prompt router's
  * `ENV_SWITCH` kill switch. Every one is a mode word or a boolean. Never a `CK_` prefix: other CK_ names, such as
  * CK_GIT_URL, can carry a credential-bearing URL. */
 export const FRAMEWORK_SWITCHES = Object.freeze([
@@ -235,7 +235,8 @@ export const FRAMEWORK_SWITCHES = Object.freeze([
     'CK_COMMIT_SKILL_ROUTE',
     'CK_JUDGEMENT_INTEGRITY_ROUTE',
     'CK_WORK_TRACKING_MODE',
-    'CK_WORK_TRACKING_AUTO_MERGE'
+    'CK_WORK_TRACKING_AUTO_MERGE',
+    'CK_EDIT_TIME_LINT'
 ]);
 
 /** A switch value as the report records it: trimmed, wrapping quotes removed (`set NAME="quiet"` in cmd.exe keeps
