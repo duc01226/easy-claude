@@ -89,11 +89,11 @@ Read `docs/project-config.json` → `modules` when selecting a component; module
 | Component      | Count                                                                                         | Location                      | Format                                                                              |
 | -------------- | --------------------------------------------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------- |
 | Hooks          | <!-- COUNT:hooks -->38<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                         |
-| Hook Libraries | <!-- COUNT:lib-modules -->77<!-- /COUNT -->                                                   | `.claude/hooks/lib/*.cjs`     | CommonJS utility modules                                                            |
+| Hook Libraries | <!-- COUNT:lib-modules -->78<!-- /COUNT -->                                                   | `.claude/hooks/lib/*.cjs`     | CommonJS utility modules                                                            |
 | Skills         | <!-- COUNT:skills -->108<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                         |
 | Agents         | <!-- COUNT:agents -->25<!-- /COUNT -->                                                        | `.claude/agents/*.md`         | Markdown definitions                                                                |
 | Workflows      | <!-- COUNT:workflows -->17<!-- /COUNT -->                                                     | `.claude/workflows.json`      | JSON workflow definitions                                                           |
-| Hook Tests     | 137 suites + 9 `test-*` files                                                                  | `.claude/hooks/tests/`        | CJS/JS test files; top-level `test-*` files plus `run-all-tests.cjs` aggregate      |
+| Hook Tests     | 138 suites + 9 `test-*` files                                                                  | `.claude/hooks/tests/`        | CJS/JS test files; top-level `test-*` files plus `run-all-tests.cjs` aggregate      |
 | Codex Source Projection | <!-- COUNT:skills -->108<!-- /COUNT --> skills, <!-- COUNT:agents -->25<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Source counts supplied to generated host projections; verify the projections through their owner                                                     |
 
 
@@ -102,7 +102,7 @@ Read `docs/project-config.json` → `modules` when selecting a component; module
 | Code | Module         | Location                       | Description                                                                                                               |
 | ---- | -------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
 | HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->38<!-- /COUNT --> top-level `.cjs` runtime hook files (session init, safety gates, graph, formatting) |
-| HL   | Hook Libraries | `.claude/hooks/lib/`           | <!-- COUNT:lib-modules -->77<!-- /COUNT --> shared utility modules for hooks                                              |
+| HL   | Hook Libraries | `.claude/hooks/lib/`           | <!-- COUNT:lib-modules -->78<!-- /COUNT --> shared utility modules for hooks                                              |
 | SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->108<!-- /COUNT --> task automation skill definitions                                                 |
 | AG   | Agents         | `.claude/agents/`              | <!-- COUNT:agents -->25<!-- /COUNT --> specialized subagent role definitions                                              |
 | WF   | Workflows      | `.claude/workflows.json`       | <!-- COUNT:workflows -->17<!-- /COUNT --> end-to-end process orchestrations                                               |
@@ -110,14 +110,14 @@ Read `docs/project-config.json` → `modules` when selecting a component; module
 | CX   | Codex Tooling  | `.claude/scripts/codex/`       | ESM sync, migration, notification and verification tools                                                  |
 | CM   | Codex Source Projection | `.agents/`, `.codex/`          | Generated Codex-compatible skills, agents, hooks                                                                          |
 | NT   | Notifications  | `.claude/hooks/notifications/` | `notify.cjs` dispatcher + 4 channel providers in `providers/` (desktop, telegram, discord, slack)                         |
-| HT   | Hook Tests     | `.claude/hooks/tests/`         | 137 suite files + 9 top-level `test-*` files + `run-all-tests.cjs` aggregate                                               |
+| HT   | Hook Tests     | `.claude/hooks/tests/`         | 138 suite files + 9 top-level `test-*` files + `run-all-tests.cjs` aggregate                                               |
 
 
 ## Advisory Selection and Workflow Discovery
 
 Read `.claude/hooks/task-tracking-route.cjs` and `.claude/hooks/lib/task-tracking-advisory.cjs` for optional work/publication prompt notices: bounded, deduplicated, silent on off/unavailable/quoted/unrelated input, and never save/proof/acceptance authority. Read `.claude/hooks/skill-activation-inject.cjs` when tracing runtime skill-selection guidance, and `.claude/hooks/lib/workflow-route-delivery.cjs` with its two thin entries `.claude/hooks/workflow-route-inject.cjs` and `.claude/hooks/workflow-catalog-inject.cjs` when tracing route and catalog delivery; none of them changes host permission or advances workflow steps. SubagentStart carries protocol delivery and advisory skill context. `workflow-end` is the unregistered lifecycle skill; route-mode configuration belongs to `.claude/skills/framework-config/SKILL.md` and `.claude/scripts/workflow-mode.cjs`. Use the current manifest/catalog instead of restoring a stale workflow-mode skill inventory.
 
-Read `docs/specs/ContextDelivery/README.ProjectContextIntake.md` when changing project-rule discovery before planning, implementation or review; read `docs/specs/ContextDelivery/README.ProtocolDelivery.md` when changing universal reinjection. Universal bins reinject after about 150K tokens (3.3 MB of transcript growth; `.claude/hooks/lib/universal-delivery.cjs`, `.claude/hooks/lib/file-conventions.cjs`); the full-document reuse and generic convention horizons remain separate. Default-root examples; `specRoots.business.path` in `docs/project-config.json` overrides these locations.
+Read `docs/specs/ContextDelivery/README.ProjectContextIntake.md` when changing project-rule discovery before planning, implementation or review; read `docs/specs/ContextDelivery/README.ProtocolDelivery.md` when changing universal reinjection. Universal bins reinject after about 150K tokens (3.3 MB of transcript growth; `.claude/hooks/lib/universal-delivery.cjs`, `.claude/hooks/lib/file-conventions.cjs`); the full-document reuse and generic convention horizons remain separate. Every such growth distance counts conversation bytes only: read `.claude/hooks/lib/transcript-measure.cjs` when changing how transcript size is measured (host request records and pasted image payloads are excluded, incrementally). Read `.claude/skills/shared/skill-evals/README.md` when measuring routing accuracy: `run-routing-evals.mjs` runs the novice and mid-session routing cases on demand in throwaway fixtures (never in CI). Default-root examples; `specRoots.business.path` in `docs/project-config.json` overrides these locations.
 
 ## Exemplars to Copy
 

@@ -518,3 +518,108 @@ test('analysis workflow reference stays small and value based', () => {
     assert.match(reference, /product\/domain delivery, platform\/tooling work, docs\/generated churn/);
     assert.match(reference, /Avoid ranking by commits\/lines alone/);
 });
+
+// Quality counters beside velocity (G33): a fixture history with a revert, a follow-up fix inside the window, a fix
+// outside it, two `Bug-Class: state-transition` trailers and a committed verify baseline that shrinks.
+test('quality counters count reverts, follow-up fixes, Bug-Class trailers and the verify-baseline trend per contributor', () => {
+    const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'git-dev-quality-'));
+    try {
+        runGitIn(repo, ['init']);
+        runGitIn(repo, ['checkout', '-b', 'develop']);
+        const commit = (who, date, files, message, trailers = []) => {
+            for (const [file, content] of Object.entries(files)) {
+                fs.mkdirSync(path.dirname(path.join(repo, file)), { recursive: true });
+                fs.writeFileSync(path.join(repo, file), content, 'utf8');
+                runGitIn(repo, ['add', file]);
+            }
+            const args = ['commit', '-m', message];
+            if (trailers.length) args.push('-m', trailers.join('\n'));
+            runGitIn(repo, args, commitEnv(who.name, who.email, date));
+            return runGitIn(repo, ['rev-parse', 'HEAD']).trim();
+        };
+        const alice = { name: 'Alice Cart', email: 'alice@example.com' };
+        const bob = { name: 'Bob Fixer', email: 'bob@example.com' };
+        const carol = { name: 'Carol Checkout', email: 'carol@example.com' };
+        const baseline = items => `${JSON.stringify({ schemaVersion: 1, keyVersion: 1, commands: { lint: { commandHash: 'a'.repeat(64), items } } })}\n`;
+
+        commit(alice, '2026-03-01T09:00:00+00:00', { '.verify-baseline.json': baseline({ 'rule-a': 2, 'rule-b': 1 }) }, 'chore: freeze verify baseline');
+        commit(alice, '2026-04-02T09:00:00+00:00', { 'src/cart.js': 'total v1\n' }, 'feat: add cart total');
+        commit(bob, '2026-04-04T09:00:00+00:00', { 'src/cart.js': 'total v2\n' }, 'fix: empty cart total', ['Bug-Class: state-transition']);
+        const checkout = commit(carol, '2026-04-06T09:00:00+00:00', { 'src/checkout.js': 'checkout\n' }, 'feat: add checkout');
+        runGitIn(repo, ['revert', '--no-edit', checkout], commitEnv(bob.name, bob.email, '2026-04-07T09:00:00+00:00'));
+        commit(alice, '2026-04-26T09:00:00+00:00', { 'src/cart.js': 'total v3\n' }, 'fix: rounding in cart total');
+        commit(alice, '2026-05-01T09:00:00+00:00', { 'src/discount.js': 'discount\n' }, 'fix(cart): reset discount on clear', ['Bug-Class: state-transition']);
+        commit(carol, '2026-05-03T09:00:00+00:00', { 'src/checkout.js': 'checkout v2\n' }, 'feat: checkout again', ['Bug-Class: Not A Class!']);
+        commit(bob, '2026-05-05T09:00:00+00:00', { '.verify-baseline.json': baseline({ 'rule-a': 1 }) }, 'chore: prune verify baseline');
+
+        const result = tool.generateReport(
+            { branch: 'develop', since: '2026-04-01T00:00:00.000Z', until: '2026-06-01T00:00:00.000Z', out: 'reports', json: true },
+            { cwd: repo, now: '2026-06-01T00:00:00.000Z' }
+        );
+        const contributors = JSON.parse(fs.readFileSync(path.join(result.outputDir, 'data', 'contributors.json'), 'utf8'));
+        const quality = name => contributors.find(contributor => contributor.displayName === name).quality;
+
+        // Bob's fix on src/cart.js two days after Alice's feature is a follow-up fix; Alice's feature was followed by it.
+        assert.deepEqual(quality('Bob Fixer'), {
+            reverts: 1,
+            revertedCommits: 0,
+            followUpFixes: 1,
+            commitsFollowedByFix: 0,
+            bugClasses: { 'state-transition': 1 }
+        });
+        // Alice's rounding fix is 22+ days after the earlier cart.js commits: outside the window, not a follow-up.
+        assert.deepEqual(quality('Alice Cart'), {
+            reverts: 0,
+            revertedCommits: 0,
+            followUpFixes: 0,
+            commitsFollowedByFix: 1,
+            bugClasses: { 'state-transition': 1 }
+        });
+        // Carol's checkout was reverted; a trailer value outside the class-name shape is not counted.
+        assert.deepEqual(quality('Carol Checkout'), { reverts: 0, revertedCommits: 1, followUpFixes: 0, commitsFollowedByFix: 0, bugClasses: {} });
+
+        const summary = fs.readFileSync(path.join(result.outputDir, 'summary.md'), 'utf8');
+        assert.match(summary, /## Quality Counters Beside Velocity/);
+        assert.match(summary, /Bug-Class: state-transition 2/, 'two state-transition trailers counted for the team');
+        assert.match(summary, /Verify-baseline trend: 3 remaining entries at the start, 1 at the end \(-2\); 1 commit\(s\) changed the baseline/);
+        const csv = fs.readFileSync(path.join(result.outputDir, 'contributors.csv'), 'utf8');
+        assert.match(csv.split('\n')[0], /reverts,revertedCommits,followUpFixes,commitsFollowedByFix,bugClasses/);
+    } finally {
+        fs.rmSync(repo, { recursive: true, force: true });
+    }
+});
+
+test('the verify-baseline trend is reported as not available without a committed baseline', () => {
+    const git = args => {
+        if (args[0] === 'rev-list') return 'abc\n';
+        if (args[0] === 'show') throw new Error("fatal: path '.verify-baseline.json' does not exist");
+        throw new Error(`unexpected git call: ${args.join(' ')}`);
+    };
+    const config = { branch: 'develop', since: new Date('2026-04-01T00:00:00Z'), until: new Date('2026-06-01T00:00:00Z'), gitRoot: process.cwd() };
+    assert.deepEqual(tool.collectBaselineTrend(config, git, []), { available: false, reason: 'no committed .verify-baseline.json' });
+});
+
+test('a fix is a follow-up only for earlier commits inside the window that share a non-generated path', () => {
+    const at = day => `2026-04-${String(day).padStart(2, '0')}T09:00:00+00:00`;
+    const make = (hash, day, subject, paths) => ({
+        hash,
+        date: at(day),
+        subject,
+        isMerge: false,
+        isRevert: false,
+        type: tool.parseCommitType(subject).type,
+        files: paths.map(file => ({ path: file, category: tool.categorizePath(file) }))
+    });
+    const commits = [
+        make('a', 1, 'feat: lockfile only', ['package-lock.json']),
+        make('b', 2, 'feat: api', ['src/api.js']),
+        make('c', 2 + tool.FOLLOW_UP_WINDOW_DAYS, 'fix: api and lockfile', ['src/api.js', 'package-lock.json'])
+    ];
+    tool.annotateQualitySignals(commits);
+    assert.equal(commits[2].followUpFix, true);
+    assert.equal(commits[1].followedByFix, true, 'exactly at the window edge counts');
+    assert.equal(commits[0].followedByFix, false, 'a shared generated path does not count');
+    const late = [make('b', 1, 'feat: api', ['src/api.js']), make('c', 2 + tool.FOLLOW_UP_WINDOW_DAYS, 'fix: api', ['src/api.js'])];
+    tool.annotateQualitySignals(late);
+    assert.equal(late[1].followUpFix, false, 'one day past the window does not count');
+});

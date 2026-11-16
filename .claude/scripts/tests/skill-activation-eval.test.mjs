@@ -206,6 +206,7 @@ const NOT_FRAMEWORK_SWITCHES = new Map([
     ['CK_REVIEW_RECEIPT_STORE', 'store path'],
     ['CK_CONVENTIONS_DIR', 'store path'],
     ['CK_PROMPT_LEDGER_DIR', 'store path'],
+    ['CK_TRANSCRIPT_MEASURE_DIR', 'store path'],
     // installer trust: an operator decision for dependency installs, never set for a measurement run
     ['CK_STARTUP_INSTALL_TRUST', 'installer trust'],
     // test seam: replaces a spawned graph process in hook tests

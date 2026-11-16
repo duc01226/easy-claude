@@ -739,3 +739,18 @@ test('protocol reminders retain applicability and do not introduce automatic arc
     assert.match(reminder('sequential-thinking-protocol'), /implicitly when visible markers would clutter/);
     assert.doesNotMatch(reminder('output-quality-principles'), />=8|first and last 5/);
 });
+
+// Invariant: the instruction-file audit asks every practice-setting rule for its mechanism or a reason,
+// in the canonical block and in every carrier of it (P7 audit rule).
+test('instruction-file audit requires a practice-setting rule to name its mechanism or a reason', async () => {
+    const rule = '**Practice rules name their mechanism:** A rule that sets a practice';
+    for (const rel of [
+        '.claude/skills/shared/sync-inline-versions.md',
+        '.claude/skills/shared/protocols/context-engineering-principles.md',
+        '.claude/agents/framework-maintainer.md'
+    ]) {
+        const text = await read(rel);
+        assert.ok(text.includes(rule), `${rel} carries the rule`);
+        assert.match(text, /names the mechanism that produces or checks it \([^)]*\) or states why it stays prose/, rel);
+    }
+});

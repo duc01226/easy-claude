@@ -19,6 +19,20 @@ const GENERATED_FILE_WARNING_LIMIT = 100;
 const DOCS_HEAVY_FILE_FLOOR = 50;
 const DOCS_TO_SOURCE_RATIO = 2;
 const PATH_CATEGORY_KEYS = ['source', 'test', 'docs', 'config', 'generated'];
+// Quality counters beside the speed figures (deterministic, from the same history):
+// - a fix commit is a follow-up fix when an earlier non-merge commit changed one of its non-generated paths
+//   within FOLLOW_UP_WINDOW_DAYS; that earlier commit counts as followed by a fix;
+// - a revert is a `Revert "<subject>"` (git's own message) or `revert:` commit; the latest earlier commit with
+//   that subject counts as reverted;
+// - `Bug-Class: <class>` commit trailers are counted per class;
+// - the verify-baseline trend compares the committed baseline's remaining entries at the period's start and end.
+const FOLLOW_UP_WINDOW_DAYS = 14;
+const REVERT_SUBJECT = /^Revert "(.+)"$/;
+const BUG_CLASS_TRAILER = 'Bug-Class';
+const BUG_CLASS_VALUE = /^[a-z0-9][a-z0-9._-]{0,63}$/;
+const TRAILER_MARK = '\x1c';
+const TRAILER_SEPARATOR = '\x1d';
+const VERIFY_BASELINE_FILE = '.verify-baseline.json';
 
 // Single source of truth for the heuristic contribution-signal weights. The Methodology
 // section in the rendered report interpolates these same values, so code and prose can
@@ -288,7 +302,8 @@ function parseCsvLine(line) {
 }
 
 function collectCommits(config, git = runGit) {
-    const pretty = `%x1e%H%x1f%h%x1f%aN%x1f%aE%x1f%cI%x1f%P%x1f%s`;
+    // The Bug-Class trailer values follow the subject after TRAILER_MARK, joined by TRAILER_SEPARATOR, on one line.
+    const pretty = `%x1e%H%x1f%h%x1f%aN%x1f%aE%x1f%cI%x1f%P%x1f%s%x1c%(trailers:key=${BUG_CLASS_TRAILER},valueonly,separator=%x1d)`;
     // Deliberately do not use --first-parent. A no-ff merge of a feature branch can
     // contain commits from several authors, and each author must keep their own
     // direct authored contribution instead of giving it to the merge author.
@@ -330,7 +345,7 @@ function parseCommitSegment(segment) {
     const fields = header.split(FIELD_SEPARATOR);
     if (fields.length < 7) return null;
 
-    const subject = fields.slice(6).join(FIELD_SEPARATOR);
+    const [subject, trailerText = ''] = fields.slice(6).join(FIELD_SEPARATOR).split(TRAILER_MARK);
     const parents = fields[5] ? fields[5].split(/\s+/).filter(Boolean) : [];
     const files = lines.map(parseNumstatLine).filter(Boolean);
     const isMerge = parents.length > 1;
@@ -348,7 +363,100 @@ function parseCommitSegment(segment) {
         type: typeInfo.type,
         scope: typeInfo.scope,
         description: typeInfo.description,
+        bugClasses: parseBugClasses(trailerText),
+        isRevert: !isMerge && (REVERT_SUBJECT.test(subject) || typeInfo.type === 'revert'),
         files
+    };
+}
+
+/** `Bug-Class:` trailer values of one commit, lower-cased; values outside the class-name shape are dropped. */
+function parseBugClasses(trailerText) {
+    return String(trailerText || '')
+        .split(TRAILER_SEPARATOR)
+        .map(value => value.trim().toLowerCase())
+        .filter(value => BUG_CLASS_VALUE.test(value));
+}
+
+/**
+ * Mark the quality signals on each commit (mutates and returns `commits`): `reverted`, `followUpFix`,
+ * `followedByFix`. Deterministic and bounded by the window: each fix commit is compared only with the
+ * earlier commits inside FOLLOW_UP_WINDOW_DAYS.
+ */
+function annotateQualitySignals(commits, { windowDays = FOLLOW_UP_WINDOW_DAYS } = {}) {
+    const authored = commits.filter(commit => !commit.isMerge).sort((left, right) => Date.parse(left.date) - Date.parse(right.date));
+    const windowMs = windowDays * MS_PER_DAY;
+    const changedPaths = commit => new Set((commit.files || []).filter(file => file.category !== 'generated').map(file => file.path));
+    for (const commit of authored) {
+        commit.reverted = Boolean(commit.reverted);
+        commit.followUpFix = Boolean(commit.followUpFix);
+        commit.followedByFix = Boolean(commit.followedByFix);
+    }
+    for (let index = 0; index < authored.length; index += 1) {
+        const commit = authored[index];
+        const at = Date.parse(commit.date);
+        if (commit.isRevert) {
+            const target = REVERT_SUBJECT.exec(commit.subject)?.[1];
+            const reverted = target
+                ? authored
+                      .slice(0, index)
+                      .reverse()
+                      .find(earlier => earlier.subject === target && !earlier.reverted)
+                : null;
+            if (reverted) reverted.reverted = true;
+            continue;
+        }
+        if (commit.type !== 'fix') continue;
+        const paths = changedPaths(commit);
+        if (paths.size === 0) continue;
+        for (let earlierIndex = index - 1; earlierIndex >= 0; earlierIndex -= 1) {
+            const earlier = authored[earlierIndex];
+            const elapsed = at - Date.parse(earlier.date);
+            if (elapsed > windowMs) break;
+            if (elapsed < 0 || earlier.isRevert) continue;
+            if ([...changedPaths(earlier)].some(file => paths.has(file))) {
+                earlier.followedByFix = true;
+                commit.followUpFix = true;
+            }
+        }
+    }
+    return commits;
+}
+
+/**
+ * Remaining entries of the committed verify baseline at the period's start and end, or why there is no trend.
+ * Read from history only (`git rev-list` + `git show`); a missing file at both ends means no committed baseline.
+ */
+function collectBaselineTrend(config, git = runGit, commits = []) {
+    let baselines;
+    try {
+        baselines = require(path.join(__dirname, '..', '..', '..', 'hooks', 'lib', 'verify-baseline.cjs'));
+    } catch {
+        return { available: false, reason: 'verify-baseline library not installed' };
+    }
+    const countAt = when => {
+        let revision;
+        try {
+            revision = String(git(['rev-list', '-1', `--before=${when.toISOString()}`, config.branch], { cwd: config.gitRoot })).trim();
+        } catch {
+            return null;
+        }
+        if (!revision) return null;
+        try {
+            const value = JSON.parse(String(git(['show', `${revision}:${VERIFY_BASELINE_FILE}`], { cwd: config.gitRoot })));
+            return baselines.validBaseline(value) ? baselines.remainingEntries(value) : null;
+        } catch {
+            return null;
+        }
+    };
+    const start = countAt(config.since);
+    const end = countAt(config.until);
+    if (start === null && end === null) return { available: false, reason: `no committed ${VERIFY_BASELINE_FILE}` };
+    return {
+        available: true,
+        start,
+        end,
+        delta: start === null || end === null ? null : end - start,
+        changes: commits.filter(commit => !commit.isMerge && commit.files.some(file => file.path === VERIFY_BASELINE_FILE)).length
     };
 }
 
@@ -434,6 +542,7 @@ function aggregateCommits(commits, config = {}) {
     const team = createEmptyMetrics();
     const identityMap = config.identityMap || loadIdentityMap();
     const includedCommits = config.includeMerges === false ? commits.filter(commit => !commit.isMerge) : commits;
+    annotateQualitySignals(includedCommits);
 
     for (const commit of includedCommits) {
         const key = contributorKey(commit, identityMap);
@@ -507,8 +616,28 @@ function createEmptyMetrics() {
         mergePathCategories: createPathCategoryMetrics(),
         commitTypes: {},
         modules: {},
+        quality: createQualityCounters(),
         recentCommits: []
     };
+}
+
+function createQualityCounters() {
+    return { reverts: 0, revertedCommits: 0, followUpFixes: 0, commitsFollowedByFix: 0, bugClasses: {} };
+}
+
+function applyQualitySignals(target, commit) {
+    if (commit.isMerge) return;
+    const quality = target.quality;
+    if (commit.isRevert) quality.reverts += 1;
+    if (commit.reverted) quality.revertedCommits += 1;
+    if (commit.followUpFix) quality.followUpFixes += 1;
+    if (commit.followedByFix) quality.commitsFollowedByFix += 1;
+    for (const bugClass of commit.bugClasses || []) quality.bugClasses[bugClass] = (quality.bugClasses[bugClass] || 0) + 1;
+}
+
+function mergeQualityCounters(target, source) {
+    for (const key of ['reverts', 'revertedCommits', 'followUpFixes', 'commitsFollowedByFix']) target[key] += source[key];
+    mergeNumberObject(target.bugClasses, source.bugClasses);
 }
 
 function createPathCategoryMetrics() {
@@ -655,6 +784,7 @@ function mergeContributorInto(target, source) {
     mergeNumberObject(target.mergePathCategories, source.mergePathCategories);
     mergeNumberObject(target.commitTypes, source.commitTypes);
     mergeNumberObject(target.modules, source.modules);
+    mergeQualityCounters(target.quality, source.quality);
     target.recentCommits.push(...source.recentCommits);
     addSetValues(target.identityKeys, source.identityKeys);
     addSetValues(target.originalIdentities, source.originalIdentities);
@@ -810,6 +940,7 @@ function applyCommitMetrics(target, commit) {
     if (commit.isMerge) target.integrationActiveDays.add(activeDay);
     else target.authoredActiveDays.add(activeDay);
     target.commitTypes[commit.type] = (target.commitTypes[commit.type] || 0) + 1;
+    applyQualitySignals(target, commit);
 
     let additions = 0;
     let deletions = 0;
@@ -876,6 +1007,7 @@ function finalizeMetrics(metrics) {
         mergePathCategories: sortObjectByValue(metrics.mergePathCategories),
         commitTypes: sortObjectByValue(metrics.commitTypes),
         modules: sortObjectByValue(metrics.modules),
+        quality: { ...metrics.quality, bugClasses: sortObjectByValue(metrics.quality.bugClasses) },
         recentCommits: metrics.recentCommits
             .slice()
             .sort((left, right) => String(right.date).localeCompare(String(left.date)))
@@ -1034,6 +1166,7 @@ function generateReport(options = {}, dependencies = {}) {
     const git = dependencies.git || runGit;
     const commits = collectCommits(config, git);
     const aggregates = aggregateCommits(commits, { includeMerges: config.includeMerges, identityMap: config.identityMap });
+    aggregates.baselineTrend = collectBaselineTrend(config, git, commits);
     const result = writeReports({ config, commits, aggregates });
     return {
         ...result,
@@ -1403,6 +1536,8 @@ function renderSummaryMarkdown({ metadata, aggregates }) {
     lines.push(`- Files changed: ${aggregates.team.filesChanged}`);
     lines.push(`- Authored files changed: ${aggregates.team.authoredFilesChanged}`);
     lines.push(`- Merge/admin files changed: ${aggregates.team.mergeFilesChanged}`);
+    lines.push(`- Quality: ${renderQualityLine(aggregates.team.quality)}`);
+    lines.push(`- Verify-baseline trend: ${renderBaselineTrend(aggregates.baselineTrend)}`);
     lines.push('');
     lines.push('## Data Quality Warnings');
     lines.push('');
@@ -1428,6 +1563,22 @@ function renderSummaryMarkdown({ metadata, aggregates }) {
     if (aggregates.authoredContributors.length === 0) {
         lines.push('| - | No authored commits found | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | - |');
     }
+    lines.push('');
+    lines.push('## Quality Counters Beside Velocity');
+    lines.push('');
+    lines.push(
+        `Read each contributor's speed figures with these counters for the same period: reverts they made, their commits later reverted, their fix commits that followed up earlier work on the same paths within ${FOLLOW_UP_WINDOW_DAYS} days, their commits that such a fix followed, and \`${BUG_CLASS_TRAILER}:\` trailers per class. Counters are evidence to inspect, not scores.`
+    );
+    lines.push('');
+    lines.push('| Contributor | Authored Commits | Reverts Made | Commits Reverted | Follow-up Fixes | Commits Followed by a Fix | Bug Classes |');
+    lines.push('| --- | ---: | ---: | ---: | ---: | ---: | --- |');
+    for (const contributor of aggregates.authoredContributors) {
+        const quality = contributor.quality;
+        lines.push(
+            `| ${escapeTable(contributor.displayName)} | ${contributor.nonMergeCommits} | ${quality.reverts} | ${quality.revertedCommits} | ${quality.followUpFixes} | ${quality.commitsFollowedByFix} | ${escapeTable(renderBugClasses(quality.bugClasses))} |`
+        );
+    }
+    if (aggregates.authoredContributors.length === 0) lines.push('| No authored commits found | 0 | 0 | 0 | 0 | 0 | - |');
     lines.push('');
     lines.push('## Integration/Admin Activity');
     lines.push('');
@@ -1488,6 +1639,7 @@ function renderDeveloperMarkdown({ metadata, contributor }) {
     lines.push(`- Files changed: ${contributor.filesChanged}`);
     lines.push(`- Authored files changed: ${contributor.authoredFilesChanged}`);
     lines.push(`- Merge/admin files changed: ${contributor.mergeFilesChanged}`);
+    lines.push(`- Quality: ${renderQualityLine(contributor.quality)}`);
     lines.push('');
     lines.push('## Quality Warnings');
     lines.push('');
@@ -1539,6 +1691,22 @@ function renderDeveloperMarkdown({ metadata, contributor }) {
     return `${lines.join('\n')}\n`;
 }
 
+function renderBugClasses(bugClasses = {}) {
+    const entries = Object.entries(bugClasses);
+    return entries.length ? entries.map(([name, count]) => `${name} ${count}`).join(', ') : '-';
+}
+
+function renderQualityLine(quality) {
+    return `${quality.reverts} revert(s) made, ${quality.revertedCommits} commit(s) reverted, ${quality.followUpFixes} follow-up fix(es), ${quality.commitsFollowedByFix} commit(s) followed by a fix within ${FOLLOW_UP_WINDOW_DAYS} days, ${BUG_CLASS_TRAILER}: ${renderBugClasses(quality.bugClasses)}`;
+}
+
+function renderBaselineTrend(trend) {
+    if (!trend || !trend.available) return `not available (${trend?.reason || 'not collected'})`;
+    const side = value => (value === null ? 'none' : String(value));
+    const delta = trend.delta === null ? '' : ` (${trend.delta > 0 ? '+' : ''}${trend.delta})`;
+    return `${side(trend.start)} remaining entries at the start, ${side(trend.end)} at the end${delta}; ${trend.changes} commit(s) changed the baseline`;
+}
+
 function warningCodes(warnings = []) {
     if (!warnings || warnings.length === 0) return '-';
     return warnings.map(warning => warning.code).join('; ');
@@ -1587,6 +1755,11 @@ function renderContributorsCsv(contributors) {
         'mergeDocsFiles',
         'mergeConfigFiles',
         'mergeGeneratedFiles',
+        'reverts',
+        'revertedCommits',
+        'followUpFixes',
+        'commitsFollowedByFix',
+        'bugClasses',
         'qualityWarnings',
         'reportFile'
     ];
@@ -1626,6 +1799,11 @@ function renderContributorsCsv(contributors) {
         contributor.mergePathCategories.docs || 0,
         contributor.mergePathCategories.config || 0,
         contributor.mergePathCategories.generated || 0,
+        contributor.quality.reverts,
+        contributor.quality.revertedCommits,
+        contributor.quality.followUpFixes,
+        contributor.quality.commitsFollowedByFix,
+        renderBugClasses(contributor.quality.bugClasses),
         warningCodes(contributor.qualityWarnings),
         contributor.reportFile
     ]);
@@ -1748,10 +1926,13 @@ module.exports = {
     DEFAULT_OUTPUT_ROOT,
     RECORD_SEPARATOR,
     FIELD_SEPARATOR,
+    FOLLOW_UP_WINDOW_DAYS,
     aggregateCommits,
+    annotateQualitySignals,
     buildRunConfig,
     calculateAuthoredContributionSignal,
     categorizePath,
+    collectBaselineTrend,
     collectCommits,
     csvCell,
     detectIdentityWarnings,

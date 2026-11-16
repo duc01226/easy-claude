@@ -61,4 +61,19 @@ This explanatory envelope uses placeholders and abbreviated checks; it is not a 
 node .claude/skills/shared/skill-evals/validate.mjs .claude/skills/shared/skill-evals/corpus.v1.json path/to/results.json
 ```
 
+## Routing evals
+
+Cases with a `routing` object measure where a prompt is routed, not whether a skill helps: a catalog workflow, a skill, a custom-simple route or a direct answer. `routing.audience` is `novice` (the first prompt of a session) or `mid-session` (`priorPrompts` are earlier turns of the same session); `routing.acceptedRoutes` lists the routes that pass; `routing.fixtureFiles` is the synthetic project the case runs in. Run them on demand, never in the hook suite or CI:
+
+```bash
+node .claude/skills/shared/skill-evals/run-routing-evals.mjs                     # dry plan: nothing runs
+node .claude/skills/shared/skill-evals/run-routing-evals.mjs --run --max-cases=3  # costs model tokens
+```
+
+- **Host:** the logged-in host CLI (`--host=claude|codex`, `SKILL_EVAL_HOST_BIN`, `SKILL_EVAL_MODEL`), started read-only with the argv and allowlisted environment of `.claude/scripts/skill-activation-eval.mjs`. A host whose `--version` fails is reported `ENVIRONMENT-BLOCKED` (exit 3) and nothing runs.
+- **Cap:** `--max-cases` (default 3) and at most 12 host runs per invocation (cases × `--runs`).
+- **Fixtures:** each case runs in a throwaway project in the OS temporary folder, outside every repository so no ancestor instruction file reaches it: the framework's tracked files (tests excluded) plus the case's synthetic files. No project data, project config or Git history; deleted after the run unless `--keep-fixtures`.
+- **Observed route:** a workflow the run started, else the `Route:` line declared in the last turn, else a started skill, else `undeclared`. Mid-session cases replay earlier turns in one session (Claude only; skipped on Codex).
+- **Suggest-only:** the report (`tmp/reports/skill-evals/routing-<time>.json`: host version, model, per-case routes, accuracy, tokens and cost when the host reports them) states what happened; a wrong route is a finding for the framework owner, never acted on automatically. Record the first run as the baseline and judge later prompt or routing changes by the delta.
+
 The validator checks provenance and paired record structure only. It does not run a model, verify claims inside traces or claim skill effectiveness. No live result ships with this corpus. Keep observed outputs and reports under the consuming project’s temporary report directory, not inside the shipped corpus.

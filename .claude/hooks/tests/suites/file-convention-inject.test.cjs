@@ -464,12 +464,20 @@ const tests = [
                 const nativeStat = fs.fstatSync;
                 const nativeRead = fs.readSync;
                 const nativeClose = fs.closeSync;
+                const nativeOpen = fs.openSync;
                 let closes = 0;
+                let opens = 0;
                 let rejectedContentReads = 0;
                 try {
                     fs.readSync = (fd, buffer, ...args) => {
                         if (buffer.length === Buffer.byteLength(body)) rejectedContentReads += 1;
                         return nativeRead(fd, buffer, ...args);
+                    };
+                    // Every descriptor opened is closed: the transcript (its conversation measure, then the
+                    // evidence window) and the rejected current-content file.
+                    fs.openSync = (...args) => {
+                        opens += 1;
+                        return nativeOpen(...args);
                     };
                     fs.closeSync = fd => {
                         closes += 1;
@@ -481,20 +489,24 @@ const tests = [
                         return stat;
                     };
                     assert.equal(ledger.scanEvidence(transcript, evidence, opts), null, 'opened identity differs from resolved file');
-                    assert.equal(closes, 2, 'both transcript and rejected current-content fd closed');
+                    assert.ok(opens >= 2, 'transcript and current-content file opened');
+                    assert.equal(closes, opens, 'both transcript and rejected current-content fd closed');
                     assert.equal(rejectedContentReads, 0, 'an unidentified descriptor is never read before rejection');
                     fs.fstatSync = nativeStat;
                     closes = 0;
+                    opens = 0;
                     fs.readSync = (fd, buffer, ...args) => {
                         if (buffer.length === Buffer.byteLength(body)) throw new Error('synthetic current-content IO failure');
                         return nativeRead(fd, buffer, ...args);
                     };
                     assert.equal(ledger.scanEvidence(transcript, evidence, opts), null, 'content IO failure gives no credit');
-                    assert.equal(closes, 2, 'both descriptors closed on a failed content read');
+                    assert.ok(opens >= 2, 'transcript and current-content file opened');
+                    assert.equal(closes, opens, 'both descriptors closed on a failed content read');
                 } finally {
                     fs.fstatSync = nativeStat;
                     fs.readSync = nativeRead;
                     fs.closeSync = nativeClose;
+                    fs.openSync = nativeOpen;
                 }
                 // Given the pathname now refers to a different inode after opening / When completing proof / Then the old descriptor cannot credit new content.
                 const nativePathStat = fs.statSync;
