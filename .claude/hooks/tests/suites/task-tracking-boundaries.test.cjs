@@ -15,6 +15,7 @@ const { recoveryPath } = require('../../lib/task-tracking-deletion.cjs');
 const { readConcerns, projectConcerns, projectPathConcerns, validateConcernQuery } = require('../../lib/task-tracking-concerns.cjs');
 const { renderReport } = require('../../../skills/task-track/lib/report-view.cjs');
 const { LIMITS } = require('../../lib/task-tracking-config.cjs');
+const { LARGE_FILE_ID, withLargeFileIds } = require('../lib/large-file-ids.cjs');
 
 const technical = (intent, fn) => ({ name: `Technical tracking boundary: ${intent}`, fn: () => withFixture(fn) });
 const exactOwners = f => new Map(f.records().map(record => [record.ownerPath, record.bytes]));
@@ -411,6 +412,16 @@ module.exports = { name: 'Task tracking selected-owner and resource boundaries',
             assert.deepEqual(fs.readFileSync(target), changedBytes);
             assert.throws(() => readBytes(f.root, relative, changedSize - 1), error => error.code === 'LIMIT_EXCEEDED');
             assert.deepEqual(readBytes(f.root, relative, changedSize), changedBytes);
+        }
+    }),
+    technical('a descriptor naming another file is refused, also when file IDs exceed 2^53 and differ only in the last bit', async f => {
+        const relative = 'evidence/identity.txt'; const authored = Buffer.from('authored record'); f.write(relative, authored);
+        const file = path.join(fs.realpathSync(f.root), ...relative.split('/'));
+        // Small IDs, and NTFS-sized IDs whose Number forms are equal although the files differ.
+        for (const pathId of [5n, LARGE_FILE_ID]) {
+            const ids = openedId => (method, target) => (method === 'fstatSync' ? openedId : target === file ? pathId : undefined);
+            assert.deepEqual(withLargeFileIds(fs, ids(pathId), () => readBytes(f.root, relative, 64)), authored, `same ID ${pathId} reads`);
+            assert.throws(() => withLargeFileIds(fs, ids(pathId + 1n), () => readBytes(f.root, relative, 64)), error => error.code === 'CONFLICT', `ID ${pathId + 1n} is another file`);
         }
     }),
     technical('one real pinned inspection has bounded graph traversals and computes each proof once, while later inspections stay fresh', async f => {
