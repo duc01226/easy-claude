@@ -69,6 +69,8 @@ test('TC-FBM-082: private native storage verifies Windows ACLs before credential
         assert(!calls[0].args.some(arg => arg.includes(directory)));
         assert.equal(calls[0].options.env.CK_BENCH_PRIVATE_DIR, directory);
         assert.equal(calls[0].options.env.OPENAI_API_KEY, undefined);
+        // A cmdlet makes Windows PowerShell discover and auto-load modules in the trimmed child environment; .NET calls do not.
+        assert.doesNotMatch(privateFiles.WINDOWS_PRIVATE_ACL, /\b[A-Z][a-z]+-[A-Z][A-Za-z]+\b/);
         assert.throws(
             () =>
                 privateFiles.protect(directory, {
@@ -77,7 +79,7 @@ test('TC-FBM-082: private native storage verifies Windows ACLs before credential
                         return 'NOT VERIFIED';
                     }
                 }),
-            /ENVIRONMENT-BLOCKED/
+            /ENVIRONMENT-BLOCKED: .*did not confirm/
         );
         assert.throws(
             () =>
@@ -87,7 +89,28 @@ test('TC-FBM-082: private native storage verifies Windows ACLs before credential
                         throw new Error('Access denied');
                     }
                 }),
-            /ENVIRONMENT-BLOCKED/
+            /ENVIRONMENT-BLOCKED: .*could not run: Access denied/
+        );
+        assert.throws(
+            () =>
+                privateFiles.protect(directory, {
+                    platform: 'win32',
+                    runCommand() {
+                        throw Object.assign(new Error('spawnSync powershell.exe ETIMEDOUT'), { code: 'ETIMEDOUT' });
+                    }
+                }),
+            /ENVIRONMENT-BLOCKED: .*did not finish within 15000 ms/
+        );
+        const clixml = '#< CLIXML\r\n<Objs Version="1.1.0.1"><S S="Error">Private ACL verification failed_x000D__x000A_</S></Objs>';
+        assert.throws(
+            () =>
+                privateFiles.protect(directory, {
+                    platform: 'win32',
+                    runCommand() {
+                        throw Object.assign(new Error('Command failed'), { status: 1, stderr: clixml });
+                    }
+                }),
+            /ENVIRONMENT-BLOCKED: .*exited with status 1: Private ACL verification failed\)$/
         );
     } finally {
         f.cleanup();
@@ -2602,6 +2625,7 @@ test('TC-FBM-081: controller SIGTERM retains in-flight work, removes credentials
     const f = campaignFixture('greenfield');
     let child;
     let descendant;
+    let exited;
     try {
         const prepared = f.prepare();
         const marker = path.join(f.root, 'ready.json');
@@ -2645,7 +2669,7 @@ completion.then(code=>{process.exitCode=code;}).catch(error=>{console.error(erro
         child.stderr.on('data', chunk => {
             diagnostics += chunk;
         });
-        const exited = new Promise((resolve, reject) => {
+        exited = new Promise((resolve, reject) => {
             child.once('error', reject);
             child.once('close', (code, signal) => resolve({ code, signal }));
         });
@@ -2710,6 +2734,16 @@ completion.then(code=>{process.exitCode=code;}).catch(error=>{console.error(erro
             } catch {
                 /* already exited */
             }
+        }
+        // Windows refuses to remove a live process's working directory (EPERM), which would replace the real failure.
+        if (exited) {
+            let bound;
+            await Promise.race([
+                exited.catch(() => {}),
+                new Promise(resolve => {
+                    bound = setTimeout(resolve, 10000);
+                })
+            ]).finally(() => clearTimeout(bound));
         }
         f.cleanup();
     }

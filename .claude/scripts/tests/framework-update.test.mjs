@@ -24,9 +24,11 @@ function fixture(t) {
         fs.writeFileSync(path.join(root, file), text);
     };
     const read = (root, file) => (fs.existsSync(path.join(root, file)) ? fs.readFileSync(path.join(root, file), 'utf8') : null);
+    // Fixture commits store the exact bytes written: a host core.autocrlf (on by default with Git for Windows)
+    // would turn a CRLF-only edit into "nothing to commit".
     const commit = (root, message) => {
-        git(root, 'add', '-A');
-        git(root, '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.test', 'commit', '-q', '-m', message);
+        git(root, '-c', 'core.autocrlf=false', 'add', '-A');
+        git(root, '-c', 'core.autocrlf=false', '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.test', 'commit', '-q', '-m', message);
         return git(root, 'rev-parse', 'HEAD');
     };
     for (const root of [upstream, project]) {
@@ -368,7 +370,8 @@ test('every .claude doc with count markers is recounted, including docs the upda
     f.write(f.upstream, '.claude/hooks/a.cjs', 'one\ntwo (v2)\nthree\n');
     f.commit(f.upstream, 'v2 leaves the README as it was');
     assert.equal(f.run(`--base=${f.base}`), 0);
-    const calls = f.read(f.project, 'tmp/regen.log').trim().split('\n');
+    // Python text mode writes CRLF line endings on Windows.
+    const calls = f.read(f.project, 'tmp/regen.log').trim().split(/\r?\n/);
     assert.ok(calls.includes('--inject-counts .claude/docs/README.md'), `an unchanged framework doc is recounted: ${calls.join(' | ')}`);
     assert.ok(calls.includes('--inject-counts .claude/skills/own/SKILL.md'), 'a project doc with markers is recounted');
     assert.ok(calls.includes('--skills --output .claude/SKILLS.yaml'), 'the catalog is rebuilt');

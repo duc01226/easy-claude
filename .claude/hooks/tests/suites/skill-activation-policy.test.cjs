@@ -34,7 +34,8 @@ function withFixture(fn) {
     const fx = { temp, root, write, env, options: { rootDir: root, env: {}, homeDir: temp } };
     return import(pathToFileURL(path.resolve(HOOKS_DIR, '..', 'scripts', 'codex', 'sync-hooks.mjs')).href)
         .then(({ normalizeCommand }) => {
-            fx.codexCommand = file => normalizeCommand(`node "$CLAUDE_PROJECT_DIR"/.claude/hooks/${file}`);
+            // The rendered command Codex runs on this host: native Node on Windows, the /bin/sh bootstrap elsewhere.
+            fx.codexCommand = file => normalizeCommand(`node "$CLAUDE_PROJECT_DIR"/.claude/hooks/${file}`, { windows: process.platform === 'win32' });
             return fn(fx);
         })
         .finally(() => fs.rmSync(temp, { recursive: true, force: true }));
