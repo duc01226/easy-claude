@@ -494,7 +494,7 @@ with patch.object(deps.subprocess, 'run', side_effect=AssertionError('cache must
 });
 
 test('TC-PYDEP-014: exhausted recovery remains unavailable with no unbounded retries', t => {
-    // Given both install strategies fail, When recovery runs, Then no false availability or third try.
+    // Given every install strategy fails, When recovery runs, Then no false availability or fourth try.
     const result = recoveryPython(
         t,
         `
@@ -508,7 +508,7 @@ with patch.object(deps.subprocess, 'run', side_effect=pip):
 print(json.dumps({'ok': ok, 'calls': calls, 'target_added': target in sys.path}))`
     );
     assert.equal(result.ok, false);
-    assert.equal(result.calls.length, 2);
+    assert.equal(result.calls.length, 3);
     assert.equal(result.target_added, false);
 });
 
@@ -553,7 +553,7 @@ with patch.object(deps.subprocess, 'run', side_effect=pip):
 print(json.dumps({'ok': ok, 'calls': calls, 'executable': sys.executable, 'prefix': sys.prefix}))`
         );
         assert.equal(result.ok, false);
-        assert.equal(result.calls.length, 2);
+        assert.equal(result.calls.length, 3);
         for (const call of result.calls) {
             assert.deepEqual(call.argv.slice(0, 5), [result.executable, '-m', 'pip', '--isolated', 'install']);
             assert.equal(call.shell, false);
@@ -566,6 +566,79 @@ print(json.dumps({'ok': ok, 'calls': calls, 'executable': sys.executable, 'prefi
         assert.ok(result.calls[0].argv.includes('--no-user'));
         assert.ok(!result.calls[0].argv.includes('--prefix'));
         assert.ok(!result.calls[0].argv.includes('--root'));
+        for (const call of result.calls.slice(0, 2)) assert.ok(!call.argv.some(arg => arg.startsWith('--no-binary')));
+        assert.ok(result.calls[2].argv.includes('--target'));
+    });
+}
+
+// pip applies --only-binary/--no-binary in argv order: ':all:' must come first so that every
+// build dependency stays wheel-only and only the declared package may build from source.
+function assertDeclaredOnlySourceBuild(argv) {
+    const sourceOptions = argv.filter(arg => arg.startsWith('--no-binary'));
+    assert.deepEqual(sourceOptions, ['--no-binary=pyyaml']);
+    assert.ok(argv.indexOf('--only-binary=:all:') >= 0);
+    assert.ok(argv.indexOf('--only-binary=:all:') < argv.indexOf('--no-binary=pyyaml'));
+    assert.ok(!argv.includes('--break-system-packages'));
+    assert.ok(!argv.includes('--no-build-isolation'));
+}
+
+test('TC-PYDEP-019: an interpreter newer than the published wheels recovers through a declared-only source build', t => {
+    // Given a PEP 668 interpreter with no PyYAML wheel for its ABI (Homebrew CPython 3.15 and
+    // PyYAML 6.0.3 on GitHub's macos-26-arm64 image), When both wheel attempts fail,
+    // Then only PyYAML builds from source into the local target and the consumer imports it.
+    const result = recoveryPython(
+        t,
+        `
+calls = []
+def pip(argv, **options):
+    calls.append(argv)
+    if '--no-binary=pyyaml' not in argv:
+        reason = 'ERROR: No matching distribution found for pyyaml>=6.0' if '--target' in argv else 'error: externally-managed-environment'
+        return subprocess.CompletedProcess(argv, 1, stderr=reason + '\\n')
+    write_yaml(argv[argv.index('--target') + 1])
+    return subprocess.CompletedProcess(argv, 0, stderr='')
+with patch.object(deps.subprocess, 'run', side_effect=pip):
+    ok = deps.ensure_pyyaml(requirements)
+    repeated = deps.ensure_pyyaml(requirements)
+print(json.dumps({'ok': ok, 'repeated': repeated, 'calls': calls,
+                  'origin': importlib.import_module('yaml').__file__, 'target': target}))`
+    );
+    assert.equal(result.ok, true);
+    assert.equal(result.repeated, true);
+    assert.equal(result.calls.length, 3);
+    assert.ok(result.calls[0].includes('--no-user'));
+    assert.ok(result.calls[1].includes('--target'));
+    assert.equal(result.calls[2][result.calls[2].indexOf('--target') + 1], result.target);
+    assert.equal(result.calls[2].at(-1), 'pyyaml>=6.0');
+    assertDeclaredOnlySourceBuild(result.calls[2]);
+    assert.ok(result.origin.startsWith(result.target));
+});
+
+for (const failure of ['error-line', 'silent-exit', 'timeout']) {
+    test(`TC-PYDEP-020-${failure}: exhausted recovery names pip's last failure instead of discarding it`, t => {
+        // Given every attempt fails, When recovery stops, Then stderr carries one bounded pip reason.
+        const result = recoveryPython(
+            t,
+            `
+import io, contextlib
+mode = ${JSON.stringify(failure)}
+def pip(argv, **options):
+    if mode == 'timeout': raise subprocess.TimeoutExpired(argv, 30)
+    if mode == 'silent-exit': return subprocess.CompletedProcess(argv, 2, stderr='')
+    return subprocess.CompletedProcess(argv, 1, stderr='Collecting pyyaml\\n' + 'ERROR: build failed ' + 'x' * 400 + '\\n\\n')
+captured = io.StringIO()
+with patch.object(deps.subprocess, 'run', side_effect=pip), contextlib.redirect_stderr(captured):
+    ok = deps.ensure_pyyaml(requirements)
+print(json.dumps({'ok': ok, 'stderr': captured.getvalue()}))`
+        );
+        assert.equal(result.ok, false);
+        const reason = /\[dependencies\] Last pip error: (.*)\n$/.exec(result.stderr);
+        assert.ok(reason, result.stderr);
+        if (failure === 'error-line') {
+            assert.match(reason[1], /^ERROR: build failed x+$/);
+            assert.equal(reason[1].length, 300);
+        } else if (failure === 'silent-exit') assert.equal(reason[1], 'pip exited with status 2');
+        else assert.equal(reason[1], 'pip did not finish within 30 seconds');
     });
 }
 

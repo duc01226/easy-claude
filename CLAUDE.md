@@ -101,6 +101,8 @@ Declared not applicable in `referenceDocs` (skip unless the project adds that st
 ```bash
 node .claude/hooks/tests/test-all-hooks.cjs   # hook tests
 node .claude/hooks/tests/run-all-tests.cjs    # all suites
+node .claude/scripts/framework-ci.cjs --scope=changed # ci changed scope
+node .claude/scripts/framework-ci.cjs --scope=full # ci full scope
 ```
 
 **Platform:** use `python3` on macOS/Linux and `py -3` on Windows. Integration suites use `.claude/hooks/tests/lib/python-command.cjs`: POSIX probes `python3` then `python`; Windows probes `python` then `py -3`, validating Python 3 (3.10+ for graph tests). Missing PyYAML uses the bounded global attempt and local fallback owned by `.claude/scripts/lib/python_dependencies.py`.
@@ -155,6 +157,7 @@ See [integration-test-reference.md](docs/project-reference/integration-test-refe
 docs/adr/  (8 files)
 docs/knowledge/  (2 files)
 docs/knowledge-base/  (3 files)
+docs/project-protocols/  (1 files)
 docs/project-reference/  (20 files)
 docs/release/  (1 files)
 docs/release-notes/  (2 files)
@@ -171,3 +174,11 @@ docs/templates/  (1 files)
 ### Work Tracking
 
 Read `.claude/skills/task-track/references/integration-guide.md` when capturing work, starting implementation, saving code or specs, verifying, handing off or closing work. This project uses linked tracking: keep exact linked items current at actual saved-work checkpoints through the shared core, with one primary saving owner per checkpoint. When no exact item is linked, continue untracked without creating a companion ticket. A passing check or publication records evidence; acceptance still requires an explicit decision.
+
+### CI and merging
+
+GitHub CI (`.github/workflows/ci.yml`) runs only when someone dispatches it: merging to `main` or opening or updating a pull request starts no runner. Read the header of `.claude/scripts/framework-ci.cjs` when running, planning or changing CI; it owns the lane commands and the change-to-test selection, locally and on GitHub.
+
+- **Local CI:** `node .claude/scripts/framework-ci.cjs --scope=changed` runs only the lanes and hook suites the changes against `origin/main` affect, working tree included (advisory). `--scope=full` runs every lane and the unfiltered hook aggregate with its count guard (merge evidence). `--plan` previews the selection without running it; one commit is `--base=<sha>~1 --head=<sha>`.
+- **GitHub CI, only when the user asks:** `gh workflow run ci.yml -f scope=changed -f ref=<branch|sha|refs/pull/<n>/merge>` (add `-f base=<sha>~1` for one commit), or `-f scope=full`. The pinned startup-install job runs on all three OSes in every run.
+- **Before a pull request merges:** run `--scope=full` locally on its final head, with no uncommitted changes and the target branch merged in, and `/changes-review --fix-loop` over the whole branch, and record the head SHA, command and lane summary in the PR. Leave either out only when the user explicitly asks to bypass, and record the bypass in the PR. The `pull-request` overlay `pr-local-ci-before-merge` (`docs/project-protocols/`) holds the full rules.
