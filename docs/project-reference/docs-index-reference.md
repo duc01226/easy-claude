@@ -120,10 +120,11 @@ easy-claude/
 │   ├── release/                                   # 1 release-note archive
 │   ├── release-notes/                             # 2 release-doc skill outputs (+ HTML renders)
 │   ├── specs/                                     # Canonical business Feature Specs
-│   │   ├── Adoption/                              # 2 Feature Specs (3 files) + 1 bucket catalog
+│   │   ├── Adoption/                              # 3 Feature Specs (4 files) + 1 bucket catalog
 │   │   │   ├── INDEX.md
 │   │   │   ├── README.AdoptionSwitches.md
 │   │   │   ├── README.AdoptionSwitches-Part2.md
+│   │   │   ├── README.FrameworkUpdate.md
 │   │   │   └── README.SkillActivationPolicy.md
 │   │   ├── ContextDelivery/                       # 6 Feature Specs + 1 bucket catalog
 │   │   │   ├── INDEX.md
@@ -204,6 +205,7 @@ CLAUDE.md
 docs/specs/Adoption/INDEX.md
 ├── README.AdoptionSwitches-Part2.md
 │   └── README.AdoptionSwitches.md   # parent_spec / See also
+├── README.FrameworkUpdate.md
 └── README.SkillActivationPolicy.md
 
 docs/specs/ContextDelivery/INDEX.md
