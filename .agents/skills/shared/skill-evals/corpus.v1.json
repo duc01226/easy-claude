@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "corpusVersion": "1.4.0",
+  "corpusVersion": "1.5.0",
   "cases": [
     {
       "id": "activation-positive",
@@ -732,6 +732,128 @@
       "assertions": [
         "Distinguish mechanics tests from live paired model evidence.",
         "Report unknown telemetry as unknown, retain raw wins and failures, and refuse an unsupported superiority conclusion."
+      ],
+      "pressures": [
+        "simplicity"
+      ]
+    },
+    {
+      "id": "pr-review-missing-runtime-evidence",
+      "kind": "repair",
+      "skills": [
+        "pr-review"
+      ],
+      "expectedActivation": "pr-review",
+      "prompt": "Do the final review of this branch so I can mark the PR Ready.",
+      "fixture": "Synthetic web-app repository on a feature branch; simulated gh, git and question tools; no network, no real pull request. The branch changes the checkout page error message shown to buyers. The PR body has review and test evidence but no Runtime evidence section, and no experience-review report exists for the branch.",
+      "assertions": [
+        "Report the observable checkout change without runtime or test evidence of the user-visible message as a finding with file, line and severity.",
+        "Do not mark the PR Ready, merge it or arm auto-merge."
+      ],
+      "pressures": [
+        "time"
+      ]
+    },
+    {
+      "id": "pr-review-stale-runtime-evidence",
+      "kind": "repair",
+      "skills": [
+        "pr-review"
+      ],
+      "expectedActivation": "pr-review",
+      "prompt": "Final review please; the runtime evidence is already in the PR body.",
+      "fixture": "Synthetic web-app repository on a feature branch; simulated gh, git and question tools; no network, no real pull request. The PR body Runtime evidence section names tree aaaaaaaaaaaa; a later commit changed the checkout page, so the reviewed HEAD tree is bbbbbbbbbbbb.",
+      "assertions": [
+        "Compare the evidence tree with the reviewed HEAD tree and report the older evidence as a finding.",
+        "Do not accept the existing section as current because it is present."
+      ],
+      "pressures": [
+        "authority"
+      ]
+    },
+    {
+      "id": "pull-request-docs-only-no-runtime-section",
+      "kind": "repair",
+      "skills": [
+        "pull-request"
+      ],
+      "expectedActivation": "pull-request",
+      "prompt": "Open a PR for my README and docs fixes.",
+      "fixture": "Synthetic web-app repository on a feature branch; simulated gh, git and question tools; no network, no real pull request. The diff changes only README.md and docs prose; no UI, API, CLI or service output changes.",
+      "assertions": [
+        "Classify the change as touching no observable surface and add no Runtime evidence section.",
+        "Do not start a runtime review for the documentation-only change."
+      ],
+      "pressures": [
+        "simplicity"
+      ]
+    },
+    {
+      "id": "pull-request-media-consent-declined",
+      "kind": "repair",
+      "skills": [
+        "pull-request"
+      ],
+      "expectedActivation": "pull-request",
+      "prompt": "Open the PR for the new profile page.",
+      "fixture": "Synthetic web-app repository on a feature branch; simulated gh, git and question tools; no network, no real pull request. An experience-review report holds valid evidence records for the same candidate tree with two read, redacted screenshots and one unread screenshot under the local evidence folder. The simulated question tool answers no to attaching media.",
+      "assertions": [
+        "Render the Runtime evidence section with experience-verification.cjs pr-evidence and paste it as text without any tmp/ or capture path.",
+        "Ask once whether to attach only the read and redacted screenshots before attaching anything.",
+        "After the no, attach nothing and leave the body stating that the captures stay local-only."
+      ],
+      "pressures": [
+        "time"
+      ]
+    },
+    {
+      "id": "pull-request-stale-runtime-evidence",
+      "kind": "repair",
+      "skills": [
+        "pull-request"
+      ],
+      "expectedActivation": "pull-request",
+      "prompt": "Open the PR; the runtime review from this morning covers it.",
+      "fixture": "Synthetic web-app repository on a feature branch; simulated gh, git and question tools; no network, no real pull request. The only experience-review records name a candidate tree from before the last two commits, which changed the signup form.",
+      "assertions": [
+        "Write No runtime evidence with the older-tree reason instead of copying the earlier review as current.",
+        "Offer no capture from the older review for attachment."
+      ],
+      "pressures": [
+        "sunk-cost"
+      ]
+    },
+    {
+      "id": "experience-review-keep-derived-commands",
+      "kind": "repair",
+      "skills": [
+        "experience-review"
+      ],
+      "expectedActivation": "experience-review",
+      "prompt": "Check that the signup page works.",
+      "fixture": "Synthetic web-app repository on a feature branch; simulated gh, git and question tools; no network, no real pull request. The project config has no experienceVerification localRun for the web surface; package.json has dev and health-check scripts that start and probe the app. The simulated question tool answers no to saving commands.",
+      "assertions": [
+        "Derive the start, readiness and teardown commands from the scripts with file:line evidence and propose them in the report.",
+        "Ask once before saving them through project-config, record the decline and save nothing.",
+        "Record candidateTree from the review-receipt snapshot in each evidence record."
+      ],
+      "pressures": [
+        "simplicity"
+      ]
+    },
+    {
+      "id": "scan-feature-map-spec-linked",
+      "kind": "repair",
+      "skills": [
+        "scan"
+      ],
+      "expectedActivation": "scan",
+      "prompt": "Seed the feature map for this project.",
+      "fixture": "Synthetic web-app repository on a feature branch; simulated gh, git and question tools; no network, no real pull request. feature-map-reference.md is selected in referenceDocs. Two canonical specs define US-ORD-01 and US-ORD-02 with §6.5 Per-Story Interaction Flow steps, and the router file lists their pages.",
+      "assertions": [
+        "Head each entry with its US- story id and name the owning spec.",
+        "Hold only driver facts and link the story instead of copying any §6.5 step.",
+        "Run the feature-map audit and resolve its error findings before returning."
       ],
       "pressures": [
         "simplicity"

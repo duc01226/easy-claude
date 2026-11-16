@@ -12,6 +12,7 @@ const SCAN_SKILL_MAP = Object.freeze({
     'frontend-patterns-reference.md': 'scan --target=frontend-patterns',
     'integration-test-reference.md': 'scan --target=integration-tests',
     'performance-test-reference.md': 'scan --target=performance-tests',
+    'feature-map-reference.md': 'scan --target=feature-map',
     'feature-spec-reference.md': 'scan --target=feature-spec',
     'code-review-rules.md': 'scan --target=code-review-rules',
     'scss-styling-guide.md': 'scan --target=scss-styling',

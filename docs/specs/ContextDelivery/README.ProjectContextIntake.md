@@ -2,10 +2,10 @@
 module: 'hooks'
 service: 'framework.ContextDelivery'
 feature_code: 'PCI'
-entities: ['ProjectSettings', 'NoticeRecord']
+entities: ['ProjectSettings', 'NoticeRecord', 'FeatureMapEntry', 'RuntimeEvidence']
 status: draft
 owner: 'Framework maintainers'
-last_updated: '2026-10-12'
+last_updated: '2026-11-17'
 scope_mode: FRAMEWORK-LIBRARY
 ---
 
@@ -18,10 +18,13 @@ scope_mode: FRAMEWORK-LIBRARY
 | Spec index | [Context Delivery](INDEX.md) | Derived navigation; refresh via `spec [mode=index]` |
 | Integration evidence | `.claude/hooks/tests/suites/init-prompt-gate.test.cjs` | Executable case mapping |
 | Related capability | [Protocol Delivery](README.ProtocolDelivery.md) | Independent framework instruction delivery |
+| Integration evidence | `.claude/scripts/tests/feature-map.test.cjs`, `.claude/scripts/tests/experience-verification.test.cjs` | Feature map and runtime evidence cases |
 
 ## 1. Overview
 
 A project can use the assistant without recording project settings. Ordinary work then proceeds using repository evidence, with an occasional optional invitation to record those facts. If the project author records settings that cannot be accepted, ordinary work proceeds with a warning; the assistant treats their facts as unverified and derives needed facts from independent repository evidence. An explicitly requested repair remains available. This capability owns that intake choice, including relocated settings, and the boundary before optional project-context setup guidance.
+
+It also owns two pieces of project context that a runtime review produces and a reviewer reads. A **feature map** tells the assistant where each feature lives and how to drive it; when the project has feature specs, each entry is linked to a spec story and holds only the facts a spec does not carry, so the two never disagree about what a feature means or how a user reaches it. **Runtime evidence** carries what a runtime review actually exercised into the pull-request description as text, so the human reviewer sees it; screenshots and recordings leave the developer's machine only after the developer says yes for that pull request. Run commands the assistant had to work out are kept only when the developer agrees.
 
 ## 2. Glossary
 
@@ -33,6 +36,13 @@ A project can use the assistant without recording project settings. Ordinary wor
 | Repair action | An offered action to re-evaluate project context, initialize it through its alias, or repair recorded settings |
 | Optional setup | Guidance to generate missing root instructions, refresh old references, or build optional project knowledge |
 | Notice record | The time the optional missing-settings reminder was last issued or dismissed |
+| Feature map | A project reference listing, per feature, where it lives and how to drive it |
+| Driver facts | What a driver needs and a spec does not hold: the surface, the entry address or command, the fixture or role, the observable end state and driving notes |
+| Story-linked entry | A feature-map entry named after the spec story that owns the feature; the story keeps the meaning and the user path |
+| Standalone entry | A feature-map entry with its own stable map id, used when the project has no feature specs |
+| Runtime evidence | The surfaces, observed states, judgments, blocking count and acceptance status of a runtime review, written as text for a reviewer |
+| Reviewed version | The exact content version a runtime review exercised; evidence counts only for the same version the pull request publishes |
+| Capture | A screenshot, recording, trace or log kept by a runtime review on the developer's machine |
 
 ## 3. User Stories & Acceptance Criteria
 
@@ -55,6 +65,23 @@ As a project maintainer, I want invalid recorded settings to be explained and re
 - **AC-PCI-06:** Given invalid settings, when I explicitly invoke one offered repair action at the start of the request, then the repair proceeds without a redundant warning; incidental mentions and similar names retain the warning while ordinary work remains allowed. **BR-PCI-02**.
 
 - **AC-PCI-08:** Given an optional work-tracking declaration uses a newer vocabulary, when project facts are read, then only that section's validation findings become warnings, unrelated valid facts remain available, and tracking stays unavailable; invalid findings outside that section still reject the facts view. **BR-PCI-05**.
+
+### US-PCI-03: Find and drive a feature from a vague report
+
+As a developer, I want a feature map that tells the assistant where a feature lives and how to drive it, linked to the spec that defines the feature, so a vague report reaches the right flow without two documents disagreeing.
+
+- **AC-PCI-09:** Given the project has feature specs, when the map is written, then each entry names a spec story and holds only driver facts; a step of the story's user path copied into the map is reported. **BR-PCI-06**.
+- **AC-PCI-10:** Given the project has no feature specs, when the map is written, then each entry carries a stable map id, and an entry without a stable id is reported. **BR-PCI-06**.
+- **AC-PCI-11:** Given specs change, when the map is checked, then a user-facing story with no entry and an entry whose story no longer exists are both reported, and the map is flagged for refresh. **BR-PCI-06**.
+- **AC-PCI-12:** Given a runtime review worked out run commands that the project had not recorded, when the run succeeded, then the assistant asks once before saving them; a decline is recorded and nothing is saved. **BR-PCI-09**.
+
+### US-PCI-04: See runtime evidence when reviewing a pull request
+
+As a pull-request reviewer, I want the description to show what a runtime review exercised and how it was judged, or why there is no such review, so I review evidence rather than trusting a claim.
+
+- **AC-PCI-13:** Given a change to an observable surface and a runtime review of the same version, when the pull request is described, then the description lists the surfaces, statuses, judgments, blocking count, acceptance status and feature-map entries as text, without any link to the developer's local files. **BR-PCI-07**.
+- **AC-PCI-14:** Given a change to an observable surface and no runtime review of that version, when the pull request is described, then the description says there is no runtime evidence and why; a change with no observable surface gets no such section; a final branch review reports missing or older evidence as a finding. **BR-PCI-07**.
+- **AC-PCI-15:** Given captures that were inspected and redacted, when the pull request is described, then they are attached only after the developer says yes for that pull request; otherwise they stay local and the description says so. **BR-PCI-08**.
 
 ## 4. Business Rules
 
@@ -101,12 +128,46 @@ For ALL recorded settings whose optional work-tracking vocabulary is a safe whol
 
 [Source: rule/framework.contextdelivery/FutureTrackingAdmission]
 
+### BR-PCI-06: The spec owns a feature's meaning; the map owns how to drive it [HARD]
+
+| Trigger | Rule | Failure outcome |
+|---|---|---|
+| The project has feature specs | Each map entry names a spec story and holds only driver facts | An entry without a valid story, a story that is gone, or a copied user-path step is reported |
+| The project has no feature specs | Each entry carries a stable map id that is never renumbered | An entry without a stable id is reported |
+| A user-facing story has no entry | Report the gap for the map's owner | The gap is reported, never filled by guess |
+| A large map is split into area documents | Check the index and every area document as one map | A duplicate, stale or copied entry in any area document is reported with its document |
+| A value shaped like a credential appears in the map | Name the fixture or credential reference instead | The line is reported without repeating the value |
+
+**Invariant:** For ALL map entries in a project with specs, the entry's story exists in the spec it names and no step of that story's user path is copied into the map.
+
+[Source: rule/framework.contextdelivery/FeatureMapOwnership]
+
+### BR-PCI-07: Runtime evidence reaches the reviewer as text, or its absence is stated [HARD]
+
+A pull request whose change touches an observable surface carries a runtime-evidence section copied as text from a runtime review of the exact version it publishes. Evidence from another version, evidence that names no version and invalid records do not count: the section then states that there is no runtime evidence and why. The text never links the developer's local evidence files and never repeats a credential-shaped value. A change with no observable surface gets no section. A final branch review reports a behavior change on an observable surface with no runtime or test evidence, or with evidence older than the reviewed version, as a finding. Statuses are observations and judgments; acceptance stays pending until a person has accepted every exercised surface, and a section whose surfaces were all not applicable never reads as accepted. A review that ran with files the pull request does not publish (untracked or deliberately left out) covers a different version, so its evidence counts as older.
+
+[Source: rule/framework.contextdelivery/RuntimeEvidenceForReviewers]
+
+### BR-PCI-08: Captures leave the machine only after a yes for that pull request [HARD]
+
+Screenshots and recordings are attached to a pull request only when they were inspected and redacted and the developer said yes for that pull request. There is no standing setting. A no, a host that cannot attach, or a failed upload leaves the captures local, and the description says so. Traces and logs are never attached.
+
+[Source: rule/framework.contextdelivery/CaptureConsent]
+
+### BR-PCI-09: Worked-out run commands are kept only with consent [SOFT]
+
+When a runtime review had to work out how to start, check and stop a surface, and the run succeeded, the assistant asks once before recording those commands in the project settings. Only commands and credential references are recorded, never a secret value. A decline is recorded in the review report and the next review proposes the commands again. SOFT because a decline only repeats the derivation; nothing is lost or exposed.
+
+[Source: rule/framework.contextdelivery/RunCommandPersistence]
+
 ## 5. Domain Model
 
 | Concept | Facts | Ownership |
 |---|---|---|
 | Project settings | Configured location; missing, invalid or accepted state; available validation errors | Project author chooses facts and location; intake evaluates acceptance |
 | Notice record | Time of the latest missing-settings notice or dismissal | Intake owns the one-day reminder window |
+| Feature map entry | Story or map id, owning spec (story-linked only), surface, entry, fixture or role, end state, driving notes | The map's owner writes it; the spec story owns meaning and user path |
+| Runtime evidence | Reviewed version, per-surface status and judgments, blocking count, acceptance status, captures with inspected and redacted flags | The runtime review records it; the pull request copies it as text |
 
 ```mermaid
 erDiagram
@@ -119,11 +180,23 @@ erDiagram
         date noticedAt
     }
     ProjectSettings ||--o| NoticeRecord : "has optional reminder"
+    FeatureMapEntry {
+        string id
+        string ownerStory
+        string surface
+        string endState
+    }
+    RuntimeEvidence {
+        string reviewedVersion
+        int blockingCount
+        string acceptance
+    }
+    RuntimeEvidence }o--o{ FeatureMapEntry : "exercised"
 ```
 
 [Source: component/framework.contextdelivery/ProjectContextIntake]
 
-No additional entity invariants or business lifecycle transitions are introduced beyond BR-PCI-01 and BR-PCI-02.
+No additional entity invariants or business lifecycle transitions are introduced beyond BR-PCI-01, BR-PCI-02 and BR-PCI-06 to BR-PCI-08.
 
 ## 6. Process Flows
 
@@ -135,7 +208,20 @@ No additional entity invariants or business lifecycle transitions are introduced
 
 Example: a developer adopts the assistant in a content-bearing project without recorded facts. The first request sees an optional reminder; a second request within a day proceeds quietly. Recording rejected facts changes the next ordinary request to a warning and independent-evidence outcome.
 
-No graphical view or navigation surface is owned here; outcomes appear in the assistant conversation.
+Feature map upkeep:
+
+1. The map's owner seeds entries from spec stories (story-linked) or from routes and commands (standalone).
+2. After specs, routes or commands change, the map is checked; gaps and stale entries go back to the owner.
+3. A runtime review reads the entries it needs and reports an entry that proved wrong.
+
+Runtime evidence for a pull request:
+
+1. A runtime review records, per surface, the version it exercised, what it observed and judged, and the captures it kept.
+2. When the pull request is described, the review of the same version is copied as text; otherwise the description states why there is none.
+3. Inspected, redacted captures are offered for attachment once; they are attached only after a yes.
+4. The final branch review reports missing or older evidence for an observable change.
+
+No graphical view or navigation surface is owned here; outcomes appear in the assistant conversation and the pull-request description.
 
 ## 7. Permissions & Roles
 
@@ -144,9 +230,15 @@ No graphical view or navigation surface is owned here; outcomes appear in the as
 | Developer / project maintainer | Allowed | Allowed with warning | Allowed |
 | Assistant | Follow evidence or accepted facts | Explain rejection; derive needed facts independently | Perform the explicitly requested repair |
 
+| Role | Save worked-out run commands | Attach captures to a pull request | Accept runtime evidence |
+|---|---|---|---|
+| Developer / project maintainer | Decides, once per review | Decides, once per pull request | Allowed |
+| Assistant | Only after a yes | Only after a yes, inspected and redacted captures only | Never; it records judgments only |
+| Pull-request reviewer | — | — | Allowed |
+
 ## 8. Test Specifications
 
-Test summary: 11 cases — 1 core preservation, 1 repair-access preservation, 4 validation/notice, 2 refresh workflow, 1 rejection boundary, 2 properties. Property domains cover state-transition eligibility; arithmetic, conservation, inverse and commutativity classes are inapplicable to this read-only intake choice.
+Test summary: 23 cases — 1 core preservation, 1 repair-access preservation, 4 validation/notice, 2 refresh workflow, 1 rejection boundary, 2 properties, 6 feature map, 6 runtime evidence. Property domains cover state-transition eligibility; arithmetic, conservation, inverse and commutativity classes are inapplicable to this read-only intake choice.
 
 ### Core preservation
 
@@ -438,4 +530,292 @@ And tracking remains unavailable while unrelated invalid facts and malformed or 
 **Evidence:** [Source: rule/framework.contextdelivery/FutureTrackingAdmission]
 **Related Behaviors:** `operation/framework.contextdelivery/ProjectContextIntake`, `test/framework.contextdelivery/ProjectContextIntake`
 **CoveredBy:** `.claude/hooks/tests/suites/task-tracking-vocabulary.test.cjs::TC-PCI-073: a task-tracking vocabulary newer than the framework is deferred to warnings so the rest of the configuration still loads`
+**Status:** Tested
+
+### Feature map
+
+
+#### TC-PCI-074: A story-linked map holds driver facts only [P1]
+
+**Objective:** Protect BR-PCI-06 for a project with specs.
+**Business Intent / Invariant Guarded:** Every entry names its spec story; a copied user-path step is reported.
+**Preconditions:** A project with a user-facing spec story and a map entry for it.
+**Real-World Reachability:** A maintainer pastes the story's click path into the map while writing driver notes.
+**Demo Flow:** Check the map, then copy one step of the story's user path into the entry and check again.
+
+```gherkin
+Given a spec story with a user path and a map entry naming that story
+When the map is checked
+Then it is clean
+And a copied user-path step or a missing spec name is reported
+```
+
+**Expected Result:** The clean map passes; the copy and the missing spec name are each reported with the fix.
+**Acceptance Criteria:** Success is the stated outcome; failure is any contrary outcome.
+**Test Data:** One spec with two stories, one user-facing.
+**Edge Cases:** Letter case and list markers do not hide a copy; a very short step is too generic to count.
+**Evidence:** `[Source: rule/framework.contextdelivery/FeatureMapOwnership]`
+**Related Behaviors:** `operation/framework.contextdelivery/ProjectContextIntake`, `test/framework.contextdelivery/ProjectContextIntake`
+**CoveredBy:** `.claude/scripts/tests/feature-map.test.cjs::TC-PCI-074`
+**Status:** Tested
+
+#### TC-PCI-075: A project without specs uses stable map ids [P1]
+
+**Objective:** Protect BR-PCI-06 for a project without specs.
+**Business Intent / Invariant Guarded:** Entries carry stable map ids; an entry without one, or one naming a story with no spec, is reported.
+**Preconditions:** No feature specs.
+**Real-World Reachability:** A small project with no specs adopts the feature map.
+**Demo Flow:** Check a map with one stable-id entry and one unnamed entry.
+
+```gherkin
+Given a project with no feature specs
+When a map with a stable-id entry and an unnamed entry is checked
+Then only the unnamed entry is reported
+```
+
+**Expected Result:** The stable-id entry passes; the unnamed entry and any story-named entry are reported.
+**Acceptance Criteria:** Success is the stated outcome; failure is any contrary outcome.
+**Test Data:** No spec files.
+**Edge Cases:** A story-named entry without a spec is never trusted.
+**Evidence:** `[Source: rule/framework.contextdelivery/FeatureMapOwnership]`
+**Related Behaviors:** `operation/framework.contextdelivery/ProjectContextIntake`, `test/framework.contextdelivery/ProjectContextIntake`
+**CoveredBy:** `.claude/scripts/tests/feature-map.test.cjs::TC-PCI-075`
+**Status:** Tested
+
+#### TC-PCI-076: Spec changes surface map gaps and stale entries [P1]
+
+**Objective:** Protect BR-PCI-06 after spec change.
+**Business Intent / Invariant Guarded:** A user-facing story without an entry and an entry whose story is gone are both reported.
+**Preconditions:** A map whose entry names a story that was removed.
+**Real-World Reachability:** A story is renamed or deleted while the map is not updated.
+**Demo Flow:** Remove the story an entry names and check the map.
+
+```gherkin
+Given a map entry whose story no longer exists and a user-facing story with no entry
+When the map is checked
+Then both are reported, the gap as coverage work and the stale entry as an error
+```
+
+**Expected Result:** Two findings, each naming its fix; a story without a user path is not a gap.
+**Acceptance Criteria:** Success is the stated outcome; failure is any contrary outcome.
+**Test Data:** One user-facing and one background story.
+**Edge Cases:** An entry naming a spec file that was removed is stale too.
+**Evidence:** `[Source: rule/framework.contextdelivery/FeatureMapOwnership]`
+**Related Behaviors:** `operation/framework.contextdelivery/ProjectContextIntake`, `test/framework.contextdelivery/ProjectContextIntake`
+**CoveredBy:** `.claude/scripts/tests/feature-map.test.cjs::TC-PCI-076`
+**Status:** Tested
+
+#### TC-PCI-077: The map holds no secret values [P1]
+
+**Objective:** Protect BR-PCI-06 against credential leaks.
+**Business Intent / Invariant Guarded:** A credential-shaped value in the map is reported without repeating it.
+**Preconditions:** A map entry whose notes hold a token.
+**Real-World Reachability:** A maintainer writes a test account's token into driving notes.
+**Demo Flow:** Check a map with a token in its notes.
+
+```gherkin
+Given a map entry whose notes hold a credential-shaped value
+When the map is checked
+Then the line is reported and the report does not contain the value
+```
+
+**Expected Result:** One finding naming the line; the value never appears in the output.
+**Acceptance Criteria:** Success is the stated outcome; failure is any contrary outcome.
+**Test Data:** A synthetic token.
+**Edge Cases:** Credential references (names, not values) are allowed.
+**Evidence:** `[Source: rule/framework.contextdelivery/FeatureMapOwnership]`
+**Related Behaviors:** `operation/framework.contextdelivery/ProjectContextIntake`, `test/framework.contextdelivery/ProjectContextIntake`
+**CoveredBy:** `.claude/scripts/tests/feature-map.test.cjs::TC-PCI-077`
+**Status:** Tested
+
+#### TC-PCI-082: A spec change flags the selected map for refresh [P1]
+
+**Objective:** Protect BR-PCI-06 upkeep.
+**Business Intent / Invariant Guarded:** A business spec change routes the selected map to its refresh owner; an unselected map is never routed.
+**Preconditions:** The project selected the feature map.
+**Real-World Reachability:** A spec story changes during ordinary work.
+**Demo Flow:** Change a spec file and ask which project references need checking.
+
+```gherkin
+Given the feature map is selected
+When a business spec changes
+Then the map is flagged with its refresh owner
+And an unselected map or a source-only change does not flag it
+```
+
+**Expected Result:** The map appears with its refresh owner only in the selected case.
+**Acceptance Criteria:** Success is the stated outcome; failure is any contrary outcome.
+**Test Data:** One spec path, one source path.
+**Edge Cases:** Explicitly empty selection keeps the map out.
+**Evidence:** `[Source: rule/framework.contextdelivery/FeatureMapOwnership]`
+**Related Behaviors:** `operation/framework.contextdelivery/ProjectContextIntake`, `test/framework.contextdelivery/ProjectContextIntake`
+**CoveredBy:** `.claude/hooks/tests/suites/doc-impact-map.test.cjs::[doc-impact-map] TC-PCI-082 spec changes route the selected feature map to its scan target`
+**Status:** Tested
+
+#### TC-PCI-083: The map is opt-in and has one refresh owner [P1]
+
+**Objective:** Protect BR-PCI-06 selection.
+**Business Intent / Invariant Guarded:** The map has its framework refresh owner and starter template and is never selected by evidence alone.
+**Preconditions:** A project rich in other capabilities.
+**Real-World Reachability:** A project adopts the framework and has not asked for a map.
+**Demo Flow:** Resolve the default reference selection and the map's owner.
+
+```gherkin
+Given a project with specs and end-to-end tests but no map selection
+When the reference selection is resolved
+Then the map is not selected
+And its owner and starter template are the framework ones
+```
+
+**Expected Result:** The map stays unselected; its owner cannot be replaced by a custom owner.
+**Acceptance Criteria:** Success is the stated outcome; failure is any contrary outcome.
+**Test Data:** Rich capability fixture.
+**Edge Cases:** A custom owner on the built-in map is refused.
+**Evidence:** `[Source: rule/framework.contextdelivery/FeatureMapOwnership]`
+**Related Behaviors:** `operation/framework.contextdelivery/ProjectContextIntake`, `test/framework.contextdelivery/ProjectContextIntake`
+**CoveredBy:** `.claude/hooks/tests/suites/init-reference-docs.test.cjs::[init-reference-docs] TC-PCI-083 feature map has a scan owner and a template and is never selected by default`
+**Status:** Tested
+
+### Runtime evidence
+
+
+#### TC-PCI-078: Matching runtime evidence becomes text in the pull request [P1]
+
+**Objective:** Protect BR-PCI-07.
+**Business Intent / Invariant Guarded:** A review of the same version is copied as text with statuses, judgments, blocking count, acceptance status and map entries, and no local file link.
+**Preconditions:** A runtime review of the exact version the pull request publishes, with kept captures.
+**Real-World Reachability:** A developer opens a pull request after a runtime review of a page change.
+**Demo Flow:** Describe the pull request from the review.
+
+```gherkin
+Given a runtime review of the same version with captures
+When the pull request description is written
+Then it lists the exercised surface, its status and judgments, the blocking count and the acceptance status as text
+And it links no local file and offers only inspected, redacted images or recordings for attachment
+```
+
+**Expected Result:** The section shows pending acceptance; no local path appears; one capture is offered.
+**Acceptance Criteria:** Success is the stated outcome; failure is any contrary outcome.
+**Test Data:** One surface, four captures with mixed flags.
+**Edge Cases:** Traces and logs are never offered.
+**Evidence:** `[Source: rule/framework.contextdelivery/RuntimeEvidenceForReviewers]`
+**Related Behaviors:** `operation/framework.contextdelivery/ProjectContextIntake`, `test/framework.contextdelivery/ProjectContextIntake`
+**CoveredBy:** `.claude/scripts/tests/experience-verification.test.cjs::TC-PCI-078`
+**Status:** Tested
+
+#### TC-PCI-079: Missing or older runtime evidence is stated [P1]
+
+**Objective:** Protect BR-PCI-07.
+**Business Intent / Invariant Guarded:** Absent, older, version-less or invalid evidence yields an explicit "no runtime evidence" line with its reason.
+**Preconditions:** A change to an observable surface.
+**Real-World Reachability:** The review ran before the last fix, or the stack could not start.
+**Demo Flow:** Describe the pull request with no review, an older review, and an invalid record.
+
+```gherkin
+Given a change to an observable surface
+When the only runtime review is missing, older, version-less or invalid
+Then the description says there is no runtime evidence and why
+```
+
+**Expected Result:** Each case names its reason; nothing is silently omitted.
+**Acceptance Criteria:** Success is the stated outcome; failure is any contrary outcome.
+**Test Data:** Two version ids; one invalid record.
+**Edge Cases:** Older captures are never offered.
+**Evidence:** `[Source: rule/framework.contextdelivery/RuntimeEvidenceForReviewers]`
+**Related Behaviors:** `operation/framework.contextdelivery/ProjectContextIntake`, `test/framework.contextdelivery/ProjectContextIntake`
+**CoveredBy:** `.claude/scripts/tests/experience-verification.test.cjs::TC-PCI-079`
+**Status:** Tested
+
+#### TC-PCI-080: A change without an observable surface gets no runtime section [P1]
+
+**Objective:** Protect BR-PCI-07 scope.
+**Business Intent / Invariant Guarded:** A documentation-only change gets no runtime-evidence section.
+**Preconditions:** A change that touches no observable surface.
+**Real-World Reachability:** A developer edits only documentation.
+**Demo Flow:** Describe the pull request for a documentation-only change.
+
+```gherkin
+Given a change with no observable surface and no runtime review
+When the pull request description is written
+Then it has no runtime-evidence section
+```
+
+**Expected Result:** No section; a malformed request is refused rather than guessed.
+**Acceptance Criteria:** Success is the stated outcome; failure is any contrary outcome.
+**Test Data:** No records.
+**Edge Cases:** The observable question must be answered explicitly.
+**Evidence:** `[Source: rule/framework.contextdelivery/RuntimeEvidenceForReviewers]`
+**Related Behaviors:** `operation/framework.contextdelivery/ProjectContextIntake`, `test/framework.contextdelivery/ProjectContextIntake`
+**CoveredBy:** `.claude/scripts/tests/experience-verification.test.cjs::TC-PCI-080`
+**Status:** Tested
+
+#### TC-PCI-081: Captures are attached only after a yes [P1]
+
+**Objective:** Protect BR-PCI-08.
+**Business Intent / Invariant Guarded:** Without a yes no capture is attached; with a yes only inspected, redacted captures count; credential-shaped text never reaches the description.
+**Preconditions:** A runtime review with captures and a credential-shaped value in its notes.
+**Real-World Reachability:** A developer declines, then approves, attaching screenshots.
+**Demo Flow:** Describe the pull request before and after the developer's answer.
+
+```gherkin
+Given inspected and uninspected captures
+When the developer declines or approves attaching them
+Then a decline keeps all captures local and an approval attaches only the inspected, redacted ones
+And the description never contains the credential value
+```
+
+**Expected Result:** Declined: none attached. Approved: one attached, the rest local; older-version records are listed as omitted.
+**Acceptance Criteria:** Success is the stated outcome; failure is any contrary outcome.
+**Test Data:** Two surfaces on different versions; a synthetic key.
+**Edge Cases:** An uninspected capture never counts as attached.
+**Evidence:** `[Source: rule/framework.contextdelivery/CaptureConsent]`
+**Related Behaviors:** `operation/framework.contextdelivery/ProjectContextIntake`, `test/framework.contextdelivery/ProjectContextIntake`
+**CoveredBy:** `.claude/scripts/tests/experience-verification.test.cjs::TC-PCI-081`
+**Status:** Tested
+
+#### TC-PCI-084: The pull-request and final-review instructions carry the evidence rules [P1]
+
+**Objective:** Protect BR-PCI-07 and BR-PCI-08 in the assistant's instructions.
+**Business Intent / Invariant Guarded:** The pull-request instructions require the section or its stated absence, forbid local links, ask per pull request before attaching media; the final review reports missing or older evidence.
+**Preconditions:** The shipped instructions.
+**Real-World Reachability:** Any pull request the assistant opens.
+**Demo Flow:** Read the pull-request and final-review instructions.
+
+```gherkin
+Given the shipped pull-request and final-review instructions
+When they are read
+Then they require the runtime-evidence section or its stated absence, a per-pull-request yes before attaching media, and a finding for missing or older evidence
+```
+
+**Expected Result:** Each rule is present; removing one fails the check.
+**Acceptance Criteria:** Success is the stated outcome; failure is any contrary outcome.
+**Test Data:** The shipped instruction files.
+**Edge Cases:** No setting replaces the question.
+**Evidence:** `[Source: rule/framework.contextdelivery/CaptureConsent]`
+**Related Behaviors:** `operation/framework.contextdelivery/ProjectContextIntake`, `test/framework.contextdelivery/ProjectContextIntake`
+**CoveredBy:** `.claude/hooks/tests/suites/pr-review-scope.test.cjs::TC-PCI-084 PR bodies carry runtime evidence as text, state its absence, attach media only on a per-PR yes, and pr-review flags missing or stale evidence`
+**Status:** Tested
+
+#### TC-PCI-085: Runtime review keeps run commands only on a yes and records its version [P1]
+
+**Objective:** Protect BR-PCI-09 and the version link of BR-PCI-07.
+**Business Intent / Invariant Guarded:** The runtime-review instructions ask once before saving worked-out run commands, never save a secret value, read the map, and record the version each record exercised.
+**Preconditions:** The shipped instructions.
+**Real-World Reachability:** A runtime review that had to work out how to start the app.
+**Demo Flow:** Read the runtime-review, debugging and documentation-upkeep instructions.
+
+```gherkin
+Given the shipped runtime-review instructions
+When they are read
+Then saving worked-out run commands needs a yes, a decline is recorded, the map is read when selected
+And each evidence record names the version it exercised
+```
+
+**Expected Result:** Each rule is present; removing one fails the check.
+**Acceptance Criteria:** Success is the stated outcome; failure is any contrary outcome.
+**Test Data:** The shipped instruction files.
+**Edge Cases:** A record without its version never counts as current.
+**Evidence:** `[Source: rule/framework.contextdelivery/RunCommandPersistence]`
+**Related Behaviors:** `operation/framework.contextdelivery/ProjectContextIntake`, `test/framework.contextdelivery/ProjectContextIntake`
+**CoveredBy:** `.claude/hooks/tests/suites/pr-review-scope.test.cjs::TC-PCI-085 runtime review keeps derived run commands only on a yes, reads the feature map and records the tree it exercised`
 **Status:** Tested

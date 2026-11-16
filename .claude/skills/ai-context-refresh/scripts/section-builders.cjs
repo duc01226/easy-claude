@@ -73,6 +73,7 @@ const REFERENCE_DOC_TRIGGERS = Object.freeze({
     'integration-test-reference.md': 'Writing, fixing, or reviewing integration tests',
     'performance-test-reference.md': 'Planning, writing, running, fixing, or reviewing performance / load / capacity tests',
     'e2e-test-reference.md': 'Writing, running, or reviewing E2E / user-flow tests',
+    'feature-map-reference.md': 'Where a feature lives and how to drive it — a vague bug report, a runtime review, PR runtime evidence',
     'seed-test-data-reference.md': 'Seeding or reviewing development/test data',
     'custom-prompts-reference.md': 'A saved project prompt, playbook, or runbook may apply (`/custom-prompt`)',
     'skill-protocols-reference.md': 'Before running any skill — project overlays layered on it',
