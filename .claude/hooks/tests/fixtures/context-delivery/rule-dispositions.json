@@ -1,11 +1,11 @@
 {
   "version": 5,
-  "policyVersion": "9388513f2845e7e166b2e04569d75efb2dacfab48713958298e4d2facf3e1bf3",
+  "policyVersion": "10b13a61455fa808c84d1c5f677beb7c68d44f741283ceb3cfa6c74162642a99",
   "sourceHashes": {
-    "universal-1": "61a425b9de1e6b1afdb196eaab7b9c523a86bb6d47894b5c1d74a3319d9bbff0",
-    "universal-2": "881ab76ad3c1ec72b7c43b2022e6ed2486cd9f87f4c19894d3a9164f85a361b0",
+    "universal-1": "dfc0605fdce45f2064f405f4f997ad2c07c772e78c3d5925226a988276d1ee28",
+    "universal-2": "b1d5ec9ac73d85f578ac5426e830006f1b426a1038edb84337f46ec6c758dbf4",
     "universal-3": "e02ba4fe62b665e8c9e75aa1f83d7a10da1ca401c12b787d9449202a082eb496",
-    "universal-4": "24f361a70d5e2be3f7f531eea9152b06ce99d7082189eda5df56129014ed545d",
+    "universal-4": "36ee62792e2e778eea695bbe16a8e4048bbfd71254ac5d8e6494b1c7e1c2fccd",
     "route": "46422fdacf61e11928a242baf5170b8d56abe1f5652d1cb524554b971ce3e994",
     "catalog": "f5a2f492f69185b0bb8f1e9a10f30865c6a6ea1cfda3586a4be72446f82403dd",
     "core": "d195161390a4a72ee782acd33c7a77a9609b7ff5e5b336f4d8a83f4d06cf5c2a"
@@ -198,7 +198,7 @@
       "id": "universal-1:20",
       "source": "universal-1",
       "line": 20,
-      "sha256": "d998e19f11e9118a35eccb2a6340b0f8d0b164de67d06d24acdedb16dd8c38e2",
+      "sha256": "88b2cca7245e84810a79b1ea8ce84b87b3d4d362d7ce77fce56e6fb8da6fdd2a",
       "disposition": "merge-and-relax-method",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
       "fullSources": [
@@ -207,9 +207,10 @@
       "relaxes": [
         "fixed-quota"
       ],
-      "note": "The target-code and existing-pattern reads are stated; the development-rules read is taken from the source.",
+      "note": "The target-code and existing-pattern reads and the documented-exemplar preference are stated; the development-rules read is taken from the source.",
       "anchors": [
-        "Read target code and representative existing patterns before changing it"
+        "Read target code and representative existing patterns before changing it",
+        "Prefer documented exemplars to frequent patterns"
       ]
     },
     {
@@ -564,7 +565,7 @@
       "id": "universal-2:10",
       "source": "universal-2",
       "line": 10,
-      "sha256": "9a22327db38fcbff783a10d3481061b1ecd53da2b5320fb412710aa3e7ddc754",
+      "sha256": "985ae8d87c84618883a08433f7c7b6449835eaef432828f81b783c0ee2dc4ed3",
       "disposition": "merge",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
       "fullSources": [
@@ -572,21 +573,24 @@
       ],
       "anchors": [
         "Investigate existing rationale before changing or condemning a limit or established behavior"
-      ]
+      ],
+      "note": "The rationale investigation is stated, and the concise core reports rather than copies a workaround; the rule that a justifying comment is a claim to verify is taken from the source."
     },
     {
       "id": "universal-2:11",
       "source": "universal-2",
       "line": 11,
-      "sha256": "3b9daec7bdbf6b11c23b6b2d2e0f22bad36b45d40e72d010ac280fce64d3cf3e",
+      "sha256": "af271276bf56e4eaebbfdcd98b26149462a5312538a8e49592de4b6b1388e976",
       "disposition": "merge",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
       "fullSources": [
         ".claude/skills/shared/protocols/ai-mistake-prevention.md"
       ],
       "anchors": [
-        "check their preconditions before reuse"
-      ]
+        "check their preconditions before reuse",
+        "Prefer documented exemplars to frequent patterns; report, never copy, a workaround"
+      ],
+      "note": "The precondition check, the documented-exemplar preference and the workaround guard are stated; which code is not precedent (baselined or legacy-marked) and the workaround examples are taken from the source."
     },
     {
       "id": "universal-2:12",
@@ -919,7 +923,7 @@
       "id": "universal-4:12",
       "source": "universal-4",
       "line": 12,
-      "sha256": "11c0baa1b35926ccc18510dfc09c620bac58794b9c2098489e42d412f60def72",
+      "sha256": "7f904291c1c3898fe6bdfd4762532fcc82786703116365229e8c5de8541fd78f",
       "disposition": "merge-and-relax-method",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
       "fullSources": [
@@ -930,7 +934,8 @@
       ],
       "anchors": [
         "Suggest a durable lesson only for a recurring, useful gap; never silently rewrite persistent instructions"
-      ]
+      ],
+      "note": "The recurring-gap rule and the no-silent-rewrite rule are stated; the structure-first tier order is taken from the source and from /learn, which every persisted lesson passes through in either profile."
     },
     {
       "id": "universal-4:14",
@@ -966,7 +971,7 @@
       "id": "universal-4:18",
       "source": "universal-4",
       "line": 18,
-      "sha256": "c4e28aa064c94e2091c72887ea72c7992f7320a8eac134a286e2b8e8aca9d27e",
+      "sha256": "8b093e0af1aaa3ce152889f6accc484ebbe8b5f30218589bb57c3220571802a0",
       "disposition": "defer",
       "destination": ".claude/skills/shared/protocols/quality-skill-routing.md",
       "readWhen": "choosing a skill for review, test or failure work",

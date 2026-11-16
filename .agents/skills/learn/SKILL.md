@@ -26,8 +26,8 @@ disable-model-invocation: false
 - **Subject knowledge goes to the knowledge base:** a domain rule, regulation, chosen practice or technology position that matters only when a task touches that subject fails the everyday-reading Value gate for persistent memory, but is not dropped — offer `$knowledge-base add` (a project knowledge pack, pointed at only when its subject comes up) as the carrier; that skill's own draft-and-confirm gate applies.
 - **Classify the carrier, don't default to prose:** a lesson stating a project FACT (path, run-command, module map, convention, tooling choice) belongs in `docs/project-config.json`, the machine-readable map every skill reads first; a lesson stating a RULE or pattern belongs in the matching `docs/project-reference/` doc. Both can apply — write the fact to config AND the rule to prose. To learn what the config holds and its exact field names, read the file or use `$project-config` (it runs `--describe`).
 - **Delegate overlay correctness:** `$project-skill-protocol` retains its mode resolution, target/scope resolution, additive-only constraint, collision/contradiction handling, proposal/user-confirmation gate and two-write contract; Learn must not bypass or replace it.
-- **Assess prevention depth** — doc/config update, prompt rule, static protocol lesson, hook, test, or skill update.
-- **Confirm target with the user, save, then run the 3 mandatory end tasks** — Learn Review → `$why-review` → carrier-specific final quality pass (Markdown enhancement, or configuration parser/schema validation).
+- **Assess prevention depth structure-first** — make the mistake impossible by design, else an automatic check (a lint rule or architecture test with a fix-naming message and a frozen baseline), else a test, else a hook; prose (doc, config, prompt rule, protocol or skill text) only when no stronger tier fits.
+- **Confirm target with the user, save, then run the 3 mandatory end tasks** — Learn Review → `$why-review` → carrier-specific final quality pass (Markdown enhancement, or configuration parser/schema validation). A structural pick saves no prose and ends at its `$plan` hand-off instead.
 
 **Workflow:**
 
@@ -136,9 +136,9 @@ Rules:
 | -------------- | -------------------------------------------------------------------------------------- | -------------- | ---------------------------------------------------- |
 | **Value**      | "Is this a project convention (a stable rule this codebase follows in everyday work) or a universal best-practice protocol — worth an agent reading on an ordinary day?" | Yes → continue | No → skip `$learn`; rare AI-agent quirks, one-off incidents, tool/environment hiccups and details of the current session's task are not lessons. **Exception:** subject knowledge (a domain rule, regulation, chosen practice or technology position needed only when a task touches that subject) → offer `$knowledge-base add` instead of skipping |
 | **Recurrence** | "Would this mistake recur in a future session WITHOUT this reminder?"                  | Yes → continue | No → skip `$learn`; mistake is situational           |
-| **Auto-fix**   | "Could `$code-quality-review`, `$code-simplifier`, `$security-audit`, or a linter catch this automatically?" | No → continue  | Yes → skip `$learn`; update the review skill instead |
+| **Auto-fix**   | "Does an existing check — a type, lint rule, test, hook, `$code-quality-review`, `$code-simplifier` or `$security-audit` — already catch this?" | No → continue  | Yes → skip `$learn`; nothing new to persist. A check that could catch it but does not exist yet is no reason to skip: it becomes the carrier, ahead of prose, in the [Prevention Depth Assessment](#prevention-depth-assessment-mandatory-before-saving) |
 
-**All three gates must pass.** Persistent memory is read on every task, so it holds only what makes everyday work better: a project convention or a universal best practice. A rare agent quirk or a detail of this session's task costs every future reader attention and prevents nothing; a lesson review skills already catch adds noise; a one-off situational mistake won't be prevented by a persisted rule.
+**All three gates must pass.** Persistent memory is read on every task, so it holds only what makes everyday work better: a project convention or a universal best practice. A rare agent quirk or a detail of this session's task costs every future reader attention and prevents nothing; a lesson an existing check already catches adds noise; a one-off situational mistake won't be prevented by a persisted rule.
 
 ---
 
@@ -227,31 +227,29 @@ Route to the **most relevant file** based on lesson content. Every bare `*.md` f
 
 ### Prevention Depth Assessment (MANDATORY before saving)
 
-Before saving any lesson, critically evaluate whether a doc update alone is sufficient or a deeper prevention mechanism is needed:
+A recurring mistake is prevented best where nobody has to remember it. Route every lesson that passed the Triage Gate **structure-first**: take the first tier that fits at a cost proportional to the recurrence. A structural tier **replaces** the prose lesson; it does not sit beside it. The Value and Recurrence gates still decide whether anything is kept at all.
 
-| Prevention Layer                            | When to use                                                                   | Example                                                                                     |
-| ------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| **Doc update only**                         | Team convention or rule needed only when doing that kind of work (the lesson already passed the Value gate) | "Always use fluent validation API" → `backend-patterns-reference.md` |
-| **Project config field** (`docs/project-config.json`) | The lesson is a machine-readable project FACT every skill should ground on before acting | "Integration tests need the system started first" → `integrationTestVerify.startupScript` / `systemCheckCommand` via `$project-config` |
-| **Root project note** (`CLAUDE.md` `## Project Rules & Context`) | A short, broad, project-specific rule or context note every task benefits from (Root Context Route C1–C5) | "Every new module is registered in the module registry first" → root `CLAUDE.md` + `sync-codex` |
-| **Prompt rule** (`development-rules.md`)    | Rule that ALL agents must follow on every task                                | "Grep after bulk edits" → `.claude/docs/development-rules.md`                               |
-| **Static protocol lesson** (`sync-inline-versions.md`) | Universal AI mistake, high recurrence, silent failure, any project | "Trace every consumer before and after a change" → `.claude/skills/shared/sync-inline-versions.md` |
-| **Hook** (`.claude/hooks/`)                 | Automated enforcement, must never be forgotten                                | "Marker strings must match across producer and consumer" → a shared constants module + consistency test |
-| **Test** (`.claude/hooks/tests/`)           | Regression prevention, verifiable invariant                                   | "All hooks import from shared module" → test in `test-all-hooks.cjs`                        |
-| **Skill update** (`.claude/skills/`)        | Workflow step that should always include this check                           | "Review changes must check doc staleness" → skill SKILL.md update                           |
+| Tier (strongest first) | When it fits | Example |
+| --- | --- | --- |
+| **1. Impossible by design** | A type, an API wrapper that is the only allowed entry point, or a structure change can make the wrong code unrepresentable | "Amounts were added across currencies" → a money type that refuses mixed currencies |
+| **2. Automatic check** — a lint rule or architecture test in the project's own toolchain | The mistake has a shape a tool can match: a call, an import, a dependency direction, a missing annotation | "Sleeps used to order async work" → a restricted-syntax lint rule; "the UI imports the data layer" → a boundary rule |
+| **3. Test** | A behavior invariant, not a shape | "Totals drift after a refund" → a regression or property test of the invariant |
+| **4. Hook** — pre-commit, CI or agent-runtime | The mistake is in a process step (a skipped step, an unchecked output), not in product code | "Marker strings must match across producer and consumer" → a hook check backed by one shared constants module |
+| **5. Prose — last** | Judgment no tool can check, or a machine-readable project fact. The carrier comes from the routing above (a reference doc, a project config field, a root project note), or is a prompt rule in `development-rules.md` when every agent must follow it on every task, a Static Protocol Lesson when it qualifies (criteria below), or a skill update when a workflow step should always run the check | "Always use the fluent validation API" → `backend-patterns-reference.md` |
+
+**Baseline rule (tier 2):** a new rule lands on existing code with a **frozen baseline**. Record the existing violations in the tool's native baseline or suppression file (a project-owned list when the tool has none); the count may only go down. The rule's message names the root-cause fix, not only the violation, and a bad/good fixture proves it fires. When the rule lands the build stays green, and violation N+1 fails. Never clear every existing violation inside the same change (scope creep), and never weaken or disable the rule to land it. `$linter-setup` owns the tool choice and its baseline mechanism; a new architecture test ratchets the same way.
 
 **Decision flow:**
 
-1. **Capture** the lesson
-2. **Ask:** "Could this mistake recur if the AI forgets this lesson?" If yes → needs more than a doc update
-3. **Ask:** "Can this be caught automatically by a test or hook?" If yes → recommend hook/test
-4. **Evaluate Static Protocol Lesson promotion** (see below)
-5. **Present options to user** with `ask user question tool` — recommended option first, labelled `(Recommended)`, with a one-line reason; on the skill-specific route, ask them as the second question of the Carrier Choice `ask user question tool` call instead of asking twice:
-    - "Doc update only" — save to the best-fit reference file (default for most lessons)
-    - "Doc + prompt rule" — also add to `development-rules.md` so all agents see it
-    - "Doc + Static Protocol Lesson" — also add to shared protocol lessons (see criteria below)
-    - "Full prevention" — plan a hook, test, or shared module to enforce it automatically
-6. **Execute** the chosen option. For "Full prevention", create a plan via `$plan` instead of just saving.
+1. **Capture** the lesson (it already passed the Triage Gate).
+2. **Walk the tiers from 1 down.** For each, ask: "Can this tier stop the whole class of mistake here, at a cost proportional to how often it recurs?" Stop at the first yes, and note why each stronger tier does not fit. When a caller passes a tier walk it already ran (the post-fix lesson check does), reuse it and never offer again a tier the user declined.
+3. **Evaluate Static Protocol Lesson promotion** (see below) only when the walk ends at tier 5.
+4. **Present options to user** with `ask user question tool` — 2–4 options, the tier the walk chose first, labelled `(Recommended)`, with a one-line reason; on the skill-specific route, ask them as the second question of the Carrier Choice `ask user question tool` call instead of asking twice:
+    - the structural tier the walk chose ("Make it impossible", "Add a check (with a frozen baseline)", "Add a test" or "Add a hook") — a change in the project's own code or toolchain; the lesson is not also saved as prose unless the user asks for both
+    - "Prose only" — save to the best-fit carrier from the routing above
+    - "Prose + Static Protocol Lesson" — only when the lesson qualifies (see criteria below)
+    - when fewer than two options remain, add the next-best carrier from the routing above or "Skip"
+5. **Execute** the chosen option. A structural tier is planned via `$plan` (or `$fix` when it repairs a defect) and delivered as a reviewed change, never as a note that promises one; `$learn` then ends at that hand-off and reports it, and the prose end tasks below do not apply because nothing was saved as prose.
 
 ### Static Protocol Lesson Promotion (MANDATORY evaluation)
 
@@ -267,9 +265,9 @@ After generalizing a lesson, evaluate whether it qualifies as a **Static Protoco
 > **Static Protocol Lessons** — Universal AI mistake prevention rules delivered by the universal hook. Stored in `.claude/skills/shared/sync-inline-versions.md` under the `ai-mistake-prevention` SYNC block (published to `.claude/skills/shared/protocols/ai-mistake-prevention.md`). Each must be universal, high-recurrence, and silent-failure.
 > READ `.claude/skills/shared/sync-inline-versions.md` to check for duplicates before adding.
 
-**If qualified:** Recommend "Doc + Static Protocol Lesson" option. On user approval, append the lesson as a new bullet to the relevant shared SYNC blocks, then run `node .claude/scripts/build-protocol-projection.cjs` so the hook-delivered projection regenerates from the canonical source. The build fails when the protocol's universal bin exceeds its character budget: condense existing bullets before adding one.
+**If qualified:** Recommend the "Prose + Static Protocol Lesson" option. On user approval, append the lesson as a new bullet to the relevant shared SYNC blocks, then run `node .claude/scripts/build-protocol-projection.cjs` so the hook-delivered projection regenerates from the canonical source. The build fails when the protocol's universal bin exceeds its character budget: condense existing bullets before adding one.
 
-**If NOT qualified:** Explain why (e.g., "A project convention, not universal", "Already covered by existing Static Protocol Lesson about X", "Not silent — the failure is already visible"). Proceed with doc-only or prompt-rule option. (A rare or one-off lesson never reaches this step — the Value gate already rejected it.)
+**If NOT qualified:** Explain why (e.g., "A project convention, not universal", "Already covered by existing Static Protocol Lesson about X", "Not silent — the failure is already visible"). Proceed with the "Prose only" option and its best-fit carrier. (A rare or one-off lesson never reaches this step — the Value gate already rejected it.)
 
 ### Lesson Quality Gate (BLOCKING — generalize before you save)
 
@@ -341,7 +339,7 @@ Run these 2 tasks when adding or updating a persistent lesson or protocol. `list
 - Verify:
     - Why this lesson prevents repeated mistakes,
     - Why this should be a lesson instead of a one-time note,
-    - Why auto-checks (`$code-quality-review`, `$code-simplifier`, `$security-audit`, linters, hook/test) are insufficient.
+    - Why no structural tier (impossible by design, a lint rule or architecture test, a test, a hook) can carry it instead of prose.
 - If rationale is weak, rewrite at higher abstraction or skip `$learn`.
 
 ### Routing Decision Process
@@ -351,7 +349,7 @@ Run these 2 tasks when adding or updating a persistent lesson or protocol. `list
 3. **Apply Lesson Quality Gate** — analyze root cause, generalize, verify universality
 4. **Detect skill-specific route.** If any trigger T1–T4 holds, follow the Skill-Specific Project-Protocol Route: it runs step 5 (FACT vs RULE) and step 6 (Prevention Depth) as part of its carrier comparison and Carrier Choice question, then replaces steps 7–8 (steps 9–10 still save a doc or config pick); otherwise continue.
 5. **Classify the carrier — FACT vs RULE (do this BEFORE the generic Routing Table).** Ask: *"Is this a machine-readable project fact, or a rule an agent must reason with?"* Fact → `docs/project-config.json`; rule → a prose reference doc; both → both. To decide, read the config or use `$project-config` (`--describe`) so the judgment rests on the real schema, never on a guess about what the config holds. — why: skipping this step is how a project fact ends up as prose that no tooling reads and the next regeneration contradicts.
-6. **Run Prevention Depth Assessment** — determine if doc/config-only or deeper prevention needed
+6. **Run Prevention Depth Assessment** — walk the tiers structure-first; a structural pick ends `$learn` at its `$plan` hand-off, and only a prose pick continues to steps 7–10
 7. **Match against the generic Routing Table** — pick the best-fit file (or config field); run the [Project Root Context Route](#project-root-context-route-claudemd-blocking) candidate test (C1–C5) — when all five hold, `CLAUDE.md` joins the options
 8. **Ask the user with a recommendation:** `ask user question tool` with the best-fit carrier first as `(Recommended)` plus the one-line reason, then the viable alternatives (another doc, config field, the root `CLAUDE.md` note when C1–C5 hold, a skill overlay if a weak T4 owner exists)
 9. **On confirm** — read target file, find the right section, append the lesson (reference doc/guide → complete the Reference-doc handoff below; config target → route through `$project-config`; `CLAUDE.md` target → follow the Root Context Route procedure: write only the hand-owned section, end tasks, `sync-codex`, verify)
@@ -469,6 +467,8 @@ For a root `CLAUDE.md` save, scope the enhance to the `## Project Rules & Contex
 > 2. "Run `$why-review` to challenge whether the lesson is worth persistent memory."
 > 3. "Run the carrier-specific final quality pass: `$prompt-enhance <modified-prose-file>` when applicable, or owner parser/schema validation after the final configuration write."
 >
+> A structural pick that saves no prose ends at its `$plan` hand-off instead; these end tasks do not apply to it.
+>
 > Do NOT mark an add/update complete until review, rationale challenge and the applicable final quality pass have evidence. Record documented prose skip conditions explicitly. `list` returns after display; remove/clear/trim retain their own confirmation, integrity and modified-carrier quality checks.
 
 
@@ -502,10 +502,11 @@ For a root `CLAUDE.md` save, scope the enhance to the `## Project Rules & Contex
 **IMPORTANT MUST ATTENTION Goal:** Persist each lesson at its failure-mode level into the carrier a future session will actually read — the matching skill's project protocol when the lesson is skill-specific, otherwise the best-fit prose reference doc or `docs/project-config.json` when the lesson is really a machine-readable project fact.
 
 **IMPORTANT MUST ATTENTION** main steps, in order: generalize → Triage Gate → Lesson Quality Gate → detect skill-specific route (**compare carriers; an overlay pick delegates to `$project-skill-protocol`**) OR **classify carrier (FACT → config · RULE → prose · both → both)** → Prevention Depth Assessment → confirm with user → save → Learn Review → `$why-review` → carrier-specific final quality pass (prose enhancement, or configuration parser/schema validation) → `sync-codex` + size/mirror verification (root `CLAUDE.md` saves only).
-**IMPORTANT MUST ATTENTION** run Triage Gate FIRST — if the lesson is not a project convention or a universal best-practice protocol worth reading on everyday work, OR recurrence is low, OR review skills can catch it, skip `$learn` entirely
+**IMPORTANT MUST ATTENTION** run Triage Gate FIRST — if the lesson is not a project convention or a universal best-practice protocol worth reading on everyday work, OR recurrence is low, OR an existing check already catches it, skip `$learn` entirely
+**IMPORTANT MUST ATTENTION** route structure-first: impossible by design → lint rule or architecture test (fix-naming message, frozen baseline) → test → hook → prose last; a structural tier replaces the prose lesson
 **IMPORTANT MUST ATTENTION** check Reference Doc Catalog to find the best target file — NOT always `lessons.md`
 **IMPORTANT MUST ATTENTION** Evaluate config on every routing decision: read it or its schema description, copy existing field names exactly, and write through `$project-config`. No field fits → propose the schema gap to the user; never invent a key. Config holds FACTS; narrative rules belong in prose.
-**IMPORTANT MUST ATTENTION** mandatory end tasks are ALWAYS: `Learn Review` → `$why-review` → the applicable carrier-specific final quality pass (in order; documented prose skip conditions recorded)
+**IMPORTANT MUST ATTENTION** mandatory end tasks are ALWAYS, for every saved lesson: `Learn Review` → `$why-review` → the applicable carrier-specific final quality pass (in order; documented prose skip conditions recorded); a structural pick that saves no prose ends at its `$plan` hand-off
 **IMPORTANT MUST ATTENTION** break work into small todo tasks using todo tracking BEFORE starting
 **IMPORTANT MUST ATTENTION** prefer auto-injected files for high-recurrence lessons (higher visibility)
 
@@ -518,6 +519,8 @@ For a root `CLAUDE.md` save, scope the enhance to the `## Project Rules & Contex
 | "No field fits, I'll add a sensible key"         | Unknown keys only warn. Surface a proposed schema addition to the user — never invent one silently.   |
 | "Saving the user's exact words is most faithful" | Verbatim is the default failure mode. Climb to the failure mode; strip this ticket's nouns.           |
 | "Small lesson, skip the end gate"                | Learn Review and `$why-review` run on every save; final quality pass follows the carrier and documented prose skip conditions.                    |
+| "A doc note is enough"                           | Prose is the last tier. Walk impossible-by-design, check, test and hook first; a rule nobody runs is forgotten the first busy day. |
+| "The new rule turns CI red, so drop it"          | Land it with a frozen baseline of the existing violations: green today, violation N+1 fails. Never disable the rule or clear every old site in the same change. |
 | "Every agent should see it — put it in CLAUDE.md" | Only a broad, ≤ 3-line, project-specific note with size headroom qualifies; detail goes to a reference doc, a one-skill rule to an overlay, a universal framework rule to the shared protocols. |
 | "I'll drop it into a generated CLAUDE.md block"  | Fences are regenerated from config and template. Write only the hand-owned `## Project Rules & Context` section, after user confirmation, then `sync-codex`. |
 
