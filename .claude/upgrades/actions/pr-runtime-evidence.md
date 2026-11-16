@@ -11,6 +11,6 @@ tree: surfaces, statuses, judgments, BLOCKING count, acceptance status and featu
 review of that tree, the section says "No runtime evidence" and why. The body never links local `tmp/`
 files. Screenshots or video are attached only after the user says yes for that pull request, and only
 captures that were read and redacted. `/pr-review` reports a behavior change on an observable surface with
-no runtime or test evidence, or with evidence from an older tree, as a finding.
+no runtime or test evidence, or with evidence from an older tree, as a finding. When the user explicitly asks to skip runtime evidence for a pull request, the section records that skip and its reason instead, and the review accepts it.
 
 Nothing to run. Tell the user that the next pull request may ask once whether to attach captures.

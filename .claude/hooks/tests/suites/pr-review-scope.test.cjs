@@ -99,6 +99,11 @@ const tests = [
             );
             assert.match(body, /An observable change never omits the section, and the body never links `tmp\/` or a capture path/);
             assert.match(body, /a change with no observable surface gets no section/);
+            assert.match(
+                body,
+                /only when the user explicitly asks to skip or bypass runtime evidence for this pull request, pass their reason as `skippedByUser`/
+            );
+            assert.match(body, /Never skip on your own judgment/);
             assert.match(body, /\*\*Media needs a per-PR yes\.\*\*/);
             assert.match(body, /only read and redacted screenshots or video/);
             assert.match(body, /gh pr edit <n> --attach '<path>#<alt text>'/);
@@ -107,7 +112,7 @@ const tests = [
             const review = read('pr-review/SKILL.md');
             assert.match(
                 review,
-                /A behavior change on an observable surface whose PR carries no runtime or test evidence, or whose evidence predates the reviewed tree[^\n]*is a finding\./
+                /A behavior change on an observable surface whose PR carries no runtime or test evidence, or whose evidence predates the reviewed tree[^\n]*is a finding — unless the PR body records the user's explicit skip/
             );
         }
     },

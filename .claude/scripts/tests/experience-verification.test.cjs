@@ -473,3 +473,24 @@ test('TC-PCI-078: acceptance is HUMAN-ACCEPTED only when a person accepted every
     assert.match(render([notApplicable]), /Acceptance: NOT-APPLICABLE/, 'not-applicable rows alone never read as an acceptance');
     assert.equal(validateEvidenceRecord(reviewed({ featureMapEntries: [] })).valid, true, 'a review that drove no mapped feature is valid');
 });
+
+test('TC-PCI-086: an explicit user skip is recorded in place of runtime evidence, never silently', () => {
+    const skipped = renderPrEvidence({
+        candidateTree: TREE,
+        observableChange: true,
+        records: [reviewed()],
+        skippedByUser: 'hotfix must ship tonight; see tmp/notes/why.md'
+    });
+    assert.equal(skipped.status, 'SKIPPED-BY-USER');
+    assert.match(
+        skipped.markdown,
+        /^### Runtime evidence\n\nRuntime evidence: skipped at the user's request — hotfix must ship tonight; see \(local evidence\)\.\n$/
+    );
+    assert.deepEqual(skipped.attachable, [], 'a skip offers no capture for attachment');
+    assert.throws(() => renderPrEvidence({ candidateTree: TREE, observableChange: true, skippedByUser: '  ' }), /user's reason/);
+    assert.equal(
+        renderPrEvidence({ observableChange: false, skippedByUser: 'docs only' }).status,
+        'NOT-OBSERVABLE',
+        'no observable surface still means no section'
+    );
+});
