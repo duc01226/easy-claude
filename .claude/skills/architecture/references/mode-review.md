@@ -65,6 +65,7 @@
 - [Phase 3: Architecture Review](#phase-3-architecture-review)
 - [Phase 4: Finalize — Architecture Compliance Report](#phase-4-finalize--architecture-compliance-report)
 - [Architecture Boundary Check (Automated)](#architecture-boundary-check-automated)
+- [Restricted API Check](#restricted-api-check)
 - [Systematic Review Strategy](#systematic-review-strategy)
 - [Phase 5: Why-Review Self-Validation Gate (MANDATORY when findings exist)](#phase-5-why-review-self-validation-gate-mandatory-when-findings-exist)
 - [Next Steps](#next-steps)
@@ -642,6 +643,8 @@ Update report with final sections:
 
 ## Architecture Boundary Check (Automated)
 
+**Prefer the tool.** When `architectureRules.enforcedBy` is declared, run its `command` (or the project's `testing.commands.lint`, which includes it) and report the tool's violations in the changed files, citing its output; a violation already in the tool's baseline is not new. Use the steps below only when no tool is declared or it cannot run here, and say why.
+
 Per changed file:
 
 1. Read `docs/project-config.json` → `architectureRules.layerBoundaries`
@@ -652,6 +655,14 @@ Per changed file:
 6. BLOCK on violation: `"BLOCKED: {layer} layer file {filePath} imports from {forbiddenLayer} layer ({importStatement})"`
 
 `architectureRules` absent from project-config.json → skip silently.
+
+## Restricted API Check
+
+Mirror of `/linter-setup` → Restricted APIs. Per changed file:
+
+1. A lint ban already covers the API → the lint result is the finding source; cite it.
+2. The file calls a raw API that the project wraps (a module imports it and exports a narrower API, or a project rule says to use the wrapper) and no lint ban exists → WARN: name the wrapper to use, and propose a ban whose message names that wrapper, with wrapper-only exceptions (`/linter-setup` → Restricted APIs).
+3. No wrapper and no rule evidenced → skip silently.
 
 ---
 

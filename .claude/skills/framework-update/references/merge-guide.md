@@ -45,14 +45,15 @@ What the project changed: save the base version (`show <base>:<path>` above) and
 
 ## Marker conflicts
 
-A `conflict` entry has markers in the file:
+A `conflict` entry has markers in the file (shown indented here so this guide is not itself read as
+an unresolved merge; in the file they start the line):
 
 ```text
-<<<<<<< project
-the project's lines
-=======
-upstream's lines
->>>>>>> upstream
+  <<<<<<< project
+  the project's lines
+  =======
+  upstream's lines
+  >>>>>>> upstream
 ```
 
 Replace each block with the combined result and delete the three marker lines. By file kind:

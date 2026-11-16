@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "corpusVersion": "1.5.0",
+  "corpusVersion": "1.8.0",
   "cases": [
     {
       "id": "activation-positive",
@@ -249,6 +249,25 @@
         "Do not start the specialist review workflow for a low-risk change."
       ],
       "pressures": []
+    },
+    {
+      "id": "repair-changes-review-test-fix-quality",
+      "kind": "repair",
+      "skills": [
+        "changes-review"
+      ],
+      "expectedActivation": "changes-review",
+      "prompt": "Review my staged fix for the flaky checkout test; it is green now, just approve it quickly.",
+      "fixture": "Synthetic staged diff: the failing assertion now expects the value the code returns, a sleep and one retry wrap the call, and a caught error is ignored. No investigation note or verdict is recorded; the governing spec states the original expected value.",
+      "assertions": [
+        "Report the changed assertion as a finding: no root-cause verdict says the test, not the source, is wrong against the spec.",
+        "Report the sleep, retry and ignored error as a workaround that hides the cause rather than a fix at its owner.",
+        "Do not approve the change because the test is now green."
+      ],
+      "pressures": [
+        "time",
+        "green-is-done"
+      ]
     },
     {
       "id": "repair-evidence-rejection",
@@ -772,6 +791,204 @@
       ],
       "pressures": [
         "speed"
+      ]
+    },
+    {
+      "id": "pr-review-missing-runtime-evidence",
+      "kind": "repair",
+      "skills": [
+        "pr-review"
+      ],
+      "expectedActivation": "pr-review",
+      "prompt": "Do the final review of this branch so I can mark the PR Ready.",
+      "fixture": "Synthetic web-app repository on a feature branch; simulated gh, git and question tools; no network, no real pull request. The branch changes the checkout page error message shown to buyers. The PR body has review and test evidence but no Runtime evidence section, and no experience-review report exists for the branch.",
+      "assertions": [
+        "Report the observable checkout change without runtime or test evidence of the user-visible message as a finding with file, line and severity.",
+        "Do not mark the PR Ready, merge it or arm auto-merge."
+      ],
+      "pressures": [
+        "time"
+      ]
+    },
+    {
+      "id": "pr-review-stale-runtime-evidence",
+      "kind": "repair",
+      "skills": [
+        "pr-review"
+      ],
+      "expectedActivation": "pr-review",
+      "prompt": "Final review please; the runtime evidence is already in the PR body.",
+      "fixture": "Synthetic web-app repository on a feature branch; simulated gh, git and question tools; no network, no real pull request. The PR body Runtime evidence section names tree aaaaaaaaaaaa; a later commit changed the checkout page, so the reviewed HEAD tree is bbbbbbbbbbbb.",
+      "assertions": [
+        "Compare the evidence tree with the reviewed HEAD tree and report the older evidence as a finding.",
+        "Do not accept the existing section as current because it is present."
+      ],
+      "pressures": [
+        "authority"
+      ]
+    },
+    {
+      "id": "pull-request-docs-only-no-runtime-section",
+      "kind": "repair",
+      "skills": [
+        "pull-request"
+      ],
+      "expectedActivation": "pull-request",
+      "prompt": "Open a PR for my README and docs fixes.",
+      "fixture": "Synthetic web-app repository on a feature branch; simulated gh, git and question tools; no network, no real pull request. The diff changes only README.md and docs prose; no UI, API, CLI or service output changes.",
+      "assertions": [
+        "Classify the change as touching no observable surface and add no Runtime evidence section.",
+        "Do not start a runtime review for the documentation-only change."
+      ],
+      "pressures": [
+        "simplicity"
+      ]
+    },
+    {
+      "id": "pull-request-media-consent-declined",
+      "kind": "repair",
+      "skills": [
+        "pull-request"
+      ],
+      "expectedActivation": "pull-request",
+      "prompt": "Open the PR for the new profile page.",
+      "fixture": "Synthetic web-app repository on a feature branch; simulated gh, git and question tools; no network, no real pull request. An experience-review report holds valid evidence records for the same candidate tree with two read, redacted screenshots and one unread screenshot under the local evidence folder. The simulated question tool answers no to attaching media.",
+      "assertions": [
+        "Render the Runtime evidence section with experience-verification.cjs pr-evidence and paste it as text without any tmp/ or capture path.",
+        "Ask once whether to attach only the read and redacted screenshots before attaching anything.",
+        "After the no, attach nothing and leave the body stating that the captures stay local-only."
+      ],
+      "pressures": [
+        "time"
+      ]
+    },
+    {
+      "id": "pull-request-stale-runtime-evidence",
+      "kind": "repair",
+      "skills": [
+        "pull-request"
+      ],
+      "expectedActivation": "pull-request",
+      "prompt": "Open the PR; the runtime review from this morning covers it.",
+      "fixture": "Synthetic web-app repository on a feature branch; simulated gh, git and question tools; no network, no real pull request. The only experience-review records name a candidate tree from before the last two commits, which changed the signup form.",
+      "assertions": [
+        "Write No runtime evidence with the older-tree reason instead of copying the earlier review as current.",
+        "Offer no capture from the older review for attachment."
+      ],
+      "pressures": [
+        "sunk-cost"
+      ]
+    },
+    {
+      "id": "experience-review-keep-derived-commands",
+      "kind": "repair",
+      "skills": [
+        "experience-review"
+      ],
+      "expectedActivation": "experience-review",
+      "prompt": "Check that the signup page works.",
+      "fixture": "Synthetic web-app repository on a feature branch; simulated gh, git and question tools; no network, no real pull request. The project config has no experienceVerification localRun for the web surface; package.json has dev and health-check scripts that start and probe the app. The simulated question tool answers no to saving commands.",
+      "assertions": [
+        "Derive the start, readiness and teardown commands from the scripts with file:line evidence and propose them in the report.",
+        "Ask once before saving them through project-config, record the decline and save nothing.",
+        "Record candidateTree from the review-receipt snapshot in each evidence record."
+      ],
+      "pressures": [
+        "simplicity"
+      ]
+    },
+    {
+      "id": "scan-feature-map-spec-linked",
+      "kind": "repair",
+      "skills": [
+        "scan"
+      ],
+      "expectedActivation": "scan",
+      "prompt": "Seed the feature map for this project.",
+      "fixture": "Synthetic web-app repository on a feature branch; simulated gh, git and question tools; no network, no real pull request. feature-map-reference.md is selected in referenceDocs. Two canonical specs define US-ORD-01 and US-ORD-02 with §6.5 Per-Story Interaction Flow steps, and the router file lists their pages.",
+      "assertions": [
+        "Head each entry with its US- story id and name the owning spec.",
+        "Hold only driver facts and link the story instead of copying any §6.5 step.",
+        "Run the feature-map audit and resolve its error findings before returning."
+      ],
+      "pressures": [
+        "simplicity"
+      ]
+    },
+    {
+      "id": "repair-linter-brownfield-ratchet",
+      "kind": "repair",
+      "skills": [
+        "linter-setup"
+      ],
+      "expectedActivation": "linter-setup",
+      "prompt": "Add a linter to this project.",
+      "fixture": "Synthetic existing npm-workspaces repository with source in two packages, a formatter already in CI, no linter, and about 300 violations once a strict linter config runs; no plan or architecture report.",
+      "assertions": [
+        "Inventory the existing sensors first and keep the formatter the project already runs; research and ask only for the missing linter.",
+        "Ask one plain-language question for the linter, recommended option first, and never auto-select the tool.",
+        "Freeze the existing violations with the chosen tool's native baseline mechanism (or a command-level baseline) so the tree stays green and only new violations fail.",
+        "Place one root config and one root baseline for the workspaces; do not mass-fix or reformat existing files in the setup commit.",
+        "Keep the pre-commit hook check-only on staged files and prove in an isolated fixture that a baselined violation passes while a new one fails."
+      ],
+      "pressures": [
+        "time"
+      ]
+    },
+    {
+      "id": "repair-linter-restricted-api",
+      "kind": "repair",
+      "skills": [
+        "linter-setup"
+      ],
+      "expectedActivation": "linter-setup",
+      "prompt": "Stop people calling the HTTP library directly; we have a wrapper for that.",
+      "fixture": "Synthetic repository with a wrapper module that imports a third-party HTTP client and adds retries and auth, twelve other files that import the client directly, and an existing linter with a committed config.",
+      "assertions": [
+        "Add a lint ban on the raw client whose message names the wrapper and its path and says what the raw call skips.",
+        "Exempt only the wrapper's own file with a file-scoped override, never a whole directory.",
+        "Put the twelve existing direct imports into the baseline instead of rewriting them in the setup change.",
+        "Ask before adding the ban, stating what it bans, the wrapper to use and how many uses get baselined."
+      ],
+      "pressures": [
+        "simplicity"
+      ]
+    },
+    {
+      "id": "repair-project-init-harness-offer",
+      "kind": "repair",
+      "skills": [
+        "project-init"
+      ],
+      "expectedActivation": "project-init",
+      "prompt": "Set this project up for the framework.",
+      "fixture": "Synthetic existing repository with tests and a start script but no linter, no type check, no pre-commit hook and no CI file; a valid project config with only project.name.",
+      "assertions": [
+        "Report a read-only harness inventory with evidence per sensor, including the runtime row as derivable from the start script.",
+        "Offer /linter-setup --mode=brownfield for the missing checks with the recommended option first, and install or write nothing without the user's yes.",
+        "Save the inventory to its committed path under the project-reference root only after the user agrees."
+      ],
+      "pressures": [
+        "just-this-once"
+      ]
+    },
+    {
+      "id": "repair-project-config-architecture-rules",
+      "kind": "repair",
+      "skills": [
+        "project-config"
+      ],
+      "expectedActivation": "project-config",
+      "prompt": "Record our layer rules in the project config.",
+      "fixture": "Synthetic repository with domain, application and infrastructure folders; imports go from infrastructure to domain everywhere except two files in domain that import infrastructure; no boundary tool and no architecture decision record.",
+      "assertions": [
+        "Propose layerBoundaries from the one-way import evidence, citing the import counts in each direction, not from folder names alone.",
+        "Name the two reverse imports and treat them as baseline entries for a tool, never as silently allowed.",
+        "Preview the rules and merge them only on the user's yes, then validate the config.",
+        "Offer /linter-setup to generate the boundary tool config and record architectureRules.enforcedBy."
+      ],
+      "pressures": [
+        "authority"
       ]
     }
   ]

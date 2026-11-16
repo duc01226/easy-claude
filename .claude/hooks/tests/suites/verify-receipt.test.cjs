@@ -779,7 +779,7 @@ const tests = [
             })
     },
     {
-        name: 'TC-VRC-013 a skip needs a reason, covers only its tree, and is refused over found failures',
+        name: 'TC-VRC-013 a skip needs a reason, covers only its tree, and over found failures needs the user to ask for the bypass',
         skip: !GIT,
         fn: () =>
             fixture(async ({ repo, store }) => {
@@ -798,6 +798,16 @@ const tests = [
                     /found new failures; skip is for an environment that cannot run verification/
                 );
                 assert.equal(verify().checkVerify({ repository: repo, storeDir: store }).status, 'FAIL', 'the FAIL receipt stays');
+                const bypass = verify().skipVerify({
+                    repository: repo,
+                    storeDir: store,
+                    reason: 'user asked to bypass verify for this hotfix',
+                    userRequested: true
+                });
+                assert.equal(bypass.receipt.verdict, 'SKIPPED', 'an explicit user bypass is honored over found failures');
+                assert.equal(bypass.receipt.userRequested, true);
+                assert.equal(bypass.receipt.overrode, 'FAIL', 'the bypass records the verdict it overrode');
+                assert.equal(verify().checkVerify({ repository: repo, storeDir: store }).status, 'SKIPPED');
             })
     },
     {
@@ -820,6 +830,10 @@ const tests = [
                 assert.equal(failed.status, 1);
                 assert.equal(JSON.parse(failed.stdout).verdict, 'FAIL');
                 assert.equal(cli(repo, store, 'skip', '--reason=no browser on this machine').status, 2, 'a skip over found failures is an error');
+                const bypassed = cli(repo, store, 'skip', '--reason=user asked to bypass verify here', '--user-requested');
+                assert.equal(bypassed.status, 0, bypassed.stderr);
+                assert.equal(JSON.parse(bypassed.stdout).receipt.userRequested, true, 'the CLI passes the user bypass through');
+                assert.equal(cli(repo, store, 'run').status, 1, 'a fresh run replaces the bypass with the found failures');
                 fs.writeFileSync(path.join(repo, 'test-state.json'), '[]');
                 fs.writeFileSync(path.join(repo, 'lint-state.json'), JSON.stringify(['no-undef']));
                 assert.equal(cli(repo, store, 'baseline-init', '--slot=lint').status, 0);

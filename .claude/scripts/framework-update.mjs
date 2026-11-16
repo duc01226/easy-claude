@@ -19,6 +19,8 @@
  *        [--base=<rev>|auto] [--project=<dir>] [--source-url=<url>] [--dry-run] [--no-sync]
  *        [--record-only] [--allow-dirty-project] [--json]
  *   node .claude/scripts/framework-update.mjs --regenerate [--project=<dir>]
+ *   node .claude/scripts/framework-update.mjs --list-upgrades [--project=<dir>] [--dry-run] [--json]
+ *   node .claude/scripts/framework-update.mjs --mark=<id> --status=<status> [--reason=<text>] [--project=<dir>]
  *
  *   <easy-claude-dir>    an upstream checkout or bare clone; a blobless (partial) clone works, and the
  *                        files it needs are downloaded in batches.
@@ -39,6 +41,20 @@
  *   --allow-dirty-project  run although the project has uncommitted framework changes.
  *   --regenerate         merge nothing: rebuild the skill catalogs and every `.claude/` doc count, as the
  *                        update does at its end. Run it after moving or renaming skills while resolving.
+ *   --list-upgrades      merge nothing: print the upgrade actions and notices this project has not yet
+ *                        resolved (the NEXT block), after running their applicability and done checks.
+ *   --mark=<id>          merge nothing: record what happened to one upgrade entry. --status is done,
+ *                        not-applicable, declined or failed; every status but done needs --reason.
+ *
+ * Upgrade entries. Each consumer-facing change upstream ships `.claude/upgrades/actions/<id>.md`: an
+ * `action` (steps the project's agent runs, with consent where a step says so) or a `notice` (something
+ * to tell the user). The lock records each entry the project resolved (`upgrades`), so the entries still
+ * pending are the target version's ids minus the resolved ones, whatever the base: a project already
+ * current, a record-only run and a working-tree lock all list the same. A project's first update (no
+ * lock) resolves the entries its base already had as not applicable. Every update ends with a NEXT block
+ * naming the pending entries; when conflicts stop the update it names only how many there are, the merge
+ * notes of each conflicted file and the command that lists them once the conflicts are resolved.
+ * The parser lives in this file because the wrapper copies this one file alone to run it.
  *
  * Per file under `.claude/` in the upstream tree:
  *   unchanged in the project      → take upstream (or delete it when upstream deleted it)
@@ -84,8 +100,27 @@ const COUNT_RE = /<!--\s*COUNT:([a-z][a-z0-9_-]*)(?::([a-z][a-z0-9_-]*))?\s*-->\
 const COUNTED = /\.(md|html?)$/i;
 // Object ids per `git fetch` call: keeps the command line under the Windows limit.
 const FETCH_BATCH = 400;
+export const UPGRADES_DIR = '.claude/upgrades/actions';
+const UPGRADE_FILE = /^\.claude\/upgrades\/actions\/([a-z0-9][a-z0-9-]*)\.md$/;
+const UPGRADES_REFERENCE = '.claude/skills/framework-update/references/upgrade-actions.md';
+const ENGINE_COMMAND = 'node .claude/scripts/framework-update.mjs';
+export const UPGRADE_STATUSES = ['done', 'not-applicable', 'declined', 'failed'];
+// `failed` is recorded with its reason but stays pending, so the next run retries it.
+const RESOLVED = new Set(['done', 'not-applicable', 'declined']);
+const UPGRADE_LEVELS = ['required', 'recommended', 'optional'];
+/** `surface@hash`: what an entry or waiver covers. Shared with the upstream contract check. */
+export const UPGRADE_COVER_RE = /^[a-z][a-z-]*(?::[A-Za-z0-9._-]+)?@(?:[0-9a-f]{12}|absent)$/;
+// An applicability check exits 0 when the action applies and exactly this code when it does not. Any other
+// result (a crash exits 1, a git error 128) settles nothing, so a broken check never drops a required action.
+export const NOT_APPLICABLE_EXIT = 3;
+const UPGRADE_FIELDS = {
+    common: ['id', 'kind', 'title', 'added', 'covers', 'mergeNotes'],
+    action: ['level', 'after', 'applies', 'done', 'writesState']
+};
+// A check that hangs must not hang the update: it is reported as not run, and the entry stays pending.
+const CHECK_TIMEOUT_MS = 30000;
 const USAGE =
-    'Usage: node .claude/scripts/framework-update.mjs <easy-claude-dir> [--ref=<rev>] [--working-tree] [--base=<rev>|auto] [--project=<dir>] [--source-url=<url>] [--dry-run] [--no-sync] [--record-only] [--allow-dirty-project] [--json]\n       node .claude/scripts/framework-update.mjs --regenerate [--project=<dir>]';
+    'Usage: node .claude/scripts/framework-update.mjs <easy-claude-dir> [--ref=<rev>] [--working-tree] [--base=<rev>|auto] [--project=<dir>] [--source-url=<url>] [--dry-run] [--no-sync] [--record-only] [--allow-dirty-project] [--json]\n       node .claude/scripts/framework-update.mjs --regenerate [--project=<dir>]\n       node .claude/scripts/framework-update.mjs --list-upgrades [--project=<dir>] [--dry-run] [--json]\n       node .claude/scripts/framework-update.mjs --mark=<id> --status=done|not-applicable|declined|failed [--reason=<text>] [--project=<dir>]';
 
 function git(cwd, args, { input, allowFail = false } = {}) {
     const result = spawnSync('git', args, { cwd, input, maxBuffer: 1 << 30, windowsHide: true });
@@ -288,6 +323,357 @@ function buildLock(upstream, theirs, { ref, workingTree, sourceUrl, previous }) 
 }
 
 const readLock = project => (fs.existsSync(path.join(project, LOCK_PATH)) ? JSON.parse(fs.readFileSync(path.join(project, LOCK_PATH), 'utf8')) : null);
+const writeLock = (project, lock) => fs.writeFileSync(path.join(project, LOCK_PATH), `${JSON.stringify(lock, null, 2)}\n`);
+
+/**
+ * Rewrite YAML single-quoted strings (`'it''s'`) as JSON strings, leaving double-quoted ones as they are. A
+ * Markdown formatter set to single quotes writes frontmatter lists that way, so an entry saved through one
+ * still reads.
+ */
+function singleQuotedToJson(text) {
+    let out = '';
+    for (let at = 0; at < text.length; at += 1) {
+        if (text[at] === '"') {
+            let end = at + 1;
+            while (end < text.length && text[end] !== '"') end += text[end] === '\\' ? 2 : 1;
+            out += text.slice(at, end + 1);
+            at = end;
+        } else if (text[at] === "'") {
+            let value = '';
+            let end = at + 1;
+            for (; end < text.length; end += 1) {
+                if (text[end] !== "'") value += text[end];
+                else if (text[end + 1] === "'") {
+                    value += "'";
+                    end += 1;
+                } else break;
+            }
+            if (end >= text.length) return text; // unterminated: let JSON.parse name the error
+            out += JSON.stringify(value);
+            at = end;
+        } else out += text[at];
+    }
+    return out;
+}
+
+/**
+ * One frontmatter value: JSON when it opens like JSON (single-quoted strings allowed, as YAML has them), a
+ * boolean, or the plain text.
+ */
+function frontmatterValue(raw, where) {
+    const text = raw.trim();
+    if (/^[[{"']/.test(text)) {
+        try {
+            return JSON.parse(singleQuotedToJson(text));
+        } catch (error) {
+            throw new Error(`${where}: the value is not valid JSON (${error.message})`, { cause: error });
+        }
+    }
+    if (text === 'true' || text === 'false') return text === 'true';
+    return text;
+}
+
+/**
+ * The numbered items under `## Steps`. Each names the skill or command to run in backticks and ends with
+ * `(consent: yes)` or `(consent: no)`, so the agent knows which steps it must ask the user about first.
+ */
+function upgradeSteps(body, file) {
+    const section = /^## Steps[ \t]*\n([\s\S]*?)(?=^## |(?![\s\S]))/m.exec(body);
+    if (!section) throw new Error(`${file}: an action needs a "## Steps" section`);
+    const items = [];
+    for (const line of section[1].split('\n')) {
+        if (/^\d+\.\s/.test(line)) items.push(line.replace(/^\d+\.\s+/, '').trim());
+        else if (/^\s+\S/.test(line) && items.length) items[items.length - 1] += ` ${line.trim()}`;
+    }
+    if (!items.length) throw new Error(`${file}: "## Steps" lists no numbered step`);
+    return items.map((text, index) => {
+        const consent = /\(consent: (yes|no)\)\.?$/.exec(text);
+        if (!consent || !/`[^`]+`/.test(text)) {
+            throw new Error(`${file}: step ${index + 1} must name its skill or command in backticks and end with (consent: yes) or (consent: no)`);
+        }
+        return { text, consent: consent[1] === 'yes' };
+    });
+}
+
+/**
+ * Parse one upgrade entry (`.claude/upgrades/actions/<id>.md`): frontmatter of `key: value` lines and
+ * `  - item` lists (a value that opens with `[`, `{` or `"` is JSON), then a Markdown body. Throws on
+ * anything else, naming the file and the field, so a broken entry is fixed upstream rather than guessed.
+ */
+export function parseUpgradeEntry(text, file = '<entry>') {
+    const source = String(text).replace(/\r\n/g, '\n');
+    const match = /^---\n([\s\S]*?)\n---[ \t]*(?:\n([\s\S]*))?$/.exec(source);
+    if (!match) throw new Error(`${file}: no frontmatter (a block between --- lines at the top)`);
+    const fields = {};
+    let list = null;
+    const lines = match[1].split('\n');
+    for (let index = 0; index < lines.length; index += 1) {
+        const line = lines[index];
+        const where = `${file} frontmatter line ${index + 1}`;
+        if (!line.trim() || /^\s*#/.test(line)) continue;
+        const item = /^\s*-\s+(.*)$/.exec(line);
+        if (item) {
+            if (!list) throw new Error(`${where}: a list item with no list field above it`);
+            fields[list].push(frontmatterValue(item[1], where));
+            continue;
+        }
+        const pair = /^([A-Za-z][A-Za-z0-9]*):(?:[ \t]+(.*))?$/.exec(line);
+        if (!pair) throw new Error(`${where}: expected "key: value" or "  - item"`);
+        const [, key, value = ''] = pair;
+        if (Object.hasOwn(fields, key)) throw new Error(`${where}: ${key} is set twice`);
+        const next = lines.slice(index + 1).findIndex(text => text.trim()) + index + 1;
+        if (!value.trim() && next > index && /^\s+[[{]/.test(lines[next])) {
+            // A JSON list or object a formatter wrapped over indented lines: read it up to the next key.
+            let end = next;
+            while (end + 1 < lines.length && (/^\s/.test(lines[end + 1]) || !lines[end + 1].trim())) end += 1;
+            // A wrapped YAML flow list ends its last item with a comma; drop only a comma that ends a line
+            // right before the closing bracket, never one inside a value.
+            const wrapped = lines.slice(next, end + 1).filter(text => text.trim());
+            const joined = wrapped.map((text, at) => (/^\s*[\]}]/.test(wrapped[at + 1] || '') ? text.replace(/,\s*$/, '') : text)).join(' ');
+            fields[key] = frontmatterValue(joined, where);
+            list = null;
+            index = end;
+            continue;
+        }
+        list = value.trim() ? null : key;
+        fields[key] = list ? [] : frontmatterValue(value, where);
+    }
+    const body = (match[2] || '').trim();
+    const fail = message => {
+        throw new Error(`${file}: ${message}`);
+    };
+    const kind = fields.kind;
+    if (kind !== 'action' && kind !== 'notice') fail('kind must be action or notice');
+    const allowed = new Set([...UPGRADE_FIELDS.common, ...(kind === 'action' ? UPGRADE_FIELDS.action : [])]);
+    for (const key of Object.keys(fields)) if (!allowed.has(key)) fail(`${key} is not a field of ${kind === 'action' ? 'an action' : 'a notice'}`);
+    const stem = /([^/\\]+)\.md$/.exec(file)?.[1];
+    if (typeof fields.id !== 'string' || !/^[a-z0-9][a-z0-9-]*$/.test(fields.id)) fail('id must be lowercase words joined by hyphens');
+    if (stem && stem !== fields.id) fail(`id ${fields.id} must match the file name ${stem}.md`);
+    if (typeof fields.title !== 'string' || !fields.title.trim()) fail('title must be one line of text');
+    if (typeof fields.added !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(fields.added) || Number.isNaN(Date.parse(fields.added)))
+        fail('added must be a date, YYYY-MM-DD');
+    const strings = (key, test, hint) => {
+        const value = fields[key] ?? [];
+        if (!Array.isArray(value) || value.some(entry => typeof entry !== 'string' || !test(entry))) fail(`${key} must be a list of ${hint}`);
+        return value;
+    };
+    const covers = strings('covers', entry => UPGRADE_COVER_RE.test(entry), 'surface@hash values');
+    const mergeNotes = strings(
+        'mergeNotes',
+        // Each wildcard becomes a regex repeat; a few keep matching fast, many make it exponential.
+        entry => /^\.claude\/\S+: \S/.test(entry) && entry.split(': ')[0].split('**').length <= 2 && (entry.split(': ')[0].match(/\*/g) || []).length <= 4,
+        '".claude/<path or glob>: <what to keep>" lines, with at most one ** and four * in the path'
+    ).map(entry => {
+        const at = entry.indexOf(': ');
+        return { path: entry.slice(0, at), note: entry.slice(at + 2) };
+    });
+    const entry = { id: fields.id, kind, title: fields.title.trim(), added: fields.added, covers, mergeNotes, after: [], body };
+    if (kind === 'notice') {
+        if (!body) fail('a notice needs a body: what to tell the user');
+        return entry;
+    }
+    if (!UPGRADE_LEVELS.includes(fields.level)) fail(`level must be one of ${UPGRADE_LEVELS.join(', ')}`);
+    entry.level = fields.level;
+    entry.after = strings('after', id => /^[a-z0-9][a-z0-9-]*$/.test(id), 'entry ids');
+    for (const key of ['applies', 'done']) {
+        if (fields[key] === undefined) continue;
+        const argv = fields[key];
+        // node and git are the two programs every update already needs, on every operating system.
+        if (!Array.isArray(argv) || !argv.length || argv.some(arg => typeof arg !== 'string') || !['node', 'git'].includes(argv[0])) {
+            fail(`${key} must be an argv array that starts with "node" or "git", for example ["node", "-e", "..."]`);
+        }
+        entry[key] = argv;
+    }
+    if (fields.writesState !== undefined && typeof fields.writesState !== 'boolean') fail('writesState must be true or false');
+    entry.writesState = fields.writesState === true;
+    if (entry.writesState && !entry.done) fail('an action that writes state needs a done check, so a second run never redoes it');
+    entry.steps = upgradeSteps(body, file);
+    return entry;
+}
+
+/**
+ * Every upgrade entry in a set of `.claude/` files (`path → Buffer`). An entry that cannot be read is kept,
+ * marked with its error, so it is still listed rather than silently dropped.
+ */
+export function upgradeEntries(files) {
+    const entries = [];
+    for (const [p, buffer] of files) {
+        const id = UPGRADE_FILE.exec(p)?.[1];
+        if (!id || buffer === null) continue;
+        try {
+            entries.push({ ...parseUpgradeEntry(buffer.toString('utf8'), p), path: p });
+        } catch (error) {
+            entries.push({ id, kind: 'unreadable', title: '', added: '', covers: [], mergeNotes: [], after: [], path: p, error: error.message });
+        }
+    }
+    return entries.sort((a, b) => a.id.localeCompare(b.id));
+}
+
+/** The upgrade entries in the project's own `.claude/upgrades/actions/`. */
+function projectUpgradeEntries(project) {
+    const dir = path.join(project, UPGRADES_DIR);
+    const names = fs.existsSync(dir) ? fs.readdirSync(dir).filter(name => name.endsWith('.md')) : [];
+    return upgradeEntries(new Map(names.map(name => [`${UPGRADES_DIR}/${name}`, fs.readFileSync(path.join(dir, name))])));
+}
+
+/**
+ * Entries in execution order: each after the entries its `after` names (when they are in the list), oldest
+ * first among the rest. A cycle cannot be ordered; its entries follow the others, marked `cycle`.
+ */
+export function orderUpgrades(entries) {
+    const byAge = (a, b) => (a.added === b.added ? a.id.localeCompare(b.id) : a.added < b.added ? -1 : 1);
+    const ids = new Set(entries.map(entry => entry.id));
+    const waiting = new Map(entries.map(entry => [entry.id, new Set(entry.after.filter(id => ids.has(id) && id !== entry.id))]));
+    const ordered = [];
+    let ready = entries.filter(entry => !waiting.get(entry.id).size).sort(byAge);
+    while (ready.length) {
+        const next = ready.shift();
+        ordered.push(next);
+        for (const entry of entries) {
+            const deps = waiting.get(entry.id);
+            if (deps.delete(next.id) && !deps.size) ready = [...ready, entry].sort(byAge);
+        }
+    }
+    const placed = new Set(ordered.map(entry => entry.id));
+    return [
+        ...ordered,
+        ...entries
+            .filter(entry => !placed.has(entry.id))
+            .sort(byAge)
+            .map(entry => ({ ...entry, cycle: true }))
+    ];
+}
+
+/** The entries the lock does not record as resolved, in execution order, each with what it still waits for. */
+export function pendingUpgrades(entries, records = {}) {
+    const pending = orderUpgrades(entries.filter(entry => !RESOLVED.has(records[entry.id]?.status)));
+    const open = new Set(pending.map(entry => entry.id));
+    return pending.map(entry => ({
+        ...entry,
+        waitsFor: entry.after.filter(id => open.has(id)),
+        ...(records[entry.id]?.status === 'failed' ? { lastFailure: records[entry.id].reason } : {})
+    }));
+}
+
+const today = () => new Date().toISOString().slice(0, 10);
+const upgradeRecord = (status, reason) => ({ status, ...(reason ? { reason } : {}), date: today() });
+
+/** Run one check argv in the project. `ran` is false when it could not run or ran out of time. */
+function runUpgradeCheck(project, argv) {
+    const [program, ...args] = argv;
+    const result = spawnSync(program === 'node' ? process.execPath : program, args, {
+        cwd: project,
+        encoding: 'utf8',
+        timeout: CHECK_TIMEOUT_MS,
+        windowsHide: true
+    });
+    if (result.error) return { ran: false, detail: result.error.code === 'ETIMEDOUT' ? `timed out after ${CHECK_TIMEOUT_MS / 1000} s` : result.error.message };
+    if (result.status === null) return { ran: false, detail: `stopped by ${result.signal}` };
+    return { ran: true, status: result.status };
+}
+
+/**
+ * Run the applicability and done checks of every pending action against the project as it is now (after
+ * the update), and record what they settle in `records`: an action whose applicability check exits
+ * NOT_APPLICABLE_EXIT is not applicable, and one whose done check passes is done, so a second run never redoes
+ * it. Any other result settles nothing. An action is checked only once nothing it runs after is pending, so a
+ * check never judges a project its prerequisite has not prepared yet. Returns what was recorded and the checks
+ * that could not run.
+ */
+export function settleUpgradeChecks(project, entries, records) {
+    const settled = [];
+    const notRun = [];
+    const checked = new Set();
+    for (let next; (next = pendingUpgrades(entries, records).find(entry => entry.kind === 'action' && !entry.waitsFor.length && !checked.has(entry.id)));) {
+        checked.add(next.id);
+        for (const [key, settles] of [
+            ['applies', check => (check.status === NOT_APPLICABLE_EXIT ? ['not-applicable', 'applicability check: does not apply'] : null)],
+            ['done', check => (check.status === 0 ? ['done', 'done check passed'] : null)]
+        ]) {
+            if (!next[key]) continue;
+            const check = runUpgradeCheck(project, next[key]);
+            if (!check.ran || (key === 'applies' && ![0, NOT_APPLICABLE_EXIT].includes(check.status))) {
+                notRun.push(`${next.id}: ${key} check did not run (${check.ran ? `exited ${check.status}` : check.detail})`);
+                break;
+            }
+            const outcome = settles(check);
+            if (outcome) {
+                records[next.id] = upgradeRecord(...outcome);
+                settled.push({ id: next.id, status: outcome[0], reason: outcome[1] });
+                break;
+            }
+        }
+    }
+    return { settled, notRun };
+}
+
+/** Records for the entries a lockless project's base already had: that version was installed with them. */
+function predatingRecords(baseIds, base) {
+    return Object.fromEntries(baseIds.map(id => [id, upgradeRecord('not-applicable', `predates the base ${base.slice(0, 10)}`)]));
+}
+
+/** Upgrade ids in a commit's `.claude/` tree. */
+function upgradeIdsAt(repo, rev) {
+    return [...treeIds(repo, rev).keys()].map(p => UPGRADE_FILE.exec(p)?.[1]).filter(Boolean);
+}
+
+/** The lock's records for entries the target still ships; a record for a retired entry can never matter again. */
+function carriedRecords(previous, entries) {
+    const ids = new Set(entries.map(entry => entry.id));
+    return Object.fromEntries(Object.entries(previous?.upgrades || {}).filter(([id]) => ids.has(id)));
+}
+
+// A merge-note path: `*` matches within one folder, `**/` any number of folders.
+function globRe(glob) {
+    const escaped = glob.replace(/[.+?^$(){}|[\]\\]/g, '\\$&');
+    const pattern = escaped.replace(/\*\*\/|\*\*|\*/g, token => (token === '**/' ? '(?:.*/)?' : token === '**' ? '.*' : '[^/]*'));
+    return new RegExp('^' + pattern + '$');
+}
+
+/** The merge notes entries give for the conflicted paths. */
+export function mergeNotesFor(entries, conflictPaths) {
+    const notes = [];
+    for (const p of conflictPaths) {
+        for (const entry of entries) for (const note of entry.mergeNotes) if (globRe(note.path).test(p)) notes.push({ path: p, id: entry.id, note: note.note });
+    }
+    return notes;
+}
+
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+const upgradeCount = n => (n === 1 ? '1 upgrade entry' : `${n} upgrade entries`);
+
+/** The NEXT block: what the project's agent does once the files are in. Printed by the engine alone. */
+export function renderNext(pending, { deferred = false, dryRun = false, notRun = [] } = {}) {
+    if (!pending.length) return 'NEXT no upgrade actions or notices pending.\n';
+    if (deferred) {
+        return `NEXT ${upgradeCount(pending.length)} pending. After settling what stopped the update (conflicts or mirror clashes) and running the sync, list them with: ${ENGINE_COMMAND} --list-upgrades\n`;
+    }
+    const lines = [`NEXT ${upgradeCount(pending.length)} to handle, in this order. Read ${UPGRADES_REFERENCE} first, then each entry's file:`];
+    for (const [index, entry] of pending.entries()) {
+        const label = entry.kind === 'action' ? `action, ${entry.level}` : entry.kind === 'notice' ? 'notice' : 'cannot be read';
+        lines.push(`  ${index + 1}. ${entry.id} [${label}] ${entry.title || entry.error} (${entry.path})`);
+        if (entry.waitsFor?.length) lines.push(`     waits for: ${entry.waitsFor.join(', ')}`);
+        if (entry.cycle) lines.push('     its "after" list forms a cycle; run it after the entries it names');
+        if (entry.lastFailure) lines.push(`     last attempt failed: ${entry.lastFailure}`);
+    }
+    for (const line of notRun) lines.push(`  check not run: ${line}`);
+    if (dryRun) lines.push('  (dry run: applicability and done checks run once the update is applied)');
+    lines.push(`Record each one: ${ENGINE_COMMAND} --mark=<id> --status=done|not-applicable|declined|failed [--reason="<why>"]`);
+    return `${lines.join('\n')}\n`;
+}
+
+/** The JSON shape of a pending entry. */
+const pendingJson = entry => ({
+    id: entry.id,
+    kind: entry.kind,
+    ...(entry.level ? { level: entry.level } : {}),
+    title: entry.title,
+    path: entry.path,
+    waitsFor: entry.waitsFor || [],
+    ...(entry.cycle ? { cycle: true } : {}),
+    ...(entry.lastFailure ? { lastFailure: entry.lastFailure } : {}),
+    ...(entry.error ? { error: entry.error } : {})
+});
 
 /** Top-level `.claude/skills/` entry names among framework paths. */
 const frameworkSkillNames = frameworkPaths => [...new Set([...frameworkPaths].filter(p => p.startsWith(`${SCOPE}/skills/`)).map(p => p.split('/')[2]))].sort();
@@ -420,6 +806,10 @@ export function planUpdate({ project, upstream, ref = 'HEAD', workingTree = fals
         .sort();
     const nextLock = buildLock(upstream, theirs, { ref: resolvedRef, workingTree, sourceUrl, previous: lock });
     if (!workingTree) nextLock.source.ref = ref;
+    const upgrades = upgradeEntries(theirs);
+    nextLock.upgrades = carriedRecords(lock, upgrades);
+    // A first update: the version the project installed already came with its base's entries.
+    if (!lock) Object.assign(nextLock.upgrades, predatingRecords(upgradeIdsAt(upstream, resolvedBase), resolvedBase));
     // A skill is new in this update when neither the base nor the lock had it.
     const previousSkills = new Set(frameworkSkillNames([...basePaths, ...Object.keys(lock?.files || {})]));
     const addedSkills = frameworkSkillNames(theirs.keys()).filter(name => !previousSkills.has(name));
@@ -433,6 +823,7 @@ export function planUpdate({ project, upstream, ref = 'HEAD', workingTree = fals
         mirrorOnly: mirrorOnlySkills(project, frameworkPaths),
         mirrorClashes: mirrorClashes(project, addedSkills),
         frameworkSkills: frameworkSkillNames(frameworkPaths),
+        upgrades,
         warnings
     };
 }
@@ -543,14 +934,14 @@ export function applyUpdate(project, plan, { sync = true } = {}) {
     }
     const removedMirrors = retiredFrameworkMirrors(project, plan.frameworkSkills);
     for (const name of removedMirrors) fs.rmSync(path.join(project, MIRROR_SKILLS, name), { recursive: true, force: true });
-    fs.writeFileSync(path.join(project, LOCK_PATH), `${JSON.stringify(plan.nextLock, null, 2)}\n`);
+    const conflicts = plan.actions.filter(a => a.kind === 'conflict' || a.kind === 'conflict-side');
+    const blocked = conflicts.length || plan.mirrorClashes.length;
+    writeLock(project, plan.nextLock);
     const followUps = regenerate(project);
     if (removedMirrors.length)
         followUps.push(
             `Removed the mirror of ${removedMirrors.length} framework skill(s) the project no longer has: ${removedMirrors.map(name => `${MIRROR_SKILLS}/${name}`).join(', ')}.`
         );
-    const conflicts = plan.actions.filter(a => a.kind === 'conflict' || a.kind === 'conflict-side');
-    const blocked = conflicts.length || plan.mirrorClashes.length;
     if (sync && !blocked) {
         const result = spawnSync(process.execPath, [path.join(project, '.claude/skills/sync-codex/scripts/run-codex-sync.mjs')], {
             cwd: project,
@@ -566,11 +957,23 @@ export function applyUpdate(project, plan, { sync = true } = {}) {
         }
         followUps.push(`${conflicts.length ? 'Resolve the conflicts, then run' : 'Then run'}: node .claude/skills/sync-codex/scripts/run-codex-sync.mjs`);
     }
-    return { written, followUps, removedMirrors: removedMirrors.map(name => `${MIRROR_SKILLS}/${name}`) };
+    // Checks judge the project as the update leaves it (merged, regenerated, and synced unless --no-sync); with something left to
+    // resolve they wait for --list-upgrades.
+    const upgradeChecks = blocked ? { settled: [], notRun: [] } : settleUpgradeChecks(project, plan.upgrades, plan.nextLock.upgrades);
+    if (upgradeChecks.settled.length) writeLock(project, plan.nextLock);
+    return { written, followUps, removedMirrors: removedMirrors.map(name => `${MIRROR_SKILLS}/${name}`), upgradeChecks };
 }
 
 function parseArgs(argv) {
-    const options = { dryRun: false, sync: true, json: false, workingTree: false, allowDirtyProject: false, recordOnly: false, ref: 'HEAD' };
+    const options = {
+        dryRun: false,
+        sync: true,
+        json: false,
+        workingTree: false,
+        allowDirtyProject: false,
+        recordOnly: false,
+        ref: 'HEAD'
+    };
     const positional = [];
     for (const arg of argv) {
         if (arg === '--dry-run') options.dryRun = true;
@@ -580,6 +983,10 @@ function parseArgs(argv) {
         else if (arg === '--allow-dirty-project') options.allowDirtyProject = true;
         else if (arg === '--record-only') options.recordOnly = true;
         else if (arg === '--regenerate') options.regenerate = true;
+        else if (arg === '--list-upgrades') options.listUpgrades = true;
+        else if (arg.startsWith('--mark=')) options.mark = arg.slice(7);
+        else if (arg.startsWith('--status=')) options.status = arg.slice(9);
+        else if (arg.startsWith('--reason=')) options.reason = arg.slice(9).trim();
         else if (arg.startsWith('--ref=')) options.ref = arg.slice(6);
         else if (arg.startsWith('--base=')) options.base = arg.slice(7);
         else if (arg.startsWith('--project=')) options.project = arg.slice(10);
@@ -587,10 +994,17 @@ function parseArgs(argv) {
         else if (arg.startsWith('-')) throw new Error(`Unknown option ${arg}\n${USAGE}`);
         else positional.push(arg);
     }
-    if (options.regenerate ? positional.length : positional.length !== 1 || (options.workingTree && options.ref !== 'HEAD')) throw new Error(USAGE);
-    for (const value of [options.ref, options.base, options.project, options.sourceUrl])
+    if ((options.status !== undefined || options.reason !== undefined) && options.mark === undefined)
+        throw new Error(`--status and --reason go with --mark=<id>\n${USAGE}`);
+    // These read and write only the project: no upstream folder.
+    const local = [options.regenerate, options.listUpgrades, options.mark !== undefined].filter(Boolean).length;
+    if (local > 1 || (local ? positional.length : positional.length !== 1 || (options.workingTree && options.ref !== 'HEAD'))) throw new Error(USAGE);
+    for (const value of [options.ref, options.base, options.project, options.sourceUrl, options.mark, options.status])
         if (value !== undefined && (!value || value.startsWith('-'))) throw new Error(USAGE);
-    return { upstream: positional.length ? path.resolve(positional[0]) : null, ...options };
+    return {
+        upstream: positional.length ? path.resolve(positional[0]) : null,
+        ...options
+    };
 }
 
 function assertUpstream(options) {
@@ -604,7 +1018,114 @@ function assertUpstream(options) {
         throw new Error(`No ${SCOPE}/ at ${options.ref} in ${options.upstream}`);
 }
 
-const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+function requireLock(project) {
+    const lock = readLock(project);
+    if (!lock) throw new Error(`No ${LOCK_PATH}: run a framework update first; its lock records which upgrade entries this project resolved.`);
+    return lock;
+}
+
+/** The `upgrades` part of the JSON report. */
+const upgradesJson = (pending, { settled = [], notRun = [], deferred = false, mergeNotes = [] } = {}) => ({
+    pending: pending.map(pendingJson),
+    settled,
+    notRun,
+    deferred,
+    mergeNotes
+});
+
+/** `--list-upgrades`: run the checks of the pending entries, record what they settle, print the NEXT block. */
+function listUpgrades(project, options) {
+    const lock = requireLock(project);
+    const entries = projectUpgradeEntries(project);
+    const records = { ...(lock.upgrades || {}) };
+    const checks = options.dryRun ? { settled: [], notRun: [] } : settleUpgradeChecks(project, entries, records);
+    if (checks.settled.length) writeLock(project, { ...lock, upgrades: records });
+    const pending = pendingUpgrades(entries, records);
+    if (options.json) process.stdout.write(`${JSON.stringify({ dryRun: options.dryRun, upgrades: upgradesJson(pending, checks) }, null, 2)}\n`);
+    else {
+        process.stdout.write(
+            checks.settled.map(item => `SETTLED ${item.id}: ${item.status} (${item.reason})\n`).join('') +
+                renderNext(pending, { dryRun: options.dryRun, notRun: checks.notRun })
+        );
+    }
+    return 0;
+}
+
+/** `--mark=<id>`: record the outcome of one upgrade entry in the lock. */
+function markUpgrade(project, options) {
+    const lock = requireLock(project);
+    if (options.dryRun) throw new Error('--mark records an outcome in the lock; it has no dry run. List the pending entries with --list-upgrades --dry-run.');
+    if (!UPGRADE_STATUSES.includes(options.status)) throw new Error(`--status must be one of ${UPGRADE_STATUSES.join(', ')}\n${USAGE}`);
+    if (options.status !== 'done' && !options.reason) {
+        throw new Error(`--status=${options.status} needs --reason="<why>": the next update shows it, so nobody has to guess why the entry was not done.`);
+    }
+    const entries = projectUpgradeEntries(project);
+    const entry = entries.find(item => item.id === options.mark);
+    if (!entry) throw new Error(`No upgrade entry ${options.mark} in ${UPGRADES_DIR}/. List the pending ones with: ${ENGINE_COMMAND} --list-upgrades`);
+    const records = {
+        ...(lock.upgrades || {}),
+        [entry.id]: upgradeRecord(options.status, options.reason)
+    };
+    writeLock(project, { ...lock, upgrades: records });
+    const pending = pendingUpgrades(entries, records);
+    const waiting = options.status === 'done' ? entry.after.filter(id => pending.some(item => item.id === id)) : [];
+    process.stdout.write(
+        `Recorded ${entry.id}: ${options.status}${options.reason ? ` (${options.reason})` : ''}.\n` +
+            (waiting.length ? `WARNING ${entry.id} runs after ${waiting.join(', ')}, which ${waiting.length === 1 ? 'is' : 'are'} still pending.\n` : '') +
+            (pending.length ? `${upgradeCount(pending.length)} still pending: ${pending.map(item => item.id).join(', ')}.\n` : 'No upgrade entries pending.\n')
+    );
+    return 0;
+}
+
+/** `--record-only`: record the upstream version as the one the project holds, and list its pending entries. */
+function recordOnly(project, options) {
+    const previous = readLock(project);
+    // Without a lock, only the version before the hand sync tells which entries are new to this project.
+    if (!previous && (!options.base || options.base === 'auto')) {
+        throw new Error(
+            `No ${LOCK_PATH} yet: --record-only needs --base=<the upstream commit this project held before the hand sync>, so the upgrade entries added since then are listed rather than skipped. --base=auto cannot find it: the project already matches the new version.`
+        );
+    }
+    if (!options.workingTree) {
+        try {
+            prefetchBlobs(options.upstream, [resolveCommit(options.upstream, options.ref)]);
+        } catch (error) {
+            process.stderr.write(`WARNING Batched download failed, so Git fetches each file separately (slow): ${error.message.split('\n')[0]}\n`);
+        }
+    }
+    const files = upstreamFiles(options.upstream, {
+        ref: options.ref,
+        workingTree: options.workingTree
+    });
+    const lock = buildLock(options.upstream, files, {
+        ref: options.ref,
+        workingTree: options.workingTree,
+        sourceUrl: options.sourceUrl,
+        previous
+    });
+    const entries = upgradeEntries(files);
+    lock.upgrades = carriedRecords(previous, entries);
+    if (!previous) {
+        const base = resolveCommit(options.upstream, options.base);
+        Object.assign(lock.upgrades, predatingRecords(upgradeIdsAt(options.upstream, base), base));
+    }
+    const checks = options.dryRun ? { settled: [], notRun: [] } : settleUpgradeChecks(project, entries, lock.upgrades);
+    if (!options.dryRun) writeLock(project, lock);
+    const pending = pendingUpgrades(entries, lock.upgrades);
+    const count = Object.keys(lock.files).length;
+    if (options.json) {
+        process.stdout.write(
+            `${JSON.stringify({ dryRun: options.dryRun, recorded: count, upstream: lock.source, upgrades: upgradesJson(pending, checks) }, null, 2)}\n`
+        );
+    } else {
+        process.stdout.write(
+            `${options.dryRun ? '[dry run] ' : ''}Recorded ${count} framework files at ${lock.source.commit ? lock.source.commit.slice(0, 10) : 'the upstream working tree'} in ${LOCK_PATH}; no other file changed.\n` +
+                checks.settled.map(item => `SETTLED ${item.id}: ${item.status} (${item.reason})\n`).join('') +
+                renderNext(pending, { dryRun: options.dryRun, notRun: checks.notRun })
+        );
+    }
+    return 0;
+}
 
 export function main(argv = process.argv.slice(2), defaultProject = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)), '..', '..')) {
     const options = parseArgs(argv);
@@ -614,6 +1135,8 @@ export function main(argv = process.argv.slice(2), defaultProject = path.resolve
         process.stdout.write(followUps.length ? followUps.map(line => `${line}\n`).join('') : 'Regenerated the skill catalogs and the .claude/ doc counts.\n');
         return followUps.length ? 1 : 0;
     }
+    if (options.listUpgrades) return listUpgrades(project, options);
+    if (options.mark !== undefined) return markUpgrade(project, options);
     assertUpstream(options);
     if (fs.realpathSync(options.upstream) === fs.realpathSync(project)) throw new Error('The upstream directory is this project.');
     if (!options.allowDirtyProject && git(project, ['status', '--porcelain', '--', ...GUARDED]).stdout.length) {
@@ -621,27 +1144,7 @@ export function main(argv = process.argv.slice(2), defaultProject = path.resolve
             `The project has uncommitted changes in ${GUARDED.join(', ')}; commit or stash them first so the update is one reviewable diff (or pass --allow-dirty-project).`
         );
     }
-    if (options.recordOnly) {
-        if (!options.workingTree) {
-            try {
-                prefetchBlobs(options.upstream, [resolveCommit(options.upstream, options.ref)]);
-            } catch (error) {
-                process.stderr.write(`WARNING Batched download failed, so Git fetches each file separately (slow): ${error.message.split('\n')[0]}\n`);
-            }
-        }
-        const lock = buildLock(options.upstream, upstreamFiles(options.upstream, { ref: options.ref, workingTree: options.workingTree }), {
-            ref: options.ref,
-            workingTree: options.workingTree,
-            sourceUrl: options.sourceUrl,
-            previous: readLock(project)
-        });
-        const count = Object.keys(lock.files).length;
-        if (!options.dryRun) fs.writeFileSync(path.join(project, LOCK_PATH), `${JSON.stringify(lock, null, 2)}\n`);
-        process.stdout.write(
-            `${options.dryRun ? '[dry run] ' : ''}Recorded ${count} framework files at ${lock.source.commit ? lock.source.commit.slice(0, 10) : 'the upstream working tree'} in ${LOCK_PATH}; no other file changed.\n`
-        );
-        return 0;
-    }
+    if (options.recordOnly) return recordOnly(project, options);
     const plan = planUpdate({
         project,
         upstream: options.upstream,
@@ -665,15 +1168,33 @@ export function main(argv = process.argv.slice(2), defaultProject = path.resolve
         regenerated: count('skip-regenerated'),
         conflicts: plan.actions
             .filter(a => a.kind === 'conflict' || a.kind === 'conflict-side')
-            .map(a => ({ path: a.path, kind: a.kind, ...(a.reason ? { reason: a.reason } : {}), ...(a.conflicts ? { hunks: a.conflicts } : {}) })),
+            .map(a => ({
+                path: a.path,
+                kind: a.kind,
+                ...(a.reason ? { reason: a.reason } : {}),
+                ...(a.conflicts ? { hunks: a.conflicts } : {})
+            })),
         mirrorOnly: plan.mirrorOnly,
         mirrorClashes: plan.mirrorClashes,
         projectOnly: plan.projectOnly,
         warnings: plan.warnings
     };
     let result = { written: [], followUps: [] };
-    if (!options.dryRun) result = applyUpdate(project, plan, { sync: options.sync });
-    if (options.json) process.stdout.write(`${JSON.stringify({ ...summary, dryRun: options.dryRun, ...result }, null, 2)}\n`);
+    let checks = { settled: [], notRun: [] };
+    if (!options.dryRun)
+        ({ upgradeChecks: checks, ...result } = applyUpdate(project, plan, {
+            sync: options.sync
+        }));
+    const blocked = summary.conflicts.length > 0 || summary.mirrorClashes.length > 0;
+    const pending = pendingUpgrades(plan.upgrades, plan.nextLock.upgrades);
+    const mergeNotes = mergeNotesFor(
+        plan.upgrades,
+        summary.conflicts.map(c => c.path)
+    );
+    // Until the conflicts are resolved the files are not final, so the list waits for --list-upgrades.
+    const deferred = blocked && !options.dryRun;
+    const upgrades = upgradesJson(pending, { ...checks, deferred, mergeNotes });
+    if (options.json) process.stdout.write(`${JSON.stringify({ ...summary, dryRun: options.dryRun, ...result, upgrades }, null, 2)}\n`);
     else {
         const detection = plan.baseDetection;
         const describe = c =>
@@ -691,10 +1212,17 @@ export function main(argv = process.argv.slice(2), defaultProject = path.resolve
                 summary.mirrorClashes
                     .map(p => `MIRROR-CLASH ${p} (upstream now ships a skill of this name; its mirror would replace this Codex-only skill)\n`)
                     .join('') +
-                result.followUps.map(line => `${line}\n`).join('')
+                result.followUps.map(line => `${line}\n`).join('') +
+                mergeNotes.map(note => `MERGE-NOTE ${note.path} (${note.id}): ${note.note}\n`).join('') +
+                checks.settled.map(item => `SETTLED ${item.id}: ${item.status} (${item.reason})\n`).join('') +
+                renderNext(pending, {
+                    deferred,
+                    dryRun: options.dryRun,
+                    notRun: checks.notRun
+                })
         );
     }
-    return summary.conflicts.length || summary.mirrorClashes.length ? 2 : 0;
+    return blocked ? 2 : 0;
 }
 
 if (process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpathSync(url.fileURLToPath(import.meta.url))) {

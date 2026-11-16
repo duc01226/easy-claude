@@ -388,6 +388,24 @@ Shell preflight emits a conditional root-cause hint without claiming a failure. 
 
 OpenCode's legacy bridge appends pending pre-tool context once to the output of the next tool that completes in the session, and falls back to the next model system transform when no tool output can carry it, with session isolation and compact/delete cleanup. Its transport limits are 256 pending sessions, 32 unique contexts and 64 KiB per session; overflow warns without raw context. Pending in-memory text does not survive process restart, and stdout credit does not prove model consumption or adherence. These are transport limits, separate from the configurable reminder interval.
 
+### Edit-time lint
+
+Off by default. When on, `post-edit-prettier.cjs` (through `lib/edit-time-lint.cjs`) lints the file the assistant just edited, after formatting it, and tells the assistant only the problems on lines that differ from the last commit. Problems on unchanged lines are counted, never listed, so a legacy file does not flood the conversation, and problems the linter itself suppresses (ESLint `eslint-suppressions.json`) never appear.
+
+```json
+{
+  "testing": { "commands": { "lintFile": "npx eslint --format json {file}" } },
+  "editTimeLint": { "enabled": true, "timeoutSeconds": 10, "fileExtensions": [".js", ".ts"] }
+}
+```
+
+- **Command:** `testing.commands.lintFile` in the project config, a command that lints ONE file; `{file}` marks where the path goes (appended when absent), and `"none"` means not applicable. A whole-repository `lint` command is never run per edit. The command runs as one program with literal arguments and no shell on Windows, macOS and Linux: pipes, redirects and variables are refused. `npx`, `pnpm exec`, `npm exec`, `yarn` and `bunx` resolve to the locally installed tool and never download one; a local JavaScript bin runs under Node, so a Windows `.cmd` shim needs no shell.
+- **Switch:** `editTimeLint.enabled` — layers, later wins: the framework-shipped `.claude/.ck.json`, the team project config, `~/.claude/.ck.json`, the checkout `.claude/.ck.local.json`; env `CK_EDIT_TIME_LINT=1` or `0` wins over all of them. Quiet runtime mode keeps formatting and skips lint. `/framework-config` shows the effective value (`node .claude/scripts/framework-features.cjs`).
+- **Time budget:** `timeoutSeconds` (default 10, integer 1–15), and never more than what formatting leaves of the whole hook's budget of about 17 seconds, so the hook stays inside the shortest host hook limit (the OpenCode bridge stops a hook after 20 seconds; Claude Code after 60). A linter that runs longer is stopped with its process tree; on macOS and Linux so is one still running when the host stops the hook (Windows ends the hook without running its handlers).
+- **Output formats:** ESLint JSON (`--format json`), or one `path:line[:column]: message` line per problem (gcc/unix style, Ruff `concise`, flake8). Output in any other shape counts as clean when the linter exits 0 without naming the edited file (a summary such as `All checks passed!`) and is skipped with a note otherwise (for example ESLint's default stylish warnings, which exit 0). A new format is one parser entry in `OUTPUT_PARSERS`.
+- **Changed lines** come from `git diff --unified=0 HEAD` (staged and unstaged changes alike); an untracked file, or a repository without a commit, counts every line as new, and so does a renamed file. A file whose diff only deletes lines is still linted. A parse error that ESLint JSON marks `fatal` is always shown, wherever ESLint places it, because a file that does not parse gets no other lint; the line format carries no such flag, so there it is shown only on a changed line. Outside a git work tree it skips with a note. Limit: a problem an edit causes on an unchanged line (for example a variable left unused after its last use was removed) is not shown; commit-time lint or CI reports it.
+- **Fail-open:** the hook never blocks. A setup problem the user can fix (no command, shell syntax, tool not installed, unknown format, timeout, a linter failing without output, no git) becomes one short note per session that says what happened, why it matters and the fix.
+
 ### Framework runtime mode
 
 Read this section when switching framework machinery off, reducing injected context, or restoring normal operation. Every shipped hook checks the switch before context delivery or operational side effects. Protocol hooks first reject irrelevant events using only Node built-ins, then check the mode before reading or writing delivery ledgers.
@@ -1071,7 +1089,8 @@ The reminder also applies to detached `HEAD` in a regular checkout or linked wor
   "judgementIntegrityRoute": { "enabled": false }, // Disable the judgement-integrity prompt router
   "aiFeatureRoute": { "enabled": false },          // Disable the AI-feature prompt router
   "knowledgeRoute": { "enabled": true, "promptTriggers": true }, // Knowledge pointers; prompt phrases on (a team setting belongs in docs/project-config.json)
-  "qualitySkillReminder": { "enabled": false }     // Disable the quality-skill reminder after tool results
+  "qualitySkillReminder": { "enabled": false },    // Disable the quality-skill reminder after tool results
+  "editTimeLint": { "enabled": true }              // Lint each edited file; report only problems on changed lines (needs testing.commands.lintFile)
 }
 
 // settings.json
@@ -1164,6 +1183,7 @@ Set a personal switch as an `env` entry in the git-ignored `.claude/settings.loc
 | `CK_AI_FEATURE_ROUTE`                   | `0`: stops the AI-feature (AI-engineering gate) reminder, like `aiFeatureRoute.enabled: false`                                       |
 | `CK_KNOWLEDGE_ROUTE`                    | `0`: stops every knowledge pointer (prompt, skill and helper-agent triggers), like `knowledgeRoute.enabled: false`                    |
 | `CK_QUALITY_SKILL_REMINDER`             | `0`: stops the quality-skill reminder after tool results, like `qualitySkillReminder.enabled: false`                                 |
+| `CK_EDIT_TIME_LINT`                     | `1` or `0`: turns edit-time lint on or off for this shell or host, over every `editTimeLint.enabled` layer                          |
 | `DOC_SYNC_OVERRIDE`                     | `1`: silences the doc-sync commit warning (the gate only warns, never blocks); each use is appended to the gate's audit log            |
 | `ENABLE_DESKTOP_NOTIFICATIONS`          | `false`: turns off desktop turn-complete alerts (on by default)                                                                     |
 | `DISCORD_WEBHOOK_URL` / `SLACK_WEBHOOK_URL` / `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` | Setting one turns on turn-complete alerts in that chat channel; setup: `.claude/hooks/notifications/docs/` |

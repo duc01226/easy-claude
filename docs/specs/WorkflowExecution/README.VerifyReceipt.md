@@ -168,7 +168,7 @@ IF a planned command is missing, invalid, unrunnable or timed out
 
 ### BR-VRC-08: Enforce refuses; a skip needs a reason [HARD]
 
-**Statement:** Under `enforce`, a commit with no `PASS` or `SKIPPED` receipt for its exact content is refused, including when no command is declared. A skip is recorded only with a reason of ten to five hundred characters, covers only the content it was recorded for, and is refused when a run on that content found new failures. A fault in the verify check itself refuses the commit under `enforce`.
+**Statement:** Under `enforce`, a commit with no `PASS` or `SKIPPED` receipt for its exact content is refused, including when no command is declared. A skip is recorded only with a reason of ten to five hundred characters, and covers only the content it was recorded for. It is refused when a run on that content found new failures, unless the user explicitly asked to bypass verification: such a skip is marked as the user's, records the verdict it overrode, and is never added by the assistant on its own judgment. A fault in the verify check itself refuses the commit under `enforce`.
 
 ### BR-VRC-09: Off turns the check off [HARD]
 
@@ -223,12 +223,13 @@ erDiagram
 
 ### Entity: VerifyReceipt
 
-| Property         | Type | Required     | Constraints                                   | Business Meaning   |
-| ---------------- | ---- | ------------ | --------------------------------------------- | ------------------ |
-| content identity | text | Yes          | repository, storage, base and checked content | What was checked   |
-| verdict          | enum | Yes          | PASS, FAIL, INCOMPLETE, UNAVAILABLE, SKIPPED  | The answer         |
-| expiry           | time | Yes          | within hours of issue                         | Proof goes stale   |
-| skip reason      | text | When skipped | 10–500 characters                             | Why it was not run |
+| Property         | Type | Required     | Constraints                                                         | Business Meaning    |
+| ---------------- | ---- | ------------ | ------------------------------------------------------------------- | ------------------- |
+| content identity | text | Yes          | repository, storage, base and checked content                       | What was checked    |
+| verdict          | enum | Yes          | PASS, FAIL, INCOMPLETE, UNAVAILABLE, SKIPPED                        | The answer          |
+| expiry           | time | Yes          | within hours of issue                                               | Proof goes stale    |
+| skip reason      | text | When skipped | 10–500 characters                                                   | Why it was not run  |
+| user bypass      | flag | When skipped | set only when the user explicitly asked; records an overridden FAIL | Who decided to skip |
 
 ### Entity: Baseline and BaselineEntry
 
@@ -276,11 +277,11 @@ No user interface: this capability changes what the assistant checks before a co
 
 This capability enforces no permission boundary of its own. It is a bounded speedbump against forgetting, not a security boundary: anyone with write access to the receipt store could forge a record.
 
-| Role                   |  Declares commands and setting   | Takes or replaces the baseline  |               Records a skip               |                Prunes                 |
-| ---------------------- | :------------------------------: | :-----------------------------: | :----------------------------------------: | :-----------------------------------: |
-| Team lead / maintainer |               yes                |               yes               |                    yes                     |                  yes                  |
-| Developer              | through normal repository access | with the maintainer's agreement |             yes, with a reason             |       yes, on the commit route        |
-| Assistant              |          proposes only           |        only with consent        | only for an environment that cannot run it | on the commit and pull-request routes |
+| Role                   |  Declares commands and setting   | Takes or replaces the baseline  |                             Records a skip                              |                Prunes                 |
+| ---------------------- | :------------------------------: | :-----------------------------: | :---------------------------------------------------------------------: | :-----------------------------------: |
+| Team lead / maintainer |               yes                |               yes               |                                   yes                                   |                  yes                  |
+| Developer              | through normal repository access | with the maintainer's agreement |                           yes, with a reason                            |       yes, on the commit route        |
+| Assistant              |          proposes only           |        only with consent        | for an environment that cannot run it, or when the user explicitly asks | on the commit and pull-request routes |
 
 ---
 
@@ -715,6 +716,7 @@ Given a skip recorded with a reason, or a passing receipt
 Then the commit proceeds
 And a skip reason shorter than ten characters is refused
 And a skip over a run that found new failures is refused
+And a skip the user explicitly asked for is honored over found failures and records the verdict it overrode
 And a fault in the check itself refuses the commit under enforce and only loses the advisory under warn
 ```
 

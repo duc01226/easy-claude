@@ -375,7 +375,7 @@ skills:
         quality harness with project guidance and automated/review feedback.'
       category: other
       has_scripts: false
-      has_references: false
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null
@@ -481,7 +481,7 @@ skills:
         formatters, type checks and static analysis in pre-commit and CI gates.'
       category: other
       has_scripts: false
-      has_references: false
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null

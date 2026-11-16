@@ -34,7 +34,9 @@
  *   node verify-receipt.cjs plan                      resolved commands and total budget, nothing runs
  *   node verify-receipt.cjs run                       run, compare with the baseline, issue the receipt
  *   node verify-receipt.cjs check                     the receipt for the current working tree, if any
- *   node verify-receipt.cjs skip --reason=<text>      record why verification cannot run (10-500 chars)
+ *   node verify-receipt.cjs skip --reason=<text> [--user-requested]
+ *                                                     record why verification is not run (10-500 chars);
+ *                                                     --user-requested marks a bypass the user explicitly asked for
  *   node verify-receipt.cjs prune                     drop baseline entries the current receipt saw passing,
  *                                                     then re-issue the receipt for the pruned tree
  *   node verify-receipt.cjs baseline-init [--slot=lint,affected] [--replace]
@@ -669,7 +671,9 @@ function validReason(reason) {
 
 /**
  * `skip`: a recorded, reasoned SKIPPED receipt for the current tree, for an environment that cannot
- * verify. Refused when a live run on this tree found new failures: those are fixed, not skipped.
+ * verify or for a bypass the user explicitly asked for (`userRequested`). Without that request it is
+ * refused when a live run on this tree found new failures: those are fixed, not skipped. A user-requested
+ * skip over such a run records which verdict it overrode, so the bypass stays visible.
  */
 function skipVerify(options = {}) {
     const repository = receipts.canonicalDirectory(options.repository);
@@ -677,14 +681,16 @@ function skipVerify(options = {}) {
         throw new Error(`skip needs --reason with ${REASON_MIN}-${REASON_MAX} printable characters naming why verification cannot run`);
     const snapshot = requireSnapshot(captureWorktree(repository, options), 'for the skip');
     const existing = matchVerifyReceipt({ ...options, snapshot });
-    if (existing?.verdict === 'FAIL') {
+    const userRequested = options.userRequested === true;
+    if (existing?.verdict === 'FAIL' && !userRequested) {
         throw new Error(
-            'A verify run on this exact tree found new failures; skip is for an environment that cannot run verification, not for failures it found. Fix them and run verify again.'
+            'A verify run on this exact tree found new failures; skip is for an environment that cannot run verification, not for failures it found. Fix them and run verify again, or pass --user-requested only when the user explicitly asked to bypass verification.'
         );
     }
     const summary = { verdict: 'SKIPPED', commands: [], baseline: { file: baselines.BASELINE_FILE, status: 'not-read', remaining: 0, prunable: 0 } };
     const reason = parsers.scrubText(options.reason);
-    const record = issueReceipt(repository, identityFor(snapshot), summary, null, null, { reason }, options);
+    const extra = userRequested ? { reason, userRequested: true, ...(existing?.verdict === 'FAIL' ? { overrode: 'FAIL' } : {}) } : { reason };
+    const record = issueReceipt(repository, identityFor(snapshot), summary, null, null, extra, options);
     return { status: 'SKIPPED', valid: true, receipt: record };
 }
 
@@ -891,7 +897,7 @@ function findingLines(mode, record, plan, snapshot, invalidPolicy) {
     );
     if (mode === 'enforce') {
         lines.push(
-            'Only when the environment cannot run verification (a timeout, a tool that cannot be installed here): record it with node .claude/hooks/lib/verify-receipt.cjs skip --reason="<10-500 characters>" and retry.'
+            'Only when the environment cannot run verification (a timeout, a tool that cannot be installed here), or the user explicitly asked to bypass it: record it with node .claude/hooks/lib/verify-receipt.cjs skip --reason="<10-500 characters>" (add --user-requested for the user\'s bypass, with their words as the reason) and retry.'
         );
     } else lines.push('reviewGate.verify: enforce refuses such commits; off turns this check off for projects with their own merge proof.');
     return lines;
@@ -935,7 +941,7 @@ function parseArgs(argv) {
     return flags;
 }
 
-const ALLOWED_FLAGS = { plan: [], run: [], check: [], skip: ['reason'], prune: [], 'baseline-init': ['slot', 'replace'] };
+const ALLOWED_FLAGS = { plan: [], run: [], check: [], skip: ['reason', 'user-requested'], prune: [], 'baseline-init': ['slot', 'replace'] };
 
 async function runCli(argv) {
     const command = argv[0];
@@ -954,7 +960,7 @@ async function runCli(argv) {
     }
     if (command === 'run') return runVerify(base);
     if (command === 'check') return checkVerify(base);
-    if (command === 'skip') return skipVerify({ ...base, reason: flags.reason });
+    if (command === 'skip') return skipVerify({ ...base, reason: flags.reason, userRequested: flags['user-requested'] === true });
     if (command === 'prune') return pruneVerify(base);
     const slots = typeof flags.slot === 'string' ? flags.slot.split(',').filter(Boolean) : [];
     return initBaseline({ ...base, slots, replace: flags.replace === true });

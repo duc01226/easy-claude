@@ -202,6 +202,26 @@ const tests = [
         }
     },
     {
+        // TC-PCI-082: a spec change can strand a feature-map entry, so a selected map is re-audited.
+        name: '[doc-impact-map] TC-PCI-082 spec changes route the selected feature map to its scan target',
+        fn: () => {
+            const config = { ...MINIMAL_CONFIG, referenceDocs: [{ filename: 'feature-map-reference.md', purpose: 'Feature map' }] };
+            const doc = mapWith(['docs/specs/Profile/README.Profile.md'], config).docs.find(item => item.doc.endsWith('/feature-map-reference.md'));
+            assertTrue(!!doc, 'a business spec change must invalidate the selected feature map');
+            assertEqual(doc.scanTarget, 'scan --target=feature-map');
+            assertTrue(
+                !mapWith(['docs/specs/Profile/README.Profile.md'], { ...config, referenceDocs: [] }).docs.some(item =>
+                    item.doc.endsWith('feature-map-reference.md')
+                ),
+                'an unselected map is never routed'
+            );
+            assertTrue(
+                !mapWith(['src/profile.ts'], config).docs.some(item => item.doc.endsWith('feature-map-reference.md')),
+                'a source change alone does not route the map'
+            );
+        }
+    },
+    {
         name: '[doc-impact-map] D1 harness edits route to the glob-derived inventory docs',
         fn: () => {
             const result = mapWith(['.claude/skills/example-skill/SKILL.md'], MINIMAL_CONFIG);

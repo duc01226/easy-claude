@@ -39,6 +39,7 @@ This assesses the folder state and routes the required lower-level setup steps:
 - `/ai-context-refresh` for the root AI context and its Codex mirror handoff
 - `/sync-codex` for `AGENTS.md`, `.agents`, and `.codex` mirrors — on Codex, trust the project and review the new handlers in `/hooks` afterwards, because the universal rules and the workflow route arrive only through hooks (see `hooks/README.md#hook-only-delivery-host-requirements`; OpenCode sub-agent delivery is unverified; a host that runs no hooks is unsupported)
 - `/graph-code --mode=build` after config/docs are populated
+- a harness inventory: which checks the project already has (formatter, linter, type check, tests, pre-commit hook, CI, architecture boundaries) and whether the app can be run, with an offer to add what is missing (see [Existing Projects — Adding Checks Safely](#existing-projects--adding-checks-safely))
 
 `/project-init` is idempotent. Run it again after pulling changes, changing project structure, or noticing missing/stale setup files.
 
@@ -70,6 +71,7 @@ Optional scans (run if applicable):
 /scan --target=seed-test-data       # Seeder/dev-data patterns, idempotency, DI scope
 /scan --target=scss-styling         # SCSS/CSS methodology
 /scan --target=feature-spec         # Business feature documentation index
+/scan --target=feature-map          # Where each feature lives and how to drive it (select feature-map-reference.md first)
 ```
 
 `/ai-context-refresh`, when routed by `/project-init`, reads project config and generates the root AI context in `CLAUDE.md` with:
@@ -110,6 +112,14 @@ The workflow router injects the catalog; on the first task of a session, when th
 | `docs/project-config.json`       | **No**    | Generated per project via `/project-init`                                                                                                                  |
 | Project-reference docs root      | **No**    | Generated per project via `/project-init`; default `docs/project-reference`, overridden by `docsRoots.projectReference.path` in `docs/project-config.json` |
 | Business spec root               | **No**    | Project-specific tech-free Feature Specs; default `docs/specs`, overridden by `specRoots.business.path` in `docs/project-config.json`                      |
+
+## Existing Projects — Adding Checks Safely
+
+`/project-init` reports which checks the project already has and offers to add the missing ones. Nothing is installed without your yes, and each tool stays your team's choice: the skills explain each option in plain words and put the recommended one first.
+
+- `/linter-setup --mode=brownfield` adds a linter, type check, boundary rule or banned-API rule to existing code. Today's violations go into a committed baseline, so only new problems fail, and the baseline only shrinks.
+- `/project-config` can record the module layers your code already follows (`architectureRules`), and `/linter-setup` turns them into a tool rule that runs in lint and CI.
+- `/harness-setup` builds the full harness and keeps the inventory current in `harness-inventory.md` under the project-reference root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path).
 
 ## Greenfield Projects
 

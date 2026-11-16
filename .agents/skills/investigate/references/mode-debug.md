@@ -53,6 +53,7 @@ Route by failure type:
 - Cross-service bugs: grep/read producers, consumers, sagas and shared contracts.
 - OOM: check row COUNT before row SIZE — missing DB filter, then excessive row size.
 - When the defect or proposed fix touches model calls, prompts, agents, tools/MCP, retrieval or evals, record inputs/traces and reproducible evidence (`AE-6`, `AE-7`), not one sample. Read `.claude/skills/shared/protocols/ai-engineering-gate.md` then; `node .claude/scripts/ai-signal-scan.cjs` assists discovery. Otherwise skip.
+- When the report names a feature only vaguely ("the export page is broken"), read `feature-map-reference.md` under the reference-docs root when it is selected: an entry gives the surface, entry URL or command, fixture and end state to reproduce with, and its spec story gives the intended user path. A map entry that no longer matches the product is evidence for the report, not the cause.
 - When business entity/model ownership or relationships matter, read `domain-entities-reference.md` under the reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it).
 
 ### Phase 0.5: Fault Adjudication (failing/flaky integration tests ONLY)

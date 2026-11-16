@@ -86,7 +86,7 @@ cp -r .agents  /path/to/your-project/.agents    # Codex skill mirror generated f
 
 > No Codex? Copy only `.claude/`. The mirrors are regenerated on demand by `/sync-codex`.
 >
-> **Updating later?** Ask the agent to "update the skills framework to the latest version" (or run `/framework-update`, `$framework-update` on Codex). It downloads the `main` branch of this repository and merges it into your project, keeping your own skills, hooks, agents, settings and edits to framework files, then regenerates the Codex and OpenCode mirrors. Never copy over an installed framework: that reverts every framework file your project changed. Without an agent: `node .claude/skills/framework-update/scripts/update-from-upstream.mjs --dry-run`, then the same without `--dry-run`. A project that does not have the skill yet updates once from a clone of this repository with `node <easy-claude>/.claude/skills/framework-update/scripts/update-from-upstream.mjs --project=/path/to/your-project`. See [.claude/docs/framework-portability.md](.claude/docs/framework-portability.md#updating-an-installed-framework).
+> **Updating later?** Ask the agent to "update the skills framework to the latest version" (or run `/framework-update`, `$framework-update` on Codex). It downloads the `main` branch of this repository and merges it into your project, keeping your own skills, hooks, agents, settings and edits to framework files, then regenerates the Codex and OpenCode mirrors. It ends by listing the upgrade actions and notices your project has not handled yet (new settings to fill, checks to set up), and the agent runs them with your consent. Never copy over an installed framework: that reverts every framework file your project changed. Without an agent: `node .claude/skills/framework-update/scripts/update-from-upstream.mjs --dry-run`, then the same without `--dry-run`. A project that does not have the skill yet updates once from a clone of this repository with `node <easy-claude>/.claude/skills/framework-update/scripts/update-from-upstream.mjs --project=/path/to/your-project`. See [.claude/docs/framework-portability.md](.claude/docs/framework-portability.md#updating-an-installed-framework).
 
 **2. Run `/project-init` first — always the first command in a new project.**
 
@@ -154,7 +154,7 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs   # standalone Codex s
 
 ## What's Inside
 
-### Hooks (<!-- COUNT:hooks -->38<!-- /COUNT --> top-level `.cjs` files, <!-- COUNT:lib-modules -->76<!-- /COUNT --> lib modules)
+### Hooks (<!-- COUNT:hooks -->38<!-- /COUNT --> top-level `.cjs` files, <!-- COUNT:lib-modules -->77<!-- /COUNT --> lib modules)
 
 Runtime Node.js scripts that fire on Claude Code lifecycle events.
 
@@ -373,7 +373,7 @@ Seven principles that make this framework work reliably across any project:
 | `CLAUDE.md`                | **No**    | Generated/merged per project via `/project-init` (`/ai-context-refresh`) |
 | `docs/project-config.json` | **No**    | Generated per project via `/project-init` (`/project-config`)            |
 | `docs/project-reference/`  | **No**    | Generated per project via `/project-init` (`/scan-all`)                  |
-| `.claude/framework-lock.json` | **No** | The upstream version this project last took; written by `framework-update.mjs` |
+| `.claude/framework-lock.json` | **No** | The upstream version this project last took, and the upgrade entries it resolved; written by `framework-update.mjs` |
 
 Behavior one team wants and another does not is a setting, usually off by default, never an edit to a framework file. `node .claude/scripts/framework-features.cjs` lists every switch with its effective value, the layer that set it and who may change it (team settings in `docs/project-config.json`, personal ones in `~/.claude/.ck.json` or `.claude/.ck.local.json`).
 

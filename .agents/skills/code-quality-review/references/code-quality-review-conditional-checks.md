@@ -36,7 +36,10 @@ NEVER assume any specific framework's lifecycle. Derive from codebase evidence.
 
 ## Architecture Boundary Check
 
-For each changed file, verify no forbidden layer imports:
+For each changed file, verify no forbidden layer imports.
+
+**Prefer the tool.** When `architectureRules.enforcedBy` is declared, run its `command` (or the project's `testing.commands.lint`, which includes it) and report the tool's violations in the changed files, citing its output; a violation already in the tool's baseline is not new. Use the steps below only when no tool is declared or it cannot run here, and say why.
+
 
 1. **Read rules** from `docs/project-config.json` → `architectureRules.layerBoundaries`
 2. **Determine layer** — match file path against each rule's `paths` glob patterns

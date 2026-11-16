@@ -8,8 +8,12 @@ applies: ["node","-e","const p = require(require('path').resolve('.claude/script
 done: ["node","-e","const p = require(require('path').resolve('.claude/scripts/lib/workflow-routing-config.cjs')).resolveProjectConfigPath(process.cwd()); const c = JSON.parse(require('fs').readFileSync(p, 'utf8').replace(/^\\uFEFF/, '')); process.exit(c.reviewGate && typeof c.reviewGate.verify === 'string' ? 0 : 1)"]
 writesState: true
 covers:
-  - config:testing@PENDING-P0-HASH
-  - config:reviewGate@PENDING-P0-HASH
+  - config:reviewGate@36346190c147
+  - config:VERIFY_MODES@977dfb6c378c
+  - config:VERIFY_SLOTS@6eeccf41cf3d
+  - config:VERIFY_COMMAND_KEYS@6f327c6f8b92
+  - config:DEFAULT_VERIFY_TIMEOUT_SECONDS@e6b37550577c
+  - config:MAX_VERIFY_TIMEOUT_SECONDS@b045dd9c18ca
 mergeNotes:
   - .claude/hooks/lib/review-receipt.cjs: keep the project's own review kinds; the new exports (receiptStoreDirectory and the Git environment helpers) and the verify-record exclusion in hasAnyReceipt are additive
   - .claude/scripts/lib/commit-review-policy.cjs: keep the project's own review-gate rules (for example a quiet-mode rule); resolveVerifyGate is a new function beside them
