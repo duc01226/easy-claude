@@ -10,3 +10,4 @@ Project-level switches that decide what the framework does by itself in a projec
 | --- | --- | --- | --- |
 | Adoption Switches — Feature Spec, Part 2 (release D test cases) | ADS | draft | [README.AdoptionSwitches-Part2.md](README.AdoptionSwitches-Part2.md) |
 | Framework Skill Activation Policy | SAP | implemented | [README.SkillActivationPolicy.md](README.SkillActivationPolicy.md) |
+| Framework Update and Upgrade Entries | FWU | implemented | [README.FrameworkUpdate.md](README.FrameworkUpdate.md) |

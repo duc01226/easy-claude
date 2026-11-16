@@ -69,6 +69,11 @@ jobs:
         run: python -m pip install -r .claude/scripts/requirements.txt
       - name: Codex mirror and tooling gates
         run: node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --verify-only
+      # The scripts tests above already run it; this named step shows an uncovered change on its own line,
+      # also when an earlier gate failed.
+      - name: Upgrade-action contract (every consumer-facing change ships an upgrade entry)
+        if: ${{ !cancelled() }}
+        run: node .claude/scripts/upgrade-contract.mjs
       # Runs last so a new advisory never hides the test results above; once, since it is OS-independent.
       - name: Dependency audit (HIGH and CRITICAL fail)
         if: matrix.os == 'ubuntu-latest'
