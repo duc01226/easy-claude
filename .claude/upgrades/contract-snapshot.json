@@ -125,8 +125,8 @@
       "by": "baseline"
     },
     "config:architectureRules": {
-      "hash": "44fe59e504ed",
-      "by": "baseline"
+      "hash": "54ceae80652d",
+      "by": "fill-architecture-rules"
     },
     "config:backendServices": {
       "hash": "5d786e27ebdb",

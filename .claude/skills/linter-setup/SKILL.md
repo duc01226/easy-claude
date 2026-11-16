@@ -1,6 +1,6 @@
 ---
 name: linter-setup
-version: 1.0.1
+version: 1.1.0
 description: '[Quality] Use when a workflow step or the user asks for linters, formatters, type checks and static analysis in pre-commit and CI gates.'
 ---
 
@@ -20,13 +20,14 @@ description: '[Quality] Use when a workflow step or the user asks for linters, f
 **Summary:**
 
 - **Purpose:** Research the current ecosystem per detected stack, let the user choose tools, then configure strict-by-default checks; NEVER hardcode quality-tool recommendations.
-- **Ordered path (no skip/reorder):** (1) detect stack/profile; (2) research six categories with QUERY TEMPLATES, score top 3, present 2–3 via `ask user question tool`; (3) install/configure strict settings, document rule purpose, update `.gitignore`, ALWAYS emit `.editorconfig`; (4) wire staged-files-only <30s formatter→linter→type-check hook and document `README.md`; (5) mirror format→lint→type→static→dep-scan in CI with coverage diagnostic-only; (6) prove the hook blocks an INTENTIONAL violation; (7) ask whether to continue to `/harness-setup`.
+- **Ordered path (no skip/reorder):** (1) detect stack/profile; (2) research seven categories with QUERY TEMPLATES, score top 3, present 2–3 via `ask user question tool`; (3) install/configure strict settings, document rule purpose, update `.gitignore`, ALWAYS emit `.editorconfig`; (4) wire staged-files-only <30s formatter→linter→type-check hook and document `README.md`; (5) mirror format→lint→type→static→dep-scan in CI with coverage diagnostic-only; (6) prove the hook blocks an INTENTIONAL violation; (7) ask whether to continue to `/harness-setup`.
 - **Gates:** Track each step/sub-skill with status + evidence; use `ask user question tool` for unknown stack/CI fields, tool choices, or loosening; keep local/CI commands, config, and versions identical; line coverage stays diagnostic-only; architecture fitness is `N/A` without declared dependency directions.
 - **Output/context:** Root tool configs, pre-commit config, CI quality gate, `.editorconfig`, and README setup; invoked after `/scaffold`, before `/harness-setup`.
+- **Existing projects (brownfield):** inventory what already runs, add only the missing checks, and land each with a frozen baseline that only shrinks, so the existing tree never turns red — read `references/brownfield-ratchet.md`.
 
 **Output:** Config files at project root + pre-commit hook config + CI quality gate step + `.editorconfig`.
 
-**When invoked:** After `/scaffold` in the greenfield workflow, before `/harness-setup`.
+**When invoked:** After `/scaffold` in the greenfield workflow, before `/harness-setup`. On an existing project (from `/project-init`'s harness offer, an upgrade action, or a direct call), also follow the brownfield ratchet path in `references/brownfield-ratchet.md`; `--mode=brownfield` forces that path and `--mode=greenfield` skips it.
 
 **Design principles:**
 
@@ -53,7 +54,7 @@ description: '[Quality] Use when a workflow step or the user asks for linters, f
 
 ## Stack Detection Protocol
 
-Read in priority order: (1) `plan.md` YAML frontmatter — `tech_stack`, `language`, `framework`; (2) `architecture --mode=design` report — tech stack comparison table; (3) tech-stack-comparison report — chosen stack.
+Read in priority order: (1) `plan.md` YAML frontmatter — `tech_stack`, `language`, `framework`; (2) `architecture --mode=design` report — tech stack comparison table; (3) tech-stack-comparison report — chosen stack; (4) repository evidence — manifests, lockfiles, existing tool configs, CI files and the project config. An existing project usually has no plan or architecture report, so (4) is its primary source, and existing source code selects the brownfield path (`references/brownfield-ratchet.md`).
 
 Extract primary language(s), framework(s), CI provider/tooling, test framework, package manager. Write profile to `tmp/linter-setup/stack-profile.md`:
 
@@ -85,12 +86,13 @@ For each tech stack layer detected, research these TOOL CATEGORIES using the que
 | **Static Analyzer**      | Deep bug patterns, complexity, dead code, security CWEs            | `"{language} static analysis SAST tool {year}"`              |
 | **Dependency Scanner**   | Known CVEs in dependencies — supply chain security                 | `"{language} dependency vulnerability scanner {year}"`       |
 | **Architecture Fitness** | Enforce module boundaries, dependency direction                    | `"{language} architecture linting module boundaries {year}"` |
+| **Restricted APIs**      | Ban a raw API the project wraps or forbids; the error names the wrapper to use | `"{language} {linter} ban import or function call rule {year}"` |
 
 **Research process per category:**
 
 1. Search with the query template (WebSearch if available; otherwise apply knowledge and state confidence %).
 2. Score top 3: community adoption, release recency, CI integration ease, config complexity.
-3. Present via `ask user question tool`: "For {category} in {language}, which tool?" — top 2–3 options with brief pros/cons.
+3. Present via `ask user question tool` in the **Asking the user** format below: top 2–3 options, recommended first, each with a plain-language trade-off.
 
 **IMPORTANT:** Confidence in current ecosystem <80% (fast-moving ecosystem, unfamiliar stack) → use WebSearch to verify before presenting options. — why: tool ecosystems churn fast; stale recommendations cargo-cult dead tools.
 
@@ -106,7 +108,42 @@ The **Architecture Fitness** category chooses **dependency-direction / module-bo
 | Python | import-linter |
 | Go | go-arch-lint / depguard |
 
-Add a boundary tool only when architecture declares dependency directions; otherwise record `N/A — no cross-module dependency rules declared`. Chosen rules MUST encode those directions and fail CI, matching pre-commit (local↔CI zero divergence). `architecture --mode=scalability` owns init/audit grading; `architecture --mode=review` owns per-change drift. — why: a boundary tool without declared rules is ceremony; enforcement without CI teeth is documentation.
+Add a boundary tool only when architecture declares dependency directions — the design report, or `architectureRules.layerBoundaries` in the project config, which `/project-config` fills from evidence; otherwise record `N/A — no cross-module dependency rules declared`. Chosen rules MUST encode those directions and fail CI, matching pre-commit (local↔CI zero divergence). `architecture --mode=scalability` owns init/audit grading; `architecture --mode=review` owns per-change drift. — why: a boundary tool without declared rules is ceremony; enforcement without CI teeth is documentation.
+
+**Generate from `architectureRules`.** When `layerBoundaries` is declared, generate the tool's rules from it (one rule per `cannotImportFrom` entry, `excludePatterns` as the tool's ignore list), baseline today's violations (`references/brownfield-ratchet.md` Step B4), and record `architectureRules.enforcedBy` (`tool`, `config`, optional `command`) through `/project-config` with the user's yes. `layerBoundaries` stays the one place to change a rule: edit it, then regenerate the tool config. Once `enforcedBy` is declared, reviewers read the tool's result instead of grepping imports.
+
+### Restricted APIs (Architecture Fitness detail)
+
+**What it catches, in plain words:** when the project wraps a risky or tricky API (an HTTP client with retries and auth, a database access layer, a logging facade, a date/time helper, a secrets loader) or forbids a dangerous call, a lint rule bans the raw API everywhere except the wrapper, so the right path is the only one that passes.
+
+1. **Candidates come from evidence only:** a module that imports a third-party API and exports a narrower one; a project doc, review rule or lesson that says "use X, not Y"; repeated review findings about the same raw call. Never invent a ban.
+2. **The message names the fix:** each rule's message says what to use instead and why, for example `"Use <wrapper> (<path>): it adds <what the raw call skips>."`, so whoever trips it learns the rule from the error.
+3. **Wrapper-only exceptions:** exempt only the wrapper's own files with a file-scoped override; a test that must touch the raw API gets its own named override with its reason. Never exempt a whole directory to make the rule pass.
+4. **Existing uses go into the baseline** (`references/brownfield-ratchet.md` Step B4); migrating them is separate, consented work.
+5. **Ask once per ban** (format below): what it bans, the wrapper to use instead, and how many existing uses get baselined.
+
+Example mechanisms to research and evaluate for stack fit, never mandatory installs:
+
+| Stack family | Example ban mechanisms (evaluate, do NOT hardcode) |
+| ------------ | -------------------------------------------------- |
+| JS / TS | ESLint `no-restricted-imports`, `no-restricted-syntax`, `no-restricted-properties` |
+| Python | Ruff banned-API setting (`flake8-tidy-imports`, TID251) |
+| .NET | BannedApiAnalyzers (`BannedSymbols.txt`) |
+| JVM / Kotlin | detekt `ForbiddenImport` / `ForbiddenMethodCall`, ArchUnit rules |
+| Go | golangci-lint `forbidigo`, `depguard` |
+
+No wrapper and no banned-API rule evidenced → record `N/A — no wrapper or banned-API rule evidenced`. — why: a wrapper that nothing enforces is bypassed by the next change that does not know it exists.
+
+### Asking the user
+
+Every tool or rule question has one shape, so a user who knows no tool names can still choose. Tool choice stays the team's: never auto-select.
+
+1. **One plain sentence on what the category catches**, without jargon, for example: "A type checker finds values used as the wrong kind of thing before the code runs."
+2. **Options ordered recommended first.** The first is labelled `(Recommended)`, with a one-line reason from the research score (adoption, fit with what the project already runs, CI ease).
+3. **One plain trade-off line per option:** what it costs and what it gives.
+4. **A last `Skip for now` option** for a category the profile does not require; a skip is recorded as `declined` with the user's reason in the harness inventory.
+
+One question per category; never fold several categories into one bundled choice. — why: a novice cannot weigh tool names, but can weigh plain consequences.
 
 ---
 
@@ -204,6 +241,7 @@ After all config files generated, verify MUST ATTENTION each item:
 - `.editorconfig` created at project root
 - Pre-commit verification runs in an isolated temporary fixture repository using the selected hook configuration and tooling, never the working repository. Snapshot the working repository HEAD and index bytes before the probe and verify both unchanged afterward. In the fixture, stage a synthetic lint violation, attempt the fixture commit, and require nonzero status plus the selected linter’s diagnostic for that exact file/rule; an unrelated authority hook rejection is not proof. Also test an absent/broken-hook fixture: a successful fixture commit must be reported as a failed hook-verification result. Include a clean valid fixture that succeeds to discriminate unrelated failures; remove fixture artifacts in finally. Setup authorization grants no real-project commit authority.
 - CI step defined and references the correct config files
+- Existing project: every new check has its baseline committed, and the fixture proof also shows a baselined violation passing while a new one of the same rule fails (`references/brownfield-ratchet.md` Step B6)
 - The dependency scanner has a named responder and deadline (or the user declined to name one, recorded)
 - Team setup documented in `README.md` — new devs know to run `{hook install command}` after clone
 - `.gitignore` updated with tool cache directories
@@ -253,7 +291,7 @@ After all config files generated, verify MUST ATTENTION each item:
 
 **IMPORTANT MUST ATTENTION Goal:** Install a strict, stack-appropriate quality sensor layer—linter, formatter, type checker, static/dependency/architecture analysis, pre-commit, and CI—so every code change is checked locally and in CI with zero divergence before reaching main.
 
-**IMPORTANT MUST ATTENTION Main steps (in order — no skip/reorder):** (1) detect stack/profile → (2) research six categories with QUERY TEMPLATES, score top 3, present 2–3 via `ask user question tool` → (3) install/configure strict settings, document rule purpose, update `.gitignore`, ALWAYS emit `.editorconfig` → (4) wire staged-files-only <30s formatter→linter→type-check hook and document `README.md` → (5) mirror format→lint→type→static→dep-scan in CI with coverage diagnostic-only → (6) prove the hook blocks an INTENTIONAL violation → (7) ask whether to continue to `/harness-setup`.
+**IMPORTANT MUST ATTENTION Main steps (in order — no skip/reorder):** (1) detect stack/profile → (2) research seven categories with QUERY TEMPLATES, score top 3, present 2–3 via `ask user question tool` → (3) install/configure strict settings, document rule purpose, update `.gitignore`, ALWAYS emit `.editorconfig` → (4) wire staged-files-only <30s formatter→linter→type-check hook and document `README.md` → (5) mirror format→lint→type→static→dep-scan in CI with coverage diagnostic-only → (6) prove the hook blocks an INTENTIONAL violation → (7) ask whether to continue to `/harness-setup`.
 
 **IMPORTANT MUST ATTENTION Gates:** Track each step/sub-skill with status + evidence; use `ask user question tool` for unknown stack/CI fields, tool choices, or loosening; keep local/CI commands, config, and versions identical; line coverage stays diagnostic-only; architecture fitness is `N/A` without declared dependency directions.
 
@@ -261,6 +299,8 @@ After all config files generated, verify MUST ATTENTION each item:
 **IMPORTANT MUST ATTENTION** present top 2-3 options per category via `ask user question tool` — let the user pick; NEVER auto-select — why: tool choice is a team-owned decision, not the skill's.
 **IMPORTANT MUST ATTENTION** Test pre-commit only in an isolated temporary fixture: lint-specific rejection, valid success and absent-hook failure classification; preserve the working HEAD/index and clean fixture artifacts — why: an unproven gate is no gate.
 **IMPORTANT MUST ATTENTION** CI gate MUST match pre-commit hooks — if a check runs locally it runs in CI, no divergence — why: divergent local/CI checks let violations slip through one path.
+**IMPORTANT MUST ATTENTION** on an existing project, inventory first and land every new check with a frozen baseline that only shrinks — never a red tree, never a mass rewrite in the setup commit; unknown monorepo shape → propose, don't apply — why: a check that fails on day one gets switched off.
+**IMPORTANT MUST ATTENTION** ask each tool question in plain words with the recommended option first, one question per category — why: the team owns tool choice, and a novice can weigh plain consequences but not tool names.
 
 **MUST ATTENTION** detect the stack FIRST (`plan.md` → architecture report → tech-stack report); if a critical field is undetectable, `ask user question tool` before research — why: every downstream tool choice depends on the stack profile.
 **MUST ATTENTION** configure with the STRICTEST reasonable defaults; loosen ONLY with explicit user approval via `ask user question tool` — why: starting strict is easier to loosen than starting loose is to tighten.

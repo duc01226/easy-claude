@@ -298,6 +298,8 @@ Read [references/spec-and-docs-roots-config.md](references/spec-and-docs-roots-c
 
 Read [references/convention-classes.md](references/convention-classes.md) when useful context groups or opt-in convention injection are selected (§2r); it holds the detector commands and the additive merge, atomic write and opt-in-only rules.
 
+Read [references/architecture-rules-config.md](references/architecture-rules-config.md) when the task fills or reviews `architectureRules`, or the repository shows module layers whose imports go one way (§2w); it holds the evidence order, the never-invent and preview-then-consent rules, and the hand-off that makes a real tool enforce the rules (`enforcedBy`).
+
 ---
 
 ## Phase 3: Consolidate & Write
