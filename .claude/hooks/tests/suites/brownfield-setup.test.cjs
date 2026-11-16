@@ -50,7 +50,14 @@ const tableRows = text =>
     text
         .split('\n')
         .filter(line => line.startsWith('|'))
-        .map(line => `| ${line.slice(1, line.endsWith('|') ? -1 : undefined).split('|').map(cell => cell.trim()).join(' | ')} |`);
+        .map(
+            line =>
+                `| ${line
+                    .slice(1, line.endsWith('|') ? -1 : undefined)
+                    .split('|')
+                    .map(cell => cell.trim())
+                    .join(' | ')} |`
+        );
 
 const includesAll = (text, phrases, where) => {
     const missing = phrases.filter(phrase => !text.includes(phrase));
@@ -64,7 +71,10 @@ const tests = [
             const boundaries = [{ layer: 'domain', paths: ['src/domain/**'], cannotImportFrom: ['infrastructure'] }];
             assert.deepEqual(ruleErrors({ layerBoundaries: boundaries }), [], 'rules without a tool still load');
             assert.deepEqual(
-                ruleErrors({ layerBoundaries: boundaries, enforcedBy: { tool: 'boundary-tool', config: 'boundaries.config.js', command: 'npm run lint:boundaries' } }),
+                ruleErrors({
+                    layerBoundaries: boundaries,
+                    enforcedBy: { tool: 'boundary-tool', config: 'boundaries.config.js', command: 'npm run lint:boundaries' }
+                }),
                 [],
                 'a declared tool loads'
             );
@@ -89,7 +99,7 @@ const tests = [
             includesAll(
                 text,
                 [
-                    '**Never make the existing tree red.** Every new check lands with a frozen baseline of today\'s violations and fails only on new ones.',
+                    "**Never make the existing tree red.** Every new check lands with a frozen baseline of today's violations and fails only on new ones.",
                     '**The baseline only shrinks (ratchet).**',
                     'Never add an entry to make a change pass',
                     '**Keep what the project already runs.**',
@@ -127,7 +137,11 @@ const tests = [
         fn: () => {
             const text = skill('linter-setup', 'references', 'brownfield-ratchet.md');
             const rows = tableRows(text);
-            const has = (pattern, why) => assert.ok(rows.some(line => pattern.test(line)), why);
+            const has = (pattern, why) =>
+                assert.ok(
+                    rows.some(line => pattern.test(line)),
+                    why
+                );
             has(/^\| JS \/ TS \| ESLint .*`eslint-suppressions\.json`.*`eslint \. --prune-suppressions`/, 'ESLint bulk suppressions with its prune command');
             has(/^\| Python \| Ruff .*`ruff check --add-noqa`/, 'Ruff inline suppressions');
             has(/^\| Kotlin \(compiled\) \| detekt .*`detektBaseline`/, 'a compiled stack with a native baseline');
@@ -156,7 +170,7 @@ const tests = [
                     '**Candidates come from evidence only:**',
                     'Never invent a ban.',
                     '**The message names the fix:**',
-                    '**Wrapper-only exceptions:** exempt only the wrapper\'s own files with a file-scoped override',
+                    "**Wrapper-only exceptions:** exempt only the wrapper's own files with a file-scoped override",
                     'Never exempt a whole directory to make the rule pass.',
                     '**Existing uses go into the baseline**',
                     '`N/A — no wrapper or banned-API rule evidenced`'
@@ -166,7 +180,11 @@ const tests = [
             const review = skill('architecture', 'references', 'mode-review.md');
             includesAll(
                 review,
-                ['## Restricted API Check', 'Mirror of `/linter-setup` → Restricted APIs.', 'propose a ban whose message names that wrapper, with wrapper-only exceptions'],
+                [
+                    '## Restricted API Check',
+                    'Mirror of `/linter-setup` → Restricted APIs.',
+                    'propose a ban whose message names that wrapper, with wrapper-only exceptions'
+                ],
                 'architecture review mirror'
             );
         }
@@ -179,7 +197,7 @@ const tests = [
                 main,
                 [
                     '### Asking the user',
-                    'Tool choice stays the team\'s: never auto-select.',
+                    "Tool choice stays the team's: never auto-select.",
                     '**One plain sentence on what the category catches**',
                     '**Options ordered recommended first.** The first is labelled `(Recommended)`',
                     '**A last `Skip for now` option**',
@@ -221,7 +239,7 @@ const tests = [
         }
     },
     {
-        name: '[brownfield-setup] BFS-008 project-init reports the inventory and installs nothing without the user\'s yes',
+        name: "[brownfield-setup] BFS-008 project-init reports the inventory and installs nothing without the user's yes",
         fn: () => {
             const text = skill('project-init');
             includesAll(
@@ -231,7 +249,7 @@ const tests = [
                     '`/linter-setup --mode=brownfield` (recommended on an existing project',
                     'For each computational sensor that is `missing`, or `configured` but not yet proven, offer setup',
                     'Run the chosen skill only on a yes; record a no as `declined`',
-                    'Save the inventory to its committed path only on the user\'s yes.',
+                    "Save the inventory to its committed path only on the user's yes.",
                     '11. Run the harness inventory (read-only), report it, and offer setup for missing sensors; record each answer.'
                 ],
                 'project-init harness offer'
@@ -247,20 +265,26 @@ const tests = [
                 [
                     '**Never invent a boundary.**',
                     'Folder names alone (`domain`, `infra`) are not evidence.',
-                    '**Preview, then merge on the user\'s yes,**',
-                    'those imports go into the tool\'s baseline, never silently allowed',
+                    "**Preview, then merge on the user's yes,**",
+                    "those imports go into the tool's baseline, never silently allowed",
                     'records `architectureRules.enforcedBy`'
                 ],
                 'architecture-rules-config.md'
             );
-            assert.ok(skill('project-config').includes('(references/architecture-rules-config.md) when the task fills or reviews `architectureRules`'), 'project-config routes to it');
+            assert.ok(
+                skill('project-config').includes('(references/architecture-rules-config.md) when the task fills or reviews `architectureRules`'),
+                'project-config routes to it'
+            );
             for (const [owner, text] of [
                 ['code-quality-review conditional checks', skill('code-quality-review', 'references', 'code-quality-review-conditional-checks.md')],
                 ['architecture review mode', skill('architecture', 'references', 'mode-review.md')]
             ])
                 includesAll(
                     text,
-                    ['**Prefer the tool.** When `architectureRules.enforcedBy` is declared, run its `command`', 'Use the steps below only when no tool is declared or it cannot run here'],
+                    [
+                        '**Prefer the tool.** When `architectureRules.enforcedBy` is declared, run its `command`',
+                        'Use the steps below only when no tool is declared or it cannot run here'
+                    ],
                     owner
                 );
         }
@@ -274,12 +298,21 @@ const tests = [
             assert.equal(offer.kind, 'action');
             assert.equal(offer.level, 'recommended');
             assert.ok(Array.isArray(offer.done) && offer.done[0] === 'node', 'a done check keeps a second run from redoing it');
-            assert.ok(offer.steps.some(step => /`\/linter-setup --mode=brownfield`/.test(step.text) && step.consent === true), 'setup is offered with consent');
+            assert.ok(
+                offer.steps.some(step => /`\/linter-setup --mode=brownfield`/.test(step.text) && step.consent === true),
+                'setup is offered with consent'
+            );
             const fill = entry('fill-architecture-rules');
             assert.equal(fill.level, 'optional');
             assert.deepEqual(fill.after, ['offer-harness-inventory']);
-            assert.ok(fill.covers.some(cover => cover.startsWith('config:architectureRules@')), 'covers the architectureRules surface');
-            assert.ok(fill.steps.every(step => step.consent === true), 'every step asks first');
+            assert.ok(
+                fill.covers.some(cover => cover.startsWith('config:architectureRules@')),
+                'covers the architectureRules surface'
+            );
+            assert.ok(
+                fill.steps.every(step => step.consent === true),
+                'every step asks first'
+            );
         }
     }
 ];
