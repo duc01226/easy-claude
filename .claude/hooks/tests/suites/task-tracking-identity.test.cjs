@@ -469,10 +469,10 @@ module.exports = {
             git(f, ['config', '--unset', 'user.name']);
             f.write('author-config', '[user]\n email = included@example.test\n name = Included Example\n');
             // No trailing slash: Git expands "x/" to "x/**", which matches inside the Git directory but not the directory itself.
-            f.write(
-                '.gitconfig',
-                `[includeIf "gitdir:${f.root.replace(/\\/g, '/')}/.git"]\n path ="${path.join(f.root, 'author-config').replace(/\\/g, '/')}"\n`
-            );
+            // Git matches gitdir: against the directory as it resolves it, so the pattern names the filesystem's final path:
+            // a Windows temp root reached through an 8.3 short name (C:\Users\RUNNER~1\...) would otherwise never match.
+            const gitDir = `${fs.realpathSync.native(f.root).replace(/\\/g, '/')}/.git`;
+            f.write('.gitconfig', `[includeIf "gitdir:${gitDir}"]\n path ="${path.join(f.root, 'author-config').replace(/\\/g, '/')}"\n`);
             assert.equal(identity.resolveActor(f.context()).member.id, 'included@example.test');
             author(f);
             git(f, ['add', 'docs/project-config.json', '.claude/.ck.local.json']);

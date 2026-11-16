@@ -1,13 +1,12 @@
 'use strict';
 
-const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { trackingContext, LIMITS, relativePath, validateTaskTracking } = require('../../../hooks/lib/task-tracking-config.cjs');
 const vocabulary = require('../../../hooks/lib/task-tracking-vocabulary.cjs');
 const { parseRecord, projectRecord, earlierVocabularyRecord } = require('../../../hooks/lib/task-artifact-store.cjs');
 const { currentProject } = require('../../../hooks/lib/task-tracking-earlier-project.cjs');
-const { fail } = require('../../../hooks/lib/task-tracking-files.cjs');
+const { fail, sameDirectory } = require('../../../hooks/lib/task-tracking-files.cjs');
 const { isPrivacySensitive } = require('../../../hooks/lib/sensitive-path-policy.cjs');
 const { validateConfig } = require('../../../hooks/lib/project-config-schema.cjs');
 const { getDocsRoot } = require('../../../hooks/lib/project-config-loader.cjs');
@@ -58,8 +57,14 @@ function loadSharedSnapshot(root, ref) {
         if (result.error || result.status !== 0) fail('UNAVAILABLE_BASELINE', 'Requested local Git objects are unavailable; no fetch or worktree fallback');
         return result.stdout;
     };
-    const top = fs.realpathSync(git(['rev-parse', '--show-toplevel']).toString('utf8').trim());
-    if (top !== selected.root) fail('UNAVAILABLE_BASELINE', 'Selected checkout is not the exact repository root');
+    const top = git(['rev-parse', '--show-toplevel']).toString('utf8').trim();
+    let isSelectedRoot = false;
+    try {
+        isSelectedRoot = sameDirectory(top, selected.root);
+    } catch {
+        /* an unresolvable path is not the selected root */
+    }
+    if (!isSelectedRoot) fail('UNAVAILABLE_BASELINE', 'Selected checkout is not the exact repository root');
     const oid = git(['rev-parse', '--verify', '--end-of-options', `${ref}^{commit}`])
         .toString('ascii')
         .trim();

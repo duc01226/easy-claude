@@ -15,7 +15,7 @@ Read this index when locating the authoritative document for a project question 
 - Resolve configured roots; regenerate category globs into a normalized unique-path union.
 - Compare broad `docs/**/*.md` results with the category union and expose every remainder.
 - Verify relationships and lookup paths; keep every path real, unique, and traceable to the current tree.
-- Index <!-- COUNT:markdown:authored -->595<!-- /COUNT --> unique authored Markdown files across 13 categories; `docs/` contains <!-- COUNT:markdown:docs -->68<!-- /COUNT --> files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
+- Index <!-- COUNT:markdown:authored -->596<!-- /COUNT --> unique authored Markdown files across 14 categories; `docs/` contains <!-- COUNT:markdown:docs -->69<!-- /COUNT --> files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
 
 ## Contents
 
@@ -45,7 +45,7 @@ Read this index when locating the authoritative document for a project question 
 
 ## Documentation System
 
-<!-- COUNT:markdown:authored -->595<!-- /COUNT --> unique authored markdown files across 13 indexed categories. Last scanned: 2026-10-22. Benchmark inventory/navigation impact verified: 2026-10-27.
+<!-- COUNT:markdown:authored -->596<!-- /COUNT --> unique authored markdown files across 14 indexed categories. Last scanned: 2026-10-22. Benchmark inventory/navigation impact verified: 2026-10-27.
 
 **Relocatable roots.** Resolve these configurable roots before running their category globs:
 
@@ -69,6 +69,7 @@ The **Reproducible scope** column states each glob relative to its category's ro
 | Release Notes          |              3 | `docs/release/**/*.md` + `docs/release-notes/**/*.md`                                 |
 | Knowledge Reports      |              2 | `docs/knowledge/**/*.md`                                                             |
 | Knowledge Packs        | <!-- COUNT:markdown:knowledge-packs -->3<!-- /COUNT --> | `*.md` in the packs directory named by `knowledge-base-reference.md` (default `docs/knowledge-base/`) |
+| Project Protocols      |              1 | `*.md` in the protocols directory named by `skill-protocols-reference.md` (default `docs/project-protocols/`) |
 | Framework Docs         |             43 | `.claude/docs/**/*.md`                                                                |
 | Skill Markdown         | <!-- COUNT:markdown:skills -->481<!-- /COUNT --> | `rg --files .claude/skills -g '*.md'`                                                 |
 
@@ -83,7 +84,7 @@ easy-claude/
 ├── AGENTS.md                                      # Codex/agent instructions
 ├── CLAUDE.md                                      # Claude project instructions
 ├── README.md                                      # Project overview and adoption entry point
-├── docs/                                          # <!-- COUNT:markdown:docs -->68<!-- /COUNT --> markdown files
+├── docs/                                          # <!-- COUNT:markdown:docs -->69<!-- /COUNT --> markdown files
 │   ├── adr/                                       # 8 architecture decisions
 │   │   ├── 0001-skill-lifecycle.md
 │   │   ├── 0002-canonical-count-metrics.md
@@ -93,6 +94,8 @@ easy-claude/
 │   │   ├── 0006-knowledge-base-planes-and-pointer-delivery.md
 │   │   ├── 0007-framework-updates-merge-and-opt-in-switches.md
 │   │   └── 0008-self-update-from-upstream.md
+│   ├── project-protocols/                         # 1 project skill overlay, routed by skill-protocols-reference.md
+│   │   └── pr-local-ci-before-merge.md
 │   ├── project-reference/                         # 20 files
 │   │   ├── backend-patterns-reference.md
 │   │   ├── code-review-rules.md

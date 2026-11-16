@@ -26,7 +26,7 @@ const { launchTerminal, SCRIPT_DIR } = require('../../../skills/task-track/lib/t
 const { launchBrowser, LAUNCH_LINK } = browserLaunch;
 const { ensurePackages, INSTALL_ARGS, AUTOMATIC_ARGS, PEER_WAIT_MS } = require('../../../skills/task-track/lib/package-setup.cjs');
 const { OUTCOMES: INSTALLER_OUTCOMES } = require('../../lib/startup-install.cjs');
-const { LOCK_OUTCOMES, withProjectLock } = require('../../lib/startup-install-lock.cjs');
+const { LOCK_OUTCOMES, withProjectLock, createLockSeams, prepareLockDirectory } = require('../../lib/startup-install-lock.cjs');
 
 const CLI_PATH = path.resolve(__dirname, '../../../skills/task-track/scripts/task-track.cjs');
 const BUNDLE_ROOT = path.resolve(__dirname, '../../..');
@@ -102,6 +102,31 @@ function setupSeams(
             }
         }
     };
+}
+
+/**
+ * Whether the real install lock can prove its folder private on this host, the way a tracker command in this
+ * environment would find it. Its folder privacy is the host's own proof: native Windows refuses with PRIVACY_UNPROVABLE
+ * when the lock folder's ACL cannot be shown private (startup-install.test.cjs owns that native proof). That is the only
+ * refusal accepted here; any other outcome, or a refusal on POSIX, fails the calling test.
+ */
+function nativeLockIsPrivate() {
+    const prepared = prepareLockDirectory(createLockSeams());
+    if (prepared.ok) return true;
+    assert.equal(process.platform, 'win32', `the install lock folder is unusable on ${process.platform}: ${prepared.code}`);
+    assert.equal(prepared.code, LOCK_OUTCOMES.PRIVACY_UNPROVABLE, 'Windows must fail closed when the native lock ACL is unprovable');
+    return false;
+}
+
+/**
+ * The real install lock, for tests about how it coordinates overlapping commands. Where the host cannot prove the lock
+ * folder private, only the two privacy probes are controlled, so the coordination still runs through the real lock on
+ * the real folder.
+ */
+function coordinatingLock() {
+    if (nativeLockIsPrivate()) return withProjectLock;
+    const privacy = { probeParentProtection: () => ({ ok: true }), probeChildPrivacy: () => ({ ok: true }) };
+    return options => withProjectLock({ ...options, seams: { ...options.seams, ...privacy } });
 }
 
 /**
@@ -3450,11 +3475,12 @@ module.exports = {
                 const run = (args, env = {}) =>
                     spawnSync(process.execPath, [require.resolve('../../../skills/task-track/scripts/task-track.cjs'), 'serve', '--root', f.root, ...args], {
                         encoding: 'utf8',
-                        env: { ...process.env, CK_NO_AUTO_OPEN: '1', ...env },
+                        env: { ...process.env, CI: '', CK_NO_AUTO_OPEN: '1', ...env },
                         timeout: 30000
                     });
                 // CK_NO_AUTO_OPEN keeps this test from opening a window, so no launcher script is planned or written here: the command
-                // the window would run is asserted on its own, above.
+                // the window would run is asserted on its own, above. An inherited CI (set on every CI runner) is checked first and
+                // would name itself as the reason, so it is blanked; CK_NO_AUTO_OPEN alone still suppresses the window.
                 const asked = run(['--terminal', '--write', '--actor', 'owner', '--open']);
                 assert.equal(asked.status, 0, asked.stdout + asked.stderr);
                 assert.deepEqual(JSON.parse(asked.stdout), {
@@ -3918,15 +3944,16 @@ module.exports = {
 
             // Through the real install lock: the second command starts while the first is installing, waits for the
             // folder, and on getting it finds the package complete instead of installing again.
+            const lock = coordinatingLock();
             let second;
-            const waiting = setupSeams(installs, { lock: withProjectLock });
+            const waiting = setupSeams(installs, { lock });
             const first = setupSeams(
                 async () => {
                     second = setup(waiting);
                     await new Promise(resolve => setTimeout(resolve, 300));
                     return installs();
                 },
-                { lock: withProjectLock }
+                { lock }
             );
             assert.deepEqual(await setup(first), { status: 'installed', packages: ['parser'] });
             assert.deepEqual(await second, { status: 'present' });
@@ -3981,15 +4008,30 @@ module.exports = {
                 assert.equal(off.value.code, 'PACKAGE_SETUP_FAILED');
                 assert.match(off.value.reason, /CK_AUTO_INSTALL_DEPENDENCIES/);
                 assert.deepEqual(copy.calls(), []);
+                const unreachable = copy.run(['inspect', '--root', f.root], { searchPath: path.join(copy.tools, 'empty') });
+                assert.equal(unreachable.value.code, 'PACKAGE_SETUP_FAILED');
+                assert.match(unreachable.value.reason, /npm was not found on PATH/);
+
+                // ENVIRONMENT-BLOCKED on a host whose lock folder cannot be proven private (native Windows with an unprovable
+                // ACL): setup must refuse by that reason and start no installer, so the install and reuse below cannot run there.
+                if (!nativeLockIsPrivate()) {
+                    const blocked = copy.run(['inspect', '--root', f.root]);
+                    assert.equal(blocked.status, 1);
+                    assert.equal(blocked.value.status, 'refused');
+                    assert.equal(blocked.value.code, 'PACKAGE_SETUP_FAILED');
+                    assert.equal(
+                        blocked.value.reason,
+                        `Missing yaml: automatic setup cannot guard this folder safely here (${LOCK_OUTCOMES.PRIVACY_UNPROVABLE}). ${MANUAL_SETUP}, then retry`
+                    );
+                    assert.deepEqual(copy.calls(), [], 'an unguarded package folder starts no installer');
+                    return;
+                }
 
                 const failed = copy.run(['inspect', '--root', f.root], { installer: 'fail' });
                 assert.equal(failed.status, 1);
                 assert.equal(failed.value.status, 'refused');
                 assert.equal(failed.value.code, 'PACKAGE_SETUP_FAILED');
                 assert.equal(failed.value.reason, `Missing yaml: npm ended with exit code 1. ${MANUAL_SETUP}, then retry`);
-                const unreachable = copy.run(['inspect', '--root', f.root], { searchPath: path.join(copy.tools, 'empty') });
-                assert.equal(unreachable.value.code, 'PACKAGE_SETUP_FAILED');
-                assert.match(unreachable.value.reason, /npm was not found on PATH/);
 
                 const first = copy.run(['inspect', '--root', f.root]);
                 assert.equal(first.status, 0);

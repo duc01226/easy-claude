@@ -222,8 +222,10 @@ test('multiple checkout blocks coexist and restoring one preserves the other and
     fs.appendFileSync(f.codex, '\n[tui]\nnotifications = false\n');
     f.write(f.local, { frameworkRuntime: { mode: 'on' } });
     f.apply();
-    assert.ok(!fs.readFileSync(f.codex, 'utf8').includes(`${f.rootDir}/.agents`));
-    assert.ok(fs.readFileSync(f.codex, 'utf8').includes(`${second}/.agents`));
+    // Codex config.toml names each skill by its real path with forward slashes, on Windows too.
+    const tomlPath = root => `${fs.realpathSync(root).replace(/\\/g, '/')}/.agents/`;
+    assert.ok(!fs.readFileSync(f.codex, 'utf8').includes(tomlPath(f.rootDir)));
+    assert.ok(fs.readFileSync(f.codex, 'utf8').includes(tomlPath(second)));
     assert.match(fs.readFileSync(f.codex, 'utf8'), /notifications = false/);
     assert.equal(nativeStatus(second, f.homeDir, RESTRICT).restricted, true);
 });
