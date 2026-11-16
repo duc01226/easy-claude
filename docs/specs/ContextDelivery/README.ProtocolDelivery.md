@@ -21,7 +21,7 @@ entities:
 status: draft
 provisional: true
 owner: 'Framework maintainers'
-last_updated: '2026-10-14'
+last_updated: '2026-11-17'
 scope_mode: FRAMEWORK-LIBRARY
 large_idea_decomposition: null
 roadmap: null
@@ -260,7 +260,7 @@ Many skills follow the same shared protocols — evidence rules, review rules, t
 
 - **AC-PDL-32** — **Given** an agent of any type starts **When** its start is reported **Then** it receives the core engineering principles and the UI reuse guidance once for that spawn, plus the verdict and AI-feature directives when the session's latest recorded user prompt asks for one; workflow routing, commit and tracking guidance, setup offers and the prompt record stay with the main conversation (BR-PDL-21)
 - **AC-PDL-33** — **Given** the host reports a compaction **When** no prompt follows **Then** the core principles, the UI reuse guidance, the workflow route and catalog, and those two directives (judged on the latest recorded prompt) arrive at once, and the prompt that follows the host's own compaction boundary stays silent (BR-PDL-21)
-- **AC-PDL-34** — **Given** a long run that produces tool results **When** a scope's first tool result arrives, or about 150,000 tokens of growth, a compaction or a changed digest occurred since the last delivery **Then** a short digest routes reviews (a rationale or claim, a focused change or simple pull request, a complex pull request), tests, failure diagnosis and fixes to the project's registered skills; otherwise nothing arrives (BR-PDL-22)
+- **AC-PDL-34** — **Given** a long run that produces tool results **When** a scope's first tool result arrives, or about 150,000 tokens of growth, a compaction or a changed digest occurred since the last delivery **Then** a short digest routes reviews (a rationale or claim, a focused change or simple pull request, a complex pull request), tests, failure diagnosis and fixes to the project's registered skills and rules out ad hoc patches and workarounds that hide the cause; otherwise nothing arrives (BR-PDL-22)
 - **AC-PDL-35** — **Given** a project that opted into agent guides (off by default) and an agent definition converted by them (a trigger-gated protocol it neither keeps inline nor needs as a code-tier rule is carried as one guide line plus its reminder) **When** the agent starts **Then** the group hooks deliver that protocol's full text when its trigger applies or the trigger context cannot be read, deliver nothing for it otherwise, never repeat a protocol the agent still carries in full, and the guide line's published path stays the fallback; a second conversion run changes no byte, and disabling the policy (or keeping a tag inline) restores the full body verbatim (BR-PDL-08, BR-PDL-14)
 
 ## 4. Business Rules
@@ -468,7 +468,7 @@ An agent start and a compaction report carry no user prompt, yet both begin work
 
 ### BR-PDL-22: Quality-skill routes refresh after tool results [HARD]
 
-The universal bundle carries the quality-skill routing protocol: review, test and failure work use the project's registered skills first — judging a rationale, decision, claim or statement; reviewing a focused code change or a simple pull request; reviewing a pull request or change set that is complex, risky or cross-module; running or writing tests; diagnosing the root cause of a failure or error before any fix, then fixing every issue, failure or bug through the registered fix skill, or the bug-fix workflow for a non-trivial bug, never by an ad hoc patch — and a generic equivalent only when none fits. IF a tool result arrives in a scope (the main conversation or one agent) THEN a short digest of those routes is delivered once; afterwards it is delivered again only after about 150,000 tokens of conversation growth, a compaction recorded in that scope's own conversation (an agent's included) or a changed digest. Elapsed time alone never re-delivers it, and a host that exposes no conversation record receives one delivery until a compaction. A tool result without a session identity receives nothing. The project may switch the digest off; the universal protocol still binds.
+The universal bundle carries the quality-skill routing protocol: review, test and failure work use the project's registered skills first — judging a rationale, decision, claim or statement; reviewing a focused code change or a simple pull request; reviewing a pull request or change set that is complex, risky or cross-module; running or writing tests; diagnosing the root cause of a failure or error before any fix, then fixing every issue, failure or bug through the registered fix skill, or the bug-fix workflow for a non-trivial bug, never by an ad hoc patch or a workaround that hides the cause (the cause is repaired at its owner, or the work stops and is reported when that repair is out of scope) — and a generic equivalent only when none fits. IF a tool result arrives in a scope (the main conversation or one agent) THEN a short digest of those routes is delivered once; afterwards it is delivered again only after about 150,000 tokens of conversation growth, a compaction recorded in that scope's own conversation (an agent's included) or a changed digest. Elapsed time alone never re-delivers it, and a host that exposes no conversation record receives one delivery until a compaction. A tool result without a session identity receives nothing. The project may switch the digest off; the universal protocol still binds.
 
 `[Source: rule/hooks/quality-skill-reminder]`
 
@@ -7110,7 +7110,7 @@ boundaryCounterCase: 'a bare safe name → its body path'
 
 **Demo Flow / GWT:** Given the preconditions, when tool results arrive below and at the 150,000-token boundary, after a compaction in the main conversation or in an agent's own conversation, after a changed digest and after days with no growth, then the expected result holds.
 
-**Expected Result:** The first tool result of each scope delivers the digest as advisory context naming the rationale, focused-change and complex-pull-request review routes, the test skills, root-cause diagnosis and the fix routes (the fix skill, or the bug-fix workflow for a non-trivial bug); it is delivered again only at the growth boundary, after that scope's compaction or after a changed digest. Elapsed time, other events, a missing session identity and a switched-off project deliver nothing.
+**Expected Result:** The first tool result of each scope delivers the digest as advisory context naming the rationale, focused-change and complex-pull-request review routes, the test skills, root-cause diagnosis and the fix routes (the fix skill, or the bug-fix workflow for a non-trivial bug) and the ban on ad hoc patches and workarounds that hide the cause; it is delivered again only at the growth boundary, after that scope's compaction or after a changed digest. Elapsed time, other events, a missing session identity and a switched-off project deliver nothing.
 
 **Acceptance Criteria:** AC-PDL-34.
 

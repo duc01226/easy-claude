@@ -18,6 +18,7 @@ const path = require('node:path');
 const { spawn } = require('node:child_process');
 const { isFrameworkRepo } = require('../lib/framework-repo-guard.cjs');
 const { otherInode } = require('../lib/test-utils.cjs');
+const { LARGE_FILE_ID, withLargeFileIds } = require('../lib/large-file-ids.cjs');
 
 const HOOKS_DIR = path.resolve(__dirname, '../..');
 const HOOK = path.join(HOOKS_DIR, 'file-convention-inject.cjs');
@@ -508,6 +509,19 @@ const tests = [
                 } finally {
                     fs.statSync = nativePathStat;
                 }
+                // Given file IDs above 2^53 (NTFS), where a Number cannot tell one ID from the next / When the opened
+                // descriptor names the file one ID away from the resolved path / Then the exact IDs differ and nothing is credited.
+                const docFile = fs.realpathSync(fx.abs(doc));
+                const fileIds = openedId => (method, file) => (method === 'fstatSync' ? openedId : file === docFile ? LARGE_FILE_ID : undefined);
+                assert.ok(
+                    withLargeFileIds(fs, fileIds(LARGE_FILE_ID), () => ledger.scanEvidence(transcript, evidence, opts)),
+                    'same large file ID on both views still credits'
+                );
+                assert.equal(
+                    withLargeFileIds(fs, fileIds(LARGE_FILE_ID + 1n), () => ledger.scanEvidence(transcript, evidence, opts)),
+                    null,
+                    'opened file one ID away above 2^53 is a different file'
+                );
                 // Given two successful loads of the same current file / When rescanning / Then content IO is cached only within that scan.
                 const secondRequest = request('Read', { file_path: fx.abs(doc) }, 'second');
                 fs.writeFileSync(

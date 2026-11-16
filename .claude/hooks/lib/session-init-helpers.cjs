@@ -311,6 +311,13 @@ const REFERENCE_DOC_CATALOG = [
         templatePath: '.claude/templates/reference-docs/performance-test-reference.md'
     },
     {
+        filename: 'feature-map-reference.md',
+        purpose:
+            'Where each feature lives and how to drive it: surface, entry URL or command, fixture or role, end state; linked to spec story ids when specs exist.',
+        sections: [],
+        templatePath: '.claude/templates/reference-docs/feature-map-reference.md'
+    },
+    {
         filename: 'feature-spec-reference.md',
         purpose: 'Feature documentation patterns: app-to-service mapping, doc structure, templates, and conventions.',
         sections: ['App-to-Service Mapping', 'Feature Doc Structure', 'Templates', 'Conventions'],

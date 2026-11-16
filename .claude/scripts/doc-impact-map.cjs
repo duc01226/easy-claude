@@ -87,6 +87,7 @@ const SCAN_SKILL_MAP = (referenceRegistry && referenceRegistry.SCAN_SKILL_MAP) |
         'frontend-patterns-reference.md': 'scan --target=frontend-patterns',
         'integration-test-reference.md': 'scan --target=integration-tests',
         'performance-test-reference.md': 'scan --target=performance-tests',
+        'feature-map-reference.md': 'scan --target=feature-map',
         'feature-spec-reference.md': 'scan --target=feature-spec',
         'code-review-rules.md': 'scan --target=code-review-rules',
         'scss-styling-guide.md': 'scan --target=scss-styling',
@@ -512,6 +513,18 @@ function buildRules(config) {
             // Root-level prose (README, CONTRIBUTING, …) is part of the documented
             // doc tree; leaving it unrouted reads as "nothing to check".
             /^[^/]+\.(md|mdx)$/i.test(rel)
+    });
+
+    // R9b — feature map: its entries key on spec story ids, so a spec change can strand an
+    // entry or leave a new UI story without one. Only the business spec root owns stories.
+    const businessSpecRoot = toRepoRel((loader && loader.getSpecDocsPath && loader.getSpecDocsPath(config)) || 'docs/specs');
+    add({
+        id: 'feature-map',
+        reason: 'spec stories changed — feature-map entries can point at a story that is gone, or a new UI story can lack an entry',
+        docs: [builtinRefDoc('feature-map-reference.md')],
+        configSections: [],
+        checks: ['claims', 'coverage'],
+        match: rel => !!businessSpecRoot && isPathWithinRoot(rel, businessSpecRoot)
     });
 
     // R10 — domain entities (heuristic: no config field declares entity roots).
