@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { relativePath, LIMITS } = require('./task-tracking-config.cjs');
+const { sameFileIdentity } = require('./ck-path-utils.cjs');
 
 const fail = (code, message) => { throw Object.assign(new Error(message), { code }); };
 const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
@@ -29,17 +30,19 @@ function scopedPath(root, relative) {
 
 function readBytes(root, relative, limit = LIMITS.recordBytes) {
     const file = scopedPath(root, relative);
-    const before = fs.lstatSync(file);
-    if (!before.isFile() || before.nlink !== 1) fail('UNSAFE_PATH', 'Expected a regular unlinked file');
-    if (before.size > limit) fail('LIMIT_EXCEEDED', 'Input exceeds the selected byte budget');
+    // Bigint stats keep 64-bit file IDs exact (NTFS IDs exceed 2^53); see sameFileIdentity.
+    const before = fs.lstatSync(file, { bigint: true });
+    if (!before.isFile() || before.nlink !== 1n) fail('UNSAFE_PATH', 'Expected a regular unlinked file');
+    if (Number(before.size) > limit) fail('LIMIT_EXCEEDED', 'Input exceeds the selected byte budget');
     // NOFOLLOW protects the final component on platforms supporting the flag.
     const fd = fs.openSync(file, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
     try {
-        const opened = fs.fstatSync(fd);
-        if (opened.dev !== before.dev || opened.ino !== before.ino || opened.size > limit) fail('CONFLICT', 'File changed during inspection');
+        const opened = fs.fstatSync(fd, { bigint: true });
+        const openedSize = Number(opened.size);
+        if (!sameFileIdentity(opened, before) || openedSize > limit) fail('CONFLICT', 'File changed during inspection');
         // Retained record slices must not retain the maximum permitted file size.
         // One sentinel byte detects growth without reading an unbounded changed file.
-        const buffer = Buffer.alloc(opened.size + 1);
+        const buffer = Buffer.alloc(openedSize + 1);
         let size = 0;
         while (size < buffer.length) {
             const count = fs.readSync(fd, buffer, size, buffer.length - size, size);
@@ -47,9 +50,9 @@ function readBytes(root, relative, limit = LIMITS.recordBytes) {
             size += count;
         }
         if (size > limit) fail('LIMIT_EXCEEDED', 'Input exceeds the selected byte budget');
-        const after = fs.fstatSync(fd);
-        if (after.size > limit) fail('LIMIT_EXCEEDED', 'Input exceeds the selected byte budget');
-        if (size !== opened.size || after.size !== opened.size || after.mtimeMs !== opened.mtimeMs || after.ctimeMs !== opened.ctimeMs) fail('CONFLICT', 'File changed during inspection');
+        const after = fs.fstatSync(fd, { bigint: true });
+        if (Number(after.size) > limit) fail('LIMIT_EXCEEDED', 'Input exceeds the selected byte budget');
+        if (size !== openedSize || after.size !== opened.size || after.mtimeNs !== opened.mtimeNs || after.ctimeNs !== opened.ctimeNs) fail('CONFLICT', 'File changed during inspection');
         return buffer.subarray(0, size);
     } finally { fs.closeSync(fd); }
 }

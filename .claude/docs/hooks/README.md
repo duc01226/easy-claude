@@ -522,7 +522,7 @@ SESSION START (13 hooks)                        DURING SESSION
 | `ck-config-utils.cjs`  | Facade for config utilities                                                                     |
 | `ck-env-utils.cjs`     | Environment variable detection                                                                  |
 | `ck-git-utils.cjs`     | Low-level git utilities                                                                         |
-| `ck-path-utils.cjs`    | Path resolution/normalization; `isAbsolutePathWithin` is the canonical containment check        |
+| `ck-path-utils.cjs`    | Path resolution/normalization; `isAbsolutePathWithin` is the canonical containment check; `sameFileIdentity` is the canonical file-swap check (bigint `dev`/`ino`) |
 | `ck-plan-resolver.cjs` | Resolve active plan from session or branch context                                              |
 
 ### Security / Authority
@@ -865,12 +865,12 @@ Doc paths in this file are defaults resolved against the project-reference docs 
 
 ## Testing
 
-The primary runner declares 133 tests. The aggregate runner `run-all-tests.cjs` discovers 2262 tests declared across 133 suite files. Source inventory is not an execution result; read the runner output for observed discovery, outcomes and skips. The aggregate includes eighteen task-tracking suites with 590 declared executors.
+The primary runner declares 133 tests. The aggregate runner `run-all-tests.cjs` discovers 2265 tests declared across 133 suite files. Source inventory is not an execution result; read the runner output for observed discovery, outcomes and skips. The aggregate includes eighteen task-tracking suites with 591 declared executors.
 
 | Test Surface          | Count | File/Location                                                     |
 | --------------------- | ----- | ----------------------------------------------------------------- |
 | Primary hook runner   | 133   | `.claude/hooks/tests/test-all-hooks.cjs`                          |
-| Aggregate runner      | 2262 | `.claude/hooks/tests/run-all-tests.cjs` (all suites, declared)  |
+| Aggregate runner      | 2265 | `.claude/hooks/tests/run-all-tests.cjs` (all suites, declared)  |
 | Standalone test files | TODO  | `tests/test-*.cjs/.js` excluding runner (re-verify before citing) |
 | Lib unit tests        | TODO  | `lib/__tests__/*.test.cjs` (re-verify before citing)              |
 
