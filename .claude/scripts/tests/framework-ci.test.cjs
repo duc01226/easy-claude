@@ -48,7 +48,7 @@ function plan(files, scope = 'changed', idx = FIXTURE) {
 test('full scope runs every lane and every suite', () => {
     const result = plan([], 'full');
     assert.equal(result.effectiveScope, 'full');
-    assert.deepEqual(result.lanes, { sync: true, 'hook-unit': true, 'hook-suites': 'all' });
+    assert.deepEqual(result.lanes, { static: true, sync: true, 'hook-unit': true, 'hook-suites': 'all' });
     assert.deepEqual(
         Object.keys(result.lanes),
         ci.LANES.map(lane => lane.id),
@@ -81,12 +81,13 @@ test('harness files escalate to full', () => {
 test('files no test reads select nothing', () => {
     const result = plan(['LICENSE', '.vscode/settings.json', 'claude-start.cmd']);
     assert.equal(result.effectiveScope, 'changed');
-    assert.deepEqual(result.lanes, { sync: false, 'hook-unit': false, 'hook-suites': [] });
+    assert.deepEqual(result.lanes, { static: false, sync: false, 'hook-unit': false, 'hook-suites': [] });
 });
 
 test('a changed suite selects only itself', () => {
     const result = plan(['.claude/hooks/tests/suites/gamma.test.cjs']);
-    assert.deepEqual(result.lanes, { sync: false, 'hook-unit': false, 'hook-suites': ['gamma'] });
+    // A suite is JavaScript, so lint and formatting run too; no other test lane does.
+    assert.deepEqual(result.lanes, { static: true, sync: false, 'hook-unit': false, 'hook-suites': ['gamma'] });
 });
 
 test('an added or removed suite escalates to full for the count guard', () => {
@@ -126,7 +127,7 @@ test('a skill file selects suites naming the skill and directory scanners of tha
 test('a framework file no suite names still runs the sync lane', () => {
     const result = plan(['docs/specs/Some/README.Thing.md']);
     assert.equal(result.effectiveScope, 'changed');
-    assert.deepEqual(result.lanes, { sync: true, 'hook-unit': false, 'hook-suites': [] });
+    assert.deepEqual(result.lanes, { static: false, sync: true, 'hook-unit': false, 'hook-suites': [] });
 });
 
 test('selecting more than half of the suites escalates to full', () => {
@@ -144,12 +145,20 @@ test('one filter run per suite not already covered by a longer name match', () =
 test('GitHub outputs name every lane decision', () => {
     assert.deepEqual(ci.githubOutputLines(plan(['.claude/hooks/tests/suites/gamma.test.cjs'])), [
         'scope=changed',
+        'run_static=true',
         'run_sync=false',
         'run_hook_unit=false',
         'run_hook_suites=true',
         'hook_suites=gamma'
     ]);
-    assert.deepEqual(ci.githubOutputLines(plan([], 'full')), ['scope=full', 'run_sync=true', 'run_hook_unit=true', 'run_hook_suites=true', 'hook_suites=all']);
+    assert.deepEqual(ci.githubOutputLines(plan([], 'full')), [
+        'scope=full',
+        'run_static=true',
+        'run_sync=true',
+        'run_hook_unit=true',
+        'run_hook_suites=true',
+        'hook_suites=all'
+    ]);
 });
 
 test('arguments are validated', () => {
@@ -250,7 +259,10 @@ test('a full-scope plan needs no diff, so an unusable base cannot fail it', () =
     try {
         const output = path.join(repo.root, 'gh-output.txt');
         assert.equal(ci.main(['--plan', '--scope=full', '--base=no-such-branch', `--github-output=${output}`], repo.root), 0);
-        assert.match(fs.readFileSync(output, 'utf8'), /^scope=full\nrun_sync=true\nrun_hook_unit=true\nrun_hook_suites=true\nhook_suites=all\n$/);
+        assert.match(
+            fs.readFileSync(output, 'utf8'),
+            /^scope=full\nrun_static=true\nrun_sync=true\nrun_hook_unit=true\nrun_hook_suites=true\nhook_suites=all\n$/
+        );
     } finally {
         repo.cleanup();
     }
@@ -303,7 +315,10 @@ test('the gate writes its plan as GitHub outputs and runs nothing', () => {
         const output = path.join(repo.root, 'gh-output.txt');
         const code = ci.main(['--plan', '--base=main', `--github-output=${output}`], repo.root);
         assert.equal(code, 0);
-        assert.equal(fs.readFileSync(output, 'utf8'), 'scope=changed\nrun_sync=false\nrun_hook_unit=false\nrun_hook_suites=true\nhook_suites=alpha\n');
+        assert.equal(
+            fs.readFileSync(output, 'utf8'),
+            'scope=changed\nrun_static=true\nrun_sync=false\nrun_hook_unit=false\nrun_hook_suites=true\nhook_suites=alpha\n'
+        );
     } finally {
         repo.cleanup();
     }

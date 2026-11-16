@@ -7,15 +7,19 @@ const { object, LINK_ROLES } = require('./task-tracking-policy.cjs');
 const { sanitized } = require('./task-tracking.cjs');
 const { isPrivacySensitive } = require('./sensitive-path-policy.cjs');
 
-const excludedPath = value => /^(?:tmp|temp|\.agents|\.codex|\.opencode)\//.test(value)
-    || /(?:^|\/)(?:node_modules|dist|build|vendor)\//.test(value);
+const excludedPath = value => /^(?:tmp|temp|\.agents|\.codex|\.opencode)\//.test(value) || /(?:^|\/)(?:node_modules|dist|build|vendor)\//.test(value);
 const publicPath = value => relativePath(value) && !isPrivacySensitive(value) && !excludedPath(value.replace(/\\/g, '/'));
 
 function validateConcernQuery(query) {
-    if (!object(query) || Object.keys(query).some(key => !['schemaVersion', 'itemIds', 'paths'].includes(key))) fail('INVALID_INPUT', 'Concerns accepts only schemaVersion, exact itemIds and public paths');
+    if (!object(query) || Object.keys(query).some(key => !['schemaVersion', 'itemIds', 'paths'].includes(key)))
+        fail('INVALID_INPUT', 'Concerns accepts only schemaVersion, exact itemIds and public paths');
     if (query.schemaVersion !== 1) fail('UNSUPPORTED', 'Unsupported concern query version');
     let serialized;
-    try { serialized = JSON.stringify(query); } catch { fail('INVALID_INPUT', 'Concern query must be serializable JSON'); }
+    try {
+        serialized = JSON.stringify(query);
+    } catch {
+        fail('INVALID_INPUT', 'Concern query must be serializable JSON');
+    }
     if (Buffer.byteLength(serialized) > LIMITS.recordBytes) fail('LIMIT_EXCEEDED', 'Concern query exceeds the byte budget');
     const itemIds = query.itemIds === undefined ? [] : query.itemIds;
     const paths = query.paths === undefined ? [] : query.paths;
@@ -24,12 +28,15 @@ function validateConcernQuery(query) {
     if (itemIds.length > 64 || paths.length > LIMITS.records) fail('LIMIT_EXCEEDED', 'Select at most 64 items and a bounded path scope');
     if (paths.some(value => !relativePath(value) || isPrivacySensitive(value))) fail('UNSAFE_PATH', 'Select only permitted public project-relative paths');
     const normalized = paths.map(value => value.replace(/\\/g, '/'));
-    if (new Set(itemIds).size !== itemIds.length || new Set(normalized).size !== normalized.length) fail('INVALID_INPUT', 'Select each exact identity or normalized path once');
+    if (new Set(itemIds).size !== itemIds.length || new Set(normalized).size !== normalized.length)
+        fail('INVALID_INPUT', 'Select each exact identity or normalized path once');
     if (!itemIds.length && !paths.length) fail('INVALID_INPUT', 'Select at least one exact item or path');
     return { schemaVersion: 1, itemIds: [...itemIds], paths: normalized };
 }
 
-function identity(item) { return { itemId: item.id, kind: item.kind, ownerPath: item.ownerPath }; }
+function identity(item) {
+    return { itemId: item.id, kind: item.kind, ownerPath: item.ownerPath };
+}
 
 /**
  * One walk over the snapshot serves every selection, and each selection is projected exactly as if it were the only one.
@@ -51,32 +58,62 @@ function projectSelections(snapshot, selections, pathStatus) {
         if (state.coverage !== 'unavailable') state.coverage = 'partial';
     };
     // Retain reader findings, but do not expose arbitrary extra fields or raw source content.
-    const inherited = (snapshot.diagnostics || []).map(finding => ({ code: finding.code,
+    const inherited = (snapshot.diagnostics || []).map(finding => ({
+        code: finding.code,
         ...(typeof finding.itemId === 'string' && ITEM_ID.test(finding.itemId) ? { itemId: finding.itemId } : {}),
         ...(publicPath(finding.ownerPath || finding.path) ? { ownerPath: (finding.ownerPath || finding.path).replace(/\\/g, '/') } : {}),
-        reason: 'Selected reader reported this diagnostic; original source coverage is retained' }));
+        reason: 'Selected reader reported this diagnostic; original source coverage is retained'
+    }));
     const selectingId = new Map();
     const selectingPath = new Map();
-    const select = (index, key, state) => { if (index.has(key)) index.get(key).push(state); else index.set(key, [state]); };
+    const select = (index, key, state) => {
+        if (index.has(key)) index.get(key).push(state);
+        else index.set(key, [state]);
+    };
     const states = selections.map(selected => {
-        const state = { selected, ids: new Set(selected.itemIds), paths: new Set(selected.paths.filter(publicPath)), coverage: snapshot.coverage,
-            diagnostics: [], omittedDiagnostics: 0, included: new Map(), relationships: [], pending: [], stop: null };
+        const state = {
+            selected,
+            ids: new Set(selected.itemIds),
+            paths: new Set(selected.paths.filter(publicPath)),
+            coverage: snapshot.coverage,
+            diagnostics: [],
+            omittedDiagnostics: 0,
+            included: new Map(),
+            relationships: [],
+            pending: [],
+            stop: null
+        };
         for (const finding of inherited) diagnose(state, finding);
         if (snapshot.profile?.available === false && snapshot.profile.code) diagnose(state, { code: snapshot.profile.code, reason: snapshot.profile.reason });
         state.excludedPaths = selected.paths.length - state.paths.size;
-        if (state.excludedPaths) diagnose(state, { code: 'EXCLUDED_PATH', reason: 'Generated or private runtime scope was excluded; it was not checked as canonical work', count: state.excludedPaths });
+        if (state.excludedPaths)
+            diagnose(state, {
+                code: 'EXCLUDED_PATH',
+                reason: 'Generated or private runtime scope was excluded; it was not checked as canonical work',
+                count: state.excludedPaths
+            });
         for (const id of state.ids) {
             select(selectingId, id, state);
             const item = byId.get(id);
             if (item) state.included.set(item.ownerPath, item);
-            else diagnose(state, { code: byId.has(id) ? 'AMBIGUOUS_OWNER' : 'UNRESOLVED_OWNER', itemId: id, reason: 'Exact identity has no unique owner in the selected snapshot' });
+            else
+                diagnose(state, {
+                    code: byId.has(id) ? 'AMBIGUOUS_OWNER' : 'UNRESOLVED_OWNER',
+                    itemId: id,
+                    reason: 'Exact identity has no unique owner in the selected snapshot'
+                });
         }
         for (const relative of state.paths) {
             select(selectingPath, relative, state);
             if (byPath.has(relative)) state.included.set(byPath.get(relative).ownerPath, byPath.get(relative));
             const resolution = pathStatus(relative);
-            if (resolution !== 'resolved') diagnose(state, { code: 'UNRESOLVED_PATH', ownerPath: relative, resolution,
-                reason: 'Selected path ownership cannot be established in this source; no replacement was inferred' });
+            if (resolution !== 'resolved')
+                diagnose(state, {
+                    code: 'UNRESOLVED_PATH',
+                    ownerPath: relative,
+                    resolution,
+                    reason: 'Selected path ownership cannot be established in this source; no replacement was inferred'
+                });
         }
         return state;
     });
@@ -88,7 +125,7 @@ function projectSelections(snapshot, selections, pathStatus) {
         if (judged.size < LIMITS.records * 4) judged.set(value, verdict);
         return verdict;
     };
-    const union = (first, second) => !first ? second : !second ? first : [...new Set([...first, ...second])];
+    const union = (first, second) => (!first ? second : !second ? first : [...new Set([...first, ...second])]);
     const shared = [];
     let active = states.length;
     let visitedRelationships = 0;
@@ -102,10 +139,12 @@ function projectSelections(snapshot, selections, pathStatus) {
         for (const link of item.links || []) {
             visitedRelationships++;
             if (!object(link) || !LINK_ROLES.includes(link.relation)) {
-                shared.push({ code: 'UNSUPPORTED_RELATIONSHIP', itemId: item.id, reason: 'Relationship cannot be safely projected' }); continue;
+                shared.push({ code: 'UNSUPPORTED_RELATIONSHIP', itemId: item.id, reason: 'Relationship cannot be safely projected' });
+                continue;
             }
             if (link.path !== undefined && !publicTarget(link.path)) {
-                shared.push({ code: 'EXCLUDED_PATH', itemId: item.id, reason: 'Nonpublic relationship target was excluded' }); continue;
+                shared.push({ code: 'EXCLUDED_PATH', itemId: item.id, reason: 'Nonpublic relationship target was excluded' });
+                continue;
             }
             const targetPath = link.path?.replace(/\\/g, '/');
             const candidates = union(selectingOwner, union(selectingId.get(link.itemId), selectingPath.get(targetPath)));
@@ -119,11 +158,22 @@ function projectSelections(snapshot, selections, pathStatus) {
                 if (!directions.length) continue;
                 if (!target) {
                     const owner = link.itemId !== undefined ? byId.get(link.itemId) : byPath.get(targetPath);
-                    target = { owner, resolution: link.itemId !== undefined ? (owner ? 'resolved' : byId.has(link.itemId) ? 'ambiguous' : 'missing') : pathStatus(targetPath) };
+                    target = {
+                        owner,
+                        resolution: link.itemId !== undefined ? (owner ? 'resolved' : byId.has(link.itemId) ? 'ambiguous' : 'missing') : pathStatus(targetPath)
+                    };
                 }
                 const { owner: targetOwner, resolution } = target;
-                if (resolution !== 'resolved') state.pending.push({ after: shared.length, value: { code: 'UNRESOLVED_RELATIONSHIP', itemId: item.id, resolution,
-                    reason: 'Declared target has no proved unique owner in the selected source' } });
+                if (resolution !== 'resolved')
+                    state.pending.push({
+                        after: shared.length,
+                        value: {
+                            code: 'UNRESOLVED_RELATIONSHIP',
+                            itemId: item.id,
+                            resolution,
+                            reason: 'Declared target has no proved unique owner in the selected source'
+                        }
+                    });
                 state.included.set(item.ownerPath, item);
                 if (targetOwner) state.included.set(targetOwner.ownerPath, targetOwner);
                 for (const direction of directions) {
@@ -133,9 +183,17 @@ function projectSelections(snapshot, selections, pathStatus) {
                         if (!--active) break outer;
                         break;
                     }
-                    state.relationships.push({ owner: identity(item), relation: link.relation, direction,
-                        target: link.itemId !== undefined ? { itemId: link.itemId, ...(targetOwner ? { ownerPath: targetOwner.ownerPath } : {}) } : { path: targetPath },
-                        resolution, rationale: direction === 'incoming' ? 'Original owner declares this exact selected target' : 'Selected owner declares this exact target' });
+                    state.relationships.push({
+                        owner: identity(item),
+                        relation: link.relation,
+                        direction,
+                        target:
+                            link.itemId !== undefined
+                                ? { itemId: link.itemId, ...(targetOwner ? { ownerPath: targetOwner.ownerPath } : {}) }
+                                : { path: targetPath },
+                        resolution,
+                        rationale: direction === 'incoming' ? 'Original owner declares this exact selected target' : 'Selected owner declares this exact target'
+                    });
                 }
             }
         }
@@ -152,25 +210,56 @@ function projectSelections(snapshot, selections, pathStatus) {
         const outputTruncated = !!state.stop;
         const inspected = state.stop || { visitedOwners, visitedRelationships };
         const omittedRelationships = totalRelationships - inspected.visitedRelationships;
-        if (omittedRelationships || outputTruncated) diagnose(state, { code: 'CONCERN_LIMIT',
-            reason: 'Relationship inspection or output reached its protective bound; remaining scope is not certified', omittedRelationships });
+        if (omittedRelationships || outputTruncated)
+            diagnose(state, {
+                code: 'CONCERN_LIMIT',
+                reason: 'Relationship inspection or output reached its protective bound; remaining scope is not certified',
+                omittedRelationships
+            });
         try {
-            const items = [...included.values()].map(item => ({ ...identity(item), identityStatus: byId.get(item.id) === item ? 'unique' : 'ambiguous', state: item.state, revision: item.revision, contentHash: item.contentHash,
-                assigneeId: item.assigneeId, optOut: item.optOut, retired: !!item.retired,
+            const items = [...included.values()].map(item => ({
+                ...identity(item),
+                identityStatus: byId.get(item.id) === item ? 'unique' : 'ambiguous',
+                state: item.state,
+                revision: item.revision,
+                contentHash: item.contentHash,
+                assigneeId: item.assigneeId,
+                optOut: item.optOut,
+                retired: !!item.retired,
                 verification: { status: item.verification?.status || 'unknown', reason: item.verification?.reason },
                 acceptance: { accepted: item.acceptance?.accepted === true, historyCount: item.acceptance?.historyCount || 0 },
-                prerequisiteReasons: item.prerequisiteReasons || [] }));
-            const result = sanitized({ schemaVersion: 1, coverage: state.coverage, source: snapshot.source, asOf: snapshot.asOf, snapshotFingerprint: snapshot.fingerprint,
-                profile: snapshot.profile, scope: { itemIds: selected.itemIds, paths: [...paths], excludedPathCount: state.excludedPaths },
-                items, relationships, diagnostics, inspection: { visitedOwners: inspected.visitedOwners, visitedRelationships: inspected.visitedRelationships, emittedRelationships: relationships.length,
-                    omittedRelationships, outputTruncated, omittedDiagnostics: state.omittedDiagnostics,
+                prerequisiteReasons: item.prerequisiteReasons || []
+            }));
+            const result = sanitized({
+                schemaVersion: 1,
+                coverage: state.coverage,
+                source: snapshot.source,
+                asOf: snapshot.asOf,
+                snapshotFingerprint: snapshot.fingerprint,
+                profile: snapshot.profile,
+                scope: { itemIds: selected.itemIds, paths: [...paths], excludedPathCount: state.excludedPaths },
+                items,
+                relationships,
+                diagnostics,
+                inspection: {
+                    visitedOwners: inspected.visitedOwners,
+                    visitedRelationships: inspected.visitedRelationships,
+                    emittedRelationships: relationships.length,
+                    omittedRelationships,
+                    outputTruncated,
+                    omittedDiagnostics: state.omittedDiagnostics,
                     pathAvailability: 'Separate per-file observation; unverified against snapshotFingerprint',
                     fingerprintScope: 'Tracker snapshot only; confidence is as-of that snapshot, not an atomic path or publication check',
-                    bounds: { selectedItems: 64, selectedPaths: LIMITS.records, relationships: LIMITS.records, bytes: LIMITS.recordBytes } },
-                authority: 'Read diagnostic only; supplied paths do not certify a complete PR candidate or authorize mutation' });
-            if (Buffer.byteLength(JSON.stringify(result)) > LIMITS.recordBytes) fail('LIMIT_EXCEEDED', 'Concern result exceeds the byte budget; narrow the exact scope');
+                    bounds: { selectedItems: 64, selectedPaths: LIMITS.records, relationships: LIMITS.records, bytes: LIMITS.recordBytes }
+                },
+                authority: 'Read diagnostic only; supplied paths do not certify a complete PR candidate or authorize mutation'
+            });
+            if (Buffer.byteLength(JSON.stringify(result)) > LIMITS.recordBytes)
+                fail('LIMIT_EXCEEDED', 'Concern result exceeds the byte budget; narrow the exact scope');
             return { result };
-        } catch (error) { return { error }; }
+        } catch (error) {
+            return { error };
+        }
     });
 }
 
@@ -183,8 +272,18 @@ function projectConcerns(snapshot, query, pathStatus = () => 'unverified') {
 
 /** Answers many exact single-path queries from one walk. Every entry holds what projectConcerns returns or throws for that path alone. */
 function projectPathConcerns(snapshot, paths, pathStatus = () => 'unverified') {
-    const queries = paths.map(path => { try { return { selected: validateConcernQuery({ schemaVersion: 1, paths: [path] }) }; } catch (error) { return { error }; } });
-    const projected = projectSelections(snapshot, queries.filter(query => query.selected).map(query => query.selected), pathStatus);
+    const queries = paths.map(path => {
+        try {
+            return { selected: validateConcernQuery({ schemaVersion: 1, paths: [path] }) };
+        } catch (error) {
+            return { error };
+        }
+    });
+    const projected = projectSelections(
+        snapshot,
+        queries.filter(query => query.selected).map(query => query.selected),
+        pathStatus
+    );
     let next = 0;
     return queries.map((query, position) => ({ path: paths[position], ...(query.error ? { error: query.error } : projected[next++]) }));
 }
@@ -204,7 +303,9 @@ function readConcerns(root, query, options = {}) {
                 if (Date.now() - startedAt > LIMITS.processTimeoutMs) fail('LIMIT_EXCEEDED', 'Path inspection bound reached');
                 readBytes(root, relative);
                 status = 'resolved';
-            } catch (error) { status = error.code === 'NOT_FOUND' || error.code === 'ENOENT' ? 'missing' : 'unverified'; }
+            } catch (error) {
+                status = error.code === 'NOT_FOUND' || error.code === 'ENOENT' ? 'missing' : 'unverified';
+            }
         }
         checked.set(relative, status);
         return status;

@@ -84,18 +84,28 @@ const LEGACY_ROOT = [
     ''
 ].join('\n');
 // Universal rules that once lived in the root and never return there.
-const UNIVERSAL_MARKERS = [/CK:UNIVERSAL-GUIDES/, /CK:CRITICAL-THINKING/, /CK:AI-MISTAKE-PREVENTION/, /CK:WORKFLOW-ROUTE-POINTER/, /CK:WORKFLOW-GATE/,
-    /^## Task Planning Rules/m, /^## Git & Version-Control Discipline/m, /^## Workflow Step Advancement/m, /^## Evidence-Based Reasoning/m, /^## Code Responsibility Hierarchy/m,
-    /^## Continuous Improvement/m, /^## Generated Artifact Storage/m, /^## Canonical Ownership/m, /^## Project Protocol Overlays/m];
+const UNIVERSAL_MARKERS = [
+    /CK:UNIVERSAL-GUIDES/,
+    /CK:CRITICAL-THINKING/,
+    /CK:AI-MISTAKE-PREVENTION/,
+    /CK:WORKFLOW-ROUTE-POINTER/,
+    /CK:WORKFLOW-GATE/,
+    /^## Task Planning Rules/m,
+    /^## Git & Version-Control Discipline/m,
+    /^## Workflow Step Advancement/m,
+    /^## Evidence-Based Reasoning/m,
+    /^## Code Responsibility Hierarchy/m,
+    /^## Continuous Improvement/m,
+    /^## Generated Artifact Storage/m,
+    /^## Canonical Ownership/m,
+    /^## Project Protocol Overlays/m
+];
 
 /** Populated config so isConfigPopulated() returns true (project.name + one section). */
 function writePopulatedConfig(tmpDir, extra = {}) {
     const docsDir = path.join(tmpDir, 'docs');
     fs.mkdirSync(docsDir, { recursive: true });
-    fs.writeFileSync(
-        path.join(docsDir, 'project-config.json'),
-        JSON.stringify({ project: { name: 'Test Project' }, framework: { name: 'react' }, ...extra })
-    );
+    fs.writeFileSync(path.join(docsDir, 'project-config.json'), JSON.stringify({ project: { name: 'Test Project' }, framework: { name: 'react' }, ...extra }));
 }
 
 /** Temp project that passes hasProjectContent() (needs a content dir like src/). */
@@ -112,7 +122,11 @@ function withEnv(tmpDir, fn) {
     try {
         return fn();
     } finally {
-        if (orig === undefined) { delete process.env.CLAUDE_PROJECT_DIR; } else { process.env.CLAUDE_PROJECT_DIR = orig; }
+        if (orig === undefined) {
+            delete process.env.CLAUDE_PROJECT_DIR;
+        } else {
+            process.env.CLAUDE_PROJECT_DIR = orig;
+        }
         clearStateCache();
     }
 }
@@ -131,7 +145,14 @@ const libTests = [
                     const { getMissingAgentFiles, hasMissingAgentFiles } = freshState(tmpDir);
                     const missing = getMissingAgentFiles();
                     assertEqual(missing.length, 2, 'Both CLAUDE.md and AGENTS.md missing');
-                    assertEqual(missing.map(m => m.file).sort().join(','), 'AGENTS.md,CLAUDE.md', 'Correct files reported');
+                    assertEqual(
+                        missing
+                            .map(m => m.file)
+                            .sort()
+                            .join(','),
+                        'AGENTS.md,CLAUDE.md',
+                        'Correct files reported'
+                    );
                     assertTrue(hasMissingAgentFiles(), 'hasMissingAgentFiles true');
                 });
             } finally {
@@ -191,10 +212,7 @@ const libTests = [
                     state.writeAgentFilesDismissFlag();
                     assertTrue(state.isAgentFilesDismissed(), 'Dismissed after flag written');
                     // Flag lives under project tmp, not inside .claude (keeps framework portable)
-                    assertTrue(
-                        fs.existsSync(path.join(tmpDir, 'tmp', 'claude-temp', '.agent-files-dismissed')),
-                        'Dismiss flag written to project tmp dir'
-                    );
+                    assertTrue(fs.existsSync(path.join(tmpDir, 'tmp', 'claude-temp', '.agent-files-dismissed')), 'Dismiss flag written to project tmp dir');
                 });
             } finally {
                 cleanupTempDir(tmpDir);
@@ -318,10 +336,7 @@ const promptGateIntegration = [
                     env: { CLAUDE_PROJECT_DIR: tmpDir }
                 });
                 assertAllowed(result.code, 'Dismiss request → allowed');
-                assertTrue(
-                    fs.existsSync(path.join(tmpDir, 'tmp', 'claude-temp', '.agent-files-dismissed')),
-                    'Shared dismiss flag written'
-                );
+                assertTrue(fs.existsSync(path.join(tmpDir, 'tmp', 'claude-temp', '.agent-files-dismissed')), 'Shared dismiss flag written');
             } finally {
                 cleanupTempDir(tmpDir);
             }
@@ -347,7 +362,9 @@ const existenceOnlyTests = [
                     assertEqual(getAgentFileIssues().length, 0, 'project-only roots raise no issue');
                     assertTrue(!hasMissingAgentFiles(), 'nothing is missing');
                 });
-            } finally { cleanupTempDir(tmpDir); }
+            } finally {
+                cleanupTempDir(tmpDir);
+            }
         }
     },
     {
@@ -365,7 +382,9 @@ const existenceOnlyTests = [
                     assertEqual(issues[0].reason, 'missing', 'a present CLAUDE.md is not flagged');
                     assertEqual(issues[0].mode, 'init', 'a missing file routes to init');
                 });
-            } finally { cleanupTempDir(tmpDir); }
+            } finally {
+                cleanupTempDir(tmpDir);
+            }
         }
     },
     {
@@ -375,12 +394,24 @@ const existenceOnlyTests = [
             try {
                 withEnv(tmpDir, () => {
                     const state = freshState(tmpDir);
-                    for (const retired of ['hasUniversalGuides', 'isUniversalGuidesRequired', 'hasClaudeProtocol', 'hasAgentsProtocol', 'UNIVERSAL_GUIDES_VERSION', 'SENTINEL_RE', 'REQUIRED_ANCHORS', 'CK_PROTOCOL_MARKERS', 'CANONICAL_PROTOCOL_PHRASES']) {
+                    for (const retired of [
+                        'hasUniversalGuides',
+                        'isUniversalGuidesRequired',
+                        'hasClaudeProtocol',
+                        'hasAgentsProtocol',
+                        'UNIVERSAL_GUIDES_VERSION',
+                        'SENTINEL_RE',
+                        'REQUIRED_ANCHORS',
+                        'CK_PROTOCOL_MARKERS',
+                        'CANONICAL_PROTOCOL_PHRASES'
+                    ]) {
                         assertTrue(!(retired in state), `${retired} is retired`);
                     }
                     for (const entry of state.AGENT_FILES) assertTrue(!('hasProtocol' in entry), `${entry.file} has no protocol probe`);
                 });
-            } finally { cleanupTempDir(tmpDir); }
+            } finally {
+                cleanupTempDir(tmpDir);
+            }
         }
     },
     {
@@ -400,7 +431,9 @@ const existenceOnlyTests = [
                         assertTrue(!msg.includes(retired), `offer no longer mentions ${retired}`);
                     }
                 });
-            } finally { cleanupTempDir(tmpDir); }
+            } finally {
+                cleanupTempDir(tmpDir);
+            }
         }
     },
     {
@@ -417,7 +450,9 @@ const existenceOnlyTests = [
                 });
                 assertAllowed(result.code, 'Project-only roots → prompt allowed');
                 assertTrue(!result.stdout.includes('Root agent-instruction file'), 'no root-file offer for existing roots');
-            } finally { cleanupTempDir(tmpDir); }
+            } finally {
+                cleanupTempDir(tmpDir);
+            }
         }
     }
 ];
@@ -449,9 +484,17 @@ const generatorTests = [
                 assertContains(out, '<!-- SECTION:tldr -->', 'generated sections are kept');
                 assertTrue(Buffer.byteLength(out, 'utf8') < 32768, 'the root is under the 32 KiB host budget');
                 withEnv(tmpDir, () => {
-                    assertEqual(freshState(tmpDir).getAgentFileIssues().find(i => i.file === 'CLAUDE.md'), undefined, 'the gate reads the generated root as complete');
+                    assertEqual(
+                        freshState(tmpDir)
+                            .getAgentFileIssues()
+                            .find(i => i.file === 'CLAUDE.md'),
+                        undefined,
+                        'the gate reads the generated root as complete'
+                    );
                 });
-            } finally { cleanupTempDir(tmpDir); }
+            } finally {
+                cleanupTempDir(tmpDir);
+            }
         }
     },
     {
@@ -472,7 +515,9 @@ const generatorTests = [
                     status = error.status;
                 }
                 assertEqual(status, 0, 'the sync preflight accepts a markerless project-owned root');
-            } finally { cleanupTempDir(tmpDir); }
+            } finally {
+                cleanupTempDir(tmpDir);
+            }
         }
     },
     {
@@ -493,14 +538,17 @@ const generatorTests = [
                 assertContains(run.stderr, '--strip-legacy-universal', 'and the flag that removes them');
                 const after = fs.readFileSync(claudeMd, 'utf-8');
                 // Managed blocks and the sentinel are gone
-                for (const marker of [/CK:UNIVERSAL-GUIDES/, /CK:CRITICAL-THINKING/, /CK:WORKFLOW-ROUTE-POINTER/]) assertTrue(!marker.test(after), `${marker} stripped`);
+                for (const marker of [/CK:UNIVERSAL-GUIDES/, /CK:CRITICAL-THINKING/, /CK:WORKFLOW-ROUTE-POINTER/])
+                    assertTrue(!marker.test(after), `${marker} stripped`);
                 // Hand-editable sections stay
                 assertContains(after, '## Task Planning Rules', 'a legacy section is kept without the flag');
                 assertContains(after, 'Project routing stays.', 'project content is kept');
                 // Second update is a no-op
                 runGenerator(tmpDir, '--mode', 'update');
                 assertEqual(fs.readFileSync(claudeMd, 'utf-8'), after, 'a second update changes nothing');
-            } finally { cleanupTempDir(tmpDir); }
+            } finally {
+                cleanupTempDir(tmpDir);
+            }
         }
     },
     {
@@ -521,7 +569,9 @@ const generatorTests = [
                 runGenerator(tmpDir, '--mode', 'update', '--strip-legacy-universal');
                 assertEqual(fs.readFileSync(claudeMd, 'utf-8'), after, 'stripping twice changes nothing');
                 assertTrue(fs.existsSync(path.join(tmpDir, '.claude-md.backup')), 'a backup of the previous root is written');
-            } finally { cleanupTempDir(tmpDir); }
+            } finally {
+                cleanupTempDir(tmpDir);
+            }
         }
     },
     {
@@ -539,10 +589,5 @@ const generatorTests = [
 
 module.exports = {
     name: 'Agent-Files Bootstrap Gate',
-    tests: [
-        ...libTests,
-        ...existenceOnlyTests,
-        ...promptGateIntegration,
-        ...generatorTests
-    ]
+    tests: [...libTests, ...existenceOnlyTests, ...promptGateIntegration, ...generatorTests]
 };

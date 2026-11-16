@@ -100,10 +100,7 @@ const tests = SCRIPTS.map(([script, coverage]) => ({
                 .filter(line => /\[FAIL\]|✗|✘|Assertion failed|FAILED/.test(line))
                 .slice(0, 20)
                 .join('\n');
-            throw new Error(
-                `${script} exited ${code}\n${failures || stdout.slice(-1200)}` +
-                    (stderr ? `\nstderr: ${stderr.slice(-500)}` : '')
-            );
+            throw new Error(`${script} exited ${code}\n${failures || stdout.slice(-1200)}` + (stderr ? `\nstderr: ${stderr.slice(-500)}` : ''));
         }
     }
 }));

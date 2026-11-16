@@ -91,16 +91,20 @@ test('TC-FREG-CLI-006: sibling configured roots in one directory parse each docu
     const root = await makeRoot([configuredParent, siblingParent]);
     await fs.writeFile(path.join(root, configuredParent), parentSpec, 'utf8');
     await fs.writeFile(path.join(root, 'docs', 'specs', 'Fixture', 'README.FixtureFeature-Part2.md'), continuationSpec, 'utf8');
-    await fs.writeFile(path.join(root, siblingParent), [
-        '---',
-        'feature_code: SIBLING',
-        '---',
-        '# Sibling',
-        '## 8. Test Specifications',
-        '### TC-SIBLING-001: Sibling case',
-        '> **CoveredBy:** Untested · **Status:** Untested',
-        ''
-    ].join('\n'), 'utf8');
+    await fs.writeFile(
+        path.join(root, siblingParent),
+        [
+            '---',
+            'feature_code: SIBLING',
+            '---',
+            '# Sibling',
+            '## 8. Test Specifications',
+            '### TC-SIBLING-001: Sibling case',
+            '> **CoveredBy:** Untested · **Status:** Untested',
+            ''
+        ].join('\n'),
+        'utf8'
+    );
 
     // When: verify in configured-roots mode.
     const result = runConfigured(root);

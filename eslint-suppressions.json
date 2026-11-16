@@ -1,0 +1,1355 @@
+{
+  ".claude/hooks/core-principles-inject.cjs": {
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
+  ".claude/hooks/doc-sync-gate.cjs": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/knowledge-route.cjs": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/ck-config-loader.cjs": {
+    "no-unused-vars": {
+      "count": 2
+    }
+  },
+  ".claude/hooks/lib/ck-git-utils.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    },
+    "no-useless-escape": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/ck-path-utils.cjs": {
+    "no-control-regex": {
+      "count": 2
+    },
+    "prefer-const": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/ck-paths.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/ck-plan-resolver.cjs": {
+    "no-restricted-syntax": {
+      "count": 3
+    },
+    "no-unused-vars": {
+      "count": 2
+    }
+  },
+  ".claude/hooks/lib/ck-session-state.cjs": {
+    "no-unused-vars": {
+      "count": 5
+    }
+  },
+  ".claude/hooks/lib/command-inspection.cjs": {
+    "no-control-regex": {
+      "count": 1
+    },
+    "no-useless-escape": {
+      "count": 1
+    },
+    "prefer-const": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/convention-ledger.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    },
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/debug-log.cjs": {
+    "no-unused-vars": {
+      "count": 4
+    }
+  },
+  ".claude/hooks/lib/doc-stamp-guard.cjs": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/file-conventions.cjs": {
+    "no-control-regex": {
+      "count": 1
+    },
+    "no-useless-assignment": {
+      "count": 3
+    }
+  },
+  ".claude/hooks/lib/git-operation-lease.cjs": {
+    "no-control-regex": {
+      "count": 1
+    },
+    "no-unused-vars": {
+      "count": 4
+    }
+  },
+  ".claude/hooks/lib/git-statement.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/hook-runner.cjs": {
+    "prefer-const": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/knowledge-index.cjs": {
+    "no-irregular-whitespace": {
+      "count": 1
+    },
+    "no-useless-assignment": {
+      "count": 3
+    }
+  },
+  ".claude/hooks/lib/knowledge-pack.cjs": {
+    "no-irregular-whitespace": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/path-boundary-policy.cjs": {
+    "no-unused-vars": {
+      "count": 3
+    },
+    "no-useless-escape": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/project-config-loader.cjs": {
+    "no-unused-vars": {
+      "count": 2
+    },
+    "prefer-const": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/project-config-schema.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/prompt-ledger-store.cjs": {
+    "no-irregular-whitespace": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/prompt-route-utils.cjs": {
+    "no-irregular-whitespace": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/protocol-delivery.cjs": {
+    "no-irregular-whitespace": {
+      "count": 2
+    },
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/review-receipt.cjs": {
+    "no-control-regex": {
+      "count": 3
+    },
+    "no-unused-vars": {
+      "count": 20
+    },
+    "no-useless-assignment": {
+      "count": 2
+    },
+    "no-useless-escape": {
+      "count": 1
+    },
+    "preserve-caught-error": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/sensitive-path-policy.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/spec-artifact-profile.cjs": {
+    "no-control-regex": {
+      "count": 1
+    },
+    "no-useless-escape": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/startup-install-lock.cjs": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/startup-install.cjs": {
+    "no-control-regex": {
+      "count": 2
+    },
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
+  ".claude/hooks/lib/stdin-parser.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    },
+    "prefer-const": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/swap-engine.cjs": {
+    "no-unused-vars": {
+      "count": 2
+    }
+  },
+  ".claude/hooks/lib/task-artifact-store.cjs": {
+    "no-unused-vars": {
+      "count": 2
+    }
+  },
+  ".claude/hooks/lib/task-tracking-config.cjs": {
+    "no-control-regex": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/task-tracking-earlier-project.cjs": {
+    "no-unused-vars": {
+      "count": 2
+    }
+  },
+  ".claude/hooks/lib/task-tracking-files.cjs": {
+    "no-unsafe-finally": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/task-tracking-identity.cjs": {
+    "no-control-regex": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/task-tracking-lock.cjs": {
+    "no-unsafe-finally": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/task-tracking-migration.cjs": {
+    "no-unused-vars": {
+      "count": 3
+    }
+  },
+  ".claude/hooks/lib/task-tracking-policy.cjs": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/task-tracking-profile.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/task-tracking-vocabulary.cjs": {
+    "no-control-regex": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/task-tracking.cjs": {
+    "prefer-const": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/temp-file-cleanup.cjs": {
+    "no-unused-vars": {
+      "count": 5
+    }
+  },
+  ".claude/hooks/lib/todo-state.cjs": {
+    "no-unused-vars": {
+      "count": 5
+    }
+  },
+  ".claude/hooks/lib/windows-git.cjs": {
+    "no-control-regex": {
+      "count": 3
+    },
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/workflow-route-delivery.cjs": {
+    "no-restricted-syntax": {
+      "count": 1
+    },
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/lib/workflow-state.cjs": {
+    "no-unused-vars": {
+      "count": 5
+    }
+  },
+  ".claude/hooks/notifications/notify.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/notifications/providers/desktop.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/notifications/providers/slack.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/post-edit-prettier.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    },
+    "prefer-const": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/prompt-ledger.cjs": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/review-commit-gate.cjs": {
+    "no-unused-vars": {
+      "count": 3
+    },
+    "prefer-const": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/session-init-docs.cjs": {
+    "no-unused-vars": {
+      "count": 2
+    }
+  },
+  ".claude/hooks/session-init.cjs": {
+    "no-unused-vars": {
+      "count": 6
+    }
+  },
+  ".claude/hooks/skill-overlay-remind.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    },
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/helpers/test-utils.cjs": {
+    "no-unused-vars": {
+      "count": 5
+    },
+    "preserve-caught-error": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/lib/failure-log.cjs": {
+    "no-restricted-syntax": {
+      "count": 1
+    },
+    "no-unused-vars": {
+      "count": 2
+    }
+  },
+  ".claude/hooks/tests/run-all-tests.cjs": {
+    "no-useless-escape": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/suites/agent-universal-rules.test.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/suites/ai-feature-gate-inject.test.cjs": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/suites/ai-feature-route.test.cjs": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/suites/ai-gate-zero-cost.test.cjs": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/suites/ai-signal-scan.test.cjs": {
+    "no-control-regex": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/suites/bugfix-regression.test.cjs": {
+    "no-unused-vars": {
+      "count": 5
+    }
+  },
+  ".claude/hooks/tests/suites/command-inspection.test.cjs": {
+    "no-restricted-syntax": {
+      "count": 5
+    }
+  },
+  ".claude/hooks/tests/suites/content-presence.test.cjs": {
+    "no-restricted-syntax": {
+      "count": 2
+    }
+  },
+  ".claude/hooks/tests/suites/docroot-relocation.test.cjs": {
+    "no-unsafe-finally": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/suites/file-convention-inject.test.cjs": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/suites/git-operation-lease.test.cjs": {
+    "no-restricted-syntax": {
+      "count": 1
+    },
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/suites/graph-optional.test.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/suites/graph-venv.test.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/suites/integration.test.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/suites/lifecycle.test.cjs": {
+    "no-empty": {
+      "count": 3
+    },
+    "no-unused-vars": {
+      "count": 3
+    }
+  },
+  ".claude/hooks/tests/suites/notification.test.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/suites/pr-review-scope.test.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/suites/project-protocol-drift.test.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/suites/protocol-host-mapping.test.cjs": {
+    "no-irregular-whitespace": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/suites/reference-doc-freshness.test.cjs": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/suites/review-commit-gate.test.cjs": {
+    "no-unused-vars": {
+      "count": 3
+    }
+  },
+  ".claude/hooks/tests/suites/review-fix-product-pins.test.cjs": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/suites/review-lanes.test.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/suites/review-mode-sections.test.cjs": {
+    "no-restricted-syntax": {
+      "count": 2
+    },
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/suites/startup-install.test.cjs": {
+    "no-control-regex": {
+      "count": 1
+    },
+    "no-unused-vars": {
+      "count": 2
+    },
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/suites/swap-engine.test.cjs": {
+    "no-unused-vars": {
+      "count": 6
+    }
+  },
+  ".claude/hooks/tests/suites/task-tracking-authored-records.test.cjs": {
+    "no-restricted-syntax": {
+      "count": 4
+    }
+  },
+  ".claude/hooks/tests/suites/task-tracking-cli-access.test.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/suites/task-tracking-identity.test.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/suites/task-tracking-maintenance-contracts.test.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/suites/task-tracking-migration.test.cjs": {
+    "no-constant-binary-expression": {
+      "count": 1
+    },
+    "preserve-caught-error": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/suites/task-tracking-route.test.cjs": {
+    "no-useless-escape": {
+      "count": 1
+    },
+    "preserve-caught-error": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/suites/task-tracking-runtime-contract.test.cjs": {
+    "no-restricted-syntax": {
+      "count": 2
+    }
+  },
+  ".claude/hooks/tests/suites/task-tracking-store.test.cjs": {
+    "no-restricted-syntax": {
+      "count": 1
+    },
+    "no-unused-vars": {
+      "count": 2
+    }
+  },
+  ".claude/hooks/tests/suites/task-tracking-upkeep.test.cjs": {
+    "prefer-const": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/suites/task-tracking-vocabulary.test.cjs": {
+    "no-unused-vars": {
+      "count": 2
+    }
+  },
+  ".claude/hooks/tests/suites/ui-ux-gate-inject.test.cjs": {
+    "no-restricted-syntax": {
+      "count": 1
+    },
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/suites/windows-git.test.cjs": {
+    "no-control-regex": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/suites/workflow-routing-switch.test.cjs": {
+    "no-restricted-syntax": {
+      "count": 2
+    }
+  },
+  ".claude/hooks/tests/suites/workflow.test.cjs": {
+    "no-unused-vars": {
+      "count": 2
+    }
+  },
+  ".claude/hooks/tests/test-all-hooks.cjs": {
+    "no-empty": {
+      "count": 1
+    },
+    "no-unused-vars": {
+      "count": 35
+    }
+  },
+  ".claude/hooks/tests/test-doc-sync-gate.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/test-git-statement.cjs": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/test-lib-modules.cjs": {
+    "no-unused-vars": {
+      "count": 24
+    }
+  },
+  ".claude/hooks/tests/test-modularization-hook.js": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/test-shared-utilities.cjs": {
+    "no-unused-vars": {
+      "count": 10
+    },
+    "prefer-const": {
+      "count": 1
+    }
+  },
+  ".claude/hooks/tests/test-swap-engine.cjs": {
+    "no-unused-vars": {
+      "count": 2
+    }
+  },
+  ".claude/hooks/token-budget-checkpoint.cjs": {
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
+  ".claude/hooks/verify-install.cjs": {
+    "no-empty": {
+      "count": 1
+    },
+    "no-useless-escape": {
+      "count": 2
+    }
+  },
+  ".claude/scripts/ai-signal-scan.cjs": {
+    "no-control-regex": {
+      "count": 1
+    },
+    "no-unused-vars": {
+      "count": 1
+    },
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/build-protocol-projection.cjs": {
+    "no-empty": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/check-subagent-routing.cjs": {
+    "no-irregular-whitespace": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/codex/migrate-claude-to-codex.mjs": {
+    "no-unused-vars": {
+      "count": 1
+    },
+    "no-useless-assignment": {
+      "count": 1
+    },
+    "no-useless-escape": {
+      "count": 3
+    },
+    "preserve-caught-error": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/codex/read-workflow-entry.mjs": {
+    "no-empty": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/codex/sync-context-workflows.mjs": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/codex/tests/export-scope.test.mjs": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/codex/tests/framework-policy-regressions.test.mjs": {
+    "no-restricted-syntax": {
+      "count": 4
+    }
+  },
+  ".claude/scripts/codex/tests/generate-claude-md-content-guard.test.mjs": {
+    "no-restricted-syntax": {
+      "count": 3
+    }
+  },
+  ".claude/scripts/codex/tests/generate-tech-specs.test.mjs": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/codex/tests/git-authority-contract.test.mjs": {
+    "no-restricted-syntax": {
+      "count": 4
+    }
+  },
+  ".claude/scripts/codex/tests/hook-documentation-contract.test.mjs": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/codex/tests/journal-output-contract.test.mjs": {
+    "no-restricted-syntax": {
+      "count": 2
+    }
+  },
+  ".claude/scripts/codex/tests/migrate-claude-to-codex.test.mjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/codex/tests/mirror-write-guards.test.mjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/codex/tests/prompt-contracts.test.mjs": {
+    "no-useless-escape": {
+      "count": 6
+    }
+  },
+  ".claude/scripts/codex/tests/review-policy-consumers.test.mjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/codex/tests/round3-prompt-contract.test.mjs": {
+    "no-restricted-syntax": {
+      "count": 1
+    },
+    "no-unused-vars": {
+      "count": 2
+    }
+  },
+  ".claude/scripts/codex/tests/skill-repairs-execution.test.mjs": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/codex/tests/spec-carrier-reader-yaml.test.mjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/codex/tests/symlinked-tmpdir-contract.test.mjs": {
+    "no-control-regex": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/codex/tests/sync-hooks.test.mjs": {
+    "no-useless-escape": {
+      "count": 2
+    }
+  },
+  ".claude/scripts/codex/tests/verifier-pipeline-wiring.test.mjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/codex/tests/verifier-root-contract.test.mjs": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/codex/tests/verify-skill-protocol-compliance.test.mjs": {
+    "no-restricted-syntax": {
+      "count": 2
+    }
+  },
+  ".claude/scripts/codex/tests/verify-sync-adoption-parity.test.mjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/codex/tests/verify-workflow-cycle-compliance.test.mjs": {
+    "no-restricted-syntax": {
+      "count": 3
+    }
+  },
+  ".claude/scripts/codex/tests/workflow-manifest.test.mjs": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/codex/tests/workflow-skill-contract.test.mjs": {
+    "no-regex-spaces": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/codex/tests/workflow-skills-catalog.test.mjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/codex/verify-feature-registry.mjs": {
+    "preserve-caught-error": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/codex/verify-sdd-semantic-compliance.mjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/codex/verify-sync-adoption-parity.mjs": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/context-evaluation-adapters/claude-code-observer.mjs": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/doc-impact-map.cjs": {
+    "no-restricted-syntax": {
+      "count": 1
+    },
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
+  ".claude/scripts/framework-mode.cjs": {
+    "preserve-caught-error": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/lib/commit-review-policy.cjs": {
+    "no-control-regex": {
+      "count": 1
+    },
+    "preserve-caught-error": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/lib/count-marker-files.cjs": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/lib/experience-verification.cjs": {
+    "no-control-regex": {
+      "count": 2
+    },
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/lib/framework-native-skills.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    },
+    "preserve-caught-error": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/lib/project-root.cjs": {
+    "no-empty": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/lib/review-policy.cjs": {
+    "no-control-regex": {
+      "count": 1
+    },
+    "no-unused-vars": {
+      "count": 5
+    },
+    "preserve-caught-error": {
+      "count": 3
+    }
+  },
+  ".claude/scripts/lib/skill-instruction-profile.cjs": {
+    "no-regex-spaces": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/lib/spec-carrier-js-parser.cjs": {
+    "no-empty": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/lib/workflow-baseline.cjs": {
+    "no-unused-vars": {
+      "count": 2
+    },
+    "prefer-const": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/lib/workflow-skill-contract.cjs": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/opencode/sync-config.mjs": {
+    "preserve-caught-error": {
+      "count": 2
+    }
+  },
+  ".claude/scripts/opencode/sync-hooks.mjs": {
+    "no-restricted-syntax": {
+      "count": 1
+    },
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/opencode/sync-skills.mjs": {
+    "preserve-caught-error": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/skill-gc.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/statusline-tps.cjs": {
+    "no-empty": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/sync-skill-profile.cjs": {
+    "no-irregular-whitespace": {
+      "count": 1
+    },
+    "preserve-caught-error": {
+      "count": 2
+    }
+  },
+  ".claude/scripts/tests/experience-config.test.cjs": {
+    "no-restricted-syntax": {
+      "count": 2
+    }
+  },
+  ".claude/scripts/tests/framework-benchmark-native.test.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/tests/framework-benchmark-template.test.cjs": {
+    "prefer-const": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/tests/framework-native-quiet-restrict.test.cjs": {
+    "prefer-const": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/tests/review-closure-contract.test.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/tests/skill-validator.test.cjs": {
+    "no-restricted-syntax": {
+      "count": 6
+    }
+  },
+  ".claude/scripts/tests/sync-reader-parity.test.cjs": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/tests/sync-skill-profile.test.cjs": {
+    "prefer-const": {
+      "count": 1
+    }
+  },
+  ".claude/scripts/tests/sync-update-blocks-guide.test.cjs": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  ".claude/skills/ai-context-refresh/scripts/generate-claude-md.cjs": {
+    "no-control-regex": {
+      "count": 1
+    },
+    "no-empty": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 3
+    },
+    "no-unused-vars": {
+      "count": 1
+    },
+    "no-useless-escape": {
+      "count": 1
+    }
+  },
+  ".claude/skills/ai-context-refresh/scripts/section-builders.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    },
+    "no-useless-escape": {
+      "count": 1
+    }
+  },
+  ".claude/skills/docx-convert/to-docx/scripts/lib/converter.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/skills/docx-convert/to-docx/tests/converter.test.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/skills/docx-convert/to-docx/tests/run-tests.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/skills/docx-convert/to-markdown/scripts/lib/converter.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/skills/docx-convert/to-markdown/scripts/lib/output-handler.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/skills/docx-convert/to-markdown/tests/converter.test.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/skills/docx-convert/to-markdown/tests/run-tests.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/skills/framework-benchmark/cases/dependency-planner/checks/public-test-reporter.cjs": {
+    "require-yield": {
+      "count": 1
+    }
+  },
+  ".claude/skills/framework-benchmark/lib/compare.cjs": {
+    "no-unused-vars": {
+      "count": 2
+    }
+  },
+  ".claude/skills/framework-benchmark/lib/contract.cjs": {
+    "no-control-regex": {
+      "count": 3
+    }
+  },
+  ".claude/skills/framework-benchmark/lib/experiment.cjs": {
+    "preserve-caught-error": {
+      "count": 1
+    }
+  },
+  ".claude/skills/framework-benchmark/lib/files.cjs": {
+    "no-control-regex": {
+      "count": 1
+    }
+  },
+  ".claude/skills/framework-benchmark/lib/journey.cjs": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  ".claude/skills/framework-benchmark/lib/templates.cjs": {
+    "no-control-regex": {
+      "count": 2
+    },
+    "no-unsafe-finally": {
+      "count": 1
+    }
+  },
+  ".claude/skills/framework-benchmark/scripts/benchmark.cjs": {
+    "prefer-const": {
+      "count": 1
+    }
+  },
+  ".claude/skills/framework-benchmark/scripts/templates.cjs": {
+    "prefer-const": {
+      "count": 1
+    }
+  },
+  ".claude/skills/framework-update/scripts/update-from-upstream.mjs": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  ".claude/skills/git-developer-performance/scripts/git-developer-performance.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/skills/html-export/scripts/capture-sites.cjs": {
+    "no-control-regex": {
+      "count": 1
+    },
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
+  ".claude/skills/html-export/scripts/lib/browser.cjs": {
+    "no-empty": {
+      "count": 2
+    }
+  },
+  ".claude/skills/html-export/scripts/lib/chromium-engine.cjs": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  ".claude/skills/html-export/scripts/lib/ffmpeg.cjs": {
+    "no-empty": {
+      "count": 2
+    }
+  },
+  ".claude/skills/html-export/scripts/lib/paths.cjs": {
+    "no-control-regex": {
+      "count": 1
+    }
+  },
+  ".claude/skills/html-export/scripts/lib/to-pdf.cjs": {
+    "no-empty": {
+      "count": 1
+    },
+    "no-irregular-whitespace": {
+      "count": 1
+    },
+    "preserve-caught-error": {
+      "count": 2
+    }
+  },
+  ".claude/skills/html-export/scripts/lib/to-png.cjs": {
+    "no-empty": {
+      "count": 1
+    }
+  },
+  ".claude/skills/html-export/scripts/lib/to-video.cjs": {
+    "no-empty": {
+      "count": 2
+    }
+  },
+  ".claude/skills/html-export/tests/browser.test.cjs": {
+    "no-empty": {
+      "count": 1
+    }
+  },
+  ".claude/skills/html-export/tests/to-pdf.test.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/skills/knowledge-base/scripts/knowledge-base.cjs": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  ".claude/skills/pdf-convert/to-markdown/scripts/lib/converter.cjs": {
+    "no-empty": {
+      "count": 2
+    },
+    "no-unused-vars": {
+      "count": 5
+    },
+    "preserve-caught-error": {
+      "count": 1
+    }
+  },
+  ".claude/skills/pdf-convert/to-markdown/scripts/lib/pdf-detector.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/skills/pdf-convert/to-markdown/tests/run-tests.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/skills/pdf-convert/to-pdf/tests/chrome-finder.test.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/skills/pdf-convert/to-pdf/tests/converter.test.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/skills/presentation-builder/tests/validate-presentation.test.cjs": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  ".claude/skills/project-help/scripts/project-overview.cjs": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  ".claude/skills/release-doc/lib/categorize-commits.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/skills/release-doc/lib/detect-breaking.cjs": {
+    "no-useless-escape": {
+      "count": 2
+    }
+  },
+  ".claude/skills/release-doc/lib/detect-services.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/skills/release-doc/lib/extract-pr-metadata.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/skills/release-doc/lib/parse-commits.cjs": {
+    "no-useless-escape": {
+      "count": 1
+    }
+  },
+  ".claude/skills/release-doc/lib/render-template.cjs": {
+    "no-unused-vars": {
+      "count": 3
+    }
+  },
+  ".claude/skills/release-doc/lib/transform-llm.cjs": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  ".claude/skills/release-doc/lib/validate-notes.cjs": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/skills/skill-creator/scripts/validate-skills.cjs": {
+    "no-control-regex": {
+      "count": 1
+    },
+    "no-empty": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 1
+    },
+    "no-unused-vars": {
+      "count": 3
+    },
+    "no-useless-escape": {
+      "count": 1
+    },
+    "prefer-const": {
+      "count": 1
+    }
+  },
+  ".claude/skills/sync-codex/scripts/run-codex-sync.mjs": {
+    "preserve-caught-error": {
+      "count": 2
+    }
+  },
+  ".claude/skills/sync-opencode/scripts/run-opencode-sync.mjs": {
+    "preserve-caught-error": {
+      "count": 1
+    }
+  },
+  ".claude/skills/task-track/assets/app.js": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  ".claude/skills/task-track/lib/report-view.cjs": {
+    "no-restricted-syntax": {
+      "count": 1
+    },
+    "no-unused-vars": {
+      "count": 3
+    }
+  },
+  ".claude/skills/task-track/lib/shared-snapshot.cjs": {
+    "no-control-regex": {
+      "count": 1
+    }
+  },
+  ".claude/skills/task-track/lib/workspace-server.cjs": {
+    "prefer-const": {
+      "count": 1
+    }
+  },
+  ".claude/skills/task-track/tests/browser-support.cjs": {
+    "preserve-caught-error": {
+      "count": 1
+    }
+  },
+  ".claude/skills/task-track/tests/workspace-browser.test.cjs": {
+    "no-unused-vars": {
+      "count": 3
+    }
+  },
+  ".claude/skills/tech-spec/scripts/generate-tech-specs.mjs": {
+    "no-useless-escape": {
+      "count": 2
+    }
+  },
+  ".claude/skills/ui-design/scripts/audit-actions.cjs": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  ".claude/skills/ui-design/tests/pick-style.test.cjs": {
+    "no-irregular-whitespace": {
+      "count": 1
+    }
+  }
+}

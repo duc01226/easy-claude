@@ -31,7 +31,7 @@ const { liveSourceFiles } = require('../lib/live-source-files.cjs');
 const { resolveAllWorkflowManifests, resolveWorkflowManifest } = require('../../../scripts/lib/workflow-manifest.cjs');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
-const SKIP = isFrameworkRepo(REPO_ROOT) ? false : 'asserts the framework repo\'s own skills and workflow registry (framework-repo signal)';
+const SKIP = isFrameworkRepo(REPO_ROOT) ? false : "asserts the framework repo's own skills and workflow registry (framework-repo signal)";
 const SKILLS = path.join(REPO_ROOT, '.claude', 'skills');
 
 // The removed names, assembled so this file never contains the literal tokens it guards against.
@@ -41,11 +41,7 @@ const REMOVED_TOOL_PATTERN = new RegExp('excali' + 'draw|' + REMOVED_WORKFLOW, '
 
 const LIVE_SOURCE_ROOTS = ['.claude', 'docs/specs', 'docs/project-reference', 'docs/adr', 'docs/templates', 'README.md', 'CLAUDE.md'];
 // Generated catalogs are rebuilt from the skill folders; release notes keep history.
-const SCAN_EXCLUDED = new Set([
-    '.claude/SKILLS.yaml',
-    '.claude/scripts/skills_data.yaml',
-    '.claude/hooks/tests/suites/visualize-removal.test.cjs'
-]);
+const SCAN_EXCLUDED = new Set(['.claude/SKILLS.yaml', '.claude/scripts/skills_data.yaml', '.claude/hooks/tests/suites/visualize-removal.test.cjs']);
 const SCAN_EXCLUDED_DIRS = new Set(['node_modules', '.git', '.code-graph', '.venv', '__pycache__', 'tmp', 'temp', 'plans']);
 const SCAN_EXTENSIONS = new Set(['.md', '.cjs', '.mjs', '.js', '.py', '.json', '.yaml', '.yml', '.html', '.toml']);
 
@@ -69,7 +65,10 @@ const tests = [
             const raw = fs.readFileSync(path.join(REPO_ROOT, '.claude', 'workflows.json'), 'utf8');
             const document = JSON.parse(raw);
             assert.ok(!(REMOVED_WORKFLOW in document.workflows), `workflows.json must not define ${REMOVED_WORKFLOW}`);
-            assert.ok(!REMOVED_TOOL_PATTERN.test(raw), 'workflows.json must not mention the removed workflow or skill anywhere (steps, gates, whenToUse, injected context)');
+            assert.ok(
+                !REMOVED_TOOL_PATTERN.test(raw),
+                'workflows.json must not mention the removed workflow or skill anywhere (steps, gates, whenToUse, injected context)'
+            );
             const skills = new Set();
             for (const id of Object.keys(document.workflows)) {
                 for (const manifest of resolveAllWorkflowManifests(document, id, { rootDir: REPO_ROOT })) {

@@ -49,22 +49,13 @@ function info(kind) {
 
 function fakeGitFs({ omit = [], symlinks = [] } = {}) {
     const root = 'C:\\Program Files\\Git';
-    const files = [
-        root,
-        `${root}\\cmd\\git.exe`,
-        `${root}\\git-bash.exe`,
-        `${root}\\usr\\bin\\bash.exe`
-    ];
+    const files = [root, `${root}\\cmd\\git.exe`, `${root}\\git-bash.exe`, `${root}\\usr\\bin\\bash.exe`];
     const omitSet = new Set(omit.map(value => value.toLowerCase()));
     const symlinkSet = new Set(symlinks.map(value => value.toLowerCase()));
     const env = {
         ProgramFiles: 'C:\\Program Files',
         LOCALAPPDATA: 'C:\\Users\\fixture\\AppData\\Local',
-        Path: [
-            'C:\\Windows\\System32',
-            `${root}\\cmd`,
-            'C:\\Users\\fixture\\AppData\\Local\\Microsoft\\WindowsApps'
-        ].join(';')
+        Path: ['C:\\Windows\\System32', `${root}\\cmd`, 'C:\\Users\\fixture\\AppData\\Local\\Microsoft\\WindowsApps'].join(';')
     };
     const seams = {
         lstat: target => {
@@ -83,7 +74,12 @@ function fakeGitFs({ omit = [], symlinks = [] } = {}) {
     return { root, env, seams };
 }
 
-function repairSeams({ state = 'missing', reason = 'not-found', winget = 'C:\\Users\\fixture\\WindowsApps\\winget.exe', spawnResult = { ok: true, pid: 42 } } = {}) {
+function repairSeams({
+    state = 'missing',
+    reason = 'not-found',
+    winget = 'C:\\Users\\fixture\\WindowsApps\\winget.exe',
+    spawnResult = { ok: true, pid: 42 }
+} = {}) {
     const calls = [];
     const seams = {
         platform: () => 'win32',
@@ -107,7 +103,9 @@ const tests = [
         fn: () => {
             const nonWindows = repairSeams();
             nonWindows.seams.platform = () => 'linux';
-            nonWindows.seams.resolveGit = () => { throw new Error('must not probe non-Windows'); };
+            nonWindows.seams.resolveGit = () => {
+                throw new Error('must not probe non-Windows');
+            };
             const posix = windowsGit.ensureWindowsGit({
                 source: 'startup',
                 seams: nonWindows.seams,
@@ -138,10 +136,7 @@ const tests = [
             assert.match(ready.capability.bashExe, /\\Git\\usr\\bin\\bash\.exe$/i);
 
             const noNativeBash = fakeGitFs({
-                omit: [
-                    `${complete.root}\\usr\\bin\\bash.exe`,
-                    `${complete.root}\\bin\\bash.exe`
-                ]
+                omit: [`${complete.root}\\usr\\bin\\bash.exe`, `${complete.root}\\bin\\bash.exe`]
             });
             const rejected = windowsGit.DEFAULT_SEAMS.resolveGit({
                 seams: noNativeBash.seams,
@@ -186,10 +181,7 @@ const tests = [
                 configStatus: { state: 'missing', config: {} }
             });
             assert.equal(started.outcome, windowsGit.OUTCOMES.REPAIR_STARTED);
-            assert.deepEqual(missing.calls, [
-                'resolve-winget',
-                { kind: 'missing', wingetPath: 'C:\\Users\\fixture\\WindowsApps\\winget.exe' }
-            ]);
+            assert.deepEqual(missing.calls, ['resolve-winget', { kind: 'missing', wingetPath: 'C:\\Users\\fixture\\WindowsApps\\winget.exe' }]);
 
             const noWinget = repairSeams({ winget: null });
             const unavailable = windowsGit.ensureWindowsGit({
@@ -215,10 +207,7 @@ const tests = [
                 configStatus: { state: 'missing', config: {} }
             });
             assert.equal(brokenResult.outcome, windowsGit.OUTCOMES.REPAIR_STARTED);
-            assert.deepEqual(broken.calls, [
-                'resolve-winget',
-                { kind: 'broken', wingetPath: 'C:\\Users\\fixture\\WindowsApps\\winget.exe' }
-            ]);
+            assert.deepEqual(broken.calls, ['resolve-winget', { kind: 'broken', wingetPath: 'C:\\Users\\fixture\\WindowsApps\\winget.exe' }]);
 
             const incomplete = repairSeams({ state: 'incomplete', reason: 'native-components-incomplete' });
             const incompleteResult = windowsGit.ensureWindowsGit({
@@ -227,10 +216,7 @@ const tests = [
                 configStatus: { state: 'missing', config: {} }
             });
             assert.equal(incompleteResult.outcome, windowsGit.OUTCOMES.REPAIR_STARTED);
-            assert.deepEqual(incomplete.calls, [
-                'resolve-winget',
-                { kind: 'incomplete', wingetPath: 'C:\\Users\\fixture\\WindowsApps\\winget.exe' }
-            ]);
+            assert.deepEqual(incomplete.calls, ['resolve-winget', { kind: 'incomplete', wingetPath: 'C:\\Users\\fixture\\WindowsApps\\winget.exe' }]);
         }
     },
     {
@@ -263,7 +249,11 @@ const tests = [
             assert.equal(readOnlyResult.outcome, windowsGit.OUTCOMES.REPAIR_NEEDED);
             assert.deepEqual(readOnly.calls, []);
             assert.deepEqual(windowsGit.resolvePolicy({ state: 'loaded', config: {} }), { valid: true, enabled: true, autoRepair: true });
-            assert.deepEqual(windowsGit.resolvePolicy({ state: 'loaded', config: { hooks: { windowsGit: { enabled: 'true' } } } }), { valid: false, enabled: false, autoRepair: false });
+            assert.deepEqual(windowsGit.resolvePolicy({ state: 'loaded', config: { hooks: { windowsGit: { enabled: 'true' } } } }), {
+                valid: false,
+                enabled: false,
+                autoRepair: false
+            });
         }
     },
     {
@@ -278,8 +268,16 @@ const tests = [
                 args: windowsGit.REPAIR_ARGS
             });
             assert.deepEqual(missing.args, [
-                'install', '--id', 'Git.Git', '--exact', '--source', 'winget', '--silent',
-                '--disable-interactivity', '--accept-source-agreements', '--accept-package-agreements'
+                'install',
+                '--id',
+                'Git.Git',
+                '--exact',
+                '--source',
+                'winget',
+                '--silent',
+                '--disable-interactivity',
+                '--accept-source-agreements',
+                '--accept-package-agreements'
             ]);
 
             const broken = windowsGit.buildRepairPlan('C:\\Users\\fixture\\WindowsApps\\winget.exe', true);
@@ -372,30 +370,31 @@ const tests = [
     },
     {
         name: '[windows-git-publication] shell env publication and diagnostics reject hostile capability data',
-        fn: () => withTempDir(root => {
-            const envFile = path.join(root, 'env.sh');
-            const published = windowsGit.defaultPublishEnvironment({ envFile, capability: capability() });
-            assert.equal(published.ok, true);
-            const text = fs.readFileSync(envFile, 'utf8');
-            assert.equal(text.split('\n').filter(Boolean).length, 4);
-            assert.match(text, /export CK_GIT_EXE=/);
-            assert.match(text, /export CK_GIT_BASH_EXE=/);
-            assert.match(text, /export CK_GIT_BASH_PATH=/);
-            assert.match(text, /export PATH=/);
+        fn: () =>
+            withTempDir(root => {
+                const envFile = path.join(root, 'env.sh');
+                const published = windowsGit.defaultPublishEnvironment({ envFile, capability: capability() });
+                assert.equal(published.ok, true);
+                const text = fs.readFileSync(envFile, 'utf8');
+                assert.equal(text.split('\n').filter(Boolean).length, 4);
+                assert.match(text, /export CK_GIT_EXE=/);
+                assert.match(text, /export CK_GIT_BASH_EXE=/);
+                assert.match(text, /export CK_GIT_BASH_PATH=/);
+                assert.match(text, /export PATH=/);
 
-            const hostile = { ...capability(), gitExe: 'C:\\Git\\bad\r\nFORGED' };
-            assert.equal(windowsGit.withGitEnvironment({ PATH: 'safe' }, hostile).CK_GIT_EXE, undefined);
-            assert.equal(windowsGit.defaultPublishEnvironment({ envFile: path.join(root, 'bad.sh'), capability: hostile }).ok, false);
-            for (const result of [
-                { outcome: windowsGit.OUTCOMES.REPAIR_STARTED },
-                { outcome: windowsGit.OUTCOMES.SKIP_WINGET_UNAVAILABLE },
-                { outcome: windowsGit.OUTCOMES.SKIP_REPAIR_UNAVAILABLE },
-                { outcome: windowsGit.OUTCOMES.SKIP_CONFIG_INVALID }
-            ]) {
-                const message = windowsGit.formatDiagnostic(result);
-                assert.ok(message && !/[\r\n\u001b]|FORGED/.test(message));
-            }
-        })
+                const hostile = { ...capability(), gitExe: 'C:\\Git\\bad\r\nFORGED' };
+                assert.equal(windowsGit.withGitEnvironment({ PATH: 'safe' }, hostile).CK_GIT_EXE, undefined);
+                assert.equal(windowsGit.defaultPublishEnvironment({ envFile: path.join(root, 'bad.sh'), capability: hostile }).ok, false);
+                for (const result of [
+                    { outcome: windowsGit.OUTCOMES.REPAIR_STARTED },
+                    { outcome: windowsGit.OUTCOMES.SKIP_WINGET_UNAVAILABLE },
+                    { outcome: windowsGit.OUTCOMES.SKIP_REPAIR_UNAVAILABLE },
+                    { outcome: windowsGit.OUTCOMES.SKIP_CONFIG_INVALID }
+                ]) {
+                    const message = windowsGit.formatDiagnostic(result);
+                    assert.ok(message && !/[\r\n\u001b]|FORGED/.test(message));
+                }
+            })
     }
 ];
 

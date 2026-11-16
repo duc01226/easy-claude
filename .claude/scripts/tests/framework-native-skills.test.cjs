@@ -34,8 +34,14 @@ function fixture(t) {
     const claude = path.join(rootDir, '.claude/settings.local.json');
     const codex = path.join(homeDir, '.codex/config.toml');
     const apply = (scope = 'checkout', root = rootDir) => applyNativeSkills(planNativeSkills({ rootDir: root, homeDir, env: {}, scope }));
-    const env = { PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, HOME: homeDir, USERPROFILE: homeDir,
-        CLAUDE_PROJECT_DIR: rootDir, CK_AUTO_INSTALL_DEPENDENCIES: '0' };
+    const env = {
+        PATH: process.env.PATH,
+        SystemRoot: process.env.SystemRoot,
+        HOME: homeDir,
+        USERPROFILE: homeDir,
+        CLAUDE_PROJECT_DIR: rootDir,
+        CK_AUTO_INSTALL_DEPENDENCIES: '0'
+    };
     const run = args => spawnSync(process.execPath, [cli, ...args], { cwd: rootDir, env, encoding: 'utf8', timeout: 15000 });
     t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
     return { dir, homeDir, rootDir, write, project, user, local, claude, codex, apply, run };
@@ -43,8 +49,9 @@ function fixture(t) {
 
 function linkSettings(t, target, file) {
     fs.mkdirSync(path.dirname(file), { recursive: true });
-    try { fs.symlinkSync(target, file, 'file'); }
-    catch (error) {
+    try {
+        fs.symlinkSync(target, file, 'file');
+    } catch (error) {
         if (process.platform !== 'win32' || error.code !== 'EPERM') throw error;
         t.skip('File symlinks require Windows Developer Mode or symlink privilege.');
         return false;
@@ -128,7 +135,10 @@ test('off disables every framework skill and quiet restores prior native policy 
     f.write(f.local, { frameworkRuntime: { mode: 'off' } });
     f.apply();
     assert.deepEqual(JSON.parse(fs.readFileSync(f.claude)).skillOverrides, {
-        commit: 'off', unrelated: 'on', 'why-review': 'off', 'workflow-feature': 'off'
+        commit: 'off',
+        unrelated: 'on',
+        'why-review': 'off',
+        'workflow-feature': 'off'
     });
     const disabled = fs.readFileSync(f.codex, 'utf8');
     assert.equal((disabled.match(/enabled = false/g) || []).length, 3);
@@ -147,7 +157,8 @@ test('off disables every framework skill and quiet restores prior native policy 
 test('global toggles cover registered checkouts and honor a checkout opt-in', t => {
     const f = fixture(t);
     const second = f.project('second');
-    f.apply(); f.apply('checkout', second);
+    f.apply();
+    f.apply('checkout', second);
     f.write(f.user, { frameworkRuntime: { mode: 'off' } });
     f.write(f.local, { frameworkRuntime: { mode: 'quiet' } });
     const results = f.apply('user');
@@ -165,7 +176,8 @@ test('multiple checkout blocks coexist and restoring one preserves the other and
     const f = fixture(t);
     const second = f.project('second');
     f.write(f.user, { frameworkRuntime: { mode: 'off' } });
-    f.apply(); f.apply('checkout', second);
+    f.apply();
+    f.apply('checkout', second);
     fs.appendFileSync(f.codex, '\n[tui]\nnotifications = false\n');
     f.write(f.local, { frameworkRuntime: { mode: 'on' } });
     f.apply();
@@ -191,10 +203,12 @@ test('existing user Codex skill policy fails before the requested preference or 
 
 test('restore refuses changed owned overrides while preserving unrelated settings', t => {
     const f = fixture(t);
-    f.write(f.local, { frameworkRuntime: { mode: 'off' } }); f.apply();
+    f.write(f.local, { frameworkRuntime: { mode: 'off' } });
+    f.apply();
     const config = JSON.parse(fs.readFileSync(f.claude));
     config.skillOverrides.commit = 'on';
-    config.language = 'en'; f.write(f.claude, config);
+    config.language = 'en';
+    f.write(f.claude, config);
     f.write(f.local, { frameworkRuntime: { mode: 'quiet' } });
     assert.throws(() => f.apply(), /changed while off/);
     assert.deepEqual(JSON.parse(fs.readFileSync(f.claude)), config);

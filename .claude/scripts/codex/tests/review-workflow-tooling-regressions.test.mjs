@@ -46,13 +46,7 @@ test('TC-WFPROTO-005: redundant why-review sweep preserves changes-review valida
                 {
                     workflows: {
                         'changes-review': {
-                            sequence: [
-                                'changes-review',
-                                'why-review',
-                                'security-audit',
-                                'why-review',
-                                'docs-manager --mode=update'
-                            ]
+                            sequence: ['changes-review', 'why-review', 'security-audit', 'why-review', 'docs-manager --mode=update']
                         }
                     }
                 },
@@ -64,23 +58,20 @@ test('TC-WFPROTO-005: redundant why-review sweep preserves changes-review valida
 
         await fs.writeFile(
             path.join(tempSkillDir, 'SKILL.md'),
-            [
-                '# Workflow Test',
-                '',
-                '**Steps:** /changes-review -> /why-review -> /security-audit -> /why-review -> /docs-manager --mode=update',
-                ''
-            ].join('\n'),
+            ['# Workflow Test', '', '**Steps:** /changes-review -> /why-review -> /security-audit -> /why-review -> /docs-manager --mode=update', ''].join(
+                '\n'
+            ),
             'utf8'
         );
 
         const python = resolvePythonCommand({ cwd: tempRoot });
         await execFileAsync(python.command, [...python.baseArgs, path.join(tempScriptDir, 'sweep-redundant-why-review.py'), '--apply'], {
-            cwd: tempRoot, timeout: 10000, windowsHide: true
+            cwd: tempRoot,
+            timeout: 10000,
+            windowsHide: true
         });
 
-        const workflowConfig = JSON.parse(
-            await fs.readFile(path.join(tempRoot, '.claude', 'workflows.json'), 'utf8')
-        );
+        const workflowConfig = JSON.parse(await fs.readFile(path.join(tempRoot, '.claude', 'workflows.json'), 'utf8'));
         assert.deepEqual(
             workflowConfig.workflows['changes-review'].sequence,
             ['changes-review', 'why-review', 'security-audit', 'docs-manager --mode=update'],
@@ -105,29 +96,20 @@ test('TC-WFPROTO-007: prompt surfaces do not retain stale review workflow guidan
         '.agents/skills/ui-design/references/mode-review.md',
         'AGENTS.md'
     ];
-    const obsoleteWorkflowSummary = /code-simplifier\s*(?:->|→|\+)\s*changes-review\s*(?:->|→|\+)\s*architecture(?:-review| --mode=review)\s*(?:->|→|\+)\s*code-review\s*(?:->|→|\+)\s*performance/;
+    const obsoleteWorkflowSummary =
+        /code-simplifier\s*(?:->|→|\+)\s*changes-review\s*(?:->|→|\+)\s*architecture(?:-review| --mode=review)\s*(?:->|→|\+)\s*code-review\s*(?:->|→|\+)\s*performance/;
     const obsoleteReviewUiSibling = /(?:ui-design --mode=review[`$]?[^.\n]*parallel-batch sibling|Sibling of [`$]?architecture(?:-review| --mode=review))/;
 
     for (const promptSurfacePath of promptSurfacePaths) {
         const text = normalizeEol(await fs.readFile(path.join(repoRoot, promptSurfacePath), 'utf8'));
-        assert.doesNotMatch(
-            text,
-            obsoleteWorkflowSummary,
-            `${promptSurfacePath} must not describe workflow-review-changes with obsolete child-step internals`
-        );
-        assert.doesNotMatch(
-            text,
-            obsoleteReviewUiSibling,
-            `${promptSurfacePath} must not describe ui-design --mode=review as an external sibling reviewer`
-        );
+        assert.doesNotMatch(text, obsoleteWorkflowSummary, `${promptSurfacePath} must not describe workflow-review-changes with obsolete child-step internals`);
+        assert.doesNotMatch(text, obsoleteReviewUiSibling, `${promptSurfacePath} must not describe ui-design --mode=review as an external sibling reviewer`);
     }
 });
 
 test('TC-WFPROTO-008: review workflow batch prompt uses canonical skill ids and specialized agent types', async () => {
     const workflowText = normalizeEol(await fs.readFile(path.join(repoRoot, '.claude', 'workflows.json'), 'utf8'));
-    const skillText = normalizeEol(
-        await fs.readFile(path.join(repoRoot, '.claude', 'skills', 'workflow-review-changes', 'SKILL.md'), 'utf8')
-    );
+    const skillText = normalizeEol(await fs.readFile(path.join(repoRoot, '.claude', 'skills', 'workflow-review-changes', 'SKILL.md'), 'utf8'));
     const combined = `${workflowText}\n${skillText}`;
 
     assert.doesNotMatch(combined, /`performance`, `integration-test --mode=review`, `security`/);
@@ -142,33 +124,35 @@ test('TC-WFPROTO-008: review workflow batch prompt uses canonical skill ids and 
     assert.equal(contracts.get('architecture-compliance-review').skill, 'architecture');
     assert.match(contracts.get('architecture-compliance-review').args, /--mode=review/);
     assert.match(skillText, /appropriate specialist when expertise or independent judgment is needed/);
-
 });
 
 test('TC-WFADV-022: adaptive orchestration keeps full-target and post-fix review obligations', async () => {
-    const w = JSON.parse(await fs.readFile(path.join(repoRoot,'.claude/workflows.json'),'utf8')).workflows['workflow-review-changes'];
+    const w = JSON.parse(await fs.readFile(path.join(repoRoot, '.claude/workflows.json'), 'utf8')).workflows['workflow-review-changes'];
     const source = normalizeEol(await readSkillContract('workflow-review-changes'));
     const changes = normalizeEol(await readSkillContract('changes-review'));
-    assert.equal(w.defaultMode,'fix-loop');
+    assert.equal(w.defaultMode, 'fix-loop');
     for (const { sequence } of [w, ...Object.values(w.variants)]) {
         assert.equal(sequence[0].id, 'initial-changes-review');
         assert.equal(sequence[0].role, 'gate');
         assert.equal(sequence.filter(step => step.skill === 'changes-review').length, 1);
         assert.doesNotMatch(sequence[0].args, /--defer=[^\s]*whole-target/);
-        assert.deepEqual(sequence.filter(step => step.skill === 'why-review').map(step => step.args),
-            ['--validate-findings'], 'the only scheduled why-review occurrence validates findings');
+        assert.deepEqual(
+            sequence.filter(step => step.skill === 'why-review').map(step => step.args),
+            ['--validate-findings'],
+            'the only scheduled why-review occurrence validates findings'
+        );
     }
     assert.match(changes, /always invoke `\/why-review --target=whole-review-target` on the complete review target/);
     assert.match(changes, /Run it once in every review\/re-review pass, including caller-owned, documentation-only and zero-finding passes/);
-    assert.equal(w.stepMeta['initial-changes-review'].executionMode,'inline');
+    assert.equal(w.stepMeta['initial-changes-review'].executionMode, 'inline');
     assert.ok(!w.parallelGroups, 'agent chooses grouping; there is no forced topology');
-    assert.match(source,/Wait for every report before fixing/);
+    assert.match(source, /Wait for every report before fixing/);
     assert.match(source, /Re-invoke `initial-changes-review` as `rerun N` on the whole settled target/);
     const bootstrap = normalizeEol(await readSkillContract('start-workflow'));
     assert.match(bootstrap, /Review reruns reuse their occurrence row/);
     assert.doesNotMatch(bootstrap, /workflow-review-changes — Recursive re-review/);
-    assert.match(source,/no fixed file\/line\/byte caps/);
-    assert.match(source,/Always create the phase todos, one row per occurrence, before running a skill/);
+    assert.match(source, /no fixed file\/line\/byte caps/);
+    assert.match(source, /Always create the phase todos, one row per occurrence, before running a skill/);
 });
 
 test('TC-WFADV-021: parallelGroups structural guards reject malformed barrier configs (no silent false-pass)', async () => {
@@ -218,21 +202,11 @@ test('TC-WFADV-021: parallelGroups structural guards reject malformed barrier co
 });
 
 test('TC-HARNESS-006: review consumers name the executable canonical policy', async () => {
-    const shared = normalizeEol(await fs.readFile(
-        path.join(repoRoot, '.claude', 'skills', 'shared', 'sync-inline-versions.md'), 'utf8'
-    ));
+    const shared = normalizeEol(await fs.readFile(path.join(repoRoot, '.claude', 'skills', 'shared', 'sync-inline-versions.md'), 'utf8'));
     const policy = await import(pathToFileURL(path.join(repoRoot, '.claude', 'scripts', 'lib', 'review-policy.cjs')).href);
     assert.match(shared, /## SYNC:review-policy/);
     assert.match(shared, /blockingFindings\(round, findings, hardGates\)/);
     assert.equal(policy.MAX_ROUNDS, 3);
-    assert.deepEqual(
-        policy.blockingFindings(2, [{ id: 'low', severity: 'LOW' }]),
-        [],
-        'round-two LOW floor must be executable, not merely prose'
-    );
-    assert.equal(
-        policy.blockingFindings(2, [], [{ id: 'tests', status: 'FAIL' }]).length,
-        1,
-        'binary gates remain blocking at the LOW floor'
-    );
+    assert.deepEqual(policy.blockingFindings(2, [{ id: 'low', severity: 'LOW' }]), [], 'round-two LOW floor must be executable, not merely prose');
+    assert.equal(policy.blockingFindings(2, [], [{ id: 'tests', status: 'FAIL' }]).length, 1, 'binary gates remain blocking at the LOW floor');
 });

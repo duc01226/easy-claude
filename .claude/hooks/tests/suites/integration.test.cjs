@@ -9,20 +9,9 @@
  */
 
 const path = require('path');
-const {
-  runHooksParallel,
-  getHookPath,
-  createSessionStartInput
-} = require('../lib/hook-runner.cjs');
-const {
-  assertEqual,
-  assertAllowed,
-  assertFalse
-} = require('../lib/assertions.cjs');
-const {
-  createTempDir,
-  cleanupTempDir
-} = require('../lib/test-utils.cjs');
+const { runHooksParallel, getHookPath, createSessionStartInput } = require('../lib/hook-runner.cjs');
+const { assertEqual, assertAllowed, assertFalse } = require('../lib/assertions.cjs');
+const { createTempDir, cleanupTempDir } = require('../lib/test-utils.cjs');
 
 // Hook paths
 const SESSION_INIT = getHookPath('session-init.cjs');
@@ -39,39 +28,39 @@ const SPAWN_TIMEOUT_MS = 20000;
 // ============================================================================
 
 const concurrentTests = [
-  {
-    name: '[concurrent] handles parallel execution without corruption',
-    fn: async () => {
-      const tmpDir = createTempDir();
-      try {
-        const input = createSessionStartInput('startup');
+    {
+        name: '[concurrent] handles parallel execution without corruption',
+        fn: async () => {
+            const tmpDir = createTempDir();
+            try {
+                const input = createSessionStartInput('startup');
 
-        // Run 10 session-init hooks in parallel
-        const hooks = Array(10).fill(null).map(() => ({
-          hookPath: SESSION_INIT,
-          input
-        }));
+                // Run 10 session-init hooks in parallel
+                const hooks = Array(10)
+                    .fill(null)
+                    .map(() => ({
+                        hookPath: SESSION_INIT,
+                        input
+                    }));
 
-        const results = await runHooksParallel(hooks, { cwd: tmpDir, timeout: SPAWN_TIMEOUT_MS });
+                const results = await runHooksParallel(hooks, { cwd: tmpDir, timeout: SPAWN_TIMEOUT_MS });
 
-        // All should complete without error
-        for (const { result } of results) {
-          assertAllowed(result.code, 'Parallel execution should not crash');
-          assertFalse(result.timedOut, 'Should not timeout');
+                // All should complete without error
+                for (const { result } of results) {
+                    assertAllowed(result.code, 'Parallel execution should not crash');
+                    assertFalse(result.timedOut, 'Should not timeout');
+                }
+
+                assertEqual(results.length, 10, 'All 10 hooks should complete');
+            } finally {
+                cleanupTempDir(tmpDir);
+            }
         }
-
-        assertEqual(results.length, 10, 'All 10 hooks should complete');
-      } finally {
-        cleanupTempDir(tmpDir);
-      }
     }
-  }
 ];
 
 // Export test suite
 module.exports = {
-  name: 'Integration Tests',
-  tests: [
-      ...concurrentTests
-  ]
+    name: 'Integration Tests',
+    tests: [...concurrentTests]
 };

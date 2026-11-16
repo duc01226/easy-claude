@@ -14,7 +14,10 @@ const { SCHEMA } = require('../../hooks/lib/project-config-schema.cjs');
 
 const has = (schema, key) => {
     let node = { properties: schema };
-    for (const part of key.split('.')) { node = node?.properties?.[part]; if (!node) return false; }
+    for (const part of key.split('.')) {
+        node = node?.properties?.[part];
+        if (!node) return false;
+    }
     return true;
 };
 
@@ -33,7 +36,10 @@ test('a bare project resolves every entry to its default, and an opt-in shows th
     const rows = catalog({ rootDir, homeDir, env: {} });
     for (const row of rows) assert.notEqual(row.value, 'unavailable', `${row.key}: ${row.source}`);
     assert.equal(rows.find(r => r.key === 'frameworkRuntime.quietNative').value, 'none');
-    fs.writeFileSync(path.join(rootDir, 'docs/project-config.json'), JSON.stringify({ project: { name: 'Fixture' }, frameworkRuntime: { offMode: 'as-quiet' } }));
+    fs.writeFileSync(
+        path.join(rootDir, 'docs/project-config.json'),
+        JSON.stringify({ project: { name: 'Fixture' }, frameworkRuntime: { offMode: 'as-quiet' } })
+    );
     fs.mkdirSync(path.join(homeDir, '.claude'));
     fs.writeFileSync(path.join(homeDir, '.claude/.ck.json'), JSON.stringify({ frameworkRuntime: { quietNative: 'restrict' } }));
     const after = Object.fromEntries(catalog({ rootDir, homeDir, env: {} }).map(r => [r.key, r]));

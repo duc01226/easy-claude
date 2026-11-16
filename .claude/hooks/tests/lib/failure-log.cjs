@@ -26,16 +26,18 @@ const path = require('node:path');
 // and this sink, unlike CLAUDE_HOOK_DEBUG, is not opt-in: it writes on every
 // failing run.
 function buildRedactions() {
-  return [
-    [process.env.CLAUDE_PROJECT_DIR, '<repo>'],
-    [os.tmpdir(), '<tmp>'],
-    [os.homedir(), '<home>']
-  ]
-    .filter(([value]) => typeof value === 'string' && value.length > 2)
-    // Longest first: on Windows the home directory is a PREFIX of the temp
-    // directory, and replacing it first would leave `<home>\AppData\Local\Temp`
-    // — redacted, but no longer recognisable as the temp root.
-    .sort((a, b) => b[0].length - a[0].length);
+    return (
+        [
+            [process.env.CLAUDE_PROJECT_DIR, '<repo>'],
+            [os.tmpdir(), '<tmp>'],
+            [os.homedir(), '<home>']
+        ]
+            .filter(([value]) => typeof value === 'string' && value.length > 2)
+            // Longest first: on Windows the home directory is a PREFIX of the temp
+            // directory, and replacing it first would leave `<home>\AppData\Local\Temp`
+            // — redacted, but no longer recognisable as the temp root.
+            .sort((a, b) => b[0].length - a[0].length)
+    );
 }
 
 // A path reaches the log in whatever separator and casing the producing process
@@ -43,10 +45,7 @@ function buildRedactions() {
 const escapeForRegExp = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 function buildRedactionPatterns() {
-  return buildRedactions().map(([value, label]) => [
-    new RegExp(escapeForRegExp(value).replace(/\\\\|\//g, '[\\\\/]'), 'gi'),
-    label
-  ]);
+    return buildRedactions().map(([value, label]) => [new RegExp(escapeForRegExp(value).replace(/\\\\|\//g, '[\\\\/]'), 'gi'), label]);
 }
 
 // Rebuilt on demand rather than frozen at load: CLAUDE_PROJECT_DIR is set by the
@@ -58,12 +57,12 @@ const MAX_STACK_CHARS = 4000;
 const RETAINED_FAILURE_LOGS = 10;
 
 function redact(value, limit) {
-  if (value === null || value === undefined) return value;
-  let text = String(value);
-  for (const [pattern, label] of buildRedactionPatterns()) text = text.replace(pattern, label);
-  // Bounded because one entry can carry `stdout.slice(-1200)` + `stderr.slice(-500)`
-  // of a child script, and a suite-wide failure multiplies that by every test in it.
-  return text.length > limit ? `${text.slice(0, limit)}\n…[truncated ${text.length - limit} chars]` : text;
+    if (value === null || value === undefined) return value;
+    let text = String(value);
+    for (const [pattern, label] of buildRedactionPatterns()) text = text.replace(pattern, label);
+    // Bounded because one entry can carry `stdout.slice(-1200)` + `stderr.slice(-500)`
+    // of a child script, and a suite-wide failure multiplies that by every test in it.
+    return text.length > limit ? `${text.slice(0, limit)}\n…[truncated ${text.length - limit} chars]` : text;
 }
 
 // Retention, because nothing else deletes these. `%TEMP%` is not purged by default
@@ -73,29 +72,30 @@ function redact(value, limit) {
 // an ALREADY failing run, and a housekeeping error must never replace the real
 // failure it was called to record.
 function pruneFailureLogs(dir, keep) {
-  try {
-    const logs = fs.readdirSync(dir)
-      .filter(name => /^hook-test-failures-.*\.json$/.test(name))
-      .map(name => ({ name, mtimeMs: fs.statSync(path.join(dir, name)).mtimeMs }))
-      .sort((a, b) => b.mtimeMs - a.mtimeMs);
-    for (const stale of logs.slice(keep)) {
-      try {
-        fs.unlinkSync(path.join(dir, stale.name));
-      } catch (error) {
-        // A concurrent run holds it, or already removed it. Not this run's problem.
-      }
+    try {
+        const logs = fs
+            .readdirSync(dir)
+            .filter(name => /^hook-test-failures-.*\.json$/.test(name))
+            .map(name => ({ name, mtimeMs: fs.statSync(path.join(dir, name)).mtimeMs }))
+            .sort((a, b) => b.mtimeMs - a.mtimeMs);
+        for (const stale of logs.slice(keep)) {
+            try {
+                fs.unlinkSync(path.join(dir, stale.name));
+            } catch (error) {
+                // A concurrent run holds it, or already removed it. Not this run's problem.
+            }
+        }
+    } catch (error) {
+        // No directory yet, or it cannot be listed. Nothing to prune.
     }
-  } catch (error) {
-    // No directory yet, or it cannot be listed. Nothing to prune.
-  }
 }
 
 module.exports = {
-  redact,
-  pruneFailureLogs,
-  buildRedactionPatterns,
-  MAX_LOGGED_FAILURES,
-  MAX_ERROR_CHARS,
-  MAX_STACK_CHARS,
-  RETAINED_FAILURE_LOGS
+    redact,
+    pruneFailureLogs,
+    buildRedactionPatterns,
+    MAX_LOGGED_FAILURES,
+    MAX_ERROR_CHARS,
+    MAX_STACK_CHARS,
+    RETAINED_FAILURE_LOGS
 };

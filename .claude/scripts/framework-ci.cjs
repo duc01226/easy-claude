@@ -13,6 +13,7 @@
  *   node .claude/scripts/framework-ci.cjs --lane=hook-suites --suites=<all|a,b>   # CI lane job: run one lane as planned
  *
  * Lanes (one owner: LANES below; `.github/workflows/ci.yml` runs the same commands, pinned by framework-ci.test.cjs):
+ *   static      static-checks.cjs: ESLint with its frozen baseline, then prettier --check (any JS change)
  *   sync        Codex sync verify: mirrors, codex/scripts/OpenCode tests, count drift, parity
  *   hook-unit   test-all-hooks.cjs
  *   hook-suites run-all-tests.cjs — every suite (full) or the selected suites, one `--filter` run each
@@ -30,12 +31,12 @@ const path = require('path');
 const childProcess = require('child_process');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const SUITES_DIR = '.claude/hooks/tests/suites/';
 const SUITE_RE = /^\.claude\/hooks\/tests\/suites\/([^/]+)\.test\.cjs$/;
 const CODE_RE = /\.(?:c|m)?js$/;
 const SUITE_NAME_RE = /^[A-Za-z0-9._-]+$/;
 
 const LANES = [
+    { id: 'static', title: 'Static checks (ESLint baseline, prettier)', argv: ['.claude/scripts/static-checks.cjs'] },
     { id: 'sync', title: 'Codex sync verify', argv: ['.claude/skills/sync-codex/scripts/run-codex-sync.mjs', '--verify-only'] },
     { id: 'hook-unit', title: 'Hook unit tests', argv: ['.claude/hooks/tests/test-all-hooks.cjs'] },
     { id: 'hook-suites', title: 'Hook suites', argv: ['.claude/hooks/tests/run-all-tests.cjs'] }
@@ -235,7 +236,7 @@ function areaTokens(file) {
 function planScope({ scope, changes = [], index }) {
     const full = fullLanes();
     if (scope === 'full') return { scope, effectiveScope: 'full', lanes: full, escalations: [], decisions: [] };
-    const lanes = { sync: false, 'hook-unit': false };
+    const lanes = { static: false, sync: false, 'hook-unit': false };
     const selected = new Set();
     const escalations = [];
     const decisions = [];
@@ -248,6 +249,8 @@ function planScope({ scope, changes = [], index }) {
             continue;
         }
         if (rule === 'none') continue;
+        // Any JavaScript change can break lint or formatting, wherever it lives.
+        if (CODE_RE.test(file) || /^eslint/.test(file)) lanes.static = true;
         if (rule === 'suite') {
             if (status === 'A' || status === 'D')
                 escalations.push({ file, reason: 'a suite was added or removed: the documented test totals need the full count guard' });

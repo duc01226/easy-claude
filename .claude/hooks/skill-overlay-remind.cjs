@@ -120,9 +120,7 @@ function run(input, deps = {}) {
 
             const overlay = require('./lib/skill-protocol-overlay.cjs');
             const config = loadConfig(deps);
-            const reminders = names
-                .map(name => ({ name, ...overlay.resolveOverlayReminder(name, root, config) }))
-                .filter(item => item.text);
+            const reminders = names.map(name => ({ name, ...overlay.resolveOverlayReminder(name, root, config) })).filter(item => item.text);
             if (!reminders.length) return finish('');
 
             const now = typeof deps.now === 'number' ? deps.now : Date.now();
@@ -153,28 +151,39 @@ function run(input, deps = {}) {
             const collected = [];
             // deliverOnce claims/checks synchronously, but records only when its writer acknowledges.
             // Keep those acknowledgments pending until the combined output actually succeeds.
-            const deliveries = reminders.map(item => ledger.deliverOnce({
-                root: store,
-                input,
-                group: `${GROUP_PREFIX}${item.name}`,
-                // Every matched path defines the set, including paths omitted from the short text.
-                hash: crypto.createHash('sha256').update(JSON.stringify([item.text, item.files]), 'utf8').digest('hex'),
-                payload: item.text,
-                settings: getLedgerSettings(),
-                now,
-                failOpen: true,
-                write: (text, done) => {
-                    collected.push({ text, done });
-                }
-            }));
+            const deliveries = reminders.map(item =>
+                ledger.deliverOnce({
+                    root: store,
+                    input,
+                    group: `${GROUP_PREFIX}${item.name}`,
+                    // Every matched path defines the set, including paths omitted from the short text.
+                    hash: crypto
+                        .createHash('sha256')
+                        .update(JSON.stringify([item.text, item.files]), 'utf8')
+                        .digest('hex'),
+                    payload: item.text,
+                    settings: getLedgerSettings(),
+                    now,
+                    failOpen: true,
+                    write: (text, done) => {
+                        collected.push({ text, done });
+                    }
+                })
+            );
             if (collected.length) {
-                emit(collected.map(item => item.text), ok => {
-                    for (const item of collected) item.done(ok);
-                });
+                emit(
+                    collected.map(item => item.text),
+                    ok => {
+                        for (const item of collected) item.done(ok);
+                    }
+                );
             }
-            Promise.all(deliveries).then(() => {
-                if (!collected.length) finish('');
-            }, () => finish(''));
+            Promise.all(deliveries).then(
+                () => {
+                    if (!collected.length) finish('');
+                },
+                () => finish('')
+            );
         } catch {
             finish('');
         }
@@ -199,5 +208,13 @@ if (require('./lib/hook-runner.cjs').isHookEntryPoint(module)) {
     } catch {
         input = null;
     }
-    if (input) run(input).then(() => { process.exitCode = 0; }, () => { process.exitCode = 0; });
+    if (input)
+        run(input).then(
+            () => {
+                process.exitCode = 0;
+            },
+            () => {
+                process.exitCode = 0;
+            }
+        );
 }

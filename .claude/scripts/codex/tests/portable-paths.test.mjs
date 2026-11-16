@@ -24,8 +24,7 @@ async function pathExists(targetPath) {
 
 function isAllowedReference(line, index) {
     const before = line.slice(0, index);
-    return before.endsWith(`${allowedSourcePrefix.slice(0, -rootSegment.length)}`)
-        || before.endsWith(`${allowedRuntimePrefix.slice(0, -rootSegment.length)}`);
+    return before.endsWith(`${allowedSourcePrefix.slice(0, -rootSegment.length)}`) || before.endsWith(`${allowedRuntimePrefix.slice(0, -rootSegment.length)}`);
 }
 
 function collectForbiddenReferences(relativePath, text) {

@@ -34,7 +34,7 @@ const { liveSourceFiles } = require('../lib/live-source-files.cjs');
 const { resolveAllWorkflowManifests } = require('../../../scripts/lib/workflow-manifest.cjs');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
-const SKIP = isFrameworkRepo(REPO_ROOT) ? false : 'asserts the framework repo\'s own e2e-test skill and workflow registry (framework-repo signal)';
+const SKIP = isFrameworkRepo(REPO_ROOT) ? false : "asserts the framework repo's own e2e-test skill and workflow registry (framework-repo signal)";
 
 const SKILLS = path.join(REPO_ROOT, '.claude', 'skills');
 const read = (...parts) => fs.readFileSync(path.join(...parts), 'utf8').replace(/\r\n/g, '\n');
@@ -101,7 +101,15 @@ const tests = [
         skip: SKIP,
         fn: () => {
             const text = skill();
-            const verifyOnly = ['## Step 0 — Resolve scope and evidence contract', '## Step 3 — Run one report-only verification attempt', '## Required output', '## Mode: Fix-Loop (`--fix-loop`)', '### Step FL-4 — Run a bounded convergence round', 'Round Integrity Check', '<!-- FIX-LOOP-MODE:START -->'];
+            const verifyOnly = [
+                '## Step 0 — Resolve scope and evidence contract',
+                '## Step 3 — Run one report-only verification attempt',
+                '## Required output',
+                '## Mode: Fix-Loop (`--fix-loop`)',
+                '### Step FL-4 — Run a bounded convergence round',
+                'Round Integrity Check',
+                '<!-- FIX-LOOP-MODE:START -->'
+            ];
             for (const marker of verifyOnly) {
                 assert.ok(!text.includes(marker), `e2e-test/SKILL.md must not inline mode text: ${marker}`);
                 assert.ok(modeVerify().includes(marker), `mode-verify.md holds ${marker}`);
@@ -216,7 +224,9 @@ const tests = [
             }
             assert.ok(scanned > 500, `tripwire: the scan covers the framework sources (${scanned} files)`);
             assert.deepEqual(offenders, [], 'replace each with `e2e-test --mode=verify`');
-            const formerly = skill().split('\n').filter(line => line.includes(REMOVED));
+            const formerly = skill()
+                .split('\n')
+                .filter(line => line.includes(REMOVED));
             assert.ok(formerly.length >= 1 && formerly.every(line => /former/i.test(line)), 'e2e-test/SKILL.md names the removed command only as "formerly"');
         }
     },

@@ -146,13 +146,17 @@ module.exports = {
                     // When a developer-local override re-enables it / Then the local value wins
                     assertContains(hook.evaluate(request, { env: CLEAN_ENV, projectDir: localOnDir }), hook.MARKER_START);
                     // When the env switch is 0 / Then it stays silent even though config enables it
-                    assertTrue(hook.evaluate(request, { env: { CK_COMMIT_SKILL_ROUTE: '0' }, projectDir: enabledDir }) === '', 'CK_COMMIT_SKILL_ROUTE=0 must silence');
+                    assertTrue(
+                        hook.evaluate(request, { env: { CK_COMMIT_SKILL_ROUTE: '0' }, projectDir: enabledDir }) === '',
+                        'CK_COMMIT_SKILL_ROUTE=0 must silence'
+                    );
                     // And at the real process boundary: the hook resolves settings from CLAUDE_PROJECT_DIR
-                    const run = (dir, extraEnv = {}) => spawnSync(process.execPath, [HOOK_PATH], {
-                        input: JSON.stringify(request),
-                        encoding: 'utf8',
-                        env: childEnv({ ...CHILD_ENV_RESET, CLAUDE_PROJECT_DIR: dir, ...extraEnv })
-                    });
+                    const run = (dir, extraEnv = {}) =>
+                        spawnSync(process.execPath, [HOOK_PATH], {
+                            input: JSON.stringify(request),
+                            encoding: 'utf8',
+                            env: childEnv({ ...CHILD_ENV_RESET, CLAUDE_PROJECT_DIR: dir, ...extraEnv })
+                        });
                     const on = run(enabledDir);
                     assertTrue(on.status === 0, `enabled run exits 0, got ${on.status}`);
                     assertContains(on.stdout, hook.MARKER_START);
@@ -174,10 +178,11 @@ module.exports = {
                     "const input = { hook_event_name: 'UserPromptSubmit', get prompt() { throw new Error('probe-failure'); } };",
                     'process.stdout.write(hook.evaluate(input));'
                 ].join(' ');
-                const run = debug => spawnSync(process.execPath, ['-e', driver, HOOK_PATH], {
-                    encoding: 'utf8',
-                    env: { ...process.env, CK_DEBUG: debug }
-                });
+                const run = debug =>
+                    spawnSync(process.execPath, ['-e', driver, HOOK_PATH], {
+                        encoding: 'utf8',
+                        env: { ...process.env, CK_DEBUG: debug }
+                    });
                 // When evaluated without and with CK_DEBUG
                 const quiet = run('');
                 const loud = run('1');
@@ -233,12 +238,20 @@ module.exports = {
                 const env = childEnv({
                     ...CHILD_ENV_RESET,
                     CLAUDE_PROJECT_DIR: project,
-                    HOME: project, USERPROFILE: project, TMPDIR: project, TEMP: project, TMP: project
+                    HOME: project,
+                    USERPROFILE: project,
+                    TMPDIR: project,
+                    TEMP: project,
+                    TMP: project
                 });
-                const run = (input, debug) => spawnSync(process.execPath, [HOOK_PATH], {
-                    input, encoding: 'utf8', timeout: 30000, cwd: project,
-                    env: childEnv({ ...env, ...CHILD_ENV_RESET, CK_DEBUG: debug })
-                });
+                const run = (input, debug) =>
+                    spawnSync(process.execPath, [HOOK_PATH], {
+                        input,
+                        encoding: 'utf8',
+                        timeout: 30000,
+                        cwd: project,
+                        env: childEnv({ ...env, ...CHILD_ENV_RESET, CK_DEBUG: debug })
+                    });
                 try {
                     // When the real entry receives a valid commit request / Then it routes and exits 0
                     const routed = run(JSON.stringify(event('stage and commit')));
@@ -249,8 +262,10 @@ module.exports = {
                     for (const debug of [undefined, '', '0']) {
                         // When debug is disabled / Then both output channels remain empty and exit stays 0
                         const quiet = run(malformed, debug);
-                        assertTrue(quiet.status === 0 && quiet.stdout === '' && quiet.stderr === '',
-                            `malformed stdin is quiet without debug (${String(debug)}): ${quiet.stderr}`);
+                        assertTrue(
+                            quiet.status === 0 && quiet.stdout === '' && quiet.stderr === '',
+                            `malformed stdin is quiet without debug (${String(debug)}): ${quiet.stderr}`
+                        );
                     }
                     for (const debug of ['1', 'true']) {
                         // When debug is enabled / Then only a sanitized diagnostic appears on stderr
@@ -263,8 +278,10 @@ module.exports = {
                     // Empty or valid JSON with an unsupported event shape also stays silent, even under debug.
                     for (const input of ['', ' \r\n ', 'null', '[]', '42', '"commit"', '{"prompt":false}']) {
                         const ignored = run(input, '1');
-                        assertTrue(ignored.status === 0 && ignored.stdout === '' && ignored.stderr === '',
-                            `unsupported input stays silent: ${JSON.stringify(input)}`);
+                        assertTrue(
+                            ignored.status === 0 && ignored.stdout === '' && ignored.stderr === '',
+                            `unsupported input stays silent: ${JSON.stringify(input)}`
+                        );
                     }
                 } finally {
                     fs.rmSync(project, { recursive: true, force: true });
@@ -278,8 +295,10 @@ module.exports = {
                 const project = makeHookTreeProject('commit-route');
                 try {
                     // When Codex launches the router from the fixture root on a commit request
-                    const result = runCodexLauncher('commit-skill-route.cjs', JSON.stringify(event('stage and commit')),
-                        { cwd: project, env: CHILD_ENV_RESET });
+                    const result = runCodexLauncher('commit-skill-route.cjs', JSON.stringify(event('stage and commit')), {
+                        cwd: project,
+                        env: CHILD_ENV_RESET
+                    });
                     // Then it exits 0 and emits the directive
                     assertTrue(result.code === 0, `Codex launcher exited ${result.code}: ${result.stderr}`);
                     assertContains(result.stdout, hook.MARKER_START);
@@ -293,7 +312,10 @@ module.exports = {
             fn: () => {
                 const settings = require(path.join(PROJECT_DIR, '.claude', 'settings.json'));
                 const commands = (settings.hooks.UserPromptSubmit || []).flatMap(group => group.hooks.map(h => h.command));
-                assertTrue(commands.some(c => c.includes('commit-skill-route.cjs')), 'hook must be wired in settings.json');
+                assertTrue(
+                    commands.some(c => c.includes('commit-skill-route.cjs')),
+                    'hook must be wired in settings.json'
+                );
             }
         }
     ]

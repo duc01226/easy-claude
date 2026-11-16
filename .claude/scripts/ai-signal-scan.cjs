@@ -72,7 +72,11 @@ function parseArgs(argv) {
 
 function runGit(projectDir, gitArgs) {
     return execFileSync('git', gitArgs, {
-        cwd: projectDir, encoding: 'utf8', windowsHide: true, maxBuffer: GIT_MAX_BUFFER, stdio: ['ignore', 'pipe', 'pipe']
+        cwd: projectDir,
+        encoding: 'utf8',
+        windowsHide: true,
+        maxBuffer: GIT_MAX_BUFFER,
+        stdio: ['ignore', 'pipe', 'pipe']
     });
 }
 
@@ -86,7 +90,9 @@ function collectChangedFiles(projectDir, args, errors) {
         try {
             return fn();
         } catch (err) {
-            const detail = String(err && err.stderr ? err.stderr : err && err.message ? err.message : err).trim().split(/\r?\n/)[0];
+            const detail = String(err && err.stderr ? err.stderr : err && err.message ? err.message : err)
+                .trim()
+                .split(/\r?\n/)[0];
             errors.push(`git ${label} failed: ${detail}`);
             return [];
         }
@@ -99,8 +105,9 @@ function collectChangedFiles(projectDir, args, errors) {
         } catch {
             vsHead = null;
         }
-        return (vsHead !== null ? vsHead : attempt('diff --cached', () => diff(['--cached', '--'])).concat(attempt('diff', () => diff(['--']))))
-            .concat(attempt('ls-files --others', untracked));
+        return (vsHead !== null ? vsHead : attempt('diff --cached', () => diff(['--cached', '--'])).concat(attempt('diff', () => diff(['--'])))).concat(
+            attempt('ls-files --others', untracked)
+        );
     };
     let files = [];
     if (args.mode === 'staged') {
@@ -146,15 +153,31 @@ function scan({ projectDir, files, config, mode = 'files', base = null, readCont
         const explained = conventions.explainGroupMatch(group, file, ctx, true);
         if (explained.incomplete) incompleteMatches += 1;
         // Names, not text: the matched source text stays out of the report (it may come from any file the scan reads).
-        if (explained.member) aiSurface.push({ file, signals: { path: explained.pathSignals, content: explained.contentSignals.length ? [contentLabel || CONTENT_SIGNAL_NAME] : [] } });
+        if (explained.member)
+            aiSurface.push({
+                file,
+                signals: { path: explained.pathSignals, content: explained.contentSignals.length ? [contentLabel || CONTENT_SIGNAL_NAME] : [] }
+            });
     }
     // Only a complete scan that found nothing is "clean"; a git error, a rejected base, a cut-off list or a
     // requested path that was never scanned proves nothing.
     if (incompleteMatches > 0) warnings.push(`${incompleteMatches} file(s) could not be classified within the configured regex budget`);
-    const status = aiSurface.length > 0 ? 'surface' : (errors.length > 0 || truncated || unscanned > 0 || incompleteMatches > 0 ? 'unknown' : 'clean');
+    const status = aiSurface.length > 0 ? 'surface' : errors.length > 0 || truncated || unscanned > 0 || incompleteMatches > 0 ? 'unknown' : 'clean';
     return {
-        tool: 'ai-signal-scan', mode, base, class: CLASS_NAME, classSource: source, contentLabel,
-        status, scanned: scanned.length, truncated, incompleteMatches, inScope: aiSurface.length > 0, aiSurface, errors, warnings
+        tool: 'ai-signal-scan',
+        mode,
+        base,
+        class: CLASS_NAME,
+        classSource: source,
+        contentLabel,
+        status,
+        scanned: scanned.length,
+        truncated,
+        incompleteMatches,
+        inScope: aiSurface.length > 0,
+        aiSurface,
+        errors,
+        warnings
     };
 }
 
@@ -165,9 +188,11 @@ function formatText(report) {
     const lines = [];
     if (report.aiSurface.length === 0) {
         // Only a completed scan may say "No AI-feature surface"; anything else says the answer is unknown.
-        lines.push(report.status === 'clean'
-            ? `No AI-feature surface detected in ${report.scanned} file(s) (class ${report.class}, ${report.classSource}).`
-            : `AI-feature surface UNKNOWN: none found in ${report.scanned} scanned file(s), but the scan was incomplete (class ${report.class}, ${report.classSource}).`);
+        lines.push(
+            report.status === 'clean'
+                ? `No AI-feature surface detected in ${report.scanned} file(s) (class ${report.class}, ${report.classSource}).`
+                : `AI-feature surface UNKNOWN: none found in ${report.scanned} scanned file(s), but the scan was incomplete (class ${report.class}, ${report.classSource}).`
+        );
     } else {
         lines.push(`AI-feature surface: ${report.aiSurface.length} of ${report.scanned} file(s) (class ${report.class}, ${report.classSource}).`);
         for (const entry of report.aiSurface) {
@@ -199,9 +224,7 @@ function main(argv) {
     let files;
     let unscanned = 0;
     if (args.mode === 'files') {
-        files = args.files
-            .map(file => conventions.toRepoRelative(file, projectDir, process.cwd()))
-            .filter(Boolean);
+        files = args.files.map(file => conventions.toRepoRelative(file, projectDir, process.cwd())).filter(Boolean);
         // A request that was not fully scanned (no path at all, or paths outside the project) never yields "clean".
         unscanned = args.files.length === 0 ? 1 : args.files.length - files.length;
         if (args.files.length === 0) warnings.push('--files needs at least one path; nothing was scanned');

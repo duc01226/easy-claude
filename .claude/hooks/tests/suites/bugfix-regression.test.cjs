@@ -65,7 +65,7 @@ function createSlowPrettierFixture(tmpDir) {
             "const fs = require('fs');",
             "const path = require('path');",
             "const handle = fs.openSync(path.join(__dirname, 'formatter-lock.txt'), 'r');",
-            "setTimeout(() => fs.closeSync(handle), 60000);",
+            'setTimeout(() => fs.closeSync(handle), 60000);',
             ''
         ].join('\n')
     );
@@ -541,10 +541,7 @@ const prettierSkipPatternTests = [
 
                 const configDir = path.join(tmpDir, 'docs');
                 fs.mkdirSync(configDir, { recursive: true });
-                fs.writeFileSync(
-                    path.join(configDir, 'project-config.json'),
-                    JSON.stringify({ formatting: { formatter: 'none' } })
-                );
+                fs.writeFileSync(path.join(configDir, 'project-config.json'), JSON.stringify({ formatting: { formatter: 'none' } }));
 
                 const srcDir = path.join(tmpDir, 'src');
                 fs.mkdirSync(srcDir, { recursive: true });
@@ -558,11 +555,7 @@ const prettierSkipPatternTests = [
                 });
 
                 assertAllowed(result.code, 'Disabled formatting should not crash');
-                assertEqual(
-                    fs.readFileSync(srcFile, 'utf8'),
-                    'const x=1;',
-                    'File must be left untouched when formatting is disabled'
-                );
+                assertEqual(fs.readFileSync(srcFile, 'utf8'), 'const x=1;', 'File must be left untouched when formatting is disabled');
             } finally {
                 cleanupTempDir(tmpDir);
             }
@@ -780,10 +773,5 @@ const edgeCaseTests = [
 // Export test suite
 module.exports = {
     name: 'Bugfix Regression Tests',
-    tests: [
-        ...tmpclaudeCleanupTests,
-        ...tmpclaudeSessionEndTests,
-        ...prettierSkipPatternTests,
-        ...edgeCaseTests
-    ]
+    tests: [...tmpclaudeCleanupTests, ...tmpclaudeSessionEndTests, ...prettierSkipPatternTests, ...edgeCaseTests]
 };

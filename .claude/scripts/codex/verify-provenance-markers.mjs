@@ -49,9 +49,9 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { resolveProjectRoot, isInvokedAsScript } = require('../lib/project-root.cjs');
 const rootResolution = resolveProjectRoot({
-  cwd: process.cwd(),
-  scriptPath: fileURLToPath(import.meta.url),
-  env: process.env,
+    cwd: process.cwd(),
+    scriptPath: fileURLToPath(import.meta.url),
+    env: process.env
 });
 const rootDir = rootResolution.rootDir;
 
@@ -76,8 +76,19 @@ const MARKER_RE = /\[([a-z][a-z-]*)(:[^\]]*)?\]/g;
 // carries its own marker") but never with a row title. Deliberately broad — a keyword that fires on a
 // clean criterion clause costs nothing, since the violation requires a row TITLE inside the clause.
 const EXCEPTION_KEYWORDS = [
-    'exception', 'exceptions', 'except', 'unless', 'namely', 'specifically',
-    'today', 'currently', 'the following', 'these rows', 'apart from', 'other than', 'aside from'
+    'exception',
+    'exceptions',
+    'except',
+    'unless',
+    'namely',
+    'specifically',
+    'today',
+    'currently',
+    'the following',
+    'these rows',
+    'apart from',
+    'other than',
+    'aside from'
 ];
 
 // The `> **Consumed by:** ...` preamble line is the declared consumer list — check 6's scope.
@@ -104,9 +115,7 @@ export function parseSections(content) {
 
     const sections = new Map();
     headingIndexes.forEach((heading, position) => {
-        const nextIndex = position + 1 < headingIndexes.length
-            ? headingIndexes[position + 1].index
-            : lines.length;
+        const nextIndex = position + 1 < headingIndexes.length ? headingIndexes[position + 1].index : lines.length;
         sections.set(heading.number, {
             title: heading.title,
             // 1-indexed line numbers so violation messages match what an editor shows.
@@ -128,7 +137,7 @@ export function findMarkerViolations(content) {
     // The legend block: everything before the first numbered section heading. This is the ONE place a
     // bare `— VERIFY` is legitimate, because defining the token requires naming it. Scoping by block
     // rather than by phrase is what makes check 2 decidable — see the header note on check 2.
-    const firstHeadingOffset = lines.findIndex((line) => /^## /.test(line));
+    const firstHeadingOffset = lines.findIndex(line => /^## /.test(line));
     const legendEndOffset = firstHeadingOffset === -1 ? lines.length : firstHeadingOffset;
 
     lines.forEach((line, index) => {
@@ -140,10 +149,7 @@ export function findMarkerViolations(content) {
             const isMarkerPosition = line.includes(`\`${match[0]}`) || line.includes(`\`[${tag}`);
             if (!isMarkerPosition) continue; // ordinary prose bracket, not a provenance marker
             if (!declared.has(tag)) {
-                violations.push(
-                    `${CATALOG_PATH}:${lineNumber}: marker \`[${tag}]\` is not a declared tag ` +
-                    `(expected one of: ${DECLARED_TAGS.join(', ')})`
-                );
+                violations.push(`${CATALOG_PATH}:${lineNumber}: marker \`[${tag}]\` is not a declared tag ` + `(expected one of: ${DECLARED_TAGS.join(', ')})`);
             }
         }
 
@@ -152,22 +158,20 @@ export function findMarkerViolations(content) {
         if (line.includes('[model-knowledge]') && !line.includes('[model-knowledge] — VERIFY')) {
             violations.push(
                 `${CATALOG_PATH}:${lineNumber}: bare \`[model-knowledge]\` marker — must be ` +
-                `\`[model-knowledge] — VERIFY\` so the consuming skills' \`— VERIFY\` guard fires`
+                    `\`[model-knowledge] — VERIFY\` so the consuming skills' \`— VERIFY\` guard fires`
             );
         }
 
         // Check 2 — a `— VERIFY` suffix must attach to a declared marker, not float free.
         if (line.includes('— VERIFY')) {
-            const attachesToMarker = DECLARED_TAGS.some(
-                (tag) => line.includes(`[${tag}] — VERIFY`) || new RegExp(`\\[${tag}:[^\\]]*— VERIFY\\]`).test(line)
-            );
+            const attachesToMarker = DECLARED_TAGS.some(tag => line.includes(`[${tag}] — VERIFY`) || new RegExp(`\\[${tag}:[^\\]]*— VERIFY\\]`).test(line));
             // The legend documents the vocabulary, so it names the forms without using them. Every
             // other line must attach the suffix to a marker — no word or phrase buys an exemption.
             const isInLegendBlock = index < legendEndOffset;
             if (!attachesToMarker && !isInLegendBlock) {
                 violations.push(
                     `${CATALOG_PATH}:${lineNumber}: \`— VERIFY\` does not attach to a declared marker ` +
-                    `(expected \`[<tag>] — VERIFY\` or \`[<tag>: … — VERIFY]\`)`
+                        `(expected \`[<tag>] — VERIFY\` or \`[<tag>: … — VERIFY]\`)`
                 );
             }
         }
@@ -182,7 +186,7 @@ export function findMarkerViolations(content) {
  * adding a row extends the check automatically instead of aging a hand-maintained list.
  */
 export function extractRowTitles(sectionLines) {
-    const separatorOffset = sectionLines.findIndex((line) => /^\|[\s|:-]+\|\s*$/.test(line));
+    const separatorOffset = sectionLines.findIndex(line => /^\|[\s|:-]+\|\s*$/.test(line));
     if (separatorOffset === -1) return [];
 
     const titles = [];
@@ -195,7 +199,7 @@ export function extractRowTitles(sectionLines) {
     return titles;
 }
 
-const escapeForRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const escapeForRegExp = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
  * Check 4's core predicate. For each exception keyword in the banner, take the clause it opens (up to
@@ -241,17 +245,17 @@ export function findBannerViolations(content) {
         if (!section) {
             violations.push(
                 `${CATALOG_PATH}: guarded section §${sectionNumber} not found — the provenance ` +
-                `convention declares §${GUARDED_SECTIONS.join('/§')} as requiring a default-basis banner`
+                    `convention declares §${GUARDED_SECTIONS.join('/§')} as requiring a default-basis banner`
             );
             continue;
         }
 
-        const bannerOffset = section.lines.findIndex((line) => line.startsWith(BANNER_PREFIX));
+        const bannerOffset = section.lines.findIndex(line => line.startsWith(BANNER_PREFIX));
         if (bannerOffset === -1) {
             violations.push(
                 `${CATALOG_PATH}:${section.startLine}: guarded section §${sectionNumber} ` +
-                `("${section.title}") has no default-basis banner — every row in it reads as ` +
-                `unattributed authority`
+                    `("${section.title}") has no default-basis banner — every row in it reads as ` +
+                    `unattributed authority`
             );
             continue;
         }
@@ -264,9 +268,9 @@ export function findBannerViolations(content) {
         if (enumerated.length > 0) {
             violations.push(
                 `${CATALOG_PATH}:${section.startLine + bannerOffset}: §${sectionNumber} banner ` +
-                `enumerates row-level exceptions (${enumerated.map((t) => `"${t}"`).join(', ')}) — state ` +
-                `the CRITERION and mark those rows inline instead; a hand-maintained list goes stale on ` +
-                `the next row added and no consuming skill reads banner prose`
+                    `enumerates row-level exceptions (${enumerated.map(t => `"${t}"`).join(', ')}) — state ` +
+                    `the CRITERION and mark those rows inline instead; a hand-maintained list goes stale on ` +
+                    `the next row added and no consuming skill reads banner prose`
             );
         }
     }
@@ -276,11 +280,9 @@ export function findBannerViolations(content) {
 
 /** The skills named in the catalog's `> **Consumed by:**` preamble line. */
 export function parseConsumers(content) {
-    const consumedByLine = content
-        .split(/\r?\n/)
-        .find((line) => line.startsWith(CONSUMED_BY_PREFIX));
+    const consumedByLine = content.split(/\r?\n/).find(line => line.startsWith(CONSUMED_BY_PREFIX));
     if (!consumedByLine) return [];
-    return [...consumedByLine.matchAll(/`([a-z][a-z0-9-]*)`/g)].map((match) => match[1]);
+    return [...consumedByLine.matchAll(/`([a-z][a-z0-9-]*)`/g)].map(match => match[1]);
 }
 
 /**
@@ -292,9 +294,7 @@ export function parseConsumers(content) {
  */
 function isGuardBearing(skillBody) {
     const guarded = new RegExp(`§(?:${GUARDED_SECTIONS.join('|')})\\b`);
-    return skillBody
-        .split(/\r?\n/)
-        .some((line) => line.includes('architecture-knowledge') && guarded.test(line));
+    return skillBody.split(/\r?\n/).some(line => line.includes('architecture-knowledge') && guarded.test(line));
 }
 
 /**
@@ -310,18 +310,16 @@ export function findConsumerViolations(content, readSkill) {
     for (const skillName of parseConsumers(content)) {
         const bodies = readSkill(skillName);
         if (bodies === null || bodies === undefined) continue; // fail-soft: consumer not present
-        const records = typeof bodies === 'string'
-            ? [{ path: `.claude/skills/${skillName}/SKILL.md`, body: bodies }]
-            : bodies;
+        const records = typeof bodies === 'string' ? [{ path: `.claude/skills/${skillName}/SKILL.md`, body: bodies }] : bodies;
         for (const { path: filePath, body } of records) {
             if (!isGuardBearing(body)) continue; // no provenance guard to keep
             if (body.includes('— VERIFY')) continue;
 
             violations.push(
                 `${normalize(filePath)}: consumer references ${normalize(CATALOG_PATH)} ` +
-                `§${GUARDED_SECTIONS.join('/§')} but no longer contains the literal \`— VERIFY\` token — ` +
-                `the catalog's markers are inert without it, so a reworded guard silently disarms every ` +
-                `provenance rule while the catalog itself still passes`
+                    `§${GUARDED_SECTIONS.join('/§')} but no longer contains the literal \`— VERIFY\` token — ` +
+                    `the catalog's markers are inert without it, so a reworded guard silently disarms every ` +
+                    `provenance rule while the catalog itself still passes`
             );
         }
     }
@@ -333,7 +331,7 @@ export function findConsumerViolations(content, readSkill) {
 export function readConsumerBodies(skillName, root = rootDir) {
     const skillDir = path.join(root, '.claude', 'skills', skillName);
     try {
-        const read = (filePath) => ({
+        const read = filePath => ({
             path: normalize(path.relative(root, filePath)),
             body: fsSync.readFileSync(filePath, 'utf8')
         });
@@ -356,18 +354,12 @@ async function main() {
 
     if (content === null) {
         // Fail-soft: a project that copied `.claude` without the architecture docs still syncs.
-        console.warn(
-            `[codex-verify-provenance-markers] WARN: cannot read ${normalize(CATALOG_PATH)} — skipped`
-        );
+        console.warn(`[codex-verify-provenance-markers] WARN: cannot read ${normalize(CATALOG_PATH)} — skipped`);
         console.log('[codex-verify-provenance-markers] PASS (catalog absent)');
         return;
     }
 
-    const failures = [
-        ...findMarkerViolations(content),
-        ...findBannerViolations(content),
-        ...findConsumerViolations(content, readConsumerBodies)
-    ];
+    const failures = [...findMarkerViolations(content), ...findBannerViolations(content), ...findConsumerViolations(content, readConsumerBodies)];
 
     if (failures.length > 0) {
         console.error('[codex-verify-provenance-markers] FAIL');

@@ -27,8 +27,8 @@ const MAX_LIFETIME_MS = 15 * 60 * 1000;
 const OPERATIONS = Object.freeze(['add', 'commit', 'push', 'discard']);
 const ID_PATTERN = /^[a-f0-9]{32}$/;
 const hash = value => crypto.createHash('sha256').update(value).digest('hex');
-const text = (value, limit) => typeof value === 'string' && value.length <= limit && value.trim() === value &&
-    value.length > 0 && !/[\x00-\x1f\x7f]/.test(value);
+const text = (value, limit) =>
+    typeof value === 'string' && value.length <= limit && value.trim() === value && value.length > 0 && !/[\x00-\x1f\x7f]/.test(value);
 
 function canonicalDirectory(value) {
     if (!text(value, 32768) || !path.isAbsolute(value)) throw new Error('An existing absolute directory is required');
@@ -47,21 +47,40 @@ function scope(options, includeRepository = true) {
     const sessionHash = hash(options.sessionId);
     const store = options.storeDir === undefined ? path.join(os.tmpdir(), 'ck', 'git-operation-leases') : options.storeDir;
     if (!text(store, 32768) || !path.isAbsolute(store)) throw new Error('Absolute storeDir required');
-    return { project, repository, projectHash, sessionHash, repositoryHash: repository && hash(repository), now,
-        directory: path.join(store, projectHash, sessionHash) };
+    return {
+        project,
+        repository,
+        projectHash,
+        sessionHash,
+        repositoryHash: repository && hash(repository),
+        now,
+        directory: path.join(store, projectHash, sessionHash)
+    };
 }
 
 function validRecord(record, context, active = true) {
-    return record && record.schemaVersion === 1 && ID_PATTERN.test(record.leaseId) &&
-        record.project === context.project && record.projectHash === context.projectHash &&
-        record.sessionHash === context.sessionHash && text(record.repository, 32768) &&
+    return (
+        record &&
+        record.schemaVersion === 1 &&
+        ID_PATTERN.test(record.leaseId) &&
+        record.project === context.project &&
+        record.projectHash === context.projectHash &&
+        record.sessionHash === context.sessionHash &&
+        text(record.repository, 32768) &&
         record.repositoryHash === hash(record.repository) &&
         (!context.repository || (record.repository === context.repository && record.repositoryHash === context.repositoryHash)) &&
-        text(record.sourceRequest, 512) && Array.isArray(record.operations) && record.operations.length > 0 &&
-        record.operations.every(op => OPERATIONS.includes(op)) && new Set(record.operations).size === record.operations.length &&
-        Number.isSafeInteger(record.issuedAt) && record.issuedAt > 0 && Number.isSafeInteger(record.expiresAt) &&
-        record.expiresAt > record.issuedAt && record.expiresAt - record.issuedAt <= MAX_LIFETIME_MS &&
-        (!active || (record.revokedAt === undefined && record.issuedAt <= context.now && context.now < record.expiresAt));
+        text(record.sourceRequest, 512) &&
+        Array.isArray(record.operations) &&
+        record.operations.length > 0 &&
+        record.operations.every(op => OPERATIONS.includes(op)) &&
+        new Set(record.operations).size === record.operations.length &&
+        Number.isSafeInteger(record.issuedAt) &&
+        record.issuedAt > 0 &&
+        Number.isSafeInteger(record.expiresAt) &&
+        record.expiresAt > record.issuedAt &&
+        record.expiresAt - record.issuedAt <= MAX_LIFETIME_MS &&
+        (!active || (record.revokedAt === undefined && record.issuedAt <= context.now && context.now < record.expiresAt))
+    );
 }
 
 function leasePath(context, leaseId) {
@@ -74,7 +93,9 @@ function readRecord(file) {
         const stat = fs.lstatSync(file);
         if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 8192) return null;
         return JSON.parse(fs.readFileSync(file, 'utf8'));
-    } catch (_) { return null; }
+    } catch (_) {
+        return null;
+    }
 }
 
 // Exclusive per-record lock serializes import/revoke. A crashed lock denies mutation;
@@ -95,7 +116,11 @@ function replaceRecord(context, leaseId, makeRecord) {
         return record;
     } finally {
         fs.closeSync(descriptor);
-        try { fs.unlinkSync(temporary); } catch (_) { /* No published partial record. */ }
+        try {
+            fs.unlinkSync(temporary);
+        } catch (_) {
+            /* No published partial record. */
+        }
         fs.unlinkSync(lock);
     }
 }
@@ -114,16 +139,28 @@ function issueLease(options) {
     const context = scope(options);
     const ttlMs = options.ttlMs === undefined ? MAX_LIFETIME_MS : options.ttlMs;
     if (!Number.isSafeInteger(ttlMs) || ttlMs <= 0 || ttlMs > MAX_LIFETIME_MS) throw new Error('Lifetime must be 1..900000 ms');
-    const record = { schemaVersion: 1, leaseId: crypto.randomBytes(16).toString('hex'),
-        project: context.project, repository: context.repository, projectHash: context.projectHash,
-        repositoryHash: context.repositoryHash, sessionHash: context.sessionHash, operations: options.operations,
-        issuedAt: context.now, expiresAt: context.now + ttlMs, sourceRequest: options.sourceRequest };
+    const record = {
+        schemaVersion: 1,
+        leaseId: crypto.randomBytes(16).toString('hex'),
+        project: context.project,
+        repository: context.repository,
+        projectHash: context.projectHash,
+        repositoryHash: context.repositoryHash,
+        sessionHash: context.sessionHash,
+        operations: options.operations,
+        issuedAt: context.now,
+        expiresAt: context.now + ttlMs,
+        sourceRequest: options.sourceRequest
+    };
     return importLease({ ...options, now: context.now, record });
 }
 
 function listRecords(context) {
-    try { return fs.readdirSync(context.directory).filter(name => /^[a-f0-9]{32}\.json$/.test(name)); }
-    catch (_) { return []; }
+    try {
+        return fs.readdirSync(context.directory).filter(name => /^[a-f0-9]{32}\.json$/.test(name));
+    } catch (_) {
+        return [];
+    }
 }
 
 function checkLease(options) {
@@ -134,7 +171,9 @@ function checkLease(options) {
             const record = readRecord(path.join(context.directory, name));
             return validRecord(record, context) && name === `${record.leaseId}.json` && record.operations.includes(options.operation);
         });
-    } catch (_) { return false; }
+    } catch (_) {
+        return false;
+    }
 }
 
 function revokeRecord(context, leaseId) {
@@ -164,9 +203,9 @@ module.exports = { MAX_LIFETIME_MS, OPERATIONS, canonicalDirectory, issueLease, 
 if (require.main === module) {
     try {
         const command = process.argv[2];
-        const actions = { issue: issueLease, import: importLease, check: checkLease, revoke: revokeLease,
-            'revoke-session': revokeSessionLeases };
-        if (process.argv.length !== 3 || !Object.hasOwn(actions, command)) throw new Error('Use issue|import|check|revoke|revoke-session with explicit JSON stdin');
+        const actions = { issue: issueLease, import: importLease, check: checkLease, revoke: revokeLease, 'revoke-session': revokeSessionLeases };
+        if (process.argv.length !== 3 || !Object.hasOwn(actions, command))
+            throw new Error('Use issue|import|check|revoke|revoke-session with explicit JSON stdin');
         const options = JSON.parse(fs.readFileSync(0, 'utf8'));
         if (Object.hasOwn(options, 'now')) throw new Error('CLI uses the real clock');
         const result = actions[command](options);

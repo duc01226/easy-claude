@@ -88,7 +88,11 @@ export function claudeStartedSkills(jsonl) {
     for (const line of String(jsonl).split(/\r?\n/)) {
         if (!line.trim().startsWith('{')) continue;
         let event;
-        try { event = JSON.parse(line); } catch { continue; }
+        try {
+            event = JSON.parse(line);
+        } catch {
+            continue;
+        }
         for (const item of event?.message?.content || []) {
             if (item?.type !== 'tool_use') continue;
             if (item.name === 'Skill' && typeof item.input?.skill === 'string') started.add(item.input.skill.replace(/^\//, '').split(/\s/)[0]);
@@ -104,7 +108,11 @@ export function codexStartedSkills(jsonl) {
     for (const line of String(jsonl).split(/\r?\n/)) {
         if (!line.trim().startsWith('{')) continue;
         let event;
-        try { event = JSON.parse(line); } catch { continue; }
+        try {
+            event = JSON.parse(line);
+        } catch {
+            continue;
+        }
         const item = event?.item ?? event?.msg ?? event;
         if (item?.type === 'agent_message' || item?.type === 'reasoning') continue;
         for (const name of skillFilesInValue(item)) started.add(name);
@@ -124,12 +132,25 @@ export function score(results) {
     const cases = results.map(({ id, expect, runs }) => {
         const all = runs.map(asRun);
         const measured = all.filter(run => run.outcome === 'ok').map(run => run.started);
-        const passes = measured.filter(started => (expect === null ? started.length === 0 : started.includes(expect) && started.every(name => name === expect))).length;
+        const passes = measured.filter(started =>
+            expect === null ? started.length === 0 : started.includes(expect) && started.every(name => name === expect)
+        ).length;
         const hits = expect === null ? null : measured.filter(started => started.includes(expect)).length;
         const falseTriggers = measured.filter(started => started.some(name => name !== expect)).length;
         const errors = all.filter(run => run.outcome === 'error').length;
         const timeouts = all.filter(run => run.outcome === 'timeout').length;
-        return { id, expect, runs: measured.length, errors, timeouts, passes, hits, falseTriggers, started: measured, failures: all.filter(run => run.outcome !== 'ok') };
+        return {
+            id,
+            expect,
+            runs: measured.length,
+            errors,
+            timeouts,
+            passes,
+            hits,
+            falseTriggers,
+            started: measured,
+            failures: all.filter(run => run.outcome !== 'ok')
+        };
     });
     const positive = cases.filter(item => item.expect !== null);
     const totalRuns = cases.reduce((sum, item) => sum + item.runs, 0);
@@ -167,9 +188,25 @@ export const CLAUDE_DISALLOWED_TOOLS = ['Bash', 'Edit', 'Write', 'MultiEdit', 'N
 export function hostArgv(host, prompt, model) {
     const pick = model ? (host === 'claude' ? ['--model', model] : ['-m', model]) : [];
     if (host === 'claude') {
-        return ['-p', prompt, '--output-format', 'stream-json', '--verbose', '--permission-mode', 'plan',
-            '--tools', CLAUDE_TOOLS.join(','), '--disallowedTools', CLAUDE_DISALLOWED_TOOLS.join(','), '--setting-sources', 'project,local', '--strict-mcp-config',
-            '--max-turns', '3', ...pick];
+        return [
+            '-p',
+            prompt,
+            '--output-format',
+            'stream-json',
+            '--verbose',
+            '--permission-mode',
+            'plan',
+            '--tools',
+            CLAUDE_TOOLS.join(','),
+            '--disallowedTools',
+            CLAUDE_DISALLOWED_TOOLS.join(','),
+            '--setting-sources',
+            'project,local',
+            '--strict-mcp-config',
+            '--max-turns',
+            '3',
+            ...pick
+        ];
     }
     return ['exec', '--json', '--sandbox', 'read-only', '--ephemeral', '--skip-git-repo-check', ...pick, prompt];
 }
@@ -182,17 +219,34 @@ export function hostArgv(host, prompt, model) {
  * `ENV_SWITCH` kill switch. Every one is a mode word or a boolean. Never a `CK_` prefix: other CK_ names, such as
  * CK_GIT_URL, can carry a credential-bearing URL. */
 export const FRAMEWORK_SWITCHES = Object.freeze([
-    'CK_FRAMEWORK_MODE', 'CK_QUIET_PROJECT_RULES', 'CK_QUIET_NATIVE', 'CK_AUTO_APPLY_NATIVE', 'CK_WORKFLOW_ROUTE_MODE', 'CK_DECISION_SUPPORT_MODE',
-    'CK_SKILL_AUTO_TRIGGER', 'CK_COMMIT_REVIEW_MODE', 'CK_PROMPT_LEDGER', 'CK_KNOWLEDGE_ROUTE', 'CK_QUALITY_SKILL_REMINDER',
-    'CK_CORE_PRINCIPLES_INJECT', 'CK_AI_FEATURE_ROUTE', 'CK_COMMIT_SKILL_ROUTE', 'CK_JUDGEMENT_INTEGRITY_ROUTE',
-    'CK_WORK_TRACKING_MODE', 'CK_WORK_TRACKING_AUTO_MERGE'
+    'CK_FRAMEWORK_MODE',
+    'CK_QUIET_PROJECT_RULES',
+    'CK_QUIET_NATIVE',
+    'CK_AUTO_APPLY_NATIVE',
+    'CK_WORKFLOW_ROUTE_MODE',
+    'CK_DECISION_SUPPORT_MODE',
+    'CK_SKILL_AUTO_TRIGGER',
+    'CK_COMMIT_REVIEW_MODE',
+    'CK_PROMPT_LEDGER',
+    'CK_KNOWLEDGE_ROUTE',
+    'CK_QUALITY_SKILL_REMINDER',
+    'CK_CORE_PRINCIPLES_INJECT',
+    'CK_AI_FEATURE_ROUTE',
+    'CK_COMMIT_SKILL_ROUTE',
+    'CK_JUDGEMENT_INTEGRITY_ROUTE',
+    'CK_WORK_TRACKING_MODE',
+    'CK_WORK_TRACKING_AUTO_MERGE'
 ]);
 
 /** A switch value as the report records it: trimmed, wrapping quotes removed (`set NAME="quiet"` in cmd.exe keeps
  * them), lower-cased, and kept only when it is a short mode word; anything else, which a mis-set switch could make
  * an arbitrary string, is `(unrecognized)`. Pure. */
 export function switchValue(raw) {
-    const value = String(raw).trim().replace(/^(["'])(.*)\1$/, '$2').trim().toLowerCase();
+    const value = String(raw)
+        .trim()
+        .replace(/^(["'])(.*)\1$/, '$2')
+        .trim()
+        .toLowerCase();
     return /^[a-z0-9_-]{1,20}$/.test(value) ? value : '(unrecognized)';
 }
 
@@ -234,8 +288,13 @@ export function transcriptCompleted(host, jsonl, status) {
     for (const line of String(jsonl).split(/\r?\n/)) {
         if (!line.trim().startsWith('{')) continue;
         let event;
-        try { event = JSON.parse(line); } catch { continue; }
-        if (host === 'claude' && event?.type === 'result') completed = event.subtype === 'error_max_turns' || (event.subtype === 'success' && event.is_error !== true);
+        try {
+            event = JSON.parse(line);
+        } catch {
+            continue;
+        }
+        if (host === 'claude' && event?.type === 'result')
+            completed = event.subtype === 'error_max_turns' || (event.subtype === 'success' && event.is_error !== true);
         if (host === 'codex' && event?.type === 'turn.completed') completed = true;
         if (host === 'codex' && (event?.type === 'turn.failed' || event?.type === 'error')) return false;
     }
@@ -249,7 +308,14 @@ const SETUP_ERRORS = new Set(['ENOENT', 'EACCES', 'EPERM', 'ENOEXEC']);
  * the host executable cannot be started. */
 export function runOnce({ host, prompt, cwd, timeoutMs, env = process.env }) {
     const bin = env.SKILL_EVAL_HOST_BIN || host;
-    const result = spawnSync(bin, hostArgv(host, prompt, env.SKILL_EVAL_MODEL), { cwd, env: hostEnv(host, env), encoding: 'utf8', timeout: timeoutMs, windowsHide: true, maxBuffer: 64 * 1024 * 1024 });
+    const result = spawnSync(bin, hostArgv(host, prompt, env.SKILL_EVAL_MODEL), {
+        cwd,
+        env: hostEnv(host, env),
+        encoding: 'utf8',
+        timeout: timeoutMs,
+        windowsHide: true,
+        maxBuffer: 64 * 1024 * 1024
+    });
     if (result.error && SETUP_ERRORS.has(result.error.code)) throw new Error(`${bin}: ${result.error.message}`);
     if (result.error?.code === 'ETIMEDOUT') return { outcome: 'timeout', detail: `no result within ${timeoutMs} ms` };
     if (result.error || result.signal || !transcriptCompleted(host, result.stdout, result.status)) {
@@ -285,7 +351,8 @@ function parseArgs(argv) {
     if (!['claude', 'codex'].includes(options.host)) throw new Error('--host must be claude or codex');
     if (!Number.isInteger(options.runs) || options.runs < 1) throw new Error('--runs must be a positive integer');
     for (const key of ['minHitRate', 'maxFalseRate']) {
-        if (options[key] !== undefined && !(options[key] >= 0 && options[key] <= 1)) throw new Error(`--${key.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`)} must be between 0 and 1`);
+        if (options[key] !== undefined && !(options[key] >= 0 && options[key] <= 1))
+            throw new Error(`--${key.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`)} must be between 0 and 1`);
     }
     return options;
 }
@@ -294,21 +361,46 @@ export function main(argv = process.argv.slice(2), { cwd = process.cwd(), env = 
     const options = parseArgs(argv);
     const cases = readCases(path.resolve(cwd, options.cases));
     const version = hostVersion(options.host, env);
-    const results = cases.map(item => ({ id: item.id, expect: item.expect, runs: Array.from({ length: options.runs }, () => runOnce({ host: options.host, prompt: item.prompt, cwd, timeoutMs: options.timeoutMs, env })) }));
+    const results = cases.map(item => ({
+        id: item.id,
+        expect: item.expect,
+        runs: Array.from({ length: options.runs }, () => runOnce({ host: options.host, prompt: item.prompt, cwd, timeoutMs: options.timeoutMs, env }))
+    }));
     const framework = frameworkState(options.host, cwd, env);
-    const report = { host: options.host, hostVersion: version, model: env.SKILL_EVAL_MODEL || 'host-default', framework, runsPerCase: options.runs, ...score(results) };
+    const report = {
+        host: options.host,
+        hostVersion: version,
+        model: env.SKILL_EVAL_MODEL || 'host-default',
+        framework,
+        runsPerCase: options.runs,
+        ...score(results)
+    };
     const pct = value => (value === null ? 'n/a' : `${Math.round(value * 100)}%`);
     if (options.json) log(JSON.stringify(report, null, 2));
     else {
         for (const item of report.cases) {
-            const unmeasured = item.errors + item.timeouts ? `\tunmeasured ${item.errors} error(s), ${item.timeouts} timeout(s): ${item.failures.map(run => run.detail).join(' | ')}` : '';
-            log(`${item.id}\texpect ${item.expect ?? '(none)'}\tpass ${item.passes}/${item.runs}\tstarted ${item.started.map(run => run.join('+') || '-').join(' | ')}${unmeasured}`);
+            const unmeasured =
+                item.errors + item.timeouts
+                    ? `\tunmeasured ${item.errors} error(s), ${item.timeouts} timeout(s): ${item.failures.map(run => run.detail).join(' | ')}`
+                    : '';
+            log(
+                `${item.id}\texpect ${item.expect ?? '(none)'}\tpass ${item.passes}/${item.runs}\tstarted ${item.started.map(run => run.join('+') || '-').join(' | ')}${unmeasured}`
+            );
         }
-        log(`hit rate ${pct(report.hitRate)} · false-trigger rate ${pct(report.falseTriggerRate)} · ${options.runs} run(s) per case on ${options.host} ${report.hostVersion ?? '(version unknown)'}, model ${report.model}, framework mode ${framework.mode} (${framework.modeSource}${framework.quietProjectRules ? ', quiet project rules' : ''}${framework.switchesPassed.length ? `; switches ${Object.entries(framework.switches).map(([name, value]) => `${name}=${value}`).join(',')}` : ''}), auto-trigger ${framework.skillAutoTrigger.enabled ? 'on' : 'off'} (${framework.skillAutoTrigger.source})${report.unmeasuredRuns ? ` · ${report.unmeasuredRuns} run(s) unmeasured` : ''}`);
+        log(
+            `hit rate ${pct(report.hitRate)} · false-trigger rate ${pct(report.falseTriggerRate)} · ${options.runs} run(s) per case on ${options.host} ${report.hostVersion ?? '(version unknown)'}, model ${report.model}, framework mode ${framework.mode} (${framework.modeSource}${framework.quietProjectRules ? ', quiet project rules' : ''}${
+                framework.switchesPassed.length
+                    ? `; switches ${Object.entries(framework.switches)
+                          .map(([name, value]) => `${name}=${value}`)
+                          .join(',')}`
+                    : ''
+            }), auto-trigger ${framework.skillAutoTrigger.enabled ? 'on' : 'off'} (${framework.skillAutoTrigger.source})${report.unmeasuredRuns ? ` · ${report.unmeasuredRuns} run(s) unmeasured` : ''}`
+        );
     }
     // A run that measured nothing cannot support a pass, whatever the rates of the other runs say.
     if (report.unmeasuredRuns > 0) return { report, exitCode: 2 };
-    const failed = (options.minHitRate !== undefined && report.hitRate !== null && report.hitRate < options.minHitRate) ||
+    const failed =
+        (options.minHitRate !== undefined && report.hitRate !== null && report.hitRate < options.minHitRate) ||
         (options.maxFalseRate !== undefined && report.falseTriggerRate !== null && report.falseTriggerRate > options.maxFalseRate);
     return { report, exitCode: failed ? 1 : 0 };
 }

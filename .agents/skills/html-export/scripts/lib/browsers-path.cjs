@@ -19,39 +19,36 @@ const os = require('node:os');
 const path = require('node:path');
 
 function sameKey(left, right, platform) {
-  return platform === 'win32' ? left.toUpperCase() === right.toUpperCase() : left === right;
+    return platform === 'win32' ? left.toUpperCase() === right.toUpperCase() : left === right;
 }
 
 function readEnvKey(env, name, platform = process.platform) {
-  const key = Object.keys(env || {}).find((candidate) => sameKey(candidate, name, platform));
-  return key === undefined ? undefined : env[key];
+    const key = Object.keys(env || {}).find(candidate => sameKey(candidate, name, platform));
+    return key === undefined ? undefined : env[key];
 }
 
 function homeFrom(env, platform) {
-  const pathApi = platform === 'win32' ? path.win32 : path.posix;
-  const home = platform === 'win32'
-    ? readEnvKey(env, 'USERPROFILE', platform) || readEnvKey(env, 'HOME', platform)
-    : readEnvKey(env, 'HOME', platform);
-  return home ? pathApi.resolve(home) : os.homedir();
+    const pathApi = platform === 'win32' ? path.win32 : path.posix;
+    const home = platform === 'win32' ? readEnvKey(env, 'USERPROFILE', platform) || readEnvKey(env, 'HOME', platform) : readEnvKey(env, 'HOME', platform);
+    return home ? pathApi.resolve(home) : os.homedir();
 }
 
 function resolveBrowsersPath(env = process.env, platform = process.platform, cwd = process.cwd()) {
-  const pathApi = platform === 'win32' ? path.win32 : path.posix;
-  const explicit = readEnvKey(env, 'PLAYWRIGHT_BROWSERS_PATH', platform);
-  if (explicit !== undefined && explicit !== '') {
-    if (explicit === '0' || pathApi.isAbsolute(explicit)) return explicit;
-    return pathApi.resolve(cwd, explicit);
-  }
-  if (platform === 'win32') {
-    const localAppData = readEnvKey(env, 'LOCALAPPDATA', platform)
-      || pathApi.join(homeFrom(env, platform), 'AppData', 'Local');
-    return pathApi.join(localAppData, 'ms-playwright');
-  }
-  if (platform === 'darwin') {
-    return pathApi.join(homeFrom(env, platform), 'Library', 'Caches', 'ms-playwright');
-  }
-  const cacheHome = readEnvKey(env, 'XDG_CACHE_HOME', platform) || pathApi.join(homeFrom(env, platform), '.cache');
-  return pathApi.join(cacheHome, 'ms-playwright');
+    const pathApi = platform === 'win32' ? path.win32 : path.posix;
+    const explicit = readEnvKey(env, 'PLAYWRIGHT_BROWSERS_PATH', platform);
+    if (explicit !== undefined && explicit !== '') {
+        if (explicit === '0' || pathApi.isAbsolute(explicit)) return explicit;
+        return pathApi.resolve(cwd, explicit);
+    }
+    if (platform === 'win32') {
+        const localAppData = readEnvKey(env, 'LOCALAPPDATA', platform) || pathApi.join(homeFrom(env, platform), 'AppData', 'Local');
+        return pathApi.join(localAppData, 'ms-playwright');
+    }
+    if (platform === 'darwin') {
+        return pathApi.join(homeFrom(env, platform), 'Library', 'Caches', 'ms-playwright');
+    }
+    const cacheHome = readEnvKey(env, 'XDG_CACHE_HOME', platform) || pathApi.join(homeFrom(env, platform), '.cache');
+    return pathApi.join(cacheHome, 'ms-playwright');
 }
 
 module.exports = { resolveBrowsersPath, readEnvKey };

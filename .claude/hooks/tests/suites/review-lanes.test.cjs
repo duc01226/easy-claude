@@ -28,12 +28,24 @@ const HOOKS_DIR = path.resolve(__dirname, '../..');
 const REPO_ROOT = path.resolve(HOOKS_DIR, '..', '..');
 const { isFrameworkRepo } = require(path.join(HOOKS_DIR, 'tests', 'lib', 'framework-repo-guard.cjs'));
 
-const SKIP = isFrameworkRepo(REPO_ROOT) ? false : 'reads the framework repo\'s own shipped carriers (framework-repo signal)';
+const SKIP = isFrameworkRepo(REPO_ROOT) ? false : "reads the framework repo's own shipped carriers (framework-repo signal)";
 const LANE = 'whole-diff-correctness';
 const ORCHESTRATION = ['review-protocol-injection', 'systematic-review-batching', 'review-policy'];
 // The leaf rules the reviewer template embeds. Agents that held the template before it left agent files are
 // dispatched directly too, so each keeps every one of these as its own block on every harness.
-const TEMPLATE_LEAF_TAGS = ['spec-tests-code-triangulation', 'evidence-based-reasoning', 'bug-detection', 'design-patterns-quality', 'logic-and-intention-review', 'test-spec-verification', 'behavioral-delta-matrix', 'fix-layer-accountability', 'rationalization-prevention', 'graph-assisted-investigation', 'understand-code-first'];
+const TEMPLATE_LEAF_TAGS = [
+    'spec-tests-code-triangulation',
+    'evidence-based-reasoning',
+    'bug-detection',
+    'design-patterns-quality',
+    'logic-and-intention-review',
+    'test-spec-verification',
+    'behavioral-delta-matrix',
+    'fix-layer-accountability',
+    'rationalization-prevention',
+    'graph-assisted-investigation',
+    'understand-code-first'
+];
 const TEMPLATE_LEAF_AGENTS = ['code-reviewer', 'integration-tester', 'planner', 'spec-compliance-reviewer'];
 
 function read(...segments) {
@@ -64,25 +76,43 @@ const tests = [
         fn: () => {
             const lane = canonicalBody(LANE);
             assert.match(lane, /verify each affected flow from trigger through callers, boundaries and outputs/, 'covers connected behavior');
-            assert.match(lane, /File-by-file and specialist checks add depth[^\n]*account for their interactions/, 'specialists never replace whole-target correctness');
+            assert.match(
+                lane,
+                /File-by-file and specialist checks add depth[^\n]*account for their interactions/,
+                'specialists never replace whole-target correctness'
+            );
             assert.match(lane, /success, failure, empty\/boundary states/, 'hunts success, failure and boundary states');
             assert.match(lane, /alternate roles\/clients, retries and concurrency/, 'hunts alternate actors and async behavior');
             assert.match(lane, /governing rules and relevant history/, 'uses history as recorded intent');
             assert.match(lane, /confidence ≥85/, 'keeps only confirmed findings');
             assert.match(lane, /Confidence measures whether the issue is real; severity measures its impact/, 'confidence and consequence are separate');
             // An unsettled MEDIUM-or-higher candidate takes the severity-rubric route, never a silent drop.
-            assert.match(lane, /possible MEDIUM\+ impact stays `NOT VERIFIABLE`, with the missing proof/,
-                'an unsettled MEDIUM+ candidate is reported NOT VERIFIABLE');
-            assert.match(canonicalBody(`${LANE}:reminder`), /preserve complete coverage and evidence/,
-                'the lane reminder preserves the full evidence obligation');
-            assert.match(canonicalBody('severity-rubric'), /Unsettled reachability is NOT VERIFIABLE for potential MEDIUM\+ impact/,
-                'the lane route agrees with the severity rubric it defers to');
+            assert.match(
+                lane,
+                /possible MEDIUM\+ impact stays `NOT VERIFIABLE`, with the missing proof/,
+                'an unsettled MEDIUM+ candidate is reported NOT VERIFIABLE'
+            );
+            assert.match(
+                canonicalBody(`${LANE}:reminder`),
+                /preserve complete coverage and evidence/,
+                'the lane reminder preserves the full evidence obligation'
+            );
+            assert.match(
+                canonicalBody('severity-rubric'),
+                /Unsettled reachability is NOT VERIFIABLE for potential MEDIUM\+ impact/,
+                'the lane route agrees with the severity rubric it defers to'
+            );
             assert.match(lane, /review together or group connected flows from actual risk and context headroom/, 'grouping follows actual risk and context');
             assert.match(lane, /record cross-group obligations and inspect them before concluding/, 'grouping preserves interactions');
             assert.match(lane, /No complete verdict while an affected flow, required rule or interaction remains unreviewed/, 'no incomplete flow verdict');
             // The shared "never a finding" rule has one owner, and the lane points at it.
             const rubric = canonicalBody('severity-rubric');
-            for (const excluded of [/issues already reported by this change’s compiler\/type checker\/linter\/tests/, /intended behavior changes/, /reasoned suppressions predating the change/, /neither touched nor made reachable/]) {
+            for (const excluded of [
+                /issues already reported by this change’s compiler\/type checker\/linter\/tests/,
+                /intended behavior changes/,
+                /reasoned suppressions predating the change/,
+                /neither touched nor made reachable/
+            ]) {
                 assert.match(rubric, excluded, `severity-rubric excludes ${excluded}`);
             }
             // A change can never exempt itself: a suppression it adds is reviewed like any other line.
@@ -97,9 +127,17 @@ const tests = [
             assert.ok(expected, 'canonical lane body');
             const projection = read('.claude', 'skills', 'shared', 'protocols', `${LANE}.md`);
             assert.equal(normalizeEol(projection).trim(), normalizeEol(expected).trim(), 'published lane equals canonical');
-            for (const carrier of [['.claude', 'skills', 'changes-review', 'SKILL.md'], ['.claude', 'skills', 'workflow-review-changes', 'SKILL.md'], ['.claude', 'skills', 'code-quality-review', 'SKILL.md'], ['.claude', 'agents', 'code-reviewer.md']]) {
+            for (const carrier of [
+                ['.claude', 'skills', 'changes-review', 'SKILL.md'],
+                ['.claude', 'skills', 'workflow-review-changes', 'SKILL.md'],
+                ['.claude', 'skills', 'code-quality-review', 'SKILL.md'],
+                ['.claude', 'agents', 'code-reviewer.md']
+            ]) {
                 const text = read(...carrier);
-                assert.ok(carriesCanonicalLane(text, projection, expected, carrier[1] === 'skills'), `${carrier.join('/')} carries the canonical lane (agents retain full bodies)`);
+                assert.ok(
+                    carriesCanonicalLane(text, projection, expected, carrier[1] === 'skills'),
+                    `${carrier.join('/')} carries the canonical lane (agents retain full bodies)`
+                );
             }
             const guide = `<!-- PROTOCOL-GUIDES:START -->\n${guideCarrier.guideEntries(read('.claude', 'skills', 'changes-review', 'SKILL.md')).get(LANE)}\n<!-- PROTOCOL-GUIDES:END -->`;
             for (const [label, text, published, acceptGuide] of [
@@ -124,8 +162,16 @@ const tests = [
             assert.match(workflow, /Wait for every report before fixing/, 'complete reader barrier');
             assert.match(workflow, /reconcile cross-file interactions and coverage/);
             const qualityReview = read('.claude', 'skills', 'code-quality-review', 'SKILL.md');
-            assert.match(qualityReview, /holistically trace the main affected area's full pipeline across BOTH boundaries/, 'named-code executor traces complete flows');
-            assert.match(qualityReview, /Re-read accumulated report, assess overall approach, architecture, duplication, and cross-boundary behavior/, 'named-code executor checks interactions');
+            assert.match(
+                qualityReview,
+                /holistically trace the main affected area's full pipeline across BOTH boundaries/,
+                'named-code executor traces complete flows'
+            );
+            assert.match(
+                qualityReview,
+                /Re-read accumulated report, assess overall approach, architecture, duplication, and cross-boundary behavior/,
+                'named-code executor checks interactions'
+            );
         }
     },
     {
@@ -163,11 +209,20 @@ const tests = [
                 const front = fs.readFileSync(path.join(agentsDir, name), 'utf8').replace(/\r\n?/g, '\n').split('\n---\n')[0];
                 const line = front.match(/^skills:\s*(.+)$/m);
                 if (line) preloadingAgents += 1;
-                for (const skill of line ? line[1].split(',').map(s => s.trim()).filter(Boolean) : []) {
+                for (const skill of line
+                    ? line[1]
+                          .split(',')
+                          .map(s => s.trim())
+                          .filter(Boolean)
+                    : []) {
                     const skillText = read('.claude', 'skills', skill, 'SKILL.md');
                     if (!ORCHESTRATION.some(tag => skillText.includes(`<!-- SYNC:${tag} -->`))) continue;
                     preloadsChecked += 1;
-                    assert.match(skillText, /Dispatched as a leaf reviewer[^\n]*belong to your caller/, `${name} preloads ${skill}, which must bound a leaf reviewer`);
+                    assert.match(
+                        skillText,
+                        /Dispatched as a leaf reviewer[^\n]*belong to your caller/,
+                        `${name} preloads ${skill}, which must bound a leaf reviewer`
+                    );
                 }
             }
             // No reviewer agent preloads an orchestration-carrying skill by design (preloads were removed so a leaf never inherits a loop);

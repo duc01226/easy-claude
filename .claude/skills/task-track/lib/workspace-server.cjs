@@ -17,11 +17,16 @@ const { ensureReport, ensureReportDocument } = require('../../../hooks/lib/task-
 const { REPORT_INLINE_SOURCES } = require('./report-view.cjs');
 
 // Typefaces ship with the app so it never loads anything from the network; assets/fonts/SOURCE.txt records their origin.
-const FONT_FILES = Object.freeze(['display', 'text', 'mono'].flatMap(family => ['latin', 'latin-ext'].map(subset => `red-hat-${family}-${subset}-wght-normal.woff2`)));
-const ASSETS = Object.freeze({ '/': ['index.html', 'text/html; charset=utf-8'],
-    '/app.js': ['app.js', 'text/javascript; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8'],
+const FONT_FILES = Object.freeze(
+    ['display', 'text', 'mono'].flatMap(family => ['latin', 'latin-ext'].map(subset => `red-hat-${family}-${subset}-wght-normal.woff2`))
+);
+const ASSETS = Object.freeze({
+    '/': ['index.html', 'text/html; charset=utf-8'],
+    '/app.js': ['app.js', 'text/javascript; charset=utf-8'],
+    '/style.css': ['style.css', 'text/css; charset=utf-8'],
     '/favicon.svg': ['favicon.svg', 'image/svg+xml'],
-    ...Object.fromEntries(FONT_FILES.map(name => [`/fonts/${name}`, [`fonts/${name}`, 'font/woff2']])) });
+    ...Object.fromEntries(FONT_FILES.map(name => [`/fonts/${name}`, [`fonts/${name}`, 'font/woff2']]))
+});
 // The app shows a status report in a frame that inherits this policy, so the report's one script and one stylesheet are
 // named here by content hash. Nothing else inline may run or style, in the app or in the frame.
 const CSP = `default-src 'none'; script-src 'self' ${REPORT_INLINE_SOURCES.script}; style-src 'self' ${REPORT_INLINE_SOURCES.style}; font-src 'self'; connect-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`;
@@ -58,9 +63,11 @@ function respond(res, status, value) {
 }
 
 async function body(req) {
-    if (!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(req.headers['content-type'] || '')) fail('INVALID_INPUT', 'Use application/json for workspace actions');
+    if (!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(req.headers['content-type'] || ''))
+        fail('INVALID_INPUT', 'Use application/json for workspace actions');
     const declared = req.headers['content-length'];
-    if (declared !== undefined && (!/^\d+$/.test(declared) || Number(declared) > LIMITS.recordBytes)) fail('LIMIT_EXCEEDED', 'Request exceeds selected byte budget');
+    if (declared !== undefined && (!/^\d+$/.test(declared) || Number(declared) > LIMITS.recordBytes))
+        fail('LIMIT_EXCEEDED', 'Request exceeds selected byte budget');
     const chunks = [];
     let size = 0;
     for await (const chunk of req) {
@@ -68,8 +75,11 @@ async function body(req) {
         if (size > LIMITS.recordBytes) fail('LIMIT_EXCEEDED', 'Request exceeds selected byte budget');
         chunks.push(chunk);
     }
-    try { return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks))); }
-    catch { fail('INVALID_INPUT', 'Workspace action needs one JSON object'); }
+    try {
+        return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks)));
+    } catch {
+        fail('INVALID_INPUT', 'Workspace action needs one JSON object');
+    }
 }
 
 /**
@@ -138,12 +148,20 @@ async function startWorkspace({ root, actor, writable = false, reopen } = {}) {
         if (!only([])) fail('INVALID_INPUT', 'Reopen accepts no input');
         if (typeof reopen !== 'function') return respond(res, 403, { status: 'refused', code: 'REOPEN_UNAVAILABLE' });
         if (reopening || Date.now() - reopenedAt < REOPEN_INTERVAL_MS) return respond(res, 429, { status: 'refused', code: 'REOPEN_BUSY' });
-        reopening = true; reopenedAt = Date.now();
+        reopening = true;
+        reopenedAt = Date.now();
         try {
             const launch = await reopen(launchLink());
-            return respond(res, 200, { launch: { status: launch?.status === 'requested' ? 'requested' : 'not-opened',
-                ...(launch?.browser ? { browser: String(launch.browser) } : {}), ...(launch?.reason ? { reason: String(launch.reason) } : {}) } });
-        } finally { reopening = false; }
+            return respond(res, 200, {
+                launch: {
+                    status: launch?.status === 'requested' ? 'requested' : 'not-opened',
+                    ...(launch?.browser ? { browser: String(launch.browser) } : {}),
+                    ...(launch?.reason ? { reason: String(launch.reason) } : {})
+                }
+            });
+        } finally {
+            reopening = false;
+        }
     };
     const handle = async (req, res) => {
         secureHeaders(res);
@@ -157,7 +175,8 @@ async function startWorkspace({ root, actor, writable = false, reopen } = {}) {
                 const [name, type] = ASSETS[target.pathname];
                 const bytes = fs.readFileSync(path.join(__dirname, '../assets', name));
                 if (bytes.length > LIMITS.recordBytes) fail('LIMIT_EXCEEDED', 'Workspace asset exceeds the byte budget');
-                res.setHeader('Content-Type', type); return res.end(bytes);
+                res.setHeader('Content-Type', type);
+                return res.end(bytes);
             }
             if (!target.pathname.startsWith('/api/')) return respond(res, 404, { status: 'refused', code: 'NOT_FOUND' });
             if (['/api/launcher', '/api/attach', '/api/reopen'].includes(target.pathname)) return await beforeSession(req, res, target);
@@ -167,29 +186,37 @@ async function startWorkspace({ root, actor, writable = false, reopen } = {}) {
             try {
                 if (req.method === 'GET' && target.pathname === '/api/session') {
                     const current = trackingContext(context.root);
-                    return respond(res, 200, { schemaVersion: 1, sessionId, root: current.root, actor: actor || null,
-                        writable, profile: resolveTrackingProfile(current), snapshot: snapshotFor() });
+                    return respond(res, 200, {
+                        schemaVersion: 1,
+                        sessionId,
+                        root: current.root,
+                        actor: actor || null,
+                        writable,
+                        profile: resolveTrackingProfile(current),
+                        snapshot: snapshotFor()
+                    });
                 }
                 if (req.method !== 'POST') return respond(res, 405, { status: 'refused', code: 'METHOD_NOT_ALLOWED' });
                 if (req.headers.origin !== origin) return respond(res, 403, { status: 'refused', code: 'ORIGIN_REQUIRED' });
                 const value = await body(req);
                 if (target.pathname === '/api/inspect') {
-                    if (!value || typeof value !== 'object' || Array.isArray(value)
-                        || Object.keys(value).some(key => !['ref', 'scopeId'].includes(key))) fail('INVALID_INPUT', 'Inspect accepts only a scope selector');
+                    if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).some(key => !['ref', 'scopeId'].includes(key)))
+                        fail('INVALID_INPUT', 'Inspect accepts only a scope selector');
                     return respond(res, 200, snapshotFor(value));
                 }
                 if (target.pathname === '/api/concerns') {
-                    if (!value || typeof value !== 'object' || Array.isArray(value)
-                        || Object.keys(value).some(key => !['query', 'ref'].includes(key))) fail('INVALID_INPUT', 'Concerns accepts an exact query and optional selected local reference');
+                    if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).some(key => !['query', 'ref'].includes(key)))
+                        fail('INVALID_INPUT', 'Concerns accepts an exact query and optional selected local reference');
                     return respond(res, 200, readConcerns(context.root, value.query, value.ref === undefined ? {} : { ref: value.ref }));
                 }
                 if (Object.hasOwn(REPORT_ROUTES, target.pathname)) {
-                    if (!value || typeof value !== 'object' || Array.isArray(value)
-                        || Object.keys(value).some(key => !['ref', 'scopeId'].includes(key))) fail('INVALID_INPUT', 'Report accepts only a scope selector');
+                    if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).some(key => !['ref', 'scopeId'].includes(key)))
+                        fail('INVALID_INPUT', 'Report accepts only a scope selector');
                     // The selector is valid from here on, so a refusal by the report owner is a refused action (422), as for a saved operation.
                     let report;
-                    try { report = await REPORT_ROUTES[target.pathname](context.root, { ...value, ...WORKSPACE_REPORT }); }
-                    catch (error) {
+                    try {
+                        report = await REPORT_ROUTES[target.pathname](context.root, { ...value, ...WORKSPACE_REPORT });
+                    } catch (error) {
                         if (!error.code || systemFailure(error)) throw error;
                         return respond(res, 422, { status: 'refused', code: error.code, reason: error.message });
                     }
@@ -198,30 +225,61 @@ async function startWorkspace({ root, actor, writable = false, reopen } = {}) {
                 if (target.pathname === '/api/operation') {
                     if (!writable) return respond(res, 403, { status: 'refused', code: 'READ_ONLY' });
                     if (value?.actor?.memberId !== actor) return respond(res, 403, { status: 'refused', code: 'WRONG_ACTOR' });
-                    const result = await executeOperation(value, { root: context.root, actor, identity: selected.selection, canWrite: true,
-                        canReview: true, canRecordManual: true, canAccept: true, canAttest: true, canDelete: true, canDeleteEnded: true, canCorrectState: true, canDecide: true });
+                    const result = await executeOperation(value, {
+                        root: context.root,
+                        actor,
+                        identity: selected.selection,
+                        canWrite: true,
+                        canReview: true,
+                        canRecordManual: true,
+                        canAccept: true,
+                        canAttest: true,
+                        canDelete: true,
+                        canDeleteEnded: true,
+                        canCorrectState: true,
+                        canDecide: true
+                    });
                     return respond(res, result.primary.status === 'refused' ? (result.primary.code === 'CONFLICT' ? 409 : 422) : 200, result);
                 }
                 return respond(res, 404, { status: 'refused', code: 'NOT_FOUND' });
-            } finally { pending--; }
+            } finally {
+                pending--;
+            }
         } catch (error) {
             // An operating-system failure is the workspace's fault, not the request's: it answers 500, and its message,
             // which names absolute paths, stays on this side.
             const system = systemFailure(error);
-            if (!res.headersSent) respond(res, system ? 500 : error.code === 'LIMIT_EXCEEDED' ? 413 : 400,
-                { status: 'refused', code: system || !error.code ? 'IO_FAILURE' : error.code,
-                    reason: system || !error.code ? 'Workspace action unavailable; reread before retrying' : error.message });
+            if (!res.headersSent)
+                respond(res, system ? 500 : error.code === 'LIMIT_EXCEEDED' ? 413 : 400, {
+                    status: 'refused',
+                    code: system || !error.code ? 'IO_FAILURE' : error.code,
+                    reason: system || !error.code ? 'Workspace action unavailable; reread before retrying' : error.message
+                });
             else res.end();
         }
     };
     const server = http.createServer((req, res) => {
-        if (!active) { secureHeaders(res); respond(res, 503, { status: 'refused', code: 'WORKSPACE_CLOSING' }); return; }
+        if (!active) {
+            secureHeaders(res);
+            respond(res, 503, { status: 'refused', code: 'WORKSPACE_CLOSING' });
+            return;
+        }
         const responseFinished = new Promise(resolve => {
-            const finished = () => { res.removeListener('finish', finished); res.removeListener('close', finished); resolve(); };
-            res.once('finish', finished); res.once('close', finished);
+            const finished = () => {
+                res.removeListener('finish', finished);
+                res.removeListener('close', finished);
+                resolve();
+            };
+            res.once('finish', finished);
+            res.once('close', finished);
         });
         // A disconnected response does not prove its admitted filesystem operation stopped.
-        const completion = handle(req, res).then(() => responseFinished, () => responseFinished).finally(() => admitted.delete(completion));
+        const completion = handle(req, res)
+            .then(
+                () => responseFinished,
+                () => responseFinished
+            )
+            .finally(() => admitted.delete(completion));
         admitted.add(completion);
     });
     server.headersTimeout = 10000;
@@ -231,22 +289,32 @@ async function startWorkspace({ root, actor, writable = false, reopen } = {}) {
     server.maxRequestsPerSocket = 128;
     await new Promise((resolve, reject) => {
         server.once('error', reject);
-        server.listen(0, '127.0.0.1', () => { server.removeListener('error', reject); resolve(); });
+        server.listen(0, '127.0.0.1', () => {
+            server.removeListener('error', reject);
+            resolve();
+        });
     });
     origin = `http://127.0.0.1:${server.address().port}`;
     let closing;
     const close = () => {
         if (closing) return closing;
         active = false;
-        const stopped = new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+        const stopped = new Promise((resolve, reject) => server.close(error => (error ? reject(error) : resolve())));
         server.closeIdleConnections();
         let timer;
         const deadline = new Promise((resolve, reject) => {
             timer = setTimeout(() => {
                 server.closeAllConnections();
-                reject(Object.assign(new Error(admitted.size ? 'Shutdown deadline reached; admitted operation outcome is indeterminate. Reread and retry its original identity.'
-                    : 'Shutdown deadline reached; transport closure is unconfirmed.'),
-                { code: admitted.size ? 'SHUTDOWN_INDETERMINATE' : 'SHUTDOWN_TIMEOUT' }));
+                reject(
+                    Object.assign(
+                        new Error(
+                            admitted.size
+                                ? 'Shutdown deadline reached; admitted operation outcome is indeterminate. Reread and retry its original identity.'
+                                : 'Shutdown deadline reached; transport closure is unconfirmed.'
+                        ),
+                        { code: admitted.size ? 'SHUTDOWN_INDETERMINATE' : 'SHUTDOWN_TIMEOUT' }
+                    )
+                );
             }, SHUTDOWN_TIMEOUT_MS);
         });
         closing = Promise.race([Promise.all([stopped, ...admitted]), deadline]).finally(() => clearTimeout(timer));

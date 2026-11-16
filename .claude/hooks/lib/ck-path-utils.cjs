@@ -31,21 +31,21 @@ const INVALID_FILENAME_CHARS = /[<>:"/\\|?*\x00-\x1f\x7f]/g;
  * @returns {string} Sanitized slug (empty string if nothing valid remains)
  */
 function sanitizeSlug(slug) {
-  if (!slug || typeof slug !== 'string') return '';
+    if (!slug || typeof slug !== 'string') return '';
 
-  let sanitized = slug
-    // Remove invalid filename chars first
-    .replace(INVALID_FILENAME_CHARS, '')
-    // Replace any non-alphanumeric (except hyphen) with hyphen
-    .replace(/[^a-z0-9-]/gi, '-')
-    // Collapse multiple consecutive hyphens
-    .replace(/-+/g, '-')
-    // Remove leading/trailing hyphens
-    .replace(/^-+|-+$/g, '')
-    // Limit length (most filesystems support 255, but keep reasonable)
-    .slice(0, 100);
+    let sanitized = slug
+        // Remove invalid filename chars first
+        .replace(INVALID_FILENAME_CHARS, '')
+        // Replace any non-alphanumeric (except hyphen) with hyphen
+        .replace(/[^a-z0-9-]/gi, '-')
+        // Collapse multiple consecutive hyphens
+        .replace(/-+/g, '-')
+        // Remove leading/trailing hyphens
+        .replace(/^-+|-+$/g, '')
+        // Limit length (most filesystems support 255, but keep reasonable)
+        .slice(0, 100);
 
-  return sanitized;
+    return sanitized;
 }
 
 /**
@@ -54,21 +54,21 @@ function sanitizeSlug(slug) {
  * @returns {string|null} Normalized path or null if invalid
  */
 function normalizePath(pathValue) {
-  if (!pathValue || typeof pathValue !== 'string') return null;
+    if (!pathValue || typeof pathValue !== 'string') return null;
 
-  // Trim whitespace
-  let normalized = pathValue.trim();
+    // Trim whitespace
+    let normalized = pathValue.trim();
 
-  // Empty after trim = invalid
-  if (!normalized) return null;
+    // Empty after trim = invalid
+    if (!normalized) return null;
 
-  // Remove trailing slashes (but keep root "/" or "C:\")
-  normalized = normalized.replace(/[/\\]+$/, '');
+    // Remove trailing slashes (but keep root "/" or "C:\")
+    normalized = normalized.replace(/[/\\]+$/, '');
 
-  // If it became empty (was just slashes), return null
-  if (!normalized) return null;
+    // If it became empty (was just slashes), return null
+    if (!normalized) return null;
 
-  return normalized;
+    return normalized;
 }
 
 /**
@@ -77,10 +77,10 @@ function normalizePath(pathValue) {
  * @returns {boolean} True if absolute path
  */
 function isAbsolutePath(pathValue) {
-  if (!pathValue) return false;
-  // Unix absolute: starts with /
-  // Windows absolute: starts with drive letter (C:\) or UNC (\\)
-  return path.isAbsolute(pathValue);
+    if (!pathValue) return false;
+    // Unix absolute: starts with /
+    // Windows absolute: starts with drive letter (C:\) or UNC (\\)
+    return path.isAbsolute(pathValue);
 }
 
 /**
@@ -94,29 +94,29 @@ function isAbsolutePath(pathValue) {
  * @returns {string|null} Sanitized path or null if invalid
  */
 function sanitizePath(pathValue, projectRoot) {
-  // Normalize first
-  const normalized = normalizePath(pathValue);
-  if (!normalized) return null;
+    // Normalize first
+    const normalized = normalizePath(pathValue);
+    if (!normalized) return null;
 
-  // Block null bytes and other dangerous chars
-  if (/[\x00]/.test(normalized)) return null;
+    // Block null bytes and other dangerous chars
+    if (/[\x00]/.test(normalized)) return null;
 
-  // Allow absolute paths (user explicitly wants consolidated plans elsewhere)
-  if (isAbsolutePath(normalized)) {
+    // Allow absolute paths (user explicitly wants consolidated plans elsewhere)
+    if (isAbsolutePath(normalized)) {
+        return normalized;
+    }
+
+    // For relative paths, resolve and validate
+    const resolved = path.resolve(projectRoot, normalized);
+
+    // Prevent path traversal outside project (../ attacks)
+    // But allow if user explicitly set absolute path
+    if (!resolved.startsWith(projectRoot + path.sep) && resolved !== projectRoot) {
+        // This is a relative path trying to escape - block it
+        return null;
+    }
+
     return normalized;
-  }
-
-  // For relative paths, resolve and validate
-  const resolved = path.resolve(projectRoot, normalized);
-
-  // Prevent path traversal outside project (../ attacks)
-  // But allow if user explicitly set absolute path
-  if (!resolved.startsWith(projectRoot + path.sep) && resolved !== projectRoot) {
-    // This is a relative path trying to escape - block it
-    return null;
-  }
-
-  return normalized;
 }
 
 /**
@@ -127,12 +127,12 @@ function sanitizePath(pathValue, projectRoot) {
  * @returns {string} Windows-format path, or original if not MSYS format
  */
 function convertMsysToWindows(p) {
-  if (!p || process.platform !== 'win32') return p || '';
-  const match = p.match(/^\/([a-zA-Z])(\/.*|$)/);
-  if (match) {
-    return match[1].toUpperCase() + ':' + (match[2] || '/');
-  }
-  return p;
+    if (!p || process.platform !== 'win32') return p || '';
+    const match = p.match(/^\/([a-zA-Z])(\/.*|$)/);
+    if (match) {
+        return match[1].toUpperCase() + ':' + (match[2] || '/');
+    }
+    return p;
 }
 
 /**
@@ -143,19 +143,19 @@ function convertMsysToWindows(p) {
  * @returns {string} Normalized path suitable for comparison (empty string if invalid)
  */
 function normalizePathForComparison(p) {
-  if (!p) return '';
-  let normalized = p.replace(/\\/g, '/');
-  // Convert MSYS/Git Bash paths (/d/... → D:/...) on Windows
-  normalized = convertMsysToWindows(normalized);
-  // Remove trailing slash unless it's root
-  if (normalized.length > 1 && normalized.endsWith('/')) {
-    normalized = normalized.slice(0, -1);
-  }
-  // Windows paths are case-insensitive
-  if (process.platform === 'win32') {
-    normalized = normalized.toLowerCase();
-  }
-  return normalized;
+    if (!p) return '';
+    let normalized = p.replace(/\\/g, '/');
+    // Convert MSYS/Git Bash paths (/d/... → D:/...) on Windows
+    normalized = convertMsysToWindows(normalized);
+    // Remove trailing slash unless it's root
+    if (normalized.length > 1 && normalized.endsWith('/')) {
+        normalized = normalized.slice(0, -1);
+    }
+    // Windows paths are case-insensitive
+    if (process.platform === 'win32') {
+        normalized = normalized.toLowerCase();
+    }
+    return normalized;
 }
 
 /**
@@ -167,21 +167,21 @@ function normalizePathForComparison(p) {
  * @returns {string[]} Array of resolved, normalized allowed paths
  */
 function buildBoundaryAllowlist(extraDirs = []) {
-  const home = process.env.HOME || process.env.USERPROFILE || '';
-  const dirs = [
-    process.env.TEMP,
-    process.env.TMP,
-    process.env.TMPDIR,
-    '/tmp',
-    '/var/tmp',
-    home && path.join(home, '.claude'),
-    home && path.join(home, '.anthropic'),
-    ...extraDirs,
-  ];
-  return dirs
-    .filter(Boolean)
-    .map(d => normalizePathForComparison(path.resolve(d)))
-    .filter(Boolean);
+    const home = process.env.HOME || process.env.USERPROFILE || '';
+    const dirs = [
+        process.env.TEMP,
+        process.env.TMP,
+        process.env.TMPDIR,
+        '/tmp',
+        '/var/tmp',
+        home && path.join(home, '.claude'),
+        home && path.join(home, '.anthropic'),
+        ...extraDirs
+    ];
+    return dirs
+        .filter(Boolean)
+        .map(d => normalizePathForComparison(path.resolve(d)))
+        .filter(Boolean);
 }
 
 /**
@@ -203,14 +203,14 @@ function buildBoundaryAllowlist(extraDirs = []) {
  * @returns {string} Canonical slash-form root without a trailing slash, or `''`
  */
 function normalizeRootPath(value) {
-  if (!value || typeof value !== 'string') return '';
-  let normalized = value.trim();
-  if (!normalized) return '';
-  normalized = normalized.replace(/\\/g, '/');
-  normalized = normalized.replace(/\/{2,}/g, '/');
-  while (normalized.startsWith('./')) normalized = normalized.slice(2);
-  normalized = normalized.replace(/\/+$/, '');
-  return normalized;
+    if (!value || typeof value !== 'string') return '';
+    let normalized = value.trim();
+    if (!normalized) return '';
+    normalized = normalized.replace(/\\/g, '/');
+    normalized = normalized.replace(/\/{2,}/g, '/');
+    while (normalized.startsWith('./')) normalized = normalized.slice(2);
+    normalized = normalized.replace(/\/+$/, '');
+    return normalized;
 }
 
 /**
@@ -225,11 +225,11 @@ function normalizeRootPath(value) {
  * @returns {boolean} True when candidate is the root or lives under it
  */
 function isPathWithinRoot(candidate, root) {
-  const c = normalizeRootPath(candidate).toLowerCase();
-  const r = normalizeRootPath(root).toLowerCase();
-  if (!c || !r) return false;
-  if (c === r) return true;
-  return c.startsWith(`${r}/`);
+    const c = normalizeRootPath(candidate).toLowerCase();
+    const r = normalizeRootPath(root).toLowerCase();
+    if (!c || !r) return false;
+    if (c === r) return true;
+    return c.startsWith(`${r}/`);
 }
 
 /**
@@ -244,11 +244,11 @@ function isPathWithinRoot(candidate, root) {
  * @returns {boolean} True when the value escapes the repo root
  */
 function escapesRepoRoot(value) {
-  const normalized = normalizeRootPath(value);
-  if (!normalized) return false;
-  if (normalized.startsWith('/')) return true;
-  if (/^[a-zA-Z]:/.test(normalized)) return true;
-  return normalized.split('/').includes('..');
+    const normalized = normalizeRootPath(value);
+    if (!normalized) return false;
+    if (normalized.startsWith('/')) return true;
+    if (/^[a-zA-Z]:/.test(normalized)) return true;
+    return normalized.split('/').includes('..');
 }
 
 /**
@@ -270,11 +270,10 @@ function escapesRepoRoot(value) {
  * @returns {boolean} True when candidate is root or lives beneath it; false for invalid input
  */
 function isAbsolutePathWithin(root, candidate, pathApi = path) {
-  if (typeof root !== 'string' || typeof candidate !== 'string' || !root || !candidate) return false;
-  if (root.includes('\0') || candidate.includes('\0')) return false;
-  const relative = pathApi.relative(pathApi.resolve(root), pathApi.resolve(candidate));
-  return relative === '' ||
-    (relative !== '..' && !relative.startsWith(`..${pathApi.sep}`) && !pathApi.isAbsolute(relative));
+    if (typeof root !== 'string' || typeof candidate !== 'string' || !root || !candidate) return false;
+    if (root.includes('\0') || candidate.includes('\0')) return false;
+    const relative = pathApi.relative(pathApi.resolve(root), pathApi.resolve(candidate));
+    return relative === '' || (relative !== '..' && !relative.startsWith(`..${pathApi.sep}`) && !pathApi.isAbsolute(relative));
 }
 
 /**
@@ -300,16 +299,15 @@ function isAbsolutePathWithin(root, candidate, pathApi = path) {
  * @returns {string} Joined path, or `''` when nothing usable remains
  */
 function joinRoot(root, ...segments) {
-  const wantsTrailingSlash =
-    segments.length > 0 && normalizeRootPath(segments[segments.length - 1]) === '';
-  const parts = [normalizeRootPath(root)];
-  for (const segment of segments) {
-    const normalized = normalizeRootPath(segment);
-    if (normalized) parts.push(normalized);
-  }
-  const joined = parts.filter(Boolean).join('/');
-  if (!joined) return '';
-  return wantsTrailingSlash ? `${joined}/` : joined;
+    const wantsTrailingSlash = segments.length > 0 && normalizeRootPath(segments[segments.length - 1]) === '';
+    const parts = [normalizeRootPath(root)];
+    for (const segment of segments) {
+        const normalized = normalizeRootPath(segment);
+        if (normalized) parts.push(normalized);
+    }
+    const joined = parts.filter(Boolean).join('/');
+    if (!joined) return '';
+    return wantsTrailingSlash ? `${joined}/` : joined;
 }
 
 /**
@@ -327,23 +325,23 @@ function joinRoot(root, ...segments) {
  * @returns {boolean}
  */
 function sameFileIdentity(a, b) {
-  const exact = stat => Boolean(stat) && typeof stat.dev === 'bigint' && typeof stat.ino === 'bigint';
-  return exact(a) && exact(b) && a.dev === b.dev && a.ino === b.ino;
+    const exact = stat => Boolean(stat) && typeof stat.dev === 'bigint' && typeof stat.ino === 'bigint';
+    return exact(a) && exact(b) && a.dev === b.dev && a.ino === b.ino;
 }
 
 module.exports = {
-  INVALID_FILENAME_CHARS,
-  sanitizeSlug,
-  normalizeRootPath,
-  isPathWithinRoot,
-  escapesRepoRoot,
-  isAbsolutePathWithin,
-  joinRoot,
-  normalizePath,
-  normalizePathForComparison,
-  convertMsysToWindows,
-  buildBoundaryAllowlist,
-  isAbsolutePath,
-  sanitizePath,
-  sameFileIdentity
+    INVALID_FILENAME_CHARS,
+    sanitizeSlug,
+    normalizeRootPath,
+    isPathWithinRoot,
+    escapesRepoRoot,
+    isAbsolutePathWithin,
+    joinRoot,
+    normalizePath,
+    normalizePathForComparison,
+    convertMsysToWindows,
+    buildBoundaryAllowlist,
+    isAbsolutePath,
+    sanitizePath,
+    sameFileIdentity
 };

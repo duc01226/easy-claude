@@ -36,9 +36,16 @@ function parseArgs(argv) {
     const relative = path.relative(root, result.dir);
     const where = relative.startsWith('..') || path.isAbsolute(relative) ? result.dir : relative;
     if (!result.records) {
-        process.stdout.write(`PREPARED ${result.jobs.length} jobs in ${where}; behavioral evidence NOT RUN. Use --adapter <adapter.json> only with an authorized isolated host runtime.\n`);
+        process.stdout.write(
+            `PREPARED ${result.jobs.length} jobs in ${where}; behavioral evidence NOT RUN. Use --adapter <adapter.json> only with an authorized isolated host runtime.\n`
+        );
         return;
     }
     if (result.leftoverWorlds.length) process.stdout.write(`${result.leftoverWorlds.length} world(s) could not be removed from ${where}\n`);
     process.stdout.write(`Assessment: ${where}/assessment.json; adoption requires separate deterministic and native-platform proof.\n`);
-})().catch(() => { process.stderr.write('CONTEXT_EVALUATION_BLOCKED: adapter/isolation/runtime evidence unavailable; compatible default retained. Usage: [--adapter <adapter.json> [--keep-worlds]] [--output <dir>]\n'); process.exitCode = 1; });
+})().catch(() => {
+    process.stderr.write(
+        'CONTEXT_EVALUATION_BLOCKED: adapter/isolation/runtime evidence unavailable; compatible default retained. Usage: [--adapter <adapter.json> [--keep-worlds]] [--output <dir>]\n'
+    );
+    process.exitCode = 1;
+});

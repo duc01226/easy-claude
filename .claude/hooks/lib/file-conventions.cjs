@@ -293,7 +293,12 @@ const UI_UX_GATE = Object.freeze({
     // file (delivery is PostToolUse-only). `both` is the default content version, so the fallback and
     // the detected gate still share one version.
     on: TRIGGER_BOTH,
-    referenceDocs: Object.freeze(['.claude/docs/ux-journey-process.md', '.claude/docs/design-review-checklist.md', '.claude/docs/design-knowledge.md', '.claude/docs/design-review-calibration.md']),
+    referenceDocs: Object.freeze([
+        '.claude/docs/ux-journey-process.md',
+        '.claude/docs/design-review-checklist.md',
+        '.claude/docs/design-knowledge.md',
+        '.claude/docs/design-review-calibration.md'
+    ]),
     rules: Object.freeze([
         'UI/UX gate: have UX-*, UI-*, AD-*, DD-* and CL-* in context BEFORE editing this surface; read the docs above unless already loaded',
         'UX-1–UX-11 journey-first (ux-journey-process.md, SYNC:ux-journey-gate): report the main user journeys (actors, jobs, ranked journeys, derived requirements) before designing, walk them on the result, close with the UI/UX Gate Report',
@@ -320,17 +325,66 @@ const AI_SDK = Object.freeze({
     // Import names that mean a model, embedding or vector-store client. Names shared with unrelated
     // libraries (a Django search package, an e-learning "instructor" module) are left out: a missed
     // import is cheaper than a protocol reminder on a non-AI file.
-    python: Object.freeze(['anthropic', 'openai', 'cohere', 'mistralai', 'ollama', 'litellm', 'langgraph', 'crewai', 'autogen',
-        'dspy', 'transformers', 'sentence_transformers', 'vertexai', 'google.generativeai', 'google.genai',
-        'pinecone', 'weaviate', 'qdrant_client', 'chromadb', 'pymilvus', 'lancedb', 'faiss', 'pgvector']),
+    python: Object.freeze([
+        'anthropic',
+        'openai',
+        'cohere',
+        'mistralai',
+        'ollama',
+        'litellm',
+        'langgraph',
+        'crewai',
+        'autogen',
+        'dspy',
+        'transformers',
+        'sentence_transformers',
+        'vertexai',
+        'google.generativeai',
+        'google.genai',
+        'pinecone',
+        'weaviate',
+        'qdrant_client',
+        'chromadb',
+        'pymilvus',
+        'lancedb',
+        'faiss',
+        'pgvector'
+    ]),
     pythonPrefixes: Object.freeze(['langchain', 'llama_index']),
-    js: Object.freeze(['openai', 'ai', '@google/generative-ai', '@google/genai', 'langchain', 'llamaindex', '@mistralai/mistralai',
-        'cohere-ai', 'ollama', '@modelcontextprotocol/sdk', '@huggingface/inference', '@xenova/transformers',
-        'chromadb', 'pgvector', 'weaviate-client', 'faiss-node', 'vectordb']),
+    js: Object.freeze([
+        'openai',
+        'ai',
+        '@google/generative-ai',
+        '@google/genai',
+        'langchain',
+        'llamaindex',
+        '@mistralai/mistralai',
+        'cohere-ai',
+        'ollama',
+        '@modelcontextprotocol/sdk',
+        '@huggingface/inference',
+        '@xenova/transformers',
+        'chromadb',
+        'pgvector',
+        'weaviate-client',
+        'faiss-node',
+        'vectordb'
+    ]),
     jsScopes: Object.freeze(['@anthropic-ai/', '@ai-sdk/', '@langchain/', '@pinecone-database/', '@qdrant/', '@zilliz/', '@lancedb/']),
-    other: Object.freeze(['com.anthropic', 'com.openai', 'dev.langchain4j', 'org.springframework.ai', 'github.com/anthropics/anthropic-sdk-go',
-        'github.com/sashabaranov/go-openai', 'github.com/openai/openai-go', 'github.com/tmc/langchaingo', 'azure.ai.openai',
-        'microsoft.semantickernel', 'microsoft.extensions.ai', 'anthropic.sdk']),
+    other: Object.freeze([
+        'com.anthropic',
+        'com.openai',
+        'dev.langchain4j',
+        'org.springframework.ai',
+        'github.com/anthropics/anthropic-sdk-go',
+        'github.com/sashabaranov/go-openai',
+        'github.com/openai/openai-go',
+        'github.com/tmc/langchaingo',
+        'azure.ai.openai',
+        'microsoft.semantickernel',
+        'microsoft.extensions.ai',
+        'anthropic.sdk'
+    ]),
     // Package names whose manifest spelling has no import-name twin above.
     manifestOnly: Object.freeze(['google-cloud-aiplatform', 'pyautogen', 'haystack-ai', 'farm-haystack', 'dspy-ai', 'spring-ai'])
 });
@@ -339,7 +393,8 @@ const escapeRegex = text => String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const alternation = names => names.map(escapeRegex).join('|');
 
 // Known model-id literals: the value half of the AI-feature gate's `model: '<id>'` content signal.
-const MODEL_ID_LITERAL = '(?:(?:(?:us|eu|apac|global)\\.)?(?:anthropic\\.)?claude-(?:[0-9]|instant|haiku|sonnet|opus|fast)|gpt-(?:[0-9]|oss)|gemini-[0-9]|o[134]-(?:mini|pro|preview)|mistral-(?:large|medium|small|tiny|embed|nemo|saba)|codestral-|(?:meta-)?llama-?[0-9]|meta-llama/|text-embedding-(?:3-|ada-)|command-r)';
+const MODEL_ID_LITERAL =
+    '(?:(?:(?:us|eu|apac|global)\\.)?(?:anthropic\\.)?claude-(?:[0-9]|instant|haiku|sonnet|opus|fast)|gpt-(?:[0-9]|oss)|gemini-[0-9]|o[134]-(?:mini|pro|preview)|mistral-(?:large|medium|small|tiny|embed|nemo|saba)|codestral-|(?:meta-)?llama-?[0-9]|meta-llama/|text-embedding-(?:3-|ada-)|command-r)';
 
 /**
  * The AI-feature gate class: a file that calls a model SDK, holds prompts, retrieval, agents, tools or
@@ -362,8 +417,29 @@ const AI_FEATURE_GATE = Object.freeze({
     // minified bundles under `prompts/` or `rag/` are not AI surfaces.
     pathRegexes: Object.freeze(['/(?:prompts?|llm|rag|embeddings?|guardrails?|mcp)/(?!.*\\.(?:png|jpe?g|gif|svg|pdf|zip|bin|mp[34]|lock|map|min\\.js)$)']),
     fileNameRegexes: Object.freeze(['\\.prompts?\\.[^.]+$|\\.prompty$|^system[-_.]prompt|^prompt[-_.]template']),
-    contentExtensions: Object.freeze(['.py', '.ipynb', '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.java', '.kt', '.kts', '.cs', '.go',
-        '.rb', '.php', '.rs', '.swift', '.scala', '.dart', '.ex', '.exs']),
+    contentExtensions: Object.freeze([
+        '.py',
+        '.ipynb',
+        '.ts',
+        '.tsx',
+        '.js',
+        '.jsx',
+        '.mjs',
+        '.cjs',
+        '.java',
+        '.kt',
+        '.kts',
+        '.cs',
+        '.go',
+        '.rb',
+        '.php',
+        '.rs',
+        '.swift',
+        '.scala',
+        '.dart',
+        '.ex',
+        '.exs'
+    ]),
     contentLabel: 'AI SDK use',
     contentRegexes: Object.freeze([
         // Python imports (line-anchored: no multiline flag is used). A notebook stores each source line as a JSON
@@ -492,7 +568,10 @@ function globToRegExp(glob) {
     if (typeof glob !== 'string') return null;
     const cacheKey = `glob:${glob}`;
     if (regexCache.has(cacheKey)) return regexCache.get(cacheKey);
-    const normalized = glob.replace(/\\/g, '/').replace(/^\.\//, '').replace(/(?:\*\*\/)+/g, '**/');
+    const normalized = glob
+        .replace(/\\/g, '/')
+        .replace(/^\.\//, '')
+        .replace(/(?:\*\*\/)+/g, '**/');
     let out = '';
     for (let i = 0; i < normalized.length; i++) {
         const ch = normalized[i];
@@ -589,8 +668,7 @@ function extractTargets(input, projectDir, opts = {}) {
             raw.push(toolInput.notebook_path);
             break;
         case 'apply_patch': {
-            const patch = typeof toolInput.command === 'string' ? toolInput.command
-                : typeof toolInput.patch === 'string' ? toolInput.patch : '';
+            const patch = typeof toolInput.command === 'string' ? toolInput.command : typeof toolInput.patch === 'string' ? toolInput.patch : '';
             // A move's source no longer exists afterwards (like a removal): `Move to` replaces the
             // path of the `Update File` header it belongs to, so only the destination counts.
             let updateIndex = -1;
@@ -844,7 +922,11 @@ function rootJsonArrayStart(text, property) {
             if (end < 0) return -1;
             if (objectDepth === 1 && arrayDepth === 0) {
                 let key = null;
-                try { key = JSON.parse(text.slice(i, end)); } catch { /* malformed prefix */ }
+                try {
+                    key = JSON.parse(text.slice(i, end));
+                } catch {
+                    /* malformed prefix */
+                }
                 let cursor = end;
                 while (/\s/.test(text[cursor] || '')) cursor += 1;
                 if (key === property && text[cursor] === ':') {
@@ -980,15 +1062,17 @@ function explainGroupMatch(group, rel, ctx, collectAll = false) {
     const slashPath = `/${rel}`;
     const baseName = path.posix.basename(rel);
     const pathBudget = { remainingMs: PATH_REGEX_BUDGET_MS };
-    const testRegexes = (list, subject) => stringList(list).some(source => {
-        const verdict = guardedPathRegexTest(source, subject, pathBudget);
-        if (verdict.incomplete) result.incomplete = true;
-        return verdict.matched;
-    });
-    const testGlobs = list => stringList(list).some(glob => {
-        const re = globToRegExp(glob);
-        return re ? re.test(rel) : false;
-    });
+    const testRegexes = (list, subject) =>
+        stringList(list).some(source => {
+            const verdict = guardedPathRegexTest(source, subject, pathBudget);
+            if (verdict.incomplete) result.incomplete = true;
+            return verdict.matched;
+        });
+    const testGlobs = list =>
+        stringList(list).some(glob => {
+            const re = globToRegExp(glob);
+            return re ? re.test(rel) : false;
+        });
     if (testRegexes(group.excludePathRegexes, slashPath) || testGlobs(group.excludePathGlobs)) return result;
     if (testRegexes(group.pathRegexes, slashPath)) result.pathSignals.push('pathRegexes');
     if ((collectAll || !result.pathSignals.length) && testGlobs(group.pathGlobs)) result.pathSignals.push('pathGlobs');
@@ -1031,8 +1115,12 @@ function groupMatches(group, rel, ctx) {
 }
 
 function docsOf(group) {
-    return unique([group.guideDoc, group.patternsDoc].filter(nonBlankString).map(d => d.trim())
-        .concat(stringList(group.referenceDocs)));
+    return unique(
+        [group.guideDoc, group.patternsDoc]
+            .filter(nonBlankString)
+            .map(d => d.trim())
+            .concat(stringList(group.referenceDocs))
+    );
 }
 
 /** BR-PFCI-03: deliverable only with rules, skills, reference docs, guide or patterns doc. */
@@ -1056,9 +1144,7 @@ function classReinjectBytes(group) {
 /** Delivery settings for one class: the class's own byte window, when declared, replaces the global one. */
 function classSettings(entry, settings) {
     const base = settings || resolveSettings(null);
-    return entry && typeof entry.reinjectAfterBytes === 'number'
-        ? { ...base, reinjectAfterBytes: entry.reinjectAfterBytes }
-        : base;
+    return entry && typeof entry.reinjectAfterBytes === 'number' ? { ...base, reinjectAfterBytes: entry.reinjectAfterBytes } : base;
 }
 
 /**
@@ -1110,7 +1196,7 @@ function injectableEntries(config) {
 }
 
 function sortEntries(entries) {
-    return entries.slice().sort((a, b) => (a.priority - b.priority) || (a.index - b.index));
+    return entries.slice().sort((a, b) => a.priority - b.priority || a.index - b.index);
 }
 
 /**
@@ -1177,11 +1263,13 @@ function groupHash(entry) {
         ...(on !== TRIGGER_BOTH ? { on } : {}),
         // Content signals join the version only when a class declares them, so every class written
         // before they existed keeps its version (and its static tags).
-        ...(contentRegexSources(group).length ? {
-            contentRegexes: contentRegexSources(group),
-            contentExtensions: normalizedContentExtensions(group),
-            ...(contentLabelOf(group) ? { contentLabel: contentLabelOf(group) } : {})
-        } : {})
+        ...(contentRegexSources(group).length
+            ? {
+                  contentRegexes: contentRegexSources(group),
+                  contentExtensions: normalizedContentExtensions(group),
+                  ...(contentLabelOf(group) ? { contentLabel: contentLabelOf(group) } : {})
+              }
+            : {})
     });
     return crypto.createHash('sha256').update(payload).digest('hex').slice(0, 8);
 }
@@ -1328,11 +1416,13 @@ function lookupComplete(config, filePath, opts = {}) {
         chunks.push(body.slice(offset, end));
         offset = end;
     }
-    const pages = chunks.map((chunk, i) => [
-        `[conventions] Complete lookup page ${i + 1}/${chunks.length}. Read ALL pages before reading, editing or testing the target.`,
-        chunk,
-        i + 1 < chunks.length ? `[conventions] REQUIRED: repeat this lookup with --page ${i + 2} before acting.` : '[conventions] Complete lookup finished.'
-    ].join('\n'));
+    const pages = chunks.map((chunk, i) =>
+        [
+            `[conventions] Complete lookup page ${i + 1}/${chunks.length}. Read ALL pages before reading, editing or testing the target.`,
+            chunk,
+            i + 1 < chunks.length ? `[conventions] REQUIRED: repeat this lookup with --page ${i + 2} before acting.` : '[conventions] Complete lookup finished.'
+        ].join('\n')
+    );
     return { rel, entries, forms, pages, text: pages[0] || '' };
 }
 
@@ -1414,23 +1504,39 @@ function runCli(argv) {
     const config = effectiveConfig(status);
     const pageIndex = argv.indexOf('--page');
     const page = pageIndex < 0 ? 1 : Number(argv[pageIndex + 1]);
-    if (!Number.isSafeInteger(page) || page < 1) { process.stderr.write('Invalid --page; use a positive integer.\n'); return 2; }
+    if (!Number.isSafeInteger(page) || page < 1) {
+        process.stderr.write('Invalid --page; use a positive integer.\n');
+        return 2;
+    }
     const result = lookup(config, argv[index + 1], { projectDir, cwd: process.cwd(), complete });
-    if (complete && !result.rel) { process.stderr.write('Complete lookup rejected this path; use a supported path within the project before acting.\n'); return 1; }
+    if (complete && !result.rel) {
+        process.stderr.write('Complete lookup rejected this path; use a supported path within the project before acting.\n');
+        return 1;
+    }
     const totalPages = result.pages?.length || 1;
-    if (page > totalPages) { process.stderr.write(`Page ${page} does not exist; lookup has ${totalPages} page(s).\n`); return 2; }
-    const text = result.pages ? (result.pages[page - 1] || '') : result.text;
+    if (page > totalPages) {
+        process.stderr.write(`Page ${page} does not exist; lookup has ${totalPages} page(s).\n`);
+        return 2;
+    }
+    const text = result.pages ? result.pages[page - 1] || '' : result.text;
     // The lookup shows what a file WOULD receive; whether the hook delivers it is separate.
     const settings = resolveSettings(config);
     if (argv.includes('--json')) {
-        process.stdout.write(JSON.stringify({
-            rel: result.rel,
-            enabled: settings.enabled,
-            onRead: settings.onRead,
-            page, totalPages,
-            classes: result.entries.map(e => ({ name: e.name, priority: e.priority, tag: conventionTag(e), form: result.forms[e.name] })),
-            text
-        }, null, 2) + '\n');
+        process.stdout.write(
+            JSON.stringify(
+                {
+                    rel: result.rel,
+                    enabled: settings.enabled,
+                    onRead: settings.onRead,
+                    page,
+                    totalPages,
+                    classes: result.entries.map(e => ({ name: e.name, priority: e.priority, tag: conventionTag(e), form: result.forms[e.name] })),
+                    text
+                },
+                null,
+                2
+            ) + '\n'
+        );
     } else {
         process.stdout.write((text || `[conventions] No convention classes match ${result.rel || argv[index + 1]}`) + '\n');
         if (!settings.enabled) {

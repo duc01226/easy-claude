@@ -36,8 +36,7 @@ const graph = require(GRAPH_UTILS);
 const MINUTE = 60 * 1000;
 const SHARED = path.join('easy-claude', 'graph-venv');
 const sha256 = text => crypto.createHash('sha256').update(text).digest('hex');
-const venvPython = (dir, platform = process.platform) =>
-    platform === 'win32' ? path.join(dir, 'Scripts', 'python.exe') : path.join(dir, 'bin', 'python');
+const venvPython = (dir, platform = process.platform) => (platform === 'win32' ? path.join(dir, 'Scripts', 'python.exe') : path.join(dir, 'bin', 'python'));
 
 /** A fixture project with a `.claude` dir and the graph requirements file. */
 function makeProject(base, name, requirements = 'tree-sitter>=0.21.0\nnetworkx>=3.0\n') {
@@ -99,8 +98,13 @@ function runChild(base, project, stubSource, body) {
     for (const dir of [home, cache, tmp]) fs.mkdirSync(dir, { recursive: true });
     const overrides = {
         CLAUDE_PROJECT_DIR: project,
-        HOME: home, USERPROFILE: home, LOCALAPPDATA: cache, XDG_CACHE_HOME: cache,
-        TMPDIR: tmp, TEMP: tmp, TMP: tmp,
+        HOME: home,
+        USERPROFILE: home,
+        LOCALAPPDATA: cache,
+        XDG_CACHE_HOME: cache,
+        TMPDIR: tmp,
+        TEMP: tmp,
+        TMP: tmp,
         CLAUDE_HOOK_DEBUG: undefined
     };
     for (const key of Object.keys(process.env)) {
@@ -162,7 +166,11 @@ const tests = [
                 assertEqual(dirA, dirB, 'identical requirements share one venv');
                 const key = sha256('tree-sitter>=0.21.0\nnetworkx>=3.0\n').slice(0, 12);
                 assertEqual(dirA, path.join(cache, SHARED, key), 'shared venv is <cache>/easy-claude/graph-venv/<hash12>');
-                assertEqual(graph.getVenvPython({ env, platform: 'linux', projectDir: a }), path.join(dirA, 'bin', 'python'), 'the interpreter follows venvDir');
+                assertEqual(
+                    graph.getVenvPython({ env, platform: 'linux', projectDir: a }),
+                    path.join(dirA, 'bin', 'python'),
+                    'the interpreter follows venvDir'
+                );
             });
         }
     },
@@ -195,7 +203,11 @@ const tests = [
                 makeProjectVenv(project, `${current}\n`);
                 // When resolved / Then the project venv is used
                 assertEqual(resolve(), projectVenv(project), 'a current marker selects the project venv');
-                assertEqual(current, sha256(fs.readFileSync(path.join(project, '.claude', 'scripts', 'code_graph', 'requirements.txt'))), 'the marker hash is sha256 of the requirements bytes');
+                assertEqual(
+                    current,
+                    sha256(fs.readFileSync(path.join(project, '.claude', 'scripts', 'code_graph', 'requirements.txt'))),
+                    'the marker hash is sha256 of the requirements bytes'
+                );
                 // Counter: an old hash, then an unreadable marker, both fall through to the shared venv
                 fs.writeFileSync(path.join(projectVenv(project), 'deps-ok'), sha256('old pins'));
                 assertTrue(resolve().startsWith(path.join(base, 'cache', SHARED)), 'an old-hash marker does not select the project venv');
@@ -254,7 +266,11 @@ const tests = [
                 makeProjectVenv(marked, sha256(fs.readFileSync(path.join(marked, '.claude', 'scripts', 'code_graph', 'requirements.txt'))));
                 fs.mkdirSync(path.join(projectVenv(unreadable), 'deps-ok'), { recursive: true });
                 // When venvDir() and getVenvPython() resolve every case, then a control call runs
-                const out = runChild(base, marked, "() => ''", `(graph, calls) => {
+                const out = runChild(
+                    base,
+                    marked,
+                    "() => ''",
+                    `(graph, calls) => {
                     const resolved = [];
                     for (const projectDir of ${JSON.stringify([marked, unmarked, unreadable])}) {
                         resolved.push(graph.venvDir({ projectDir }), graph.getVenvPython({ projectDir }));
@@ -263,7 +279,8 @@ const tests = [
                     const spawnsWhileResolving = calls.length;
                     graph.findPython(); // control: a real probe reaches the stub
                     return { resolved, spawnsWhileResolving, controlSpawns: calls.length };
-                }`);
+                }`
+                );
                 // Then the stub recorded zero starts while resolving, and the control proves it is wired
                 assertEqual(out.spawnsWhileResolving, 0, 'resolving the venv must start no process');
                 assertTrue(out.controlSpawns > 0, 'control: findPython must reach the counting stub');
@@ -281,13 +298,22 @@ const tests = [
                 const project = makeProject(base, 'p');
                 makeProjectVenv(project);
                 // When ensurePythonDeps() runs
-                const out = runChild(base, project, "() => ''", `(graph, calls) => {
+                const out = runChild(
+                    base,
+                    project,
+                    "() => ''",
+                    `(graph, calls) => {
                     const result = graph.ensurePythonDeps();
                     return { result, calls, after: graph.venvDir() };
-                }`);
+                }`
+                );
                 // Then the marker is written into the project venv with the current hash
                 assertTrue(out.result.ok, `adoption must succeed: ${out.result.message}`);
-                assertEqual(fs.readFileSync(path.join(projectVenv(project), 'deps-ok'), 'utf8'), graph.requirementsHash(project), 'marker holds the current requirements hash');
+                assertEqual(
+                    fs.readFileSync(path.join(projectVenv(project), 'deps-ok'), 'utf8'),
+                    graph.requirementsHash(project),
+                    'marker holds the current requirements hash'
+                );
                 // And only the import check ran, against the project venv
                 assertEqual(out.calls.length, 1, `only the import check runs: ${JSON.stringify(out.calls)}`);
                 assertEqual(out.calls[0][0], venvPython(projectVenv(project)), 'the import check targets the project venv');
@@ -320,16 +346,27 @@ const tests = [
                     return '';
                 }`;
                 // When ensurePythonDeps() runs
-                const out = runChild(base, project, stub, `(graph, calls) => {
+                const out = runChild(
+                    base,
+                    project,
+                    stub,
+                    `(graph, calls) => {
                     const result = graph.ensurePythonDeps();
                     return { result, calls, after: graph.venvDir() };
-                }`);
+                }`
+                );
                 // Then the shared venv is created, installed, verified and marked; the lock is released
                 assertTrue(out.result.ok, `shared install must succeed: ${out.result.message}`);
                 const shared = path.join(out.cache, SHARED, graph.requirementsHash(project).slice(0, 12));
                 assertEqual(out.after, shared, 'venvDir() now returns the shared venv');
-                assertTrue(out.calls.some(([, argv]) => argv.includes('venv') && argv.includes(shared)), 'the venv is created at the shared dir');
-                assertTrue(out.calls.some(([, argv]) => argv.includes('install')), 'the requirements are installed');
+                assertTrue(
+                    out.calls.some(([, argv]) => argv.includes('venv') && argv.includes(shared)),
+                    'the venv is created at the shared dir'
+                );
+                assertTrue(
+                    out.calls.some(([, argv]) => argv.includes('install')),
+                    'the requirements are installed'
+                );
                 const last = out.calls[out.calls.length - 1];
                 assertEqual(last[1][0], '-c', 'the post-install import check runs last');
                 assertEqual(fs.readFileSync(path.join(shared, 'deps-ok'), 'utf8'), graph.requirementsHash(project), 'the shared marker holds the hash');
@@ -360,16 +397,27 @@ const tests = [
                     return '';
                 }`;
                 // When ensurePythonDeps() runs
-                const out = runChild(base, project, stub, `(graph, calls) => {
+                const out = runChild(
+                    base,
+                    project,
+                    stub,
+                    `(graph, calls) => {
                     const result = graph.ensurePythonDeps();
                     return { result, calls, after: graph.venvDir(), current: graph.requirementsHash() };
-                }`);
+                }`
+                );
                 // Then the stale project venv is not import-checked and its old marker is left as it was
                 assertTrue(out.result.ok, `shared install must succeed: ${out.result.message}`);
-                assertFalse(out.calls.some(([bin]) => bin === projectPy), `the old-marked project venv is never run: ${JSON.stringify(out.calls)}`);
+                assertFalse(
+                    out.calls.some(([bin]) => bin === projectPy),
+                    `the old-marked project venv is never run: ${JSON.stringify(out.calls)}`
+                );
                 assertEqual(fs.readFileSync(path.join(projectVenv(project), 'deps-ok'), 'utf8'), oldHash, 'the old marker is not re-marked with the new hash');
                 // And the requirements are installed into the shared venv, which now wins
-                assertTrue(out.calls.some(([, argv]) => argv.includes('install')), 'the current requirements are installed');
+                assertTrue(
+                    out.calls.some(([, argv]) => argv.includes('install')),
+                    'the current requirements are installed'
+                );
                 assertTrue(out.after !== projectVenv(project), 'venvDir() does not return the old-marked project venv');
                 assertEqual(fs.readFileSync(path.join(out.after, 'deps-ok'), 'utf8'), out.current, 'the shared venv carries the current hash');
             });
@@ -387,7 +435,11 @@ const tests = [
                     return '';
                 }`;
                 // When ensurePythonDeps() runs
-                const out = runChild(base, project, stub, `(graph, calls) => {
+                const out = runChild(
+                    base,
+                    project,
+                    stub,
+                    `(graph, calls) => {
                     const shared = graph.venvDir();
                     const py = process.platform === 'win32' ? path.join(shared, 'Scripts', 'python.exe') : path.join(shared, 'bin', 'python');
                     fs.mkdirSync(path.dirname(py), { recursive: true });
@@ -395,12 +447,16 @@ const tests = [
                     fs.writeFileSync(path.join(shared, 'deps-ok'), graph.requirementsHash());
                     const result = graph.ensurePythonDeps();
                     return { result, calls, shared, hash: graph.requirementsHash(), marker: fs.readFileSync(path.join(shared, 'deps-ok'), 'utf8'), lockLeft: fs.existsSync(shared + '.lock') };
-                }`);
+                }`
+                );
                 // Then the marker survives the failed pre-lock check, the re-check under the lock passes, and nothing is reinstalled
                 assertTrue(out.result.ok, `the venv is ready: ${out.result.message}`);
                 assertEqual(out.marker, out.hash, 'the fresh marker is never deleted outside the lock');
                 assertEqual(out.calls.filter(([, argv]) => argv[0] === '-c').length, 2, 'one check before the lock, one under it');
-                assertFalse(out.calls.some(([, argv]) => argv.includes('install') || argv.includes('venv')), `no redundant install: ${JSON.stringify(out.calls)}`);
+                assertFalse(
+                    out.calls.some(([, argv]) => argv.includes('install') || argv.includes('venv')),
+                    `no redundant install: ${JSON.stringify(out.calls)}`
+                );
                 assertFalse(out.lockLeft, 'the install lock is released');
             });
         }
@@ -417,11 +473,15 @@ const tests = [
                 let installs = 0;
                 let lockDuringInstall = null;
                 // When the locked install runs
-                const result = graph.withVenvLock(dir, () => {
-                    installs++;
-                    lockDuringInstall = JSON.parse(fs.readFileSync(lockOf(dir), 'utf8'));
-                    return { ok: true, message: 'installed' };
-                }, seams);
+                const result = graph.withVenvLock(
+                    dir,
+                    () => {
+                        installs++;
+                        lockDuringInstall = JSON.parse(fs.readFileSync(lockOf(dir), 'utf8'));
+                        return { ok: true, message: 'installed' };
+                    },
+                    seams
+                );
                 // Then the stale lock is broken, the install runs once under our own lock, and no lock remains
                 assertTrue(result.ok, `install must proceed: ${result.message}`);
                 assertEqual(installs, 1, 'install runs exactly once');
@@ -459,7 +519,10 @@ const tests = [
                 const waited = clock.sleeps.reduce((sum, ms) => sum + ms, 0);
                 assertFalse(result.ok, 'a live holder must not be overridden');
                 assertTrue(waited <= 5000 && waited >= 4900, `waited ${waited} ms`);
-                assertTrue(clock.sleeps.every(ms => ms > 0 && ms <= 100), `polls are at most 100 ms: ${clock.sleeps}`);
+                assertTrue(
+                    clock.sleeps.every(ms => ms > 0 && ms <= 100),
+                    `polls are at most 100 ms: ${clock.sleeps}`
+                );
                 assertContains(result.message, 'another session (pid 4242)', 'message names the holder pid');
                 assertContains(result.message, dir, 'message names the venv dir');
                 assertContains(result.message, 'checked again next session', 'message says what happens next');
@@ -545,7 +608,11 @@ const tests = [
                 assertFalse(race.ok, 'losing the re-create race means the lock is held');
                 assertEqual(raced.n, 0, 'no install while the newcomer holds the lock');
                 assertEqual(fs.readFileSync(lockOf(dir), 'utf8'), newcomer, "the newcomer's lock is never removed");
-                assertEqual(JSON.stringify(fs.readdirSync(path.dirname(dir)).filter(name => name.endsWith('.stale'))), '[]', 'breaking a lock leaves no tombstone behind');
+                assertEqual(
+                    JSON.stringify(fs.readdirSync(path.dirname(dir)).filter(name => name.endsWith('.stale'))),
+                    '[]',
+                    'breaking a lock leaves no tombstone behind'
+                );
                 fs.rmSync(lockOf(dir));
 
                 // Given a holder whose lock was broken and re-created by another contender

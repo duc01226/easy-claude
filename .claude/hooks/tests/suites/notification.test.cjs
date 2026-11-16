@@ -258,15 +258,20 @@ async function startCountingServer({ respond = true } = {}) {
     const server = http.createServer((req, res) => {
         requests.push(req.url);
         req.resume();
-        const status = typeof respond === 'function' ? respond(req.url) : (respond ? 200 : false);
-        if (status) req.on('end', () => { res.writeHead(status); res.end(status === 200 ? 'ok' : 'failed'); });
+        const status = typeof respond === 'function' ? respond(req.url) : respond ? 200 : false;
+        if (status)
+            req.on('end', () => {
+                res.writeHead(status);
+                res.end(status === 200 ? 'ok' : 'failed');
+            });
     });
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
     const url = `http://127.0.0.1:${server.address().port}`;
-    const close = () => new Promise(resolve => {
-        if (typeof server.closeAllConnections === 'function') server.closeAllConnections();
-        server.close(() => resolve());
-    });
+    const close = () =>
+        new Promise(resolve => {
+            if (typeof server.closeAllConnections === 'function') server.closeAllConnections();
+            server.close(() => resolve());
+        });
     return { url, requests, close };
 }
 
@@ -279,25 +284,28 @@ function loadRouterContracts({ providers = {} } = {}) {
     const mainEntrypoint = /\r?\nmain\(\);\s*$/;
     assertTrue(mainEntrypoint.test(source), 'Router must retain the expected CLI entrypoint for isolated contract tests');
 
-    const isolatedSource = source.replace(mainEntrypoint,
-        '\nmodule.exports = { normalizeEvent, getSkipReason, getEventType, dispatchToProviders };\n');
+    const isolatedSource = source.replace(mainEntrypoint, '\nmodule.exports = { normalizeEvent, getSkipReason, getEventType, dispatchToProviders };\n');
     const isolatedModule = { exports: {} };
-    const fakeProviderFor = file => /[\\/]providers[\\/]/.test(file) ? providers[path.basename(file, '.cjs')] : undefined;
+    const fakeProviderFor = file => (/[\\/]providers[\\/]/.test(file) ? providers[path.basename(file, '.cjs')] : undefined);
 
-    vm.runInNewContext(isolatedSource, {
-        module: isolatedModule,
-        __dirname: path.dirname(NOTIFY_SCRIPT),
-        console: { error: () => {}, log: () => {} },
-        require: dependency => {
-            if (dependency === 'fs') return { existsSync: file => Boolean(fakeProviderFor(file)) };
-            if (dependency === 'path') return path;
-            if (dependency === './lib/env-loader.cjs') return { loadEnv: () => ({}) };
-            if (dependency === './lib/conversation-attendance.cjs') return require(ATTENDANCE_LIB);
-            const fakeProvider = fakeProviderFor(dependency);
-            if (fakeProvider) return fakeProvider;
-            throw new Error(`Unexpected router dependency in contract test: ${dependency}`);
-        }
-    }, { filename: NOTIFY_SCRIPT });
+    vm.runInNewContext(
+        isolatedSource,
+        {
+            module: isolatedModule,
+            __dirname: path.dirname(NOTIFY_SCRIPT),
+            console: { error: () => {}, log: () => {} },
+            require: dependency => {
+                if (dependency === 'fs') return { existsSync: file => Boolean(fakeProviderFor(file)) };
+                if (dependency === 'path') return path;
+                if (dependency === './lib/env-loader.cjs') return { loadEnv: () => ({}) };
+                if (dependency === './lib/conversation-attendance.cjs') return require(ATTENDANCE_LIB);
+                const fakeProvider = fakeProviderFor(dependency);
+                if (fakeProvider) return fakeProvider;
+                throw new Error(`Unexpected router dependency in contract test: ${dependency}`);
+            }
+        },
+        { filename: NOTIFY_SCRIPT }
+    );
 
     const contracts = isolatedModule.exports;
     // Eligibility is exactly the router's own skip rule: an event alerts only when no skip reason applies.
@@ -313,7 +321,12 @@ function loadRemoteProvider(file, { eventCopy } = {}) {
         if (dependency === '../lib/event-copy.cjs') return eventCopy ? { EVENT_COPY: eventCopy } : require(EVENT_COPY_LIB);
         if (dependency === '../lib/project-name.cjs') return require(PROJECT_NAME_LIB);
         if (dependency === '../lib/sender.cjs') {
-            return { send: async (provider, url, body, options) => { sent.push({ provider, url, body, options }); return { success: true }; } };
+            return {
+                send: async (provider, url, body, options) => {
+                    sent.push({ provider, url, body, options });
+                    return { success: true };
+                }
+            };
         }
         throw new Error(`Unmocked provider dependency: ${dependency}`);
     };
@@ -363,8 +376,11 @@ async function sendRemoteCase(file, testCase) {
         assertFalse(rendered.includes(reply), `${provider.name} must never forward the assistant reply text`);
     }
     // The alert kind reaches the sender, so a session-ended request is held to its hook budget
-    assertEqual(sent[0].options && sent[0].options.event, testCase.input.hook_event_name,
-        `${provider.name} must tell the sender which alert kind it is sending`);
+    assertEqual(
+        sent[0].options && sent[0].options.event,
+        testCase.input.hook_event_name,
+        `${provider.name} must tell the sender which alert kind it is sending`
+    );
     return sent[0].body;
 }
 
@@ -405,8 +421,10 @@ const routerExecutionTests = [
             const { normalizeEvent, getSkipReason } = loadRouterContracts();
             const normalized = normalizeEvent({ ...input });
             assertEqual(normalized.hook_event_name, 'Stop', 'Ordinary completion must not become a question alert');
-            assertFalse(Object.prototype.hasOwnProperty.call(normalized, 'notification_source'),
-                'Ordinary completion must carry no question-fallback provenance');
+            assertFalse(
+                Object.prototype.hasOwnProperty.call(normalized, 'notification_source'),
+                'Ordinary completion must carry no question-fallback provenance'
+            );
             assertEqual(getSkipReason(normalized), null, 'Ordinary completion must stay eligible for its alert');
         }
     },
@@ -418,12 +436,13 @@ const routerExecutionTests = [
             const copy = EVENT_COPY.Stop;
             // Then it says a turn finished and never that the session completed or ended, nor asks anything
             for (const text of [copy.title, copy.summary]) {
-                assertFalse(/session\s+(complete|ended)|completed successfully/i.test(text),
-                    `Turn-complete copy must not imply the session ended: ${text}`);
+                assertFalse(/session\s+(complete|ended)|completed successfully/i.test(text), `Turn-complete copy must not imply the session ended: ${text}`);
                 assertFalse(/\?|question/i.test(text), `Turn-complete copy must not read as a question: ${text}`);
             }
-            assertTrue(copy.title !== EVENT_COPY.SessionEnd.title && copy.summary !== EVENT_COPY.SessionEnd.summary,
-                'Turn-complete and session-ended alerts must read differently');
+            assertTrue(
+                copy.title !== EVENT_COPY.SessionEnd.title && copy.summary !== EVENT_COPY.SessionEnd.summary,
+                'Turn-complete and session-ended alerts must read differently'
+            );
             // When each remote channel formats an ordinary completed turn
             for (const file of [DISCORD_PROVIDER, SLACK_PROVIDER, TELEGRAM_PROVIDER]) {
                 const body = await sendRemoteCase(file, { input: { hook_event_name: 'Stop' } });
@@ -446,8 +465,11 @@ const routerExecutionTests = [
             const result = await runRouter(input);
             // Then it stops before any provider is called
             assertEqual(result.code, 0, 'A reset SessionEnd should exit cleanly');
-            assertContains(result.stderr, 'Skipped: SessionEnd after conversation reset (clear)',
-                'A conversation reset must be skipped before provider delivery');
+            assertContains(
+                result.stderr,
+                'Skipped: SessionEnd after conversation reset (clear)',
+                'A conversation reset must be skipped before provider delivery'
+            );
         }
     },
     {
@@ -493,8 +515,7 @@ const routerExecutionTests = [
             const result = await runRouter(input);
             // Then it skips the turn-complete alert and names why
             assertEqual(result.code, 0, 'Suppressed Stop should exit cleanly');
-            assertContains(result.stderr, 'Skipped: Stop while 2 delegated task(s) still run',
-                'A turn that still waits on background work must not alert');
+            assertContains(result.stderr, 'Skipped: Stop while 2 delegated task(s) still run', 'A turn that still waits on background work must not alert');
         }
     },
     {
@@ -509,8 +530,7 @@ const routerExecutionTests = [
             const headless = await runRouter(input, { env: headlessEnv });
             // Then no turn-complete alert is raised, and the log names why
             assertEqual(headless.code, 0, 'Suppressed Stop should exit cleanly');
-            assertContains(headless.stderr, 'Skipped: unattended Claude session',
-                'A headless child run must not raise a turn-complete alert');
+            assertContains(headless.stderr, 'Skipped: unattended Claude session', 'A headless child run must not raise a turn-complete alert');
             // When the same turn end comes from a session the developer attends
             const attended = await runRouter(input, { env: { ...headlessEnv, CLAUDE_CODE_SESSION_ATTENDED: '1' } });
             // Then it is not skipped, and not because the router failed
@@ -614,12 +634,13 @@ const routerContractTests = [
             // Then it remains eligible, while any payload carrying agent_id is suppressed
             assertTrue(isEligible(mainSessionEnd), 'Main SessionEnd should be eligible for its alert');
             for (const agentId of ['agent-1', '', null]) {
-                assertFalse(isEligible({ hook_event_name: 'SessionEnd', agent_id: agentId }),
-                    'The presence of agent_id must suppress a delegated SessionEnd');
+                assertFalse(isEligible({ hook_event_name: 'SessionEnd', agent_id: agentId }), 'The presence of agent_id must suppress a delegated SessionEnd');
             }
             // And an end whose conversation kind the host could not establish never alerts as a main end
-            assertFalse(isEligible({ hook_event_name: 'SessionEnd', conversation_kind: 'unknown' }),
-                'An unproven main-session end must not raise a session-ended alert');
+            assertFalse(
+                isEligible({ hook_event_name: 'SessionEnd', conversation_kind: 'unknown' }),
+                'An unproven main-session end must not raise a session-ended alert'
+            );
         }
     },
     {
@@ -629,8 +650,10 @@ const routerContractTests = [
             const { isEligible } = loadRouterContracts();
             // When the main session ends because the developer reset the conversation
             // Then no session-ended alert is eligible
-            assertFalse(isEligible({ hook_event_name: 'SessionEnd', reason: 'clear' }),
-                'A user-initiated conversation reset must not raise a session-ended alert');
+            assertFalse(
+                isEligible({ hook_event_name: 'SessionEnd', reason: 'clear' }),
+                'A user-initiated conversation reset must not raise a session-ended alert'
+            );
             // When it ends for any other reason, or the host does not report one
             for (const reason of ['exit', 'logout', 'prompt_input_exit', 'other', '', undefined]) {
                 const input = { hook_event_name: 'SessionEnd' };
@@ -655,16 +678,18 @@ const routerContractTests = [
                 [{ id: 'c1', type: 'workflow', status: 'running' }],
                 [{ id: 'd1', type: 'MCP task', status: 'Running' }]
             ]) {
-                assertFalse(isEligible({ hook_event_name: 'Stop', background_tasks: tasks }),
-                    `Stop with delegated work in flight ${JSON.stringify(tasks)} must not alert`);
+                assertFalse(
+                    isEligible({ hook_event_name: 'Stop', background_tasks: tasks }),
+                    `Stop with delegated work in flight ${JSON.stringify(tasks)} must not alert`
+                );
             }
             // And a one-shot wakeup that will resume the session holds the alert back too
-            assertFalse(isEligible({ hook_event_name: 'Stop', background_tasks: [],
-                session_crons: [{ id: 'w1', schedule: '5 14 24 9 *', recurring: false }] }),
-            'Stop with a pending one-shot wakeup must not alert');
+            assertFalse(
+                isEligible({ hook_event_name: 'Stop', background_tasks: [], session_crons: [{ id: 'w1', schedule: '5 14 24 9 *', recurring: false }] }),
+                'Stop with a pending one-shot wakeup must not alert'
+            );
             // And a delegated conversation going idle is never the main session finishing
-            assertFalse(isEligible({ hook_event_name: 'Stop', agent_id: 'child-1' }),
-                'A delegated conversation Stop must not raise a turn-complete alert');
+            assertFalse(isEligible({ hook_event_name: 'Stop', agent_id: 'child-1' }), 'A delegated conversation Stop must not raise a turn-complete alert');
             // When the turn ends with no delegated work left — the last agent already settled (in any
             // casing), only a server, log tail or monitor that may never end still runs, only a
             // recurring or unreadable schedule remains, or the host sends no task list at all
@@ -681,8 +706,10 @@ const routerContractTests = [
                 assertTrue(isEligible(input), `Stop with no delegated work left must alert: ${JSON.stringify(input)}`);
             }
             // And a question is never held back by background work: the developer is needed now
-            assertTrue(isEligible(normalizeEvent({ hook_event_name: 'PreToolUse', tool_name: 'AskUserQuestion', background_tasks: [agentTask] })),
-                'A direct question must alert even while background work runs');
+            assertTrue(
+                isEligible(normalizeEvent({ hook_event_name: 'PreToolUse', tool_name: 'AskUserQuestion', background_tasks: [agentTask] })),
+                'A direct question must alert even while background work runs'
+            );
         }
     },
     {
@@ -701,22 +728,30 @@ const routerContractTests = [
                 const label = input.notification_type || input.hook_event_name;
                 // When Claude reports that nobody attends that session (a print-mode, SDK, background
                 // or nested run) — Then the alert is withheld
-                assertFalse(isEligible(input, { CLAUDE_CODE_SESSION_ID: sessionId, CLAUDE_CODE_SESSION_ATTENDED: '0' }),
-                    `${label} from an unattended session must not alert`);
+                assertFalse(
+                    isEligible(input, { CLAUDE_CODE_SESSION_ID: sessionId, CLAUDE_CODE_SESSION_ATTENDED: '0' }),
+                    `${label} from an unattended session must not alert`
+                );
                 // When Claude reports the developer attends it — Then the alert stays eligible
-                assertTrue(isEligible(input, { CLAUDE_CODE_SESSION_ID: sessionId, CLAUDE_CODE_SESSION_ATTENDED: '1' }),
-                    `${label} from an attended session must alert`);
+                assertTrue(
+                    isEligible(input, { CLAUDE_CODE_SESSION_ID: sessionId, CLAUDE_CODE_SESSION_ATTENDED: '1' }),
+                    `${label} from an attended session must alert`
+                );
                 // When the markers describe another session — inherited by a hook of another host
                 // started from a headless Claude terminal — Then this event is not judged by them
-                assertTrue(isEligible(input, { CLAUDE_CODE_SESSION_ID: 'ancestor-session', CLAUDE_CODE_SESSION_ATTENDED: '0' }),
-                    `${label} must not be withheld by another session's attendance`);
+                assertTrue(
+                    isEligible(input, { CLAUDE_CODE_SESSION_ID: 'ancestor-session', CLAUDE_CODE_SESSION_ATTENDED: '0' }),
+                    `${label} must not be withheld by another session's attendance`
+                );
                 // When the host reports no attendance at all (older hosts) — Then the alert stays eligible
                 assertTrue(isEligible(input, {}), `${label} without attendance markers must alert`);
                 assertTrue(isEligible(input), `${label} without a host env must alert`);
             }
             // And a payload without its own session id is never matched to the markers
-            assertTrue(isEligible({ hook_event_name: 'Stop' }, { CLAUDE_CODE_SESSION_ID: '', CLAUDE_CODE_SESSION_ATTENDED: '0' }),
-                'An unidentified session must not be judged unattended');
+            assertTrue(
+                isEligible({ hook_event_name: 'Stop' }, { CLAUDE_CODE_SESSION_ID: '', CLAUDE_CODE_SESSION_ATTENDED: '0' }),
+                'An unidentified session must not be judged unattended'
+            );
         }
     },
     {
@@ -727,36 +762,39 @@ const routerContractTests = [
             const dir = createTempDir('notify-codex-source-');
             const transcript = (name, header) => {
                 const file = path.join(dir, name);
-                fs.writeFileSync(file, (typeof header === 'string' ? header : JSON.stringify(header)) +
-                    '\n{"type":"event_msg","payload":{"type":"task_started"}}\n');
+                fs.writeFileSync(
+                    file,
+                    (typeof header === 'string' ? header : JSON.stringify(header)) + '\n{"type":"event_msg","payload":{"type":"task_started"}}\n'
+                );
                 return file;
             };
             const session = (source, extra = {}) => ({ type: 'session_meta', payload: { id: 'thread-1', source, ...extra } });
-            const stopFrom = transcriptPath => ({ hook_event_name: 'Stop', session_id: 'thread-1', turn_id: 'turn-1',
-                last_assistant_message: 'Done.', transcript_path: transcriptPath });
+            const stopFrom = transcriptPath => ({
+                hook_event_name: 'Stop',
+                session_id: 'thread-1',
+                turn_id: 'turn-1',
+                last_assistant_message: 'Done.',
+                transcript_path: transcriptPath
+            });
             try {
                 // When the session is a headless `codex exec` run, Codex serving another agent over MCP,
                 // or a thread Codex spawned itself — including a header longer than one read chunk
                 for (const file of [
                     transcript('rollout-2026-01-01T00-00-00-exec.jsonl', session('exec')),
                     transcript('rollout-2026-01-01T00-00-01-mcp.jsonl', session('mcp')),
-                    transcript('rollout-2026-01-01T00-00-02-sub.jsonl',
-                        session({ subagent: { thread_spawn: { parent_thread_id: 'parent-1', depth: 1 } } })),
+                    transcript('rollout-2026-01-01T00-00-02-sub.jsonl', session({ subagent: { thread_spawn: { parent_thread_id: 'parent-1', depth: 1 } } })),
                     transcript('rollout-2026-01-01T00-00-03-internal.jsonl', session({ internal: 'memory_consolidation' })),
-                    transcript('rollout-2026-01-01T00-00-04-long.jsonl',
-                        session('exec', { base_instructions: { text: 'x'.repeat(200 * 1024) } }))
+                    transcript('rollout-2026-01-01T00-00-04-long.jsonl', session('exec', { base_instructions: { text: 'x'.repeat(200 * 1024) } }))
                 ]) {
                     // Then neither its turn end nor its session end alerts
                     assertFalse(isEligible(stopFrom(file)), `Stop from ${path.basename(file)} must not alert`);
-                    assertFalse(isEligible({ hook_event_name: 'SessionEnd', transcript_path: file }),
-                        `SessionEnd from ${path.basename(file)} must not alert`);
+                    assertFalse(isEligible({ hook_event_name: 'SessionEnd', transcript_path: file }), `SessionEnd from ${path.basename(file)} must not alert`);
                 }
                 // When the session is the developer's own terminal or app session, an unrecognized
                 // custom client, a header that cannot be read (malformed, or longer than the 1 MiB
                 // read bound), or a file that is not a Codex transcript
                 for (const file of [
-                    transcript('rollout-2026-01-01T00-00-10-oversized.jsonl',
-                        session('exec', { base_instructions: { text: 'x'.repeat(1024 * 1024) } })),
+                    transcript('rollout-2026-01-01T00-00-10-oversized.jsonl', session('exec', { base_instructions: { text: 'x'.repeat(1024 * 1024) } })),
                     transcript('rollout-2026-01-01T00-00-05-cli.jsonl', session('cli')),
                     transcript('rollout-2026-01-01T00-00-06-app.jsonl', session('vscode')),
                     transcript('rollout-2026-01-01T00-00-07-custom.jsonl', session({ custom: 'ide-client' })),
@@ -777,20 +815,24 @@ const routerContractTests = [
         fn: async () => {
             // Given a desktop alert that is still running and one configured remote channel
             let releaseDesktop;
-            const desktopPending = new Promise(resolve => { releaseDesktop = resolve; });
+            const desktopPending = new Promise(resolve => {
+                releaseDesktop = resolve;
+            });
             const remoteEvents = [];
             const providers = {
                 desktop: { name: 'desktop', isEnabled: () => true, send: () => desktopPending },
                 discord: {
                     name: 'discord',
                     isEnabled: env => Boolean(env.DISCORD_WEBHOOK_URL),
-                    send: async input => { remoteEvents.push(input.hook_event_name); return { success: true }; }
+                    send: async input => {
+                        remoteEvents.push(input.hook_event_name);
+                        return { success: true };
+                    }
                 }
             };
             const { dispatchToProviders } = loadRouterContracts({ providers });
             // When the router dispatches a session-ended alert
-            const dispatch = dispatchToProviders({ hook_event_name: 'SessionEnd' },
-                { DISCORD_WEBHOOK_URL: 'https://example.invalid/discord' });
+            const dispatch = dispatchToProviders({ hook_event_name: 'SessionEnd' }, { DISCORD_WEBHOOK_URL: 'https://example.invalid/discord' });
             await new Promise(resolve => setImmediate(resolve));
             // Then the remote channel is sent while the desktop alert is still pending,
             // so a slow desktop alert cannot use up the SessionEnd hook budget first
@@ -798,7 +840,10 @@ const routerContractTests = [
             releaseDesktop({ success: true });
             const results = await dispatch;
             assertEqual(results.map(result => result.provider).join(','), 'desktop,discord', 'Every enabled provider reports a result');
-            assertTrue(results.every(result => result.success), 'Both deliveries should succeed');
+            assertTrue(
+                results.every(result => result.success),
+                'Both deliveries should succeed'
+            );
         }
     },
     {
@@ -806,8 +851,20 @@ const routerContractTests = [
         fn: async () => {
             const env = { DISCORD_WEBHOOK_URL: 'https://example.invalid/discord' };
             const desktopStates = {
-                off: { name: 'desktop', isEnabled: () => false, send: async () => { throw new Error('a disabled desktop must never be called'); } },
-                rejecting: { name: 'desktop', isEnabled: () => true, send: async () => { throw new Error('notifier crashed'); } },
+                off: {
+                    name: 'desktop',
+                    isEnabled: () => false,
+                    send: async () => {
+                        throw new Error('a disabled desktop must never be called');
+                    }
+                },
+                rejecting: {
+                    name: 'desktop',
+                    isEnabled: () => true,
+                    send: async () => {
+                        throw new Error('notifier crashed');
+                    }
+                },
                 failing: { name: 'desktop', isEnabled: () => true, send: async () => ({ success: false, error: 'notifier missing' }) }
             };
             for (const [state, desktop] of Object.entries(desktopStates)) {
@@ -817,7 +874,10 @@ const routerContractTests = [
                     const discord = {
                         name: 'discord',
                         isEnabled: config => Boolean(config.DISCORD_WEBHOOK_URL),
-                        send: async input => { remoteEvents.push(input.hook_event_name); return { success: true }; }
+                        send: async input => {
+                            remoteEvents.push(input.hook_event_name);
+                            return { success: true };
+                        }
                     };
                     const { dispatchToProviders } = loadRouterContracts({ providers: { desktop, discord } });
                     // When the router dispatches one alert of that kind
@@ -839,7 +899,9 @@ const routerContractTests = [
         fn: async () => {
             const env = { DISCORD_WEBHOOK_URL: 'https://example.invalid/discord', SLACK_WEBHOOK_URL: 'https://example.invalid/slack' };
             const failures = {
-                rejecting: async () => { throw new Error('endpoint crashed'); },
+                rejecting: async () => {
+                    throw new Error('endpoint crashed');
+                },
                 failing: async () => ({ success: false, error: 'HTTP 500: failed' })
             };
             for (const [mode, failingSend] of Object.entries(failures)) {
@@ -851,7 +913,10 @@ const routerContractTests = [
                     slack: {
                         name: 'slack',
                         isEnabled: config => Boolean(config.SLACK_WEBHOOK_URL),
-                        send: async input => { slackEvents.push(input.hook_event_name); return { success: true }; }
+                        send: async input => {
+                            slackEvents.push(input.hook_event_name);
+                            return { success: true };
+                        }
                     }
                 };
                 const { dispatchToProviders } = loadRouterContracts({ providers });
@@ -859,8 +924,11 @@ const routerContractTests = [
                 const results = await dispatchToProviders({ hook_event_name: 'AskUserQuestion' }, env);
                 // Then the other remote channel still receives exactly one alert
                 assertEqual(slackEvents.join(','), 'AskUserQuestion', `discord ${mode}: slack must still receive exactly one alert`);
-                assertEqual(results.map(result => `${result.provider}:${result.success}`).join(','), 'discord:false,slack:true',
-                    `discord ${mode}: each remote channel reports its own outcome`);
+                assertEqual(
+                    results.map(result => `${result.provider}:${result.success}`).join(','),
+                    'discord:false,slack:true',
+                    `discord ${mode}: each remote channel reports its own outcome`
+                );
             }
         }
     },
@@ -916,8 +984,10 @@ const routerContractTests = [
             const directQuestion = normalizeEvent({ hook_event_name: 'PreToolUse', tool_name: 'AskUserQuestion' });
             // Then it retains the established question route without Codex fallback provenance
             assertEqual(directQuestion.hook_event_name, 'AskUserQuestion', 'Claude direct question route must remain supported');
-            assertFalse(Object.prototype.hasOwnProperty.call(directQuestion, 'notification_source'),
-                'Only the Codex Stop heuristic should carry fallback provenance');
+            assertFalse(
+                Object.prototype.hasOwnProperty.call(directQuestion, 'notification_source'),
+                'Only the Codex Stop heuristic should carry fallback provenance'
+            );
         }
     }
 ];
@@ -963,8 +1033,7 @@ const isolationTests = [
                 // Then the remote channel receives exactly one alert despite the desktop being off; this
                 // is also the tripwire proving the zero above is isolation, not a router that never sends
                 assertEqual(leaky.code, 0, 'Leaky router run should still exit cleanly');
-                assertEqual(server.requests.join(','), '/discord',
-                    'With the desktop off, the configured remote channel must receive exactly one alert');
+                assertEqual(server.requests.join(','), '/discord', 'With the desktop off, the configured remote channel must receive exactly one alert');
             } finally {
                 if (savedDiscord === undefined) delete process.env.DISCORD_WEBHOOK_URL;
                 else process.env.DISCORD_WEBHOOK_URL = savedDiscord;
@@ -1000,12 +1069,20 @@ function runSenderInChild(steps, isolatedDir, { uptimeSeconds } = {}) {
         let stdout = '';
         let stderr = '';
         const killTimer = setTimeout(() => child.kill('SIGKILL'), 15000);
-        child.stdout.on('data', chunk => { stdout += chunk; });
-        child.stderr.on('data', chunk => { stderr += chunk; });
+        child.stdout.on('data', chunk => {
+            stdout += chunk;
+        });
+        child.stderr.on('data', chunk => {
+            stderr += chunk;
+        });
         child.on('error', reject);
         child.on('close', () => {
             clearTimeout(killTimer);
-            try { resolve({ ...JSON.parse(stdout), stderr }); } catch (err) { reject(new Error(`sender child produced no result: ${stderr}`)); }
+            try {
+                resolve({ ...JSON.parse(stdout), stderr });
+            } catch (err) {
+                reject(new Error(`sender child produced no result: ${stderr}`));
+            }
         });
     });
 }
@@ -1034,18 +1111,20 @@ const libTests = [
             const isolatedDir = createTempDir('notify-sender-');
             try {
                 // When one alert is sent to the hanging endpoint and the next alert follows on the same channel
-                const { outcomes, timeoutMs } = await runSenderInChild([
-                    { provider: 'slow-probe', url: `${server.url}/hang`, event: 'AskUserQuestion' },
-                    { provider: 'slow-probe', url: `${server.url}/ok`, event: 'AskUserQuestion' }
-                ], isolatedDir);
+                const { outcomes, timeoutMs } = await runSenderInChild(
+                    [
+                        { provider: 'slow-probe', url: `${server.url}/hang`, event: 'AskUserQuestion' },
+                        { provider: 'slow-probe', url: `${server.url}/ok`, event: 'AskUserQuestion' }
+                    ],
+                    isolatedDir
+                );
                 const [slow, next] = outcomes;
                 // Then the slow request is abandoned at the request limit and reported as a timeout
                 assertFalse(slow.result.success, 'A timed-out delivery must report failure');
                 assertTrue(slow.result.timedOut, 'A timed-out delivery must be reported as a timeout');
                 assertEqual(slow.result.error, `request timed out after ${timeoutMs}ms`, 'Timeout must be reported with its limit');
                 assertTrue(timeoutMs <= 2000, 'The request limit must stay inside the 3-second session-end budget');
-                assertTrue(slow.elapsed >= timeoutMs - 100 && slow.elapsed < timeoutMs + 1500,
-                    `Send must end at the timeout, took ${slow.elapsed}ms`);
+                assertTrue(slow.elapsed >= timeoutMs - 100 && slow.elapsed < timeoutMs + 1500, `Send must end at the timeout, took ${slow.elapsed}ms`);
                 // And no cooldown starts, so the next alert is attempted and delivered
                 assertFalse(slow.throttled, 'A timeout must not pause the channel');
                 assertEqual(readIsolatedCooldowns(isolatedDir)['slow-probe'], undefined, 'A timeout must record no cooldown');
@@ -1066,11 +1145,14 @@ const libTests = [
             const isolatedDir = createTempDir('notify-sender-');
             try {
                 // When an alert fails on each, and a further alert follows on the erroring channel
-                const { outcomes } = await runSenderInChild([
-                    { provider: 'status-probe', url: `${server.url}/fail`, event: 'Stop' },
-                    { provider: 'status-probe', url: `${server.url}/fail`, event: 'Stop' },
-                    { provider: 'refused-probe', url: `${refused}/refused`, event: 'Stop' }
-                ], isolatedDir);
+                const { outcomes } = await runSenderInChild(
+                    [
+                        { provider: 'status-probe', url: `${server.url}/fail`, event: 'Stop' },
+                        { provider: 'status-probe', url: `${server.url}/fail`, event: 'Stop' },
+                        { provider: 'refused-probe', url: `${refused}/refused`, event: 'Stop' }
+                    ],
+                    isolatedDir
+                );
                 const [statusError, afterError, refusedError] = outcomes;
                 // Then the error status is a failure that pauses the channel
                 assertFalse(statusError.result.success, 'An error status must report failure');
@@ -1100,7 +1182,8 @@ const libTests = [
             // Given the sender's session-end budget, which must match the host hook limit it models
             const sender = require(SENDER_LIB);
             const settings = JSON.parse(fs.readFileSync(path.join(HOOKS_DIR, '..', 'settings.json'), 'utf8'));
-            const hook = (settings.hooks?.SessionEnd || []).flatMap(group => group.hooks || [])
+            const hook = (settings.hooks?.SessionEnd || [])
+                .flatMap(group => group.hooks || [])
                 .find(entry => String(entry.command || '').includes('notifications/notify.cjs'));
             assertTrue(Boolean(hook) && Number.isFinite(hook.timeout), 'The session-end notification hook must declare its limit');
             assertEqual(sender.SESSION_END_BUDGET_MS, hook.timeout * 1000, 'The sender budget must equal the host session-end hook limit');
@@ -1110,8 +1193,10 @@ const libTests = [
                 // Then it is never negative, never above the request limit, and always ends inside the budget with the reserve left
                 assertTrue(limit >= 0 && limit <= sender.REQUEST_TIMEOUT_MS, `limit ${limit}ms at ${uptimeMs}ms must be within 0..request limit`);
                 if (limit > 0) {
-                    assertTrue(uptimeMs + limit + sender.SESSION_END_RESERVE_MS <= sender.SESSION_END_BUDGET_MS,
-                        `a ${limit}ms request started at ${uptimeMs}ms must end inside the session-end budget`);
+                    assertTrue(
+                        uptimeMs + limit + sender.SESSION_END_RESERVE_MS <= sender.SESSION_END_BUDGET_MS,
+                        `a ${limit}ms request started at ${uptimeMs}ms must end inside the session-end budget`
+                    );
                 }
             }
             // And the boundaries are exact: full limit early, remaining time late, nothing once used up
@@ -1133,8 +1218,9 @@ const libTests = [
             const usedUpDir = createTempDir('notify-sender-');
             try {
                 // When a session-ended alert is sent 2.3 s after the process started
-                const nearlyUsed = await runSenderInChild(
-                    [{ provider: 'late-probe', url: `${server.url}/hang`, event: 'SessionEnd' }], nearlyUsedDir, { uptimeSeconds: 2.3 });
+                const nearlyUsed = await runSenderInChild([{ provider: 'late-probe', url: `${server.url}/hang`, event: 'SessionEnd' }], nearlyUsedDir, {
+                    uptimeSeconds: 2.3
+                });
                 const [cutShort] = nearlyUsed.outcomes;
                 // Then the request is abandoned when the remaining 300 ms run out, with no cooldown
                 assertEqual(cutShort.result.error, 'request timed out after 300ms', 'The request must get only the remaining budget');
@@ -1142,8 +1228,9 @@ const libTests = [
                 assertFalse(cutShort.throttled, 'A budget timeout must not pause the channel');
                 assertEqual(server.requests.length, 1, 'The request with budget left must be attempted');
                 // When a session-ended alert is sent once the budget before the reserve is used up
-                const usedUp = await runSenderInChild(
-                    [{ provider: 'late-probe', url: `${server.url}/hang`, event: 'SessionEnd' }], usedUpDir, { uptimeSeconds: 2.8 });
+                const usedUp = await runSenderInChild([{ provider: 'late-probe', url: `${server.url}/hang`, event: 'SessionEnd' }], usedUpDir, {
+                    uptimeSeconds: 2.8
+                });
                 const [skipped] = usedUp.outcomes;
                 // Then no request is made, the skip is logged, and the channel is not paused
                 assertTrue(skipped.result.skipped && !skipped.result.success, 'A send with no budget left must be skipped');
@@ -1282,10 +1369,11 @@ const remotePayloadTests = [
                 const body = await sendRemoteCase(SLACK_PROVIDER, testCase);
                 // Then the header, summary and preview text state the event and the preview names the project
                 assertEqual(body.blocks[0].text.text, testCase.title, 'Slack header must name the event');
-                assertTrue(body.blocks.some(block => block.text && block.text.text === `${testCase.summary}.`),
-                    'Slack message must include the event summary');
-                assertEqual(body.text, `[alpha-project] ${testCase.summary}.`,
-                    'Slack preview text must state the event and name the project');
+                assertTrue(
+                    body.blocks.some(block => block.text && block.text.text === `${testCase.summary}.`),
+                    'Slack message must include the event summary'
+                );
+                assertEqual(body.text, `[alpha-project] ${testCase.summary}.`, 'Slack preview text must state the event and name the project');
             }
         }
     },
@@ -1361,8 +1449,9 @@ const desktopBehaviorTests = [
         name: '[notification] desktop SubagentStop stays non-modal at the Darwin process boundary',
         fn: async () => {
             // Given the existing OS-process oracle that invokes the real provider with SubagentStop
-            const oracle = require('./desktop-argv.test.cjs').tests.find(test =>
-                test.name === '[TC-HARNESS-003] darwin: bounded literal argv property and benign controls');
+            const oracle = require('./desktop-argv.test.cjs').tests.find(
+                test => test.name === '[TC-HARNESS-003] darwin: bounded literal argv property and benign controls'
+            );
             assertTrue(Boolean(oracle), 'Darwin desktop argv behavior oracle must exist');
             // When the oracle exercises the provider across its input corpus
             // Then SubagentStop remains a toast, checked through the mocked osascript call
@@ -1374,8 +1463,9 @@ const desktopBehaviorTests = [
         fn: async () => {
             // Exercise the captured process boundary, not the old command-string spelling.
             // This oracle mocks subprocesses and verifies script path, literal flags and windowsHide.
-            const windowsOracle = require('./desktop-argv.test.cjs').tests.find(test =>
-                test.name === '[TC-HARNESS-003] win32: bounded literal argv property and benign controls');
+            const windowsOracle = require('./desktop-argv.test.cjs').tests.find(
+                test => test.name === '[TC-HARNESS-003] win32: bounded literal argv property and benign controls'
+            );
             assertTrue(Boolean(windowsOracle), 'Windows executable-argv oracle must exist');
             await windowsOracle.fn();
         }
@@ -1447,8 +1537,8 @@ const settingsTests = [
 // Codex question and permission alerts (TC-NT-076, TC-NT-077)
 // ============================================================================
 
-const notifyHandlersFor = (settings, event) => (settings.hooks[event] || [])
-    .filter(group => (group.hooks || []).some(hook => /notifications[\\/]notify\.cjs/.test(hook.command || '')));
+const notifyHandlersFor = (settings, event) =>
+    (settings.hooks[event] || []).filter(group => (group.hooks || []).some(hook => /notifications[\\/]notify\.cjs/.test(hook.command || '')));
 
 const codexAlertTests = [
     {
@@ -1473,19 +1563,31 @@ const codexAlertTests = [
             // And the registration listens for every question tool name
             const settings = JSON.parse(fs.readFileSync(path.join(HOOKS_DIR, '..', 'settings.json'), 'utf8'));
             const matchers = notifyHandlersFor(settings, 'PreToolUse').map(group => group.matcher || '');
-            assertTrue(matchers.some(m => m.split('|').includes('AskUserQuestion') && m.split('|').includes('request_user_input') && m.split('|').includes('request_user_input_async')),
-                `PreToolUse notify matcher must name every question tool, got ${JSON.stringify(matchers)}`);
+            assertTrue(
+                matchers.some(
+                    m =>
+                        m.split('|').includes('AskUserQuestion') &&
+                        m.split('|').includes('request_user_input') &&
+                        m.split('|').includes('request_user_input_async')
+                ),
+                `PreToolUse notify matcher must name every question tool, got ${JSON.stringify(matchers)}`
+            );
         }
     },
     {
         // Intent: Codex has no Notification event; its PermissionRequest (always with turn_id) is the approval
         // prompt. Claude's PermissionRequest has no turn_id and already alerts through Notification permission_prompt,
         // so it must not alert twice.
-        name: '[TC-NT-077] a Codex permission request raises the permission alert once; Claude\'s does not duplicate it',
+        name: "[TC-NT-077] a Codex permission request raises the permission alert once; Claude's does not duplicate it",
         fn: () => {
             const { normalizeEvent, getSkipReason, getEventType } = loadRouterContracts();
             // Given a Codex PermissionRequest from the main conversation
-            const codex = normalizeEvent({ hook_event_name: 'PermissionRequest', turn_id: 'turn-1', tool_name: 'Bash', tool_input: { command: 'rm -rf build', description: null } });
+            const codex = normalizeEvent({
+                hook_event_name: 'PermissionRequest',
+                turn_id: 'turn-1',
+                tool_name: 'Bash',
+                tool_input: { command: 'rm -rf build', description: null }
+            });
             // Then it is the permission alert and stays eligible
             assertEqual(getEventType(codex), 'permission_prompt');
             assertEqual(getSkipReason(codex), null, 'a Codex approval prompt must alert');
@@ -1499,8 +1601,11 @@ const codexAlertTests = [
             assertEqual(getEventType(claudeQuestion), 'PermissionRequest', 'a PermissionRequest is never rewritten into the question alert');
             assertTrue(getSkipReason(claudeQuestion) !== null, 'Claude PermissionRequest for AskUserQuestion must not alert a second time');
             // And an approval inside a delegated conversation still waits on the user, so it alerts too
-            assertEqual(getSkipReason(normalizeEvent({ hook_event_name: 'PermissionRequest', turn_id: 'turn-2', agent_id: 'a1', tool_name: 'Bash' })), null,
-                'an approval the user must give alerts wherever it is requested');
+            assertEqual(
+                getSkipReason(normalizeEvent({ hook_event_name: 'PermissionRequest', turn_id: 'turn-2', agent_id: 'a1', tool_name: 'Bash' })),
+                null,
+                'an approval the user must give alerts wherever it is requested'
+            );
             // And the router is registered on PermissionRequest, so the Codex mirror carries it
             const settings = JSON.parse(fs.readFileSync(path.join(HOOKS_DIR, '..', 'settings.json'), 'utf8'));
             assertEqual(notifyHandlersFor(settings, 'PermissionRequest').length, 1, 'notify.cjs must be registered once on PermissionRequest');
@@ -1519,7 +1624,10 @@ const routerWiringTests = [
             const settingsPath = path.join(HOOKS_DIR, '..', 'settings.json');
             const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
             const cmds = (settings.hooks?.Stop || []).flatMap(h => h.hooks || []).map(h => h.command || []);
-            assertTrue(cmds.some(cmd => String(cmd).includes('notifications/notify.cjs')), 'Stop should route to notify.cjs');
+            assertTrue(
+                cmds.some(cmd => String(cmd).includes('notifications/notify.cjs')),
+                'Stop should route to notify.cjs'
+            );
         }
     },
     {
@@ -1529,7 +1637,10 @@ const routerWiringTests = [
             const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
             const entry = (settings.hooks?.PreToolUse || []).find(h => (h.matcher || '').split('|').includes('AskUserQuestion'));
             assertTrue(!!entry, 'PreToolUse AskUserQuestion matcher must exist');
-            assertTrue((entry.hooks || []).some(h => (h.command || '').includes('notifications/notify.cjs')), 'AskUserQuestion should route to notify.cjs');
+            assertTrue(
+                (entry.hooks || []).some(h => (h.command || '').includes('notifications/notify.cjs')),
+                'AskUserQuestion should route to notify.cjs'
+            );
         }
     },
     {

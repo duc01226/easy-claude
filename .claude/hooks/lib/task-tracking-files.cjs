@@ -6,7 +6,9 @@ const crypto = require('node:crypto');
 const { relativePath, LIMITS } = require('./task-tracking-config.cjs');
 const { sameFileIdentity } = require('./ck-path-utils.cjs');
 
-const fail = (code, message) => { throw Object.assign(new Error(message), { code }); };
+const fail = (code, message) => {
+    throw Object.assign(new Error(message), { code });
+};
 const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 
 /**
@@ -32,8 +34,11 @@ function scopedPath(root, relative) {
             if (stat.isSymbolicLink()) fail('UNSAFE_PATH', 'Linked paths are unsupported');
             const actual = fs.realpathSync(current);
             const remainder = path.relative(canonicalRoot, actual);
-            if (remainder === '..' || remainder.startsWith(`..${path.sep}`) || path.isAbsolute(remainder)) fail('UNSAFE_PATH', 'Path escapes the selected checkout');
-        } catch (error) { if (error.code !== 'ENOENT') throw error; }
+            if (remainder === '..' || remainder.startsWith(`..${path.sep}`) || path.isAbsolute(remainder))
+                fail('UNSAFE_PATH', 'Path escapes the selected checkout');
+        } catch (error) {
+            if (error.code !== 'ENOENT') throw error;
+        }
     }
     return current;
 }
@@ -62,9 +67,12 @@ function readBytes(root, relative, limit = LIMITS.recordBytes) {
         if (size > limit) fail('LIMIT_EXCEEDED', 'Input exceeds the selected byte budget');
         const after = fs.fstatSync(fd, { bigint: true });
         if (Number(after.size) > limit) fail('LIMIT_EXCEEDED', 'Input exceeds the selected byte budget');
-        if (size !== openedSize || after.size !== opened.size || after.mtimeNs !== opened.mtimeNs || after.ctimeNs !== opened.ctimeNs) fail('CONFLICT', 'File changed during inspection');
+        if (size !== openedSize || after.size !== opened.size || after.mtimeNs !== opened.mtimeNs || after.ctimeNs !== opened.ctimeNs)
+            fail('CONFLICT', 'File changed during inspection');
         return buffer.subarray(0, size);
-    } finally { fs.closeSync(fd); }
+    } finally {
+        fs.closeSync(fd);
+    }
 }
 
 function ensureDirectory(root, relative) {
@@ -112,9 +120,11 @@ function publish(root, relative, bytes, expectedHash, limit) {
         if (expectedHash !== null && process.platform !== 'win32') fs.fchmodSync(fd, mode);
         fs.writeFileSync(fd, bytes);
         fs.fsyncSync(fd);
-        fs.closeSync(fd); fd = undefined;
+        fs.closeSync(fd);
+        fd = undefined;
         scopedPath(root, relative);
-        if (expectedHash === null) fs.linkSync(temporary, target); // exclusive create, never overwrite a competing file
+        if (expectedHash === null)
+            fs.linkSync(temporary, target); // exclusive create, never overwrite a competing file
         else {
             if (hash(readBytes(root, relative, limit)) !== expectedHash) fail('CONFLICT', 'Current content changed before publication');
             fs.renameSync(temporary, target);
@@ -122,13 +132,23 @@ function publish(root, relative, bytes, expectedHash, limit) {
         published = true;
         let directoryFlushed = false;
         let directoryFd;
-        try { directoryFd = fs.openSync(directory, 'r'); fs.fsyncSync(directoryFd); directoryFlushed = true; }
-        catch { /* Atomic visibility is distinct from power-loss durability. */ }
-        finally { if (directoryFd !== undefined) fs.closeSync(directoryFd); }
+        try {
+            directoryFd = fs.openSync(directory, 'r');
+            fs.fsyncSync(directoryFd);
+            directoryFlushed = true;
+        } catch {
+            /* Atomic visibility is distinct from power-loss durability. */
+        } finally {
+            if (directoryFd !== undefined) fs.closeSync(directoryFd);
+        }
         return { contentHash: hash(bytes), directoryFlushed };
     } finally {
         if (fd !== undefined) fs.closeSync(fd);
-        try { fs.unlinkSync(temporary); } catch (error) { if (error.code !== 'ENOENT' && !published) throw error; }
+        try {
+            fs.unlinkSync(temporary);
+        } catch (error) {
+            if (error.code !== 'ENOENT' && !published) throw error;
+        }
     }
 }
 
@@ -139,9 +159,15 @@ function removeBytes(root, relative, expectedHash) {
     fs.unlinkSync(target);
     let directoryFd;
     let directoryFlushed = false;
-    try { directoryFd = fs.openSync(path.dirname(target), 'r'); fs.fsyncSync(directoryFd); directoryFlushed = true; }
-    catch { /* Path removal visibility is distinct from power-loss durability. */ }
-    finally { if (directoryFd !== undefined) fs.closeSync(directoryFd); }
+    try {
+        directoryFd = fs.openSync(path.dirname(target), 'r');
+        fs.fsyncSync(directoryFd);
+        directoryFlushed = true;
+    } catch {
+        /* Path removal visibility is distinct from power-loss durability. */
+    } finally {
+        if (directoryFd !== undefined) fs.closeSync(directoryFd);
+    }
     return { directoryFlushed };
 }
 

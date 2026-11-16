@@ -14,9 +14,9 @@
  * @returns {string} Folder name or ''
  */
 function basenameOf(value) {
-  if (typeof value !== 'string' || !value) return '';
-  const parts = value.split(/[\\/]+/).filter(Boolean);
-  return parts.length ? parts[parts.length - 1] : '';
+    if (typeof value !== 'string' || !value) return '';
+    const parts = value.split(/[\\/]+/).filter(Boolean);
+    return parts.length ? parts[parts.length - 1] : '';
 }
 
 /**
@@ -26,15 +26,15 @@ function basenameOf(value) {
  * @returns {string} Project folder name or ''
  */
 function projectNameOf(input, env = process.env) {
-  const source = input && typeof input === 'object' ? input : {};
-  if (typeof source.project_name === 'string' && source.project_name.trim()) {
-    return source.project_name.trim();
-  }
-  const root = basenameOf(source.project_root);
-  if (root) return root;
-  const fromEnv = basenameOf(env && env.CLAUDE_PROJECT_DIR);
-  if (fromEnv) return fromEnv;
-  return basenameOf(source.cwd);
+    const source = input && typeof input === 'object' ? input : {};
+    if (typeof source.project_name === 'string' && source.project_name.trim()) {
+        return source.project_name.trim();
+    }
+    const root = basenameOf(source.project_root);
+    if (root) return root;
+    const fromEnv = basenameOf(env && env.CLAUDE_PROJECT_DIR);
+    if (fromEnv) return fromEnv;
+    return basenameOf(source.cwd);
 }
 
 /**
@@ -43,8 +43,8 @@ function projectNameOf(input, env = process.env) {
  * @returns {string} Root path or ''
  */
 function projectRootOf(input) {
-  const source = input && typeof input === 'object' ? input : {};
-  return typeof source.project_root === 'string' && source.project_root ? source.project_root : '';
+    const source = input && typeof input === 'object' ? input : {};
+    return typeof source.project_root === 'string' && source.project_root ? source.project_root : '';
 }
 
 module.exports = { basenameOf, projectNameOf, projectRootOf };

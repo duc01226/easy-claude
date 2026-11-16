@@ -40,7 +40,7 @@ const path = require('path');
 //  mandate `integration-tester`). Add a row only when a real specialist exists
 // for the domain AND that domain must never fall back to `code-reviewer`.
 const DEFAULT_ALLOW_LIST = {
-  'integration-test': 'integration-tester',
+    'integration-test': 'integration-tester'
 };
 
 // A SYNC/OVERRIDE block OPENER: `<!-- SYNC:tag -->` / `<!-- OVERRIDE:tag -->`.
@@ -60,102 +60,99 @@ const SUBAGENT_RE = /subagent_type:\s*["']([A-Za-z0-9_-]+)["']/;
  * @returns {Array<{skill,line,assigned,required,text}>}
  */
 function scanSkillContent(skillName, content, allowList = DEFAULT_ALLOW_LIST) {
-  const required = allowList[skillName];
-  if (!required) return []; // not a guarded domain
+    const required = allowList[skillName];
+    if (!required) return []; // not a guarded domain
 
-  const violations = [];
-  const lines = content.split(/\r?\n/);
-  let blockDepth = 0;
+    const violations = [];
+    const lines = content.split(/\r?\n/);
+    let blockDepth = 0;
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
 
-    // Block boundaries are not own-selection lines.
-    if (CLOSER_RE.test(line)) {
-      blockDepth = Math.max(0, blockDepth - 1);
-      continue;
+        // Block boundaries are not own-selection lines.
+        if (CLOSER_RE.test(line)) {
+            blockDepth = Math.max(0, blockDepth - 1);
+            continue;
+        }
+        if (OPENER_RE.test(line)) {
+            blockDepth += 1;
+            continue;
+        }
+        if (blockDepth > 0) continue; // inside a SYNC/OVERRIDE block — excluded
+
+        const m = line.match(SUBAGENT_RE);
+        if (m && m[1] !== required) {
+            violations.push({
+                skill: skillName,
+                line: i + 1,
+                assigned: m[1],
+                required,
+                text: line.trim()
+            });
+        }
     }
-    if (OPENER_RE.test(line)) {
-      blockDepth += 1;
-      continue;
-    }
-    if (blockDepth > 0) continue; // inside a SYNC/OVERRIDE block — excluded
 
-    const m = line.match(SUBAGENT_RE);
-    if (m && m[1] !== required) {
-      violations.push({
-        skill: skillName,
-        line: i + 1,
-        assigned: m[1],
-        required,
-        text: line.trim(),
-      });
-    }
-  }
-
-  return violations;
+    return violations;
 }
 
 /** Recursively collect every SKILL.md path under a skills dir. */
 function walkSkillFiles(skillsDir) {
-  const out = [];
-  if (!fs.existsSync(skillsDir)) return out;
+    const out = [];
+    if (!fs.existsSync(skillsDir)) return out;
 
-  for (const entry of fs.readdirSync(skillsDir, { withFileTypes: true })) {
-    const full = path.join(skillsDir, entry.name);
-    if (entry.isDirectory()) {
-      out.push(...walkSkillFiles(full));
-    } else if (entry.isFile() && entry.name === 'SKILL.md') {
-      out.push(full);
+    for (const entry of fs.readdirSync(skillsDir, { withFileTypes: true })) {
+        const full = path.join(skillsDir, entry.name);
+        if (entry.isDirectory()) {
+            out.push(...walkSkillFiles(full));
+        } else if (entry.isFile() && entry.name === 'SKILL.md') {
+            out.push(full);
+        }
     }
-  }
-  return out;
+    return out;
 }
 
 /** Scan an on-disk skills tree. Skill name = the SKILL.md's parent dir name. */
 function scanSkillsDir(skillsDir, allowList = DEFAULT_ALLOW_LIST) {
-  const violations = [];
-  for (const file of walkSkillFiles(skillsDir)) {
-    const skillName = path.basename(path.dirname(file));
-    if (!allowList[skillName]) continue;
-    const content = fs.readFileSync(file, 'utf8');
-    for (const v of scanSkillContent(skillName, content, allowList)) {
-      violations.push({ ...v, file });
+    const violations = [];
+    for (const file of walkSkillFiles(skillsDir)) {
+        const skillName = path.basename(path.dirname(file));
+        if (!allowList[skillName]) continue;
+        const content = fs.readFileSync(file, 'utf8');
+        for (const v of scanSkillContent(skillName, content, allowList)) {
+            violations.push({ ...v, file });
+        }
     }
-  }
-  return violations;
+    return violations;
 }
 
 function main() {
-  const asJson = process.argv.includes('--json');
-  const skillsDir = path.resolve(__dirname, '..', 'skills');
-  const violations = scanSkillsDir(skillsDir, DEFAULT_ALLOW_LIST);
+    const asJson = process.argv.includes('--json');
+    const skillsDir = path.resolve(__dirname, '..', 'skills');
+    const violations = scanSkillsDir(skillsDir, DEFAULT_ALLOW_LIST);
 
-  if (asJson) {
-    console.log(JSON.stringify({ ok: violations.length === 0, violations }, null, 2));
-  } else if (violations.length === 0) {
-    const domains = Object.keys(DEFAULT_ALLOW_LIST).join(', ');
-    console.log(`OK — no sub-agent routing drift (guarded domains: ${domains}).`);
-  } else {
-    console.error(`FAIL — ${violations.length} sub-agent routing violation(s):`);
-    for (const v of violations) {
-      console.error(
-        `  ${v.file}:${v.line} — ${v.skill} dispatches "${v.assigned}", ` +
-        `must be "${v.required}"\n    ${v.text}`
-      );
+    if (asJson) {
+        console.log(JSON.stringify({ ok: violations.length === 0, violations }, null, 2));
+    } else if (violations.length === 0) {
+        const domains = Object.keys(DEFAULT_ALLOW_LIST).join(', ');
+        console.log(`OK — no sub-agent routing drift (guarded domains: ${domains}).`);
+    } else {
+        console.error(`FAIL — ${violations.length} sub-agent routing violation(s):`);
+        for (const v of violations) {
+            console.error(`  ${v.file}:${v.line} — ${v.skill} dispatches "${v.assigned}", ` + `must be "${v.required}"\n    ${v.text}`);
+        }
     }
-  }
 
-  process.exit(violations.length === 0 ? 0 : 1);
+    process.exit(violations.length === 0 ? 0 : 1);
 }
 
 if (require.main === module) {
-  main();
+    main();
 }
 
 module.exports = {
-  DEFAULT_ALLOW_LIST,
-  scanSkillContent,
-  walkSkillFiles,
-  scanSkillsDir,
+    DEFAULT_ALLOW_LIST,
+    scanSkillContent,
+    walkSkillFiles,
+    scanSkillsDir
 };

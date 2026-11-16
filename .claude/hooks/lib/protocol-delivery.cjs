@@ -179,7 +179,11 @@ function parseAgentFrontmatter(text) {
     if (lines[0].trim() !== '---') return null;
     const end = lines.findIndex((line, i) => i > 0 && line.trim() === '---');
     if (end < 0) return null;
-    const unquote = value => value.trim().replace(/^(['"])(.*)\1$/, '$2').trim();
+    const unquote = value =>
+        value
+            .trim()
+            .replace(/^(['"])(.*)\1$/, '$2')
+            .trim();
     let name = null;
     let skills = [];
     for (let i = 1; i < end; i++) {
@@ -218,9 +222,7 @@ function eventText(input) {
  * (the `:reminder` variant has another tag name, so it never counts as the body).
  */
 function agentInlines(agentText, tag) {
-    return typeof agentText === 'string'
-        && agentText.includes(`<!-- SYNC:${tag} -->`)
-        && agentText.includes(`<!-- /SYNC:${tag} -->`);
+    return typeof agentText === 'string' && agentText.includes(`<!-- SYNC:${tag} -->`) && agentText.includes(`<!-- /SYNC:${tag} -->`);
 }
 
 /**
@@ -333,10 +335,11 @@ function loadIndex(ctx) {
         for (const part of row.parts) {
             const rel = isPlainObject(part) && typeof part.file === 'string' ? part.file : null;
             const segments = rel ? rel.split('/') : null;
-            const ok = segments
-                && segments.length === SEG.protocols.length + 1
-                && SEG.protocols.every((seg, i) => seg === segments[i])
-                && /^[a-z0-9][a-z0-9.-]*\.md$/.test(segments[segments.length - 1]);
+            const ok =
+                segments &&
+                segments.length === SEG.protocols.length + 1 &&
+                SEG.protocols.every((seg, i) => seg === segments[i]) &&
+                /^[a-z0-9][a-z0-9.-]*\.md$/.test(segments[segments.length - 1]);
             const abs = ok ? containedPath(ctx.root, SEG.protocols, [segments[segments.length - 1]]) : null;
             if (!abs) {
                 valid = false;
@@ -856,20 +859,20 @@ function openLedger(root, input, read, now, profile = {}) {
     };
     const index = loadIndex({ root, read: normalized });
     let context = null;
-    const ctx = () => context || (context = {
-        lastCompactionAt: ledger.lastCompactionAt(store, sessionId, scope, input, getLedgerSettings(), now),
-        transcriptSize: ledger.transcriptSize(history),
-        now
-    });
+    const ctx = () =>
+        context ||
+        (context = {
+            lastCompactionAt: ledger.lastCompactionAt(store, sessionId, scope, input, getLedgerSettings(), now),
+            transcriptSize: ledger.transcriptSize(history),
+            now
+        });
     const hashes = new Map();
     const hashFor = tag => {
         if (!hashes.has(tag)) hashes.set(tag, tagHash(index, tag, normalized));
         return hashes.get(tag);
     };
-    const isRecorded = tag => sessionId !== null
-        && ledger.isPresent(ledger.readRecord(store, sessionId, scope, tag), hashFor(tag), ctx(), getLedgerSettings());
-    const coreCarries = tag => tag === CORE_OWNED_TAG
-        && require('./universal-delivery.cjs').conciseCoreIsPresent(root, input, normalized, now, profile);
+    const isRecorded = tag => sessionId !== null && ledger.isPresent(ledger.readRecord(store, sessionId, scope, tag), hashFor(tag), ctx(), getLedgerSettings());
+    const coreCarries = tag => tag === CORE_OWNED_TAG && require('./universal-delivery.cjs').conciseCoreIsPresent(root, input, normalized, now, profile);
     const delivered = new Map();
 
     if (sessionId !== null) ledger.maybePrune(store, now);
@@ -954,7 +957,8 @@ function buildTriggerContext(root, input, env) {
             const { status, ledger } = store.readLedgerStatus(store.sessionDir(store.storeRoot(env, root), input.session_id));
             if (status === 'unreadable') context.unreadable = true;
             if (ledger) {
-                context.prompts = ledger.entries.slice(-TRIGGER_PROMPT_ENTRIES)
+                context.prompts = ledger.entries
+                    .slice(-TRIGGER_PROMPT_ENTRIES)
                     .map(entry => (entry && typeof entry.text === 'string' ? entry.text : ''))
                     .join('\n')
                     .slice(0, TRIGGER_TEXT_MAX * 4);
@@ -1124,7 +1128,11 @@ function runHook(group, deps = {}) {
             // before delivery, whatever the delivery decides. Best effort; never blocks the skill.
             if (group === 'review') attestReviewStart(input, options);
             const rootDir = resolveRoot(input, options);
-            if (!rootDir || !require('./framework-runtime.cjs').isHookEnabled(`protocol-inject-${group}.cjs`, { rootDir, homeDir: options.homeDir, env: options.env })) return finish('');
+            if (
+                !rootDir ||
+                !require('./framework-runtime.cjs').isHookEnabled(`protocol-inject-${group}.cjs`, { rootDir, homeDir: options.homeDir, env: options.env })
+            )
+                return finish('');
             deliver(group, input, options, finish);
         } catch {
             finish(''); // BR-PDL-05: the skill's guide entries remain the path

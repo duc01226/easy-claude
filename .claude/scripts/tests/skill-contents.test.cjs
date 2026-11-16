@@ -27,7 +27,10 @@ const VALIDATOR = path.join(SKILLS_DIR, 'skill-creator', 'scripts', 'validate-sk
 
 test('every shipped skill file carries a current contents list where the rule asks for one', () => {
     const result = spawnSync(process.execPath, [VALIDATOR, '--path', SKILLS_DIR], {
-        cwd: REPO_ROOT, env: { ...process.env, CLAUDE_PROJECT_DIR: REPO_ROOT }, encoding: 'utf8', timeout: 60000,
+        cwd: REPO_ROOT,
+        env: { ...process.env, CLAUDE_PROJECT_DIR: REPO_ROOT },
+        encoding: 'utf8',
+        timeout: 60000
     });
     assert.ifError(result.error);
     assert.match(result.stdout, /--- Summary ---/, `the validator did not finish: ${result.stderr}`);

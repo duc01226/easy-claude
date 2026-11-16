@@ -79,7 +79,8 @@ function exists(relative) {
 
 function listDir(relative, onlyDirs) {
     try {
-        return fs.readdirSync(path.join(ROOT, relative), { withFileTypes: true })
+        return fs
+            .readdirSync(path.join(ROOT, relative), { withFileTypes: true })
             .filter(entry => (onlyDirs ? entry.isDirectory() : true))
             .map(entry => entry.name)
             .sort();
@@ -158,9 +159,7 @@ function renderFramework() {
     const skillRows = skills();
     const agents = listDir('.claude/agents').filter(f => f.endsWith('.md'));
     const workflows = readJson('.claude/workflows.json');
-    const workflowIds = workflows && typeof workflows === 'object'
-        ? Object.keys(workflows.workflows || workflows).filter(k => !k.startsWith('$'))
-        : [];
+    const workflowIds = workflows && typeof workflows === 'object' ? Object.keys(workflows.workflows || workflows).filter(k => !k.startsWith('$')) : [];
     const hooks = countFiles('.claude/hooks', ['.cjs', '.mjs', '.js']);
     const settings = readJson('.claude/settings.json') || {};
 
@@ -208,9 +207,9 @@ function renderFramework() {
 }
 
 function renderSkills(filter) {
-    const rows = skills().filter(row => !filter
-        || row.name.toLowerCase().includes(filter.toLowerCase())
-        || row.description.toLowerCase().includes(filter.toLowerCase()));
+    const rows = skills().filter(
+        row => !filter || row.name.toLowerCase().includes(filter.toLowerCase()) || row.description.toLowerCase().includes(filter.toLowerCase())
+    );
 
     say(`# Skill catalog${filter ? ` — matching "${filter}"` : ''} (${rows.length})`);
     say('');
@@ -257,14 +256,10 @@ function renderStructure() {
     if (modules && typeof modules === 'object') {
         // `modules` is an array of {name, kind, pathRegex, description} in the current
         // schema; older configs used a name-keyed object. Normalise both.
-        const entries = Array.isArray(modules)
-            ? modules.map(m => [(m && m.name) || '(unnamed)', m])
-            : Object.entries(modules);
+        const entries = Array.isArray(modules) ? modules.map(m => [(m && m.name) || '(unnamed)', m]) : Object.entries(modules);
         heading(`Configured modules (${entries.length}) — how skills bucket a changed path`);
         for (const [name, value] of entries) {
-            const describe = value && typeof value === 'object'
-                ? (value.description || value.purpose || Object.keys(value).join(', '))
-                : String(value);
+            const describe = value && typeof value === 'object' ? value.description || value.purpose || Object.keys(value).join(', ') : String(value);
             const where = value && typeof value === 'object' && value.pathRegex ? ` [${value.pathRegex}]` : '';
             say(`  ${pad(name, 22)}${where}`);
             say(`      ${String(describe).slice(0, 150)}`);
@@ -293,7 +288,15 @@ function renderStack() {
     if (CONFIG.componentSystem && CONFIG.componentSystem.name) say(`Component system: ${CONFIG.componentSystem.name}`);
     if (CONFIG.designSystem && CONFIG.designSystem.canonicalDoc) say(`Design system   : ${CONFIG.designSystem.canonicalDoc}`);
 
-    for (const [label, key] of [['Databases', 'databases'], ['Messaging', 'messaging'], ['API', 'api'], ['Infrastructure', 'infrastructure'], ['Testing', 'testing'], ['E2E', 'e2eTesting'], ['Localization', 'localization']]) {
+    for (const [label, key] of [
+        ['Databases', 'databases'],
+        ['Messaging', 'messaging'],
+        ['API', 'api'],
+        ['Infrastructure', 'infrastructure'],
+        ['Testing', 'testing'],
+        ['E2E', 'e2eTesting'],
+        ['Localization', 'localization']
+    ]) {
         const section = CONFIG[key];
         if (!section || typeof section !== 'object') continue;
         heading(label);

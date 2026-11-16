@@ -63,7 +63,8 @@ function carriers() {
         if (fs.existsSync(file)) out.push({ label: dir, text: read(file) });
         const refs = path.join(SKILLS_DIR, dir, 'references');
         if (!fs.existsSync(refs)) continue;
-        for (const name of fs.readdirSync(refs).filter(f => f.endsWith('.md'))) out.push({ label: `${dir}/references/${name}`, text: read(path.join(refs, name)) });
+        for (const name of fs.readdirSync(refs).filter(f => f.endsWith('.md')))
+            out.push({ label: `${dir}/references/${name}`, text: read(path.join(refs, name)) });
     }
     for (const name of fs.readdirSync(AGENTS_DIR).filter(f => f.endsWith('.md'))) out.push({ label: `agent:${name}`, text: read(path.join(AGENTS_DIR, name)) });
     return out;
@@ -99,8 +100,12 @@ module.exports = {
                     if (lines.length !== 0) problems.push(`${skill}: ${lines.length} retired pointer line(s)`);
                     problems.push(...gateCopyProblems(skill, text));
                 }
-                assertEqual(problems.length, 0, `${problems.join('\n  ')}\n  Fix: py -3 .claude/scripts/sync-update-blocks.py --mode=strip-root-pointer (python3 on macOS/Linux)`);
-            },
+                assertEqual(
+                    problems.length,
+                    0,
+                    `${problems.join('\n  ')}\n  Fix: py -3 .claude/scripts/sync-update-blocks.py --mode=strip-root-pointer (python3 on macOS/Linux)`
+                );
+            }
         },
         {
             name: 'TC-PRG-002 no skill, reference or agent carries a body, reminder or guide line of the gate',
@@ -110,8 +115,12 @@ module.exports = {
                 assertTrue(all.length > 50, `expected the skill and agent corpus, got ${all.length} files`);
                 const problems = all.flatMap(({ label, text }) => gateCopyProblems(label, text));
                 // Then: the canonical text is the only copy.
-                assertEqual(problems.length, 0, `${problems.join('\n  ')}\n  Fix: py -3 .claude/scripts/sync-update-blocks.py --mode=strip-root-pointer (python3 on macOS/Linux)`);
-            },
+                assertEqual(
+                    problems.length,
+                    0,
+                    `${problems.join('\n  ')}\n  Fix: py -3 .claude/scripts/sync-update-blocks.py --mode=strip-root-pointer (python3 on macOS/Linux)`
+                );
+            }
         },
         {
             name: 'TC-PRG-004 canonical gate routes by phase and dedups on the hook window',
@@ -122,13 +131,26 @@ module.exports = {
                 for (const phase of ['investigate, explain, plan', 'edit or write code', 'tests or test data', 'specs, test cases, or docs', 'review a diff']) {
                     assertTrue(top.includes(phase), `phase routing row missing: ${phase}`);
                 }
-                for (const doc of ['project-structure-reference.md', 'code-review-rules.md', 'backend-patterns-reference.md', 'frontend-patterns-reference.md', 'integration-test-reference.md', 'e2e-test-reference.md', 'performance-test-reference.md', 'seed-test-data-reference.md', 'feature-spec-reference.md']) {
+                for (const doc of [
+                    'project-structure-reference.md',
+                    'code-review-rules.md',
+                    'backend-patterns-reference.md',
+                    'frontend-patterns-reference.md',
+                    'integration-test-reference.md',
+                    'e2e-test-reference.md',
+                    'performance-test-reference.md',
+                    'seed-test-data-reference.md',
+                    'feature-spec-reference.md'
+                ]) {
                     assertTrue(top.includes(doc), `routing table must name ${doc}`);
                 }
                 assertTrue(top.includes('file-conventions.cjs --lookup'), 'gate must point shell reads and edits at the per-file convention lookup');
                 assertTrue(/Dedup within ~200K tokens/.test(top), 'gate must state the ~200K-token dedup window');
                 assertTrue(/hook reminder, a summary/.test(top), 'dedup must refuse hook reminders and summaries as proof of loading');
-                assertTrue(/before the first read or edit of an unfamiliar path class/.test(top), 'shell convention lookup must precede source reads as well as edits');
+                assertTrue(
+                    /before the first read or edit of an unfamiliar path class/.test(top),
+                    'shell convention lookup must precede source reads as well as edits'
+                );
                 assertTrue(top.includes('project-config-loader.cjs'), 'gate must resolve configured owners through the loader when the helper is absent');
 
                 // Given the discovery instruction delivered before the gate, Then it must agree
@@ -136,16 +158,20 @@ module.exports = {
                 const discovery = canonicalWrapped('SYNC:discovery-and-first-principles');
                 assertTrue(discovery.includes('absent config is supported'), 'missing optional config must not stop discovery');
                 assertTrue(discovery.includes('Never require default paths when owners are relocated'), 'relocated owners must take precedence');
-                assertTrue(!discovery.includes('Read `docs/project-config.json` first'), 'discovery must not instruct reading the default before resolving its owner');
+                assertTrue(
+                    !discovery.includes('Read `docs/project-config.json` first'),
+                    'discovery must not instruct reading the default before resolving its owner'
+                );
 
                 // The prose window must equal the hook's default distance, so the protocol and the hook
                 // dedup on the same horizon (22 transcript bytes per token).
                 // Given: the file-convention hook's default settings. When: its re-inject distance is converted to tokens.
                 const conventions = require(path.join(ROOT, '.claude', 'hooks', 'lib', 'file-conventions.cjs'));
-                const tokens = conventions.resolveSettings({ conventionInjection: { enabled: true }, contextGroups: [] }).reinjectAfterBytes / conventions.BYTES_PER_TOKEN;
+                const tokens =
+                    conventions.resolveSettings({ conventionInjection: { enabled: true }, contextGroups: [] }).reinjectAfterBytes / conventions.BYTES_PER_TOKEN;
                 // Then: it matches the gate's stated ~200K window.
                 assertTrue(Math.abs(tokens - 200000) <= 10000, `hook default window is ~${Math.round(tokens)} tokens, gate says ~200K`);
-            },
-        },
-    ],
+            }
+        }
+    ]
 };

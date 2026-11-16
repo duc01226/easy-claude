@@ -59,9 +59,7 @@ const RECORDED_FORMS = new Set(['full', 'references', 'evidence']);
 const PRESENT_FORMS = new Set(['full', 'references', 'static', 'evidence']);
 
 function storeRoot(env = process.env) {
-    return env && typeof env.CK_CONVENTIONS_DIR === 'string' && env.CK_CONVENTIONS_DIR.trim()
-        ? env.CK_CONVENTIONS_DIR
-        : path.join(CK_TMP_DIR, 'conventions');
+    return env && typeof env.CK_CONVENTIONS_DIR === 'string' && env.CK_CONVENTIONS_DIR.trim() ? env.CK_CONVENTIONS_DIR : path.join(CK_TMP_DIR, 'conventions');
 }
 
 /**
@@ -318,13 +316,15 @@ function boundaryTime(line, now) {
 }
 
 function compileMarkers(markers) {
-    return (Array.isArray(markers) ? markers : []).map(source => {
-        try {
-            return new RegExp(source);
-        } catch {
-            return null;
-        }
-    }).filter(Boolean);
+    return (Array.isArray(markers) ? markers : [])
+        .map(source => {
+            try {
+                return new RegExp(source);
+            } catch {
+                return null;
+            }
+        })
+        .filter(Boolean);
 }
 
 /**
@@ -567,15 +567,21 @@ function createEvidenceReader(projectDir) {
             }
             const after = fs.fstatSync(fd, { bigint: true });
             const current = fs.statSync(physical, { bigint: true });
-            if (!sameFileIdentity(current, after) || current.size !== after.size || current.mtimeNs !== after.mtimeNs || current.ctimeNs !== after.ctimeNs) return null;
-            if (after.size !== before.size || after.mtimeNs !== before.mtimeNs || after.ctimeNs !== before.ctimeNs || fs.realpathSync(absolute) !== physical) return null;
+            if (!sameFileIdentity(current, after) || current.size !== after.size || current.mtimeNs !== after.mtimeNs || current.ctimeNs !== after.ctimeNs)
+                return null;
+            if (after.size !== before.size || after.mtimeNs !== before.mtimeNs || after.ctimeNs !== before.ctimeNs || fs.realpathSync(absolute) !== physical)
+                return null;
             const decoded = buffer.toString('utf8');
             if (!buffer.includes(0) && Buffer.from(decoded, 'utf8').equals(buffer)) text = decoded;
         } catch {
             // Missing, changed, non-text, over-budget or unreadable content means an extra reminder.
         } finally {
             if (fd !== null) {
-                try { fs.closeSync(fd); } catch { /* fail-open */ }
+                try {
+                    fs.closeSync(fd);
+                } catch {
+                    /* fail-open */
+                }
             }
             cache.set(rel, text);
         }
@@ -601,8 +607,9 @@ function scanEvidence(transcriptFile, evidence, opts = {}) {
     const skills = new Set((evidence && Array.isArray(evidence.skills) ? evidence.skills : []).filter(nonBlank).map(bareSkill));
     if (!docs.length && !skills.size) return null;
     const docPaths = new Map(docs.map(doc => [doc, toRepoRelative(doc, opts.projectDir, opts.projectDir)]));
-    const skillPaths = new Map([...skills].filter(name => /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(name))
-        .map(name => [name, `.claude/skills/${name}/SKILL.md`]));
+    const skillPaths = new Map(
+        [...skills].filter(name => /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(name)).map(name => [name, `.claude/skills/${name}/SKILL.md`])
+    );
     const readBody = createEvidenceReader(opts.projectDir);
     const size = transcriptSize(transcriptFile);
     const windowBytes = Number.isInteger(opts.windowBytes) && opts.windowBytes > 0 ? opts.windowBytes : 0;
@@ -654,15 +661,22 @@ function scanEvidence(transcriptFile, evidence, opts = {}) {
         }
         if (!line.includes('"tool_use"') && !line.includes('"tool_result"')) continue;
         let parsed;
-        try { parsed = JSON.parse(line); } catch { continue; }
+        try {
+            parsed = JSON.parse(line);
+        } catch {
+            continue;
+        }
         const ts = parsed && typeof parsed.timestamp === 'string' ? Date.parse(parsed.timestamp) : NaN;
-        const at = Number.isFinite(ts) ? ts : (Number.isFinite(lastCompaction) ? null : 0);
+        const at = Number.isFinite(ts) ? ts : Number.isFinite(lastCompaction) ? null : 0;
         if (at === null || !(at > lastCompaction)) continue;
         const content = parsed && parsed.message && Array.isArray(parsed.message.content) ? parsed.message.content : [];
         for (const item of content) {
             if (!item || typeof item !== 'object') continue;
             if (item.type === 'tool_use' && nonBlank(item.id)) {
-                if (seen.has(item.id)) { invalidate(item.id); continue; }
+                if (seen.has(item.id)) {
+                    invalidate(item.id);
+                    continue;
+                }
                 seen.add(item.id);
                 const input = item.input && typeof item.input === 'object' && !Array.isArray(item.input) ? item.input : {};
                 let rel = null;
@@ -674,7 +688,10 @@ function scanEvidence(transcriptFile, evidence, opts = {}) {
                 if (rel && ([...docPaths.values()].includes(rel) || [...skillPaths.values()].includes(rel))) pending.set(item.id, { rel, at });
             } else if (item.type === 'tool_result' && nonBlank(item.tool_use_id)) {
                 const id = item.tool_use_id;
-                if (completed.has(id)) { invalidate(id); continue; }
+                if (completed.has(id)) {
+                    invalidate(id);
+                    continue;
+                }
                 completed.add(id);
                 const use = pending.get(id);
                 pending.delete(id);
@@ -689,9 +706,10 @@ function scanEvidence(transcriptFile, evidence, opts = {}) {
     }
     const candidates = [];
     if (skillHit) candidates.push(skillHit);
-    if (docs.length && docs.every(doc => docReads.has(doc))) candidates.push(docs.map(doc => docReads.get(doc)).reduce((a, b) => a.transcriptBytes <= b.transcriptBytes ? a : b));
+    if (docs.length && docs.every(doc => docReads.has(doc)))
+        candidates.push(docs.map(doc => docReads.get(doc)).reduce((a, b) => (a.transcriptBytes <= b.transcriptBytes ? a : b)));
     if (!candidates.length) return null;
-    const { at, transcriptBytes } = candidates.reduce((a, b) => a.transcriptBytes >= b.transcriptBytes ? a : b);
+    const { at, transcriptBytes } = candidates.reduce((a, b) => (a.transcriptBytes >= b.transcriptBytes ? a : b));
     return { at, transcriptBytes };
 }
 
@@ -722,9 +740,7 @@ function carrierTexts(projectDir) {
 function staticCredit(scope, tag, hash, ctx, projectDir) {
     if (scope !== MAIN_SCOPE || typeof ctx.transcriptSize !== 'number' || !projectDir) return null;
     const texts = carrierTexts(projectDir);
-    return texts.length > 0 && texts.every(text => text.includes(tag))
-        ? { hash, deliveredAt: 0, transcriptBytes: 0, form: 'static' }
-        : null;
+    return texts.length > 0 && texts.every(text => text.includes(tag)) ? { hash, deliveredAt: 0, transcriptBytes: 0, form: 'static' } : null;
 }
 
 /** True only for the ledger's own marker: the reserved name AND the owner tag inside it. */

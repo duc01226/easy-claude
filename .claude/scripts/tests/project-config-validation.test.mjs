@@ -10,7 +10,12 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { validateConfig } = require('../../hooks/lib/project-config-schema.cjs');
 const { getSpecArtifactProfile } = require('../../hooks/lib/project-config-loader.cjs');
-const { resolveSpecArtifactProfile, matchesSpecArtifactIdentifier, SpecArtifactProfileError, PROFILE_LIMITS } = require('../../hooks/lib/spec-artifact-profile.cjs');
+const {
+    resolveSpecArtifactProfile,
+    matchesSpecArtifactIdentifier,
+    SpecArtifactProfileError,
+    PROFILE_LIMITS
+} = require('../../hooks/lib/spec-artifact-profile.cjs');
 
 // Project config has two separate contracts: the project identity is required, while individual
 // capability sections may be omitted and resolve to documented defaults/skips. The runtime loader
@@ -48,7 +53,16 @@ function standardProfile() {
         version: 1,
         kind: 'engineering-contract',
         sections: {
-            intent: ['Purpose', 'Scope', 'Problem Statement', 'Normative Contract', 'Acceptance Criteria', 'Risks and Mitigations', 'Open Questions', 'Known Issues / Downstream Gaps'],
+            intent: [
+                'Purpose',
+                'Scope',
+                'Problem Statement',
+                'Normative Contract',
+                'Acceptance Criteria',
+                'Risks and Mitigations',
+                'Open Questions',
+                'Known Issues / Downstream Gaps'
+            ],
             contracts: ['Interfaces and Data Contracts', 'Delivery'],
             evidence: ['Verification', 'Test Coverage', 'Scenario Contracts', 'Scenario contracts (ADR-127: in Vitest)']
         },
@@ -59,9 +73,35 @@ function standardProfile() {
         },
         ownership: 'spec-path-and-case-id',
         carriers: [
-            { dialect: 'js-title-v1', roots: ['packages', 'tests'], extensions: ['.test.ts', '.test.tsx', '.spec.ts'], suiteCalls: ['describe'], caseCalls: ['it', 'test'] },
-            { dialect: 'js-keyed-cases-v1', roots: ['packages', 'tests'], extensions: ['.test.ts', '.test.tsx', '.spec.ts'], binding: 'cases', fields: { variant: 'id', scenario: 'scn', requirements: 'reqs', rationale: 'why', input: 'input' } },
-            { dialect: 'yaml-cases-v1', roots: ['specs'], extensions: ['.yaml', '.yml'], fields: { scenario: 'id', status: 'status', requirements: 'covers.requirements', acceptance: 'covers.acceptance_criteria', lists: ['cases', 'reconciliation'], variant: 'id', input: 'input', expected: 'expected' } }
+            {
+                dialect: 'js-title-v1',
+                roots: ['packages', 'tests'],
+                extensions: ['.test.ts', '.test.tsx', '.spec.ts'],
+                suiteCalls: ['describe'],
+                caseCalls: ['it', 'test']
+            },
+            {
+                dialect: 'js-keyed-cases-v1',
+                roots: ['packages', 'tests'],
+                extensions: ['.test.ts', '.test.tsx', '.spec.ts'],
+                binding: 'cases',
+                fields: { variant: 'id', scenario: 'scn', requirements: 'reqs', rationale: 'why', input: 'input' }
+            },
+            {
+                dialect: 'yaml-cases-v1',
+                roots: ['specs'],
+                extensions: ['.yaml', '.yml'],
+                fields: {
+                    scenario: 'id',
+                    status: 'status',
+                    requirements: 'covers.requirements',
+                    acceptance: 'covers.acceptance_criteria',
+                    lists: ['cases', 'reconciliation'],
+                    variant: 'id',
+                    input: 'input',
+                    expected: 'expected'
+                }
+            }
         ]
     };
 }
@@ -78,7 +118,10 @@ function assertProfileInvalid(profile, expectedPath) {
     );
     const result = validateConfig(config);
     assert.equal(result.valid, false, result.errors.join('; '));
-    assert.ok(result.errors.some(error => error.startsWith(expectedPath)), result.errors.join('; '));
+    assert.ok(
+        result.errors.some(error => error.startsWith(expectedPath)),
+        result.errors.join('; ')
+    );
 }
 
 const realConfigPath = path.join(repoRoot, 'docs', 'project-config.json');
@@ -135,12 +178,14 @@ test('TC-REFERENCE-DOCS-001: custom scan ownership is optional, explicit, and pa
     const minimal = { project: { name: 'Reference Docs Project' } };
     const generic = validateConfig({
         ...minimal,
-        referenceDocs: [{
-            filename: 'guides/architecture.md',
-            purpose: 'Evidence-based architecture and module guide',
-            sections: ['Observed structure', 'Trade-offs'],
-            scanTarget: 'generic'
-        }]
+        referenceDocs: [
+            {
+                filename: 'guides/architecture.md',
+                purpose: 'Evidence-based architecture and module guide',
+                sections: ['Observed structure', 'Trade-offs'],
+                scanTarget: 'generic'
+            }
+        ]
     });
     assert.equal(generic.valid, true, generic.errors.join('; '));
 
@@ -278,7 +323,8 @@ test('TC-FIT-PROFILE-002: the local native profile normalizes immutably and acce
     for (const digit of '0123456789') assert.equal(matchesSpecArtifactIdentifier(normalized, 'requirement', 'REQ-' + digit), true);
     for (const suffix of 'abcdefghijklmnopqrstuvwxyz') assert.equal(matchesSpecArtifactIdentifier(normalized, 'acceptance', 'AC-1' + suffix), true);
     for (const suffix of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') assert.equal(matchesSpecArtifactIdentifier(normalized, 'acceptance', 'AC-1' + suffix), false);
-    for (const token of '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz') assert.equal(matchesSpecArtifactIdentifier(normalized, 'scenario', 'SCN-' + token), true);
+    for (const token of '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz')
+        assert.equal(matchesSpecArtifactIdentifier(normalized, 'scenario', 'SCN-' + token), true);
     assert.equal(matchesSpecArtifactIdentifier(normalized, 'scenario', 'SCN-A-9'), true, 'hyphen separates nonempty alphanumeric tokens');
     const maxId = 'REQ-' + '1'.repeat(PROFILE_LIMITS.identifierLength - 'REQ-'.length);
     assert.equal(matchesSpecArtifactIdentifier(normalized, 'requirement', maxId), true);
@@ -292,7 +338,10 @@ test('TC-FIT-PROFILE-002: the local native profile normalizes immutably and acce
     const boundaryProfile = resolveSpecArtifactProfile({ specArtifacts: prefixBoundary });
     assert.equal(matchesSpecArtifactIdentifier(boundaryProfile, 'requirement', prefixBoundary.identifiers.requirement.prefix + '1'), true);
     prefixBoundary.identifiers.requirement.prefix = 'A'.repeat(PROFILE_LIMITS.prefixLength) + '-';
-    assert.throws(() => resolveSpecArtifactProfile({ specArtifacts: prefixBoundary }), error => error.path === 'specArtifacts.identifiers.requirement.prefix');
+    assert.throws(
+        () => resolveSpecArtifactProfile({ specArtifacts: prefixBoundary }),
+        error => error.path === 'specArtifacts.identifiers.requirement.prefix'
+    );
 });
 
 test('TC-FIT-PROFILE-003: an unrelated adopter can relocate roots and configure literal prefixes', () => {
@@ -313,7 +362,10 @@ test('TC-FIT-PROFILE-003: an unrelated adopter can relocate roots and configure 
     const normalized = resolveSpecArtifactProfile(config);
 
     assert.equal(validateConfig(config).valid, true);
-    assert.deepEqual(normalized.carriers.map(carrier => carrier.roots), [['Application', 'Unit-Tests'], ['Application', 'Unit-Tests'], ['Specifications']]);
+    assert.deepEqual(
+        normalized.carriers.map(carrier => carrier.roots),
+        [['Application', 'Unit-Tests'], ['Application', 'Unit-Tests'], ['Specifications']]
+    );
     assert.deepEqual(normalized.carriers[2].acceptedStatuses, ['reviewed']);
     assert.equal(matchesSpecArtifactIdentifier(normalized, 'requirement', 'NEED-004'), true);
     assert.equal(matchesSpecArtifactIdentifier(normalized, 'acceptance', 'ACCEPT-002b'), true);
@@ -327,24 +379,114 @@ test('TC-FIT-PROFILE-004: invalid versions, mappings, roles, paths and incompati
     // Business Intent / Invariant Guarded: ambiguous lifecycle eligibility cannot silently select evidence.
     // Failure Signal: a malformed profile normalizes or does not report the expected path.
     const cases = [
-        [profile => { profile.version = 2; }, 'specArtifacts.version'],
-        [profile => { profile.unknown = true; }, 'specArtifacts.unknown'],
-        [profile => { profile.carriers[0].dialect = 'regex'; }, 'specArtifacts.carriers[0].dialect'],
-        [profile => { profile.carriers[0].dialect = '__proto__'; }, 'specArtifacts.carriers[0].dialect'],
-        [profile => { profile.carriers[0].dialect = 'constructor'; }, 'specArtifacts.carriers[0].dialect'],
-        [profile => { profile.sections.intent = []; }, 'specArtifacts.sections.intent'],
-        [profile => { delete profile.sections.intent; }, 'specArtifacts.sections.intent'],
-        [profile => { profile.sections.contracts.push('Purpose'); }, 'specArtifacts.sections.contracts'],
-        [profile => { profile.identifiers.requirement.grammar = 'regex'; }, 'specArtifacts.identifiers.requirement.grammar'],
-        [profile => { profile.carriers[2].roots[0] = '../outside'; }, 'specArtifacts.carriers[2].roots[0]'],
-        [profile => { profile.carriers[2].roots[0] = '/outside'; }, 'specArtifacts.carriers[2].roots[0]'],
-        [profile => { profile.carriers[2].roots[0] = 'C:/outside'; }, 'specArtifacts.carriers[2].roots[0]'],
-        [profile => { profile.carriers[2].acceptedStatuses = []; }, 'specArtifacts.carriers[2].acceptedStatuses'],
-        [profile => { profile.carriers[2].acceptedStatuses = ['approved', 'approved']; }, 'specArtifacts.carriers[2].acceptedStatuses[1]'],
-        [profile => { profile.carriers.push({ ...profile.carriers[2], roots: ['specs/other'], acceptedStatuses: ['ready'] }); }, 'specArtifacts.carriers[3]'],
-        [profile => { delete profile.carriers[2].fields.acceptance; }, 'specArtifacts.carriers[2].fields.acceptance'],
-        [profile => { profile.carriers[2].fields.extra = 'ignored'; }, 'specArtifacts.carriers[2].fields.extra'],
-        [profile => { profile.carriers.push({ ...profile.carriers[1], fields: { ...profile.carriers[1].fields, rationale: 'reason' } }); }, 'specArtifacts.carriers[3]']
+        [
+            profile => {
+                profile.version = 2;
+            },
+            'specArtifacts.version'
+        ],
+        [
+            profile => {
+                profile.unknown = true;
+            },
+            'specArtifacts.unknown'
+        ],
+        [
+            profile => {
+                profile.carriers[0].dialect = 'regex';
+            },
+            'specArtifacts.carriers[0].dialect'
+        ],
+        [
+            profile => {
+                profile.carriers[0].dialect = '__proto__';
+            },
+            'specArtifacts.carriers[0].dialect'
+        ],
+        [
+            profile => {
+                profile.carriers[0].dialect = 'constructor';
+            },
+            'specArtifacts.carriers[0].dialect'
+        ],
+        [
+            profile => {
+                profile.sections.intent = [];
+            },
+            'specArtifacts.sections.intent'
+        ],
+        [
+            profile => {
+                delete profile.sections.intent;
+            },
+            'specArtifacts.sections.intent'
+        ],
+        [
+            profile => {
+                profile.sections.contracts.push('Purpose');
+            },
+            'specArtifacts.sections.contracts'
+        ],
+        [
+            profile => {
+                profile.identifiers.requirement.grammar = 'regex';
+            },
+            'specArtifacts.identifiers.requirement.grammar'
+        ],
+        [
+            profile => {
+                profile.carriers[2].roots[0] = '../outside';
+            },
+            'specArtifacts.carriers[2].roots[0]'
+        ],
+        [
+            profile => {
+                profile.carriers[2].roots[0] = '/outside';
+            },
+            'specArtifacts.carriers[2].roots[0]'
+        ],
+        [
+            profile => {
+                profile.carriers[2].roots[0] = 'C:/outside';
+            },
+            'specArtifacts.carriers[2].roots[0]'
+        ],
+        [
+            profile => {
+                profile.carriers[2].acceptedStatuses = [];
+            },
+            'specArtifacts.carriers[2].acceptedStatuses'
+        ],
+        [
+            profile => {
+                profile.carriers[2].acceptedStatuses = ['approved', 'approved'];
+            },
+            'specArtifacts.carriers[2].acceptedStatuses[1]'
+        ],
+        [
+            profile => {
+                profile.carriers.push({ ...profile.carriers[2], roots: ['specs/other'], acceptedStatuses: ['ready'] });
+            },
+            'specArtifacts.carriers[3]'
+        ],
+        [
+            profile => {
+                delete profile.carriers[2].fields.acceptance;
+            },
+            'specArtifacts.carriers[2].fields.acceptance'
+        ],
+        [
+            profile => {
+                profile.carriers[2].fields.extra = 'ignored';
+            },
+            'specArtifacts.carriers[2].fields.extra'
+        ],
+        [
+            profile => {
+                profile.carriers.push({ ...profile.carriers[1], fields: { ...profile.carriers[1].fields, rationale: 'reason' } });
+            },
+            'specArtifacts.carriers[3]'
+        ]
     ];
     for (const [mutate, path] of cases) {
         const profile = standardProfile();

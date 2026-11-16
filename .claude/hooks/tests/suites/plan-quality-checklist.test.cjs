@@ -34,11 +34,18 @@ const CLAUDE_DIR = path.resolve(__dirname, '..', '..', '..');
 const SKILLS = path.join(CLAUDE_DIR, 'skills');
 const read = (...parts) => fs.readFileSync(path.join(...parts), 'utf8').replace(/\r\n/g, '\n');
 const planSkill = () => read(SKILLS, 'plan', 'SKILL.md');
-const planRef = (name) => read(SKILLS, 'plan', 'references', name);
+const planRef = name => read(SKILLS, 'plan', 'references', name);
 const checklistRef = () => planRef('plan-quality-checklist.md');
 
 const HEADING = '## Quality Gates & Concerns Checklist';
-const COLUMNS = ['#', 'Gate / concern', 'Applies? (YES/NO + one-line why)', 'How it will be verified', 'Evidence expected (command, test name, report path, file:line)', 'Owner phase'];
+const COLUMNS = [
+    '#',
+    'Gate / concern',
+    'Applies? (YES/NO + one-line why)',
+    'How it will be verified',
+    'Evidence expected (command, test name, report path, file:line)',
+    'Owner phase'
+];
 
 /** Body of a `## {heading}` (level-2) section up to the next level-2 heading. */
 function section(text, heading) {
@@ -66,7 +73,10 @@ const tests = [
             const contract = section(text, 'Plan Artifact Contract');
             // Then the contract requires the section, placed before the phases
             assert.ok(contract.includes(HEADING), 'contract names the checklist section heading');
-            assert.ok(contract.indexOf('Quality Gates & Concerns Checklist') < contract.indexOf('Execution phases'), 'the checklist comes before the execution phases');
+            assert.ok(
+                contract.indexOf('Quality Gates & Concerns Checklist') < contract.indexOf('Execution phases'),
+                'the checklist comes before the execution phases'
+            );
             // And every column of the row shape is present
             for (const column of COLUMNS.slice(1)) assert.ok(contract.includes(column), `contract keeps column: ${column}`);
             // And open concerns, deliberate NO rows, derivation from evidence and per-phase gate references are required
@@ -93,9 +103,24 @@ const tests = [
             assert.ok(text.includes(HEADING), 'reference names the section heading');
             assert.ok(text.includes(`| ${COLUMNS.join(' | ')} |`), 'the six-column header is pinned verbatim');
             // Then the candidate sweep covers the concerns a task can trigger
-            for (const concern of ['Correctness and root cause', 'Tests:', 'Review:', 'Spec/doc sync', 'Security, privacy, authorization', 'Performance and scale',
-                'Data integrity, migration, rollback', 'Backward compatibility and public contracts', 'Cross-module and cross-service consumers', 'UI/UX and accessibility',
-                'AI-feature gates', 'Observability and operability', 'Portability', 'Standalone behavior', 'Maintainability', 'Project-specific gates']) {
+            for (const concern of [
+                'Correctness and root cause',
+                'Tests:',
+                'Review:',
+                'Spec/doc sync',
+                'Security, privacy, authorization',
+                'Performance and scale',
+                'Data integrity, migration, rollback',
+                'Backward compatibility and public contracts',
+                'Cross-module and cross-service consumers',
+                'UI/UX and accessibility',
+                'AI-feature gates',
+                'Observability and operability',
+                'Portability',
+                'Standalone behavior',
+                'Maintainability',
+                'Project-specific gates'
+            ]) {
                 assert.ok(text.includes(concern), `candidate sweep lists: ${concern}`);
             }
             // And non-applicable rows stay listed with a reason and every YES row is checkable
@@ -106,7 +131,8 @@ const tests = [
             assert.match(text, /### Open concerns and risks/);
             assert.match(text, /Phases reference the gate numbers they own/);
             // And the reference carries all three mode duties under one owner
-            for (const duty of ['**Review (`--mode=review`):**', '**Validate (`--mode=validate`):**', '**Execute (`--mode=execute`):**']) assert.ok(text.includes(duty), `mode duty present: ${duty}`);
+            for (const duty of ['**Review (`--mode=review`):**', '**Validate (`--mode=validate`):**', '**Execute (`--mode=execute`):**'])
+                assert.ok(text.includes(duty), `mode duty present: ${duty}`);
         }
     },
     {
@@ -117,7 +143,12 @@ const tests = [
             assert.match(review, /its Review duty owns the defect classes and severities/);
             assert.match(review, /\*\*\[BLOCKING\]\*\* Read `references\/plan-quality-checklist\.md` in full before the core review/);
             const owner = checklistRef();
-            for (const defect of [/section is missing/, /generic, meaning the same rows regardless of task/, /YES row with no verification method or evidence/, /omits a gate the task clearly triggers/]) {
+            for (const defect of [
+                /section is missing/,
+                /generic, meaning the same rows regardless of task/,
+                /YES row with no verification method or evidence/,
+                /omits a gate the task clearly triggers/
+            ]) {
                 assert.match(owner, defect, `authoritative review duty retains ${defect}`);
             }
             // And the owner reference states the same severities once
@@ -150,7 +181,10 @@ const tests = [
             assert.match(validate, /Use `ask user question tool` — NEVER skip or auto-answer/);
             assert.match(validate, /Group related questions \(max 4 per tool call\)/);
             // And a plan with no checklist: the question is asked, but the answer is RECORDED in the Validation Summary, never an edit of the plan
-            assert.match(validate, /Validate never edits the plan beyond `## Validation Summary`: record the answer there — "add now" becomes an action item routed to `\/plan`/);
+            assert.match(
+                validate,
+                /Validate never edits the plan beyond `## Validation Summary`: record the answer there — "add now" becomes an action item routed to `\/plan`/
+            );
             assert.match(checklistRef(), /validate records the answer in `## Validation Summary`[^\n]*never edits the plan body/);
         }
     },
@@ -164,10 +198,20 @@ const tests = [
             const walk = execute.slice(walkStart, execute.indexOf('\n---\n', walkStart));
             // Given the walk is its own step, Step 4 (skipped when nested) does not carry it
             assert.doesNotMatch(step4, /Checklist walk/i, 'Step 4 holds no checklist walk');
-            assert.ok(walkStart > execute.indexOf('## Step 4: Verify') && walkStart < execute.indexOf('## Step 5: User Approval'), 'the walk sits between Step 4 and Step 5');
+            assert.ok(
+                walkStart > execute.indexOf('## Step 4: Verify') && walkStart < execute.indexOf('## Step 5: User Approval'),
+                'the walk sits between Step 4 and Step 5'
+            );
             // And it runs in BOTH standalone and workflow-nested runs, and under --tests=off
-            assert.match(walk, /runs in EVERY run — after Step 4 in a standalone run, after Step 2 in a workflow-nested run \(Steps 3–5 skipped\) — and under `--tests=off`/);
-            assert.match(execute, /Run Steps 0–2 \(detect, read, implement code \+ its tests\), the \[Checklist Walk\]\(#checklist-walk-own-step--standalone-and-workflow-nested\)/, 'the nested-mode bullet runs the walk');
+            assert.match(
+                walk,
+                /runs in EVERY run — after Step 4 in a standalone run, after Step 2 in a workflow-nested run \(Steps 3–5 skipped\) — and under `--tests=off`/
+            );
+            assert.match(
+                execute,
+                /Run Steps 0–2 \(detect, read, implement code \+ its tests\), the \[Checklist Walk\]\(#checklist-walk-own-step--standalone-and-workflow-nested\)/,
+                'the nested-mode bullet runs the walk'
+            );
             // Then it reads the owner reference, records PASS / FAIL / N/A with evidence per applicable row
             assert.match(walk, /\*\*\[BLOCKING\]\*\* read `references\/plan-quality-checklist\.md` in full before the walk/);
             assert.match(walk, /`PASS` \/ `FAIL` \/ `N\/A` with the evidence observed/);
@@ -186,7 +230,10 @@ const tests = [
             // And the walk is scoped to the phase being run: execute runs ONE phase per run, so a row owned by a LATER phase can never have
             // evidence yet and is DEFERRED (not a FAIL, not blocking); the final phase must find none left unresolved
             assert.match(walk, /rows of the plan's `## Quality Gates & Concerns Checklist` owned by the CURRENT or an EARLIER phase/);
-            assert.match(walk, /a row owned by a LATER phase is recorded `DEFERRED-BY-PLAN: phase <n>` \(not a FAIL, not blocking\), and the final phase finds none left unresolved/);
+            assert.match(
+                walk,
+                /a row owned by a LATER phase is recorded `DEFERRED-BY-PLAN: phase <n>` \(not a FAIL, not blocking\), and the final phase finds none left unresolved/
+            );
             assert.doesNotMatch(walk, /walk every row of the plan's/, 'the walk no longer walks every row regardless of phase');
             const step6 = execute.slice(execute.indexOf('## Step 6: Finalize'));
             assert.match(step6, /a `PENDING-PARENT` or `DEFERRED-BY-PLAN` row is carried, not unverified/, 'Step 6 names both carried dispositions');
@@ -194,21 +241,42 @@ const tests = [
             assert.match(execute, /the \*\*Checklist Walk\*\* \(own task, after Step 4\)/, 'standalone task list seeds the walk');
             assert.match(execute, /and the \*\*Checklist Walk\*\* task \(between Step 4 and Step 5/, 'TaskCreate initialization seeds the walk');
             // And the owner reference states the same duty once
-            assert.match(checklistRef(), /walk the rows owned by the CURRENT phase and every EARLIER phase \(phase-less and global rows only when the final phase runs\)/);
-            assert.match(checklistRef(), /a row owned by a LATER phase is recorded `DEFERRED-BY-PLAN: phase <n>`[^.]*not a FAIL, not blocking[^.]*final phase's run must find no `DEFERRED-BY-PLAN: phase <n>` row from an earlier phase left unresolved/);
+            assert.match(
+                checklistRef(),
+                /walk the rows owned by the CURRENT phase and every EARLIER phase \(phase-less and global rows only when the final phase runs\)/
+            );
+            assert.match(
+                checklistRef(),
+                /a row owned by a LATER phase is recorded `DEFERRED-BY-PLAN: phase <n>`[^.]*not a FAIL, not blocking[^.]*final phase's run must find no `DEFERRED-BY-PLAN: phase <n>` row from an earlier phase left unresolved/
+            );
             assert.match(checklistRef(), /the walk is its own step that runs in standalone AND workflow-nested runs/);
             assert.match(checklistRef(), /`PENDING-PARENT: <step> — evidence expected: …`; the parent workflow's closing step \(`workflow-end` step 0\)/);
             // And workflow-end reads the plan's checklist as OPTIONAL evidence only (no new gate when no checklist exists)
             const workflowEnd = read(SKILLS, 'workflow-end', 'SKILL.md');
-            assert.match(workflowEnd, /\*\*Plan checklist rows\*\* \(optional evidence input, only when a `\/plan --mode=execute` occurrence ran nested in this run AND its `plan\.md` carries a `## Quality Gates & Concerns Checklist`; otherwise record `N\/A — no plan checklist` and add no gate\)/);
+            assert.match(
+                workflowEnd,
+                /\*\*Plan checklist rows\*\* \(optional evidence input, only when a `\/plan --mode=execute` occurrence ran nested in this run AND its `plan\.md` carries a `## Quality Gates & Concerns Checklist`; otherwise record `N\/A — no plan checklist` and add no gate\)/
+            );
             assert.match(workflowEnd, /`PENDING-PARENT: <step> — evidence expected: …`/);
             // And a nested run covers ONE phase, so unfinished later phases surface at close instead of passing silently:
             // workflow-end step 0 names unresolved DEFERRED-BY-PLAN phase rows and refuses to close (like missing gate evidence);
             // no checklist -> no change; the execute duty in the owner reference states the same
-            assert.match(workflowEnd, /still recorded `DEFERRED-BY-PLAN: phase <n>` at close: name them as `unfinished plan phases: <n…>` and treat them like missing gate evidence — the close is refused and surfaced via `ask user question tool`/, 'workflow-end step 0 refuses to close over unfinished plan phases');
-            assert.match(workflowEnd, /Continue the remaining phases[^\n]*Accept as-is — I will record the reason/, 'the unfinished-phase question offers continue or accept-with-reason');
+            assert.match(
+                workflowEnd,
+                /still recorded `DEFERRED-BY-PLAN: phase <n>` at close: name them as `unfinished plan phases: <n…>` and treat them like missing gate evidence — the close is refused and surfaced via `ask user question tool`/,
+                'workflow-end step 0 refuses to close over unfinished plan phases'
+            );
+            assert.match(
+                workflowEnd,
+                /Continue the remaining phases[^\n]*Accept as-is — I will record the reason/,
+                'the unfinished-phase question offers continue or accept-with-reason'
+            );
             assert.match(workflowEnd, /No plan checklist → record `N\/A — no plan checklist` for this scan too/, 'no checklist -> no change');
-            assert.match(checklistRef(), /refuses to close while any `DEFERRED-BY-PLAN: phase <n>` row is still unresolved \(named as `unfinished plan phases: <n…>`/, 'the Execute duty mirrors the workflow-end rule');
+            assert.match(
+                checklistRef(),
+                /refuses to close while any `DEFERRED-BY-PLAN: phase <n>` row is still unresolved \(named as `unfinished plan phases: <n…>`/,
+                'the Execute duty mirrors the workflow-end rule'
+            );
             // And the flags, approval gate and verify-last order are unchanged
             assert.match(walk, /never changes `--approval`\/`--tests`\/`--parallel`, and adds no per-phase test run/);
             assert.match(execute, /## Step 5: User Approval ⏸ BLOCKING GATE/);
@@ -230,7 +298,7 @@ const tests = [
             assert.equal(read(SKILLS, 'shared', 'protocols', 'plan-granularity.md').trim(), granularity, 'protocol file equals canonical plan-granularity');
             // And the full-body carrier (planner agent) equals it too
             const planner = read(CLAUDE_DIR, 'agents', 'planner.md');
-            const fenced = (tag) => {
+            const fenced = tag => {
                 const open = `<!-- SYNC:${tag} -->`;
                 const start = planner.indexOf(open);
                 const end = planner.indexOf(`<!-- /SYNC:${tag} -->`);

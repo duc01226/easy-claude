@@ -29,7 +29,12 @@ function failureCause(error) {
     if (error?.code === 'ETIMEDOUT') return `PowerShell did not finish within ${WINDOWS_ACL_TIMEOUT_MS} ms`;
     const exited = Number.isInteger(error?.status);
     // An exit reports the script's own stderr; the error message would repeat the encoded command instead.
-    const detail = String((exited ? error.stderr : error?.message) || '').replace(/#< CLIXML/g, ' ').replace(/_x000[DA]_/g, ' ').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    const detail = String((exited ? error.stderr : error?.message) || '')
+        .replace(/#< CLIXML/g, ' ')
+        .replace(/_x000[DA]_/g, ' ')
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
     const status = exited ? `PowerShell exited with status ${error.status}` : 'PowerShell could not run';
     return detail ? `${status}: ${detail.slice(0, DIAGNOSTIC_LIMIT)}` : status;
 }
@@ -45,11 +50,21 @@ function protect(directory, { platform = process.platform, runCommand = execFile
     const childEnv = Object.fromEntries(Object.entries(env).filter(([key]) => /^(?:PATH|SYSTEMROOT|WINDIR|COMSPEC)$/i.test(key)));
     let cause = 'PowerShell did not confirm the private ACL';
     try {
-        const output = runCommand('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(WINDOWS_PRIVATE_ACL, 'utf16le').toString('base64')], {
-            env: { ...childEnv, CK_BENCH_PRIVATE_DIR: directory }, encoding: 'utf8', windowsHide: true, timeout: WINDOWS_ACL_TIMEOUT_MS, maxBuffer: 1024 * 1024
-        });
+        const output = runCommand(
+            'powershell.exe',
+            ['-NoLogo', '-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(WINDOWS_PRIVATE_ACL, 'utf16le').toString('base64')],
+            {
+                env: { ...childEnv, CK_BENCH_PRIVATE_DIR: directory },
+                encoding: 'utf8',
+                windowsHide: true,
+                timeout: WINDOWS_ACL_TIMEOUT_MS,
+                maxBuffer: 1024 * 1024
+            }
+        );
         if (String(output).trim() === 'VERIFIED') return;
-    } catch (error) { cause = failureCause(error); /* No credential is written before private storage is established. */ }
+    } catch (error) {
+        cause = failureCause(error); /* No credential is written before private storage is established. */
+    }
     throw new Error(`ENVIRONMENT-BLOCKED: native Windows requires verified private profile ACLs (${cause})`);
 }
 

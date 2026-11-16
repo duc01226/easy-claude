@@ -76,7 +76,14 @@ const tests = [
             // Given: missing, non-string and NUL-bearing inputs. When: containment is asked.
             // Then: the guard fails closed instead of resolving an empty side against the cwd.
             const root = path.resolve(REPO);
-            for (const [r, c] of [['', root], [root, ''], [undefined, root], [root, null], [root, 42], [root, `${root}${path.sep}a\0b`]]) {
+            for (const [r, c] of [
+                ['', root],
+                [root, ''],
+                [undefined, root],
+                [root, null],
+                [root, 42],
+                [root, `${root}${path.sep}a\0b`]
+            ]) {
                 assertEqual(isAbsolutePathWithin(r, c), false, `invalid input must not be contained: ${JSON.stringify([r, c])}`);
             }
         }
@@ -86,8 +93,8 @@ const tests = [
         fn: () => {
             // Given: the guards that check resolved-path containment for traversal or symlink escape.
             const adopters = [
-                ['.claude/hooks/lib/project-reference-registry.cjs', /require\('\.\/ck-path-utils\.cjs'\)/],
-                ['.claude/scripts/lib/workflow-baseline.cjs', /require\("\.\.\/\.\.\/hooks\/lib\/ck-path-utils\.cjs"\)/],
+                ['.claude/hooks/lib/project-reference-registry.cjs', /require\(['"]\.\/ck-path-utils\.cjs['"]\)/],
+                ['.claude/scripts/lib/workflow-baseline.cjs', /require\(['"]\.\.\/\.\.\/hooks\/lib\/ck-path-utils\.cjs['"]\)/],
                 ['.claude/scripts/doc-impact-map.cjs', /pathUtils && pathUtils\.isAbsolutePathWithin/]
             ];
             for (const [relativePath, bindingPattern] of adopters) {
@@ -141,13 +148,19 @@ const tests = [
             fs.mkdirSync(path.join(REPO, 'tmp'), { recursive: true });
             const dir = fs.mkdtempSync(path.join(REPO, 'tmp', 'ckpu-identity-'));
             try {
-                fs.writeFileSync(path.join(dir, 'a'), 'a'); fs.writeFileSync(path.join(dir, 'b'), 'b');
+                fs.writeFileSync(path.join(dir, 'a'), 'a');
+                fs.writeFileSync(path.join(dir, 'b'), 'b');
                 const a = fs.statSync(path.join(dir, 'a'), { bigint: true });
                 const fd = fs.openSync(path.join(dir, 'a'), 'r');
-                try { assertTrue(sameFileIdentity(a, fs.fstatSync(fd, { bigint: true })), 'path and descriptor of one file match'); }
-                finally { fs.closeSync(fd); }
+                try {
+                    assertTrue(sameFileIdentity(a, fs.fstatSync(fd, { bigint: true })), 'path and descriptor of one file match');
+                } finally {
+                    fs.closeSync(fd);
+                }
                 assertTrue(!sameFileIdentity(a, fs.statSync(path.join(dir, 'b'), { bigint: true })), 'two files differ');
-            } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+            } finally {
+                fs.rmSync(dir, { recursive: true, force: true });
+            }
         }
     },
     {
@@ -158,7 +171,13 @@ const tests = [
             const owner = path.join(REPO, '.claude', 'hooks', 'lib', 'ck-path-utils.cjs');
             // A `dev`/`ino` read (member, renamed field or destructured name) compared with another.
             const comparesStatIds = /(?:\.|\b)(?:ino|dev)\w*\s*[!=]==?\s*(?:[\w.]*\.(?:ino|dev)\w*|(?:ino|dev)\w*)\b/;
-            for (const shape of ['opened.ino !== before.ino', 'stat.ino !== session.inode', 'stat.dev !== session.device', 'ino !== other.ino', 'a.dev===b.dev']) {
+            for (const shape of [
+                'opened.ino !== before.ino',
+                'stat.ino !== session.inode',
+                'stat.dev !== session.device',
+                'ino !== other.ino',
+                'a.dev===b.dev'
+            ]) {
                 assertTrue(comparesStatIds.test(shape), `the scan recognizes ${shape}`);
             }
             for (const shape of ['after.size !== before.size', 'a.ino !== 0n', 'sameFileIdentity(a, b)', "device === 'mobile'"]) {

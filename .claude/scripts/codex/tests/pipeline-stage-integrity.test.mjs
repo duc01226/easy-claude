@@ -41,8 +41,12 @@ function run(cmd, args, opts = {}) {
         const child = spawn(cmd, args, { cwd: repoRoot, env, stdio: ['ignore', 'pipe', 'pipe'], ...opts });
         let stdout = '';
         let stderr = '';
-        child.stdout.on('data', d => { stdout += d.toString(); });
-        child.stderr.on('data', d => { stderr += d.toString(); });
+        child.stdout.on('data', d => {
+            stdout += d.toString();
+        });
+        child.stderr.on('data', d => {
+            stderr += d.toString();
+        });
         child.on('error', reject);
         child.on('close', code => resolve({ code, stdout, stderr }));
     });
@@ -115,10 +119,12 @@ test('STAGE-004 a spawn failure names the failing stage, not stage "undefined"',
 // break the fresh-scaffold case (a project that copied `.claude` before authoring any suite).
 test('STAGE-001 hooks runner exits 1 on a zero-match --filter, and 0 on an empty suites dir', async () => {
     const zeroMatch = await run(process.execPath, [hooksRunnerAbs, '--filter=zzz-no-such-suite-xyz']);
-    assert.equal(zeroMatch.code, 1,
-        'a --filter matching no suite must exit 1 — a stage that ran zero tests is not a pass');
-    assert.match(`${zeroMatch.stdout}${zeroMatch.stderr}`, /No test suite name matched/i,
-        'output must say the selector matched nothing, not "No test suites found"');
+    assert.equal(zeroMatch.code, 1, 'a --filter matching no suite must exit 1 — a stage that ran zero tests is not a pass');
+    assert.match(
+        `${zeroMatch.stdout}${zeroMatch.stderr}`,
+        /No test suite name matched/i,
+        'output must say the selector matched nothing, not "No test suites found"'
+    );
 
     // An isolated copy beside an EMPTY suites/ dir reproduces the fresh-scaffold state without
     // touching the real suites directory. The runner also requires its `lib/` siblings, so the copy
@@ -137,8 +143,7 @@ test('STAGE-001 hooks runner exits 1 on a zero-match --filter, and 0 on an empty
     assert.equal(emptyNoFilter.code, 0, 'an empty suites dir with no filter is the scaffold state — exit 0');
 
     const emptyWithFilter = await run(process.execPath, [isolated, '--filter=anything'], { cwd: tmp });
-    assert.equal(emptyWithFilter.code, 0,
-        'an empty suites dir must stay exit 0 even with a filter — nothing was requested AND nothing exists');
+    assert.equal(emptyWithFilter.code, 0, 'an empty suites dir must stay exit 0 even with a filter — nothing was requested AND nothing exists');
 });
 
 // ── STAGE-002 — `--filter=parity` must select EVERY parity suite, by name, explicitly ─────────────
@@ -151,8 +156,11 @@ test('STAGE-002 --filter=parity selects every parity suite', async () => {
 
     const selected = listedSuiteNames(stdout);
 
-    assert.deepEqual(selected, ['agent-mirror-parity', 'protocol-text-parity', 'sync-carrier-parity'],
-        `the hooks-parity stage must cover EVERY parity suite.\n  selected: ${selected.join(', ') || '(none)'}`);
+    assert.deepEqual(
+        selected,
+        ['agent-mirror-parity', 'protocol-text-parity', 'sync-carrier-parity'],
+        `the hooks-parity stage must cover EVERY parity suite.\n  selected: ${selected.join(', ') || '(none)'}`
+    );
 });
 
 test('STAGE-002 parses the supported Windows and POSIX list bullets', () => {
@@ -185,7 +193,8 @@ test('disabled runtime preferences do not disable hook behavior inside verificat
         await fs.writeFile(target, assertion);
     }
     const result = await run(process.execPath, [runner, '--only=tests,scripts-tests,hooks-count-drift,hooks-parity,hooks-doc-sync', '--verbose'], {
-        cwd: tmp, env: { ...process.env, CK_FRAMEWORK_MODE: 'off' },
+        cwd: tmp,
+        env: { ...process.env, CK_FRAMEWORK_MODE: 'off' }
     });
     assert.equal(result.code, 0, `${result.stdout}\n${result.stderr}`);
 });
@@ -197,15 +206,21 @@ test('STAGE-005 scripts-tests uses bounded concurrency at the runner and framewo
     // Then: the runner serializes top-level files where supported, remains runnable on the declared
     // Node 18.0+ floor, and every applicable alias delegates to that runner.
     const runnerSource = await fs.readFile(path.join(repoRoot, ...syncRunnerRel.split('/')), 'utf8');
-    assert.match(runnerSource,
+    assert.match(
+        runnerSource,
         /const supportsTestConcurrencyFlag = nodeMajor >= 21[\s\S]*?\(nodeMajor === 18 && nodeMinor >= 19\);/,
-        'the runner must gate the newer test-concurrency flag by the supported Node release');
-    assert.match(runnerSource,
+        'the runner must gate the newer test-concurrency flag by the supported Node release'
+    );
+    assert.match(
+        runnerSource,
         /const scriptsTestConcurrencyArgs = supportsTestConcurrencyFlag \? \["--test-concurrency=1"\] : \[\];[\s\S]*?id: "scripts-tests"[\s\S]*?argsAsync: async \(\) => \["--test", \.\.\.scriptsTestConcurrencyArgs, \.\.\.await listTestFiles\(claudeTestsDir\)\]/,
-        'the sync runner must serialize process-heavy scripts tests without breaking older Node 18');
-    assert.match(runnerSource,
+        'the sync runner must serialize process-heavy scripts tests without breaking older Node 18'
+    );
+    assert.match(
+        runnerSource,
         /const testNodeCommand = process\.execPath;[\s\S]*?id: "tests"[\s\S]*?cmd: testNodeCommand[\s\S]*?id: "scripts-tests"[\s\S]*?cmd: testNodeCommand/,
-        'both Node test stages must use the same executable whose version selected the test flags');
+        'both Node test stages must use the same executable whose version selected the test flags'
+    );
 
     // The npm-alias half is gone: no host package.json script may drive the framework, so there is
     // no alias left that could bypass the runner's concurrency gating. The runner assertions above
@@ -215,6 +230,5 @@ test('STAGE-005 scripts-tests uses bounded concurrency at the runner and framewo
     const bypassing = Object.entries(packageJson.scripts ?? {})
         .filter(([, command]) => typeof command === 'string' && /--only=scripts-tests|node --test .*\.claude/.test(command))
         .map(([name]) => name);
-    assert.deepEqual(bypassing, [],
-        `no npm alias may run the scripts tests outside the runner's concurrency gating; found: ${bypassing.join(', ')}`);
+    assert.deepEqual(bypassing, [], `no npm alias may run the scripts tests outside the runner's concurrency gating; found: ${bypassing.join(', ')}`);
 });

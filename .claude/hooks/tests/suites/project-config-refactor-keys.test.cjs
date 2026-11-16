@@ -39,7 +39,11 @@ const schema = require(SCHEMA_PATH);
 // pass). Its parity with framework-repo.helper.mjs is the content-presence tripwire.
 const frameworkRepoGuard = require('../lib/framework-repo-guard.cjs');
 function readJsonOrNull(file) {
-    try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return null; }
+    try {
+        return JSON.parse(fs.readFileSync(file, 'utf8'));
+    } catch {
+        return null;
+    }
 }
 const REPO_CONFIG_PATH = frameworkRepoGuard.projectConfigPath(REPO_ROOT);
 const IS_FRAMEWORK_REPO = frameworkRepoGuard.isFrameworkRepo(REPO_ROOT);
@@ -56,7 +60,11 @@ const onlyErrorFor = (config, key) => {
 // A clean child environment rooted in a temp dir: no inherited CK_* switch, no real home/temp.
 function isolatedEnv(dir) {
     const overrides = {
-        HOME: dir, USERPROFILE: dir, TMPDIR: dir, TEMP: dir, TMP: dir,
+        HOME: dir,
+        USERPROFILE: dir,
+        TMPDIR: dir,
+        TEMP: dir,
+        TMP: dir,
         CLAUDE_PROJECT_DIR: dir
     };
     for (const key of Object.keys(process.env)) {
@@ -89,11 +97,21 @@ function runNode(args, { cwd, env, timeout }) {
         const child = spawn(process.execPath, args, { cwd, env, windowsHide: true });
         let stdout = '';
         let stderr = '';
-        child.stdout.setEncoding('utf8').on('data', chunk => { stdout += chunk; });
-        child.stderr.setEncoding('utf8').on('data', chunk => { stderr += chunk; });
+        child.stdout.setEncoding('utf8').on('data', chunk => {
+            stdout += chunk;
+        });
+        child.stderr.setEncoding('utf8').on('data', chunk => {
+            stderr += chunk;
+        });
         const timer = setTimeout(() => child.kill(), timeout);
-        child.on('close', status => { clearTimeout(timer); resolve({ status, stdout, stderr }); });
-        child.on('error', error => { clearTimeout(timer); resolve({ status: null, stdout, stderr: String(error) }); });
+        child.on('close', status => {
+            clearTimeout(timer);
+            resolve({ status, stdout, stderr });
+        });
+        child.on('error', error => {
+            clearTimeout(timer);
+            resolve({ status: null, stdout, stderr: String(error) });
+        });
     });
 }
 
@@ -116,19 +134,23 @@ module.exports = {
         },
         {
             name: '[project-config-refactor-keys] TC-WFR-008 validate CLI exits 1 and prints the tier error',
-            fn: () => withTemp(dir => {
-                // Given the same invalid config written to a temp project file
-                const file = path.join(dir, 'project-config.json');
-                fs.writeFileSync(file, JSON.stringify(base({ portability: { workflowActivation: { default: 'sometimes' } } })), 'utf8');
-                // When the schema CLI validates it in an isolated environment
-                const run = spawnSync(process.execPath, [SCHEMA_PATH, '--validate', file], {
-                    cwd: dir, env: isolatedEnv(dir), encoding: 'utf8', timeout: 20000
-                });
-                // Then the process fails and reports the key and the allowed tiers
-                assertEqual(run.status, 1, `exit status (stderr: ${run.stderr})`);
-                assertContains(run.stdout, 'Schema validation: FAILED');
-                assertContains(run.stdout, 'portability.workflowActivation.default: expected one of auto|confirm|manual');
-            })
+            fn: () =>
+                withTemp(dir => {
+                    // Given the same invalid config written to a temp project file
+                    const file = path.join(dir, 'project-config.json');
+                    fs.writeFileSync(file, JSON.stringify(base({ portability: { workflowActivation: { default: 'sometimes' } } })), 'utf8');
+                    // When the schema CLI validates it in an isolated environment
+                    const run = spawnSync(process.execPath, [SCHEMA_PATH, '--validate', file], {
+                        cwd: dir,
+                        env: isolatedEnv(dir),
+                        encoding: 'utf8',
+                        timeout: 20000
+                    });
+                    // Then the process fails and reports the key and the allowed tiers
+                    assertEqual(run.status, 1, `exit status (stderr: ${run.stderr})`);
+                    assertContains(run.stdout, 'Schema validation: FAILED');
+                    assertContains(run.stdout, 'portability.workflowActivation.default: expected one of auto|confirm|manual');
+                })
         },
         {
             name: '[project-config-refactor-keys] workflowActivation accepts every tier and rejects an unknown override tier',
@@ -148,8 +170,11 @@ module.exports = {
                 assertContains(errors.join('\n'), 'portability.workflowActivation.overrides.workflow-a: expected one of auto|confirm|manual, got "later"');
                 assertContains(errors.join('\n'), 'portability.workflowActivation.overrides.workflow-b: expected one of auto|confirm|manual, got boolean');
                 // And a non-map overrides value is a structural error
-                assertTrue(errorsFor(base({ portability: { workflowActivation: { overrides: ['confirm'] } } }))
-                    .some(e => e.startsWith('portability.workflowActivation.overrides: expected map')));
+                assertTrue(
+                    errorsFor(base({ portability: { workflowActivation: { overrides: ['confirm'] } } })).some(e =>
+                        e.startsWith('portability.workflowActivation.overrides: expected map')
+                    )
+                );
             }
         },
         {
@@ -170,7 +195,10 @@ module.exports = {
                     onlyErrorFor(base({ hooks: { tokenBudget: { checkpointTokens: out } } }), 'hooks.tokenBudget.checkpointTokens');
                 }
                 // And a non-number is a structural error, not silently coerced
-                assertContains(onlyErrorFor(base({ hooks: { tokenBudget: { checkpointTokens: '500000' } } }), 'hooks.tokenBudget.checkpointTokens'), 'expected number');
+                assertContains(
+                    onlyErrorFor(base({ hooks: { tokenBudget: { checkpointTokens: '500000' } } }), 'hooks.tokenBudget.checkpointTokens'),
+                    'expected number'
+                );
                 assertContains(onlyErrorFor(base({ hooks: { tokenBudget: { enabled: 'yes' } } }), 'hooks.tokenBudget.enabled'), 'expected boolean');
             }
         },
@@ -183,7 +211,10 @@ module.exports = {
                     const result = schema.validateConfig(base({ contextGroups: [group(on)] }));
                     // When validated / Then no error and no unknown-field warning for `on`
                     assertEqual(result.errors.length, 0, `on=${on}: ${JSON.stringify(result.errors)}`);
-                    assertFalse(result.warnings.some(w => w.includes('.on:')), `on=${on} must be a known field`);
+                    assertFalse(
+                        result.warnings.some(w => w.includes('.on:')),
+                        `on=${on} must be a known field`
+                    );
                 }
                 // Given an unknown trigger
                 const error = onlyErrorFor(base({ contextGroups: [group('always')] }), 'contextGroups[0]');
@@ -210,7 +241,10 @@ module.exports = {
                 assertContains(onlyErrorFor(base({ commit: { fixOriginTrailer: 'true' } }), 'commit.fixOriginTrailer'), 'expected boolean');
                 // `commit` must not be a known-but-unlisted top-level key, and must never become required
                 const result = schema.validateConfig(base({ commit: {} }));
-                assertFalse(result.warnings.some(w => w.startsWith('commit:')), 'commit is a schema section');
+                assertFalse(
+                    result.warnings.some(w => w.startsWith('commit:')),
+                    'commit is a schema section'
+                );
                 assertFalse(schema.getRequiredSections().includes('commit'), 'commit stays optional');
             }
         },
@@ -226,7 +260,10 @@ module.exports = {
                 }
                 // `pullRequest` must not be a known-but-unlisted top-level key, and must never become required
                 const result = schema.validateConfig(base({ pullRequest: {} }));
-                assertFalse(result.warnings.some(w => w.startsWith('pullRequest:')), 'pullRequest is a schema section');
+                assertFalse(
+                    result.warnings.some(w => w.startsWith('pullRequest:')),
+                    'pullRequest is a schema section'
+                );
                 assertFalse(schema.getRequiredSections().includes('pullRequest'), 'pullRequest stays optional');
             }
         },
@@ -258,13 +295,16 @@ module.exports = {
                 const result = schema.validateConfig(config);
                 // Then it is valid with no warning about any new key
                 assertEqual(result.errors.length, 0, JSON.stringify(result.errors));
-                assertFalse(result.warnings.some(w => /workflowActivation|codeGraph|tokenBudget|fixOriginTrailer|commit|pullRequest|\.on\b/.test(w)), JSON.stringify(result.warnings));
+                assertFalse(
+                    result.warnings.some(w => /workflowActivation|codeGraph|tokenBudget|fixOriginTrailer|commit|pullRequest|\.on\b/.test(w)),
+                    JSON.stringify(result.warnings)
+                );
                 // And the minimum document stays valid
                 assertTrue(schema.validateConfig(base({})).valid, 'minimum config');
             }
         },
         {
-            name: '[project-config-refactor-keys] schema regression: this framework repo\'s own config still validates',
+            name: "[project-config-refactor-keys] schema regression: this framework repo's own config still validates",
             skip: IS_FRAMEWORK_REPO ? false : 'self-check applies only in the framework repo (framework-repo signal)',
             fn: () => {
                 // Given the authoring repo's current config / When validated / Then no errors
@@ -276,32 +316,35 @@ module.exports = {
         },
         {
             name: '[project-config-refactor-keys] Help Mode --search lists every new key from its schema description',
-            fn: () => withTempAsync(async dir => {
-                // Given the help script / When searched for each new key (searches run concurrently)
-                const cases = [
-                    ['workflowActivation', ['portability.workflowActivation', 'portability.workflowActivation.default', 'portability.workflowActivation.overrides']],
-                    ['codeGraph', ['hooks.codeGraph', 'hooks.codeGraph.enabled']],
-                    ['tokenBudget', ['hooks.tokenBudget', 'hooks.tokenBudget.enabled', 'hooks.tokenBudget.checkpointTokens']],
-                    ['fixOriginTrailer', ['commit.fixOriginTrailer']],
-                    ['targetBranch', ['pullRequest.targetBranch']],
-                    ['pushedBranchUpdate', ['pullRequest.pushedBranchUpdate']],
-                    ['read | edit | both', ['contextGroups']]
-                ];
-                const env = isolatedEnv(dir);
-                const runs = await Promise.all(cases.map(([term]) =>
-                    runNode([HELP_SCRIPT, `--search=${term}`], { cwd: dir, env, timeout: 60000 })));
-                cases.forEach(([term, keys], index) => {
-                    const run = runs[index];
-                    assertEqual(run.status, 0, `--search=${term} exit (stderr: ${run.stderr})`);
-                    const options = run.stdout.split(/\n\s*\n?Reference docs/)[0];
-                    // Then each key is listed with a non-empty description
-                    for (const key of keys) {
-                        const line = options.split(/\r?\n/).find(l => l.trim().split(/\s+/)[0] === key);
-                        assertTrue(Boolean(line), `--search=${term} lists ${key}\n${options}`);
-                        assertTrue(line.trim().length > key.length + 10, `${key} carries a description`);
-                    }
-                });
-            })
+            fn: () =>
+                withTempAsync(async dir => {
+                    // Given the help script / When searched for each new key (searches run concurrently)
+                    const cases = [
+                        [
+                            'workflowActivation',
+                            ['portability.workflowActivation', 'portability.workflowActivation.default', 'portability.workflowActivation.overrides']
+                        ],
+                        ['codeGraph', ['hooks.codeGraph', 'hooks.codeGraph.enabled']],
+                        ['tokenBudget', ['hooks.tokenBudget', 'hooks.tokenBudget.enabled', 'hooks.tokenBudget.checkpointTokens']],
+                        ['fixOriginTrailer', ['commit.fixOriginTrailer']],
+                        ['targetBranch', ['pullRequest.targetBranch']],
+                        ['pushedBranchUpdate', ['pullRequest.pushedBranchUpdate']],
+                        ['read | edit | both', ['contextGroups']]
+                    ];
+                    const env = isolatedEnv(dir);
+                    const runs = await Promise.all(cases.map(([term]) => runNode([HELP_SCRIPT, `--search=${term}`], { cwd: dir, env, timeout: 60000 })));
+                    cases.forEach(([term, keys], index) => {
+                        const run = runs[index];
+                        assertEqual(run.status, 0, `--search=${term} exit (stderr: ${run.stderr})`);
+                        const options = run.stdout.split(/\n\s*\n?Reference docs/)[0];
+                        // Then each key is listed with a non-empty description
+                        for (const key of keys) {
+                            const line = options.split(/\r?\n/).find(l => l.trim().split(/\s+/)[0] === key);
+                            assertTrue(Boolean(line), `--search=${term} lists ${key}\n${options}`);
+                            assertTrue(line.trim().length > key.length + 10, `${key} carries a description`);
+                        }
+                    });
+                })
         }
     ]
 };

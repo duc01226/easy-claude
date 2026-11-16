@@ -47,7 +47,7 @@ const { resolveAllWorkflowManifests } = require('../../../scripts/lib/workflow-m
 const { extractSyncBody, normalizeEol } = require('../../../scripts/lib/extract-sync-block.cjs');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
-const SKIP = isFrameworkRepo(REPO_ROOT) ? false : 'asserts the framework repo\'s own work-item skill and workflow registry (framework-repo signal)';
+const SKIP = isFrameworkRepo(REPO_ROOT) ? false : "asserts the framework repo's own work-item skill and workflow registry (framework-repo signal)";
 
 const SKILLS = path.join(REPO_ROOT, '.claude', 'skills');
 const read = (...parts) => fs.readFileSync(path.join(...parts), 'utf8').replace(/\r\n/g, '\n');
@@ -58,7 +58,14 @@ const canonical = () => read(SKILLS, 'shared', 'sync-inline-versions.md');
 const MODES = ['refine', 'story', 'mockup', 'challenge', 'review', 'dor'];
 
 // UI protocol bodies owned by references/review-type-design.md; only a UI-bearing review loads them.
-const UI_REVIEW_TAGS = ['design-distinctiveness-gate', 'design-review-checklist', 'ui-action-density-gate', 'ui-intent-layer', 'ui-ux-design-principles', 'ux-journey-gate'];
+const UI_REVIEW_TAGS = [
+    'design-distinctiveness-gate',
+    'design-review-checklist',
+    'ui-action-density-gate',
+    'ui-intent-layer',
+    'ui-ux-design-principles',
+    'ux-journey-gate'
+];
 
 // The removed skill names, assembled so this file never contains the literal tokens it guards against.
 const REMOVED = ['re' + 'fine', 'st' + 'ory', 'pbi-' + 'mockup', 'pbi-' + 'challenge', 'artifact-' + 'review', 'dor-' + 'gate'];
@@ -100,11 +107,7 @@ const workItemOccurrences = () => allOccurrences().filter(({ occurrence }) => oc
 
 const LIVE_SOURCE_ROOTS = ['.claude', 'docs/specs', 'docs/project-reference', 'README.md'];
 // Generated catalogs are rebuilt from the skill folders; history stays in ADRs and release notes.
-const SCAN_EXCLUDED = new Set([
-    '.claude/SKILLS.yaml',
-    '.claude/scripts/skills_data.yaml',
-    '.claude/hooks/tests/suites/work-item-modes-merge.test.cjs'
-]);
+const SCAN_EXCLUDED = new Set(['.claude/SKILLS.yaml', '.claude/scripts/skills_data.yaml', '.claude/hooks/tests/suites/work-item-modes-merge.test.cjs']);
 const SCAN_EXCLUDED_DIRS = new Set(['node_modules', '.git', '.code-graph', 'tmp', 'temp', 'plans', '__pycache__']);
 const SCAN_EXTENSIONS = new Set(['.md', '.cjs', '.mjs', '.js', '.py', '.json', '.yaml', '.yml', '.html', '.toml']);
 
@@ -116,13 +119,15 @@ const walk = rel => liveSourceFiles(REPO_ROOT, rel, { extensions: SCAN_EXTENSION
 // `skill`/`name` field value, or a backticked / quoted bare token. Report filename prefixes such as
 // `tmp/reports/<name>-{date}` and ordinary words never match.
 const NAMES = REMOVED.join('|');
-const MENTION = new RegExp([
-    `(?<![\\w/.:\\\\-])/(?:${NAMES})(?![\\w/-])(?!\\s+points)`,
-    `skills/(?:${NAMES})(?![\\w-])`,
-    `"(?:skill|name)":\\s*"(?:${NAMES})"`,
-    `\`(?:${REMOVED.filter(name => name !== 're' + 'fine' && name !== 'st' + 'ory').join('|')})\``,
-    `(?<![\\w/.\\\\-])(?:${REMOVED.filter(name => name !== 're' + 'fine' && name !== 'st' + 'ory').join('|')})(?![\\w/-])`
-].join('|'));
+const MENTION = new RegExp(
+    [
+        `(?<![\\w/.:\\\\-])/(?:${NAMES})(?![\\w/-])(?!\\s+points)`,
+        `skills/(?:${NAMES})(?![\\w-])`,
+        `"(?:skill|name)":\\s*"(?:${NAMES})"`,
+        `\`(?:${REMOVED.filter(name => name !== 're' + 'fine' && name !== 'st' + 'ory').join('|')})\``,
+        `(?<![\\w/.\\\\-])(?:${REMOVED.filter(name => name !== 're' + 'fine' && name !== 'st' + 'ory').join('|')})(?![\\w/-])`
+    ].join('|')
+);
 
 /** A line that names a removed skill but is an allowed mention. */
 function allowedMention(rel, line) {
@@ -144,7 +149,10 @@ const tests = [
             assert.match(text, /no mode, or an unknown mode value, prints the table below and stops\. Never infer a mode/i);
             for (const mode of MODES) {
                 assert.match(text, /\*\*\[BLOCKING\]\*\* Read the selected mode's reference in full FIRST/);
-                assert.ok(text.split('\n').some(line => line.startsWith('| `--mode=' + mode + ' ') && line.includes('`references/mode-' + mode + '.md`')), `full-read dispatch for ${mode}`);
+                assert.ok(
+                    text.split('\n').some(line => line.startsWith('| `--mode=' + mode + ' ') && line.includes('`references/mode-' + mode + '.md`')),
+                    `full-read dispatch for ${mode}`
+                );
                 assert.ok(fs.existsSync(path.join(SKILLS, 'work-item', 'references', `mode-${mode}.md`)), `references/mode-${mode}.md exists`);
                 assert.match(text, new RegExp(`\\| \`--mode=${mode}[ \\]\`]`), `dispatch row for ${mode}`);
             }
@@ -160,13 +168,25 @@ const tests = [
         fn: () => {
             // refine: the interview, estimate re-derivation and the task artifact path
             const refine = ref('mode-refine.md');
-            for (const marker of ['## Phase 3: Problem Hypothesis Validation', '## Phase 7: Validation Interview (MANDATORY)', '## Phase 7.5: Re-evaluate Estimation (MANDATORY', '## Phase 7.6: Releasable Outcome Gate (BLOCKING)', '## Phase 8: Task Artifact Generation']) {
+            for (const marker of [
+                '## Phase 3: Problem Hypothesis Validation',
+                '## Phase 7: Validation Interview (MANDATORY)',
+                '## Phase 7.5: Re-evaluate Estimation (MANDATORY',
+                '## Phase 7.6: Releasable Outcome Gate (BLOCKING)',
+                '## Phase 8: Task Artifact Generation'
+            ]) {
                 assert.ok(refine.includes(marker), `refine keeps ${marker}`);
             }
             assert.match(refine, /Command `\/work-item --mode=refine` → base path `tasks\/`/);
             // story: slicing gates and the story artifact path
             const story = ref('mode-story.md');
-            for (const marker of ['## INVEST Criteria', '## SPIDR Splitting Checklist', '## AI-SDD Mandate Gate (M1-M5 and M7) — BLOCKING', '## Story Artifact Template']) assert.ok(story.includes(marker), `story keeps ${marker}`);
+            for (const marker of [
+                '## INVEST Criteria',
+                '## SPIDR Splitting Checklist',
+                '## AI-SDD Mandate Gate (M1-M5 and M7) — BLOCKING',
+                '## Story Artifact Template'
+            ])
+                assert.ok(story.includes(marker), `story keeps ${marker}`);
             assert.match(story, /Command `\/work-item --mode=story` → base path `tasks\/stories\/`/);
             // mockup: scope gate, journey report, design authority, flags and the explore/demo references
             const mockup = ref('mode-mockup.md');
@@ -219,7 +239,10 @@ const tests = [
             const reuse = shared.slice(shared.indexOf('## Reusing an earlier verdict'));
             assert.ok(reuse.length > 0, 'the reuse section exists');
             // The symbolic id resolves to the report written by that run's review --type=task step
-            assert.ok(reuse.includes('symbolic `--reuse=task-review`, which resolves to the report written by that run\'s `work-item --mode=review --type=task` step'), 'symbolic id resolution');
+            assert.ok(
+                reuse.includes("symbolic `--reuse=task-review`, which resolves to the report written by that run's `work-item --mode=review --type=task` step"),
+                'symbolic id resolution'
+            );
             assert.match(reuse, /SHA-256/);
             assert.match(reuse, /section\/path for this task/i);
             assert.match(reuse, /EVERY criterion and mandate/);
@@ -243,7 +266,9 @@ const tests = [
             assert.match(challenge, /vagueness-token check/);
             // Every report header records a content hash
             for (const name of ['mode-review.md', 'review-type-task.md', 'review-type-story.md', 'review-type-design.md', 'review-type-spec-tests.md']) {
-                const lines = ref(name).split('\n').filter(line => /Artifact identity/.test(line));
+                const lines = ref(name)
+                    .split('\n')
+                    .filter(line => /Artifact identity/.test(line));
                 assert.ok(lines.length > 0, `${name} records an identity line`);
                 for (const line of lines) assert.match(line, /sha256/i, `${name} requires a hash`);
             }
@@ -257,9 +282,19 @@ const tests = [
                         const args = occurrence.args.split(/\s+/);
                         if (!args.some(token => token.startsWith('--reuse='))) return;
                         consumers += 1;
-                        assert.ok(args.includes('--mode=challenge') || args.includes('--mode=dor'), `${id}/${occurrence.id}: --reuse belongs to a consumer mode`);
+                        assert.ok(
+                            args.includes('--mode=challenge') || args.includes('--mode=dor'),
+                            `${id}/${occurrence.id}: --reuse belongs to a consumer mode`
+                        );
                         assert.ok(args.includes('--reuse=task-review'), `${id}/${occurrence.id}: the workflow form is the symbolic id`);
-                        const producer = manifest.occurrences.slice(0, index).some(prior => prior.skill === 'work-item' && prior.args.split(/\s+/).includes('--mode=review') && prior.args.split(/\s+/).includes('--type=task'));
+                        const producer = manifest.occurrences
+                            .slice(0, index)
+                            .some(
+                                prior =>
+                                    prior.skill === 'work-item' &&
+                                    prior.args.split(/\s+/).includes('--mode=review') &&
+                                    prior.args.split(/\s+/).includes('--type=task')
+                            );
                         assert.ok(producer, `${id}/${occurrence.id}: a work-item --mode=review --type=task step runs before the consumer`);
                     });
                 }
@@ -276,14 +311,48 @@ const tests = [
             const expected = {
                 'mode-refine.md': ['estimation-framework', 'sequential-thinking-protocol', 'ui-system-context', 'ui-wireframe'],
                 'mode-story.md': ['estimation-framework', 'sequential-thinking-protocol', 'ui-system-context', 'ui-wireframe'],
-                'mode-mockup.md': ['design-distinctiveness-gate', 'design-review-checklist', 'existing-ui-research', 'prototype-design-system', 'ui-action-density-gate', 'ui-copywriting', 'ui-ux-design-principles', 'ux-journey-gate', 'visual-option-discovery'],
-                'mode-challenge.md': ['ba-team-decision-model', 'estimation-framework', 'refinement-dor-checklist', 'sequential-thinking-protocol', 'ui-system-context'],
-                'mode-review.md': ['core-engineering-principles', 'evidence-based-reasoning', 'goal-contract-satisfaction-loop', 'review-principle-awareness', 'review-protocol-injection', 'severity-rubric', 'task-tracking-external-report', 'trade-off-interrogation-gate', 'understand-code-first'],
+                'mode-mockup.md': [
+                    'design-distinctiveness-gate',
+                    'design-review-checklist',
+                    'existing-ui-research',
+                    'prototype-design-system',
+                    'ui-action-density-gate',
+                    'ui-copywriting',
+                    'ui-ux-design-principles',
+                    'ux-journey-gate',
+                    'visual-option-discovery'
+                ],
+                'mode-challenge.md': [
+                    'ba-team-decision-model',
+                    'estimation-framework',
+                    'refinement-dor-checklist',
+                    'sequential-thinking-protocol',
+                    'ui-system-context'
+                ],
+                'mode-review.md': [
+                    'core-engineering-principles',
+                    'evidence-based-reasoning',
+                    'goal-contract-satisfaction-loop',
+                    'review-principle-awareness',
+                    'review-protocol-injection',
+                    'severity-rubric',
+                    'task-tracking-external-report',
+                    'trade-off-interrogation-gate',
+                    'understand-code-first'
+                ],
                 // UI depth is conditional: review-type-design.md owns the UI bodies that UI-bearing reviews read at the review mode's UI gate
                 'review-type-design.md': UI_REVIEW_TAGS,
                 'mode-dor.md': ['estimation-framework']
             };
-            const MIN_REMINDERS = { 'mode-refine.md': 3, 'mode-story.md': 3, 'mode-mockup.md': 5, 'mode-challenge.md': 3, 'mode-review.md': 7, 'review-type-design.md': 5, 'mode-dor.md': 1 };
+            const MIN_REMINDERS = {
+                'mode-refine.md': 3,
+                'mode-story.md': 3,
+                'mode-mockup.md': 5,
+                'mode-challenge.md': 3,
+                'mode-review.md': 7,
+                'review-type-design.md': 5,
+                'mode-dor.md': 1
+            };
             for (const [file, tags] of Object.entries(expected)) {
                 const text = ref(file);
                 for (const tag of tags) {
@@ -299,18 +368,36 @@ const tests = [
                 const opens = text.match(/<!-- SYNC:[a-z-]+(?::reminder)? -->/g) || [];
                 const closes = text.match(/<!-- \/SYNC:[a-z-]+(?::reminder)? -->/g) || [];
                 assert.equal(opens.length, closes.length, `${file}: fences balanced`);
-                assert.ok((text.match(/<!-- SYNC:[a-z-]+:reminder -->/g) || []).length >= MIN_REMINDERS[file], `${file}: the :reminder digests moved with the bodies`);
+                assert.ok(
+                    (text.match(/<!-- SYNC:[a-z-]+:reminder -->/g) || []).length >= MIN_REMINDERS[file],
+                    `${file}: the :reminder digests moved with the bodies`
+                );
             }
             // A non-UI review loads no UI depth: mode-review.md routes to the UI bodies instead of carrying them
             const review = ref('mode-review.md');
-            for (const tag of UI_REVIEW_TAGS) assert.ok(!review.includes(`SYNC:${tag}`), `mode-review.md must not carry the conditional ${tag} body or reminder`);
-            assert.ok(review.includes('read only `review-type-design.md` → **Shared UI protocol bodies**'), 'mode-review.md routes UI-bearing reviews to the shared UI bodies');
-            assert.ok(skill.includes('`references/review-type-design.md` → **Shared UI protocol bodies**'), 'work-item/SKILL.md routes UI-bearing reviews to the shared UI bodies');
-            assert.deepEqual(guideTags(skill), ['review-decision-autonomy', 'review-policy'], 'shared decision and mode policies are routed at entry; domain-specific protocols stay isolated');
+            for (const tag of UI_REVIEW_TAGS)
+                assert.ok(!review.includes(`SYNC:${tag}`), `mode-review.md must not carry the conditional ${tag} body or reminder`);
+            assert.ok(
+                review.includes('read only `review-type-design.md` → **Shared UI protocol bodies**'),
+                'mode-review.md routes UI-bearing reviews to the shared UI bodies'
+            );
+            assert.ok(
+                skill.includes('`references/review-type-design.md` → **Shared UI protocol bodies**'),
+                'work-item/SKILL.md routes UI-bearing reviews to the shared UI bodies'
+            );
+            assert.deepEqual(
+                guideTags(skill),
+                ['review-decision-autonomy', 'review-policy'],
+                'shared decision and mode policies are routed at entry; domain-specific protocols stay isolated'
+            );
             assert.ok(skill.includes('<!-- SYNC:review-decision-autonomy:reminder -->'), 'the review policy reminder remains discoverable');
             assert.ok(skill.includes('<!-- SYNC:review-policy:reminder -->'), 'the shared modes/rounds reminder remains discoverable');
             const autonomy = fs.readFileSync(path.join(SKILLS, 'shared', 'protocols', 'review-decision-autonomy.md'), 'utf8');
-            assert.match(autonomy, /Non-review creation, interviews and implementation retain their own contracts/, 'loading the guide cannot alter non-review mode authority');
+            assert.match(
+                autonomy,
+                /Non-review creation, interviews and implementation retain their own contracts/,
+                'loading the guide cannot alter non-review mode authority'
+            );
             assert.equal((skill.match(/Root-carried protocols/g) || []).length, 0, 'work-item/SKILL.md holds no retired pointer line');
             // Protocol delivery no longer names a removed skill
             const groups = read(SKILLS, 'shared', 'protocol-groups.json');
@@ -323,8 +410,19 @@ const tests = [
         fn: () => {
             for (const name of REMOVED_DIR_ONLY) assert.ok(!fs.existsSync(path.join(SKILLS, name)), `${name} must not exist as a skill folder`);
             const occurrences = allOccurrences();
-            for (const { workflow, occurrence } of occurrences) assert.ok(!REMOVED.includes(occurrence.skill), `${workflow}/${occurrence.id}: a workflow step still runs the removed skill ${occurrence.skill}`);
-            const flagsOf = { refine: [], story: [], mockup: ['--explore', '--source='], challenge: ['--reuse='], review: ['--type=', '--fix-loop'], dor: ['--reuse='] };
+            for (const { workflow, occurrence } of occurrences)
+                assert.ok(
+                    !REMOVED.includes(occurrence.skill),
+                    `${workflow}/${occurrence.id}: a workflow step still runs the removed skill ${occurrence.skill}`
+                );
+            const flagsOf = {
+                refine: [],
+                story: [],
+                mockup: ['--explore', '--source='],
+                challenge: ['--reuse='],
+                review: ['--type=', '--fix-loop'],
+                dor: ['--reuse=']
+            };
             const seen = new Set();
             for (const { workflow, mode, occurrence } of workItemOccurrences()) {
                 const tokens = occurrence.args.trim().split(/\s+/).filter(Boolean);
@@ -334,7 +432,10 @@ const tests = [
                 assert.ok(MODES.includes(name), `${workflow}/${occurrence.id}: unsupported work-item mode ${name}`);
                 seen.add(name);
                 for (const token of tokens.filter(entry => entry !== modeToken)) {
-                    assert.ok(flagsOf[name].some(flag => token.startsWith(flag)), `${workflow}/${occurrence.id}: flag ${token} is not owned by work-item --mode=${name}`);
+                    assert.ok(
+                        flagsOf[name].some(flag => token.startsWith(flag)),
+                        `${workflow}/${occurrence.id}: flag ${token} is not owned by work-item --mode=${name}`
+                    );
                 }
             }
             for (const mode of MODES) assert.ok(seen.has(mode), `tripwire: the registry runs work-item --mode=${mode}`);
@@ -345,14 +446,18 @@ const tests = [
                 for (const gate of entry.outcomeGates || []) {
                     for (const satisfier of gate.satisfiedBy) {
                         assert.ok(!REMOVED.includes(satisfier.split(/\s+/)[0]), `outcome gate ${gate.id} names a removed skill: ${satisfier}`);
-                        if (satisfier.startsWith('work-item')) { gates += 1; assert.equal(satisfier, 'work-item --mode=review'); }
+                        if (satisfier.startsWith('work-item')) {
+                            gates += 1;
+                            assert.equal(satisfier, 'work-item --mode=review');
+                        }
                     }
                 }
             }
             assert.ok(gates >= 4, `tripwire: gates satisfied by work-item --mode=review (${gates})`);
             // Step ids stay unique per resolved manifest and do not embed a removed skill name
             for (const { workflow, occurrence } of occurrences) {
-                for (const name of ['dor-' + 'gate', 'artifact-' + 'review']) assert.ok(!occurrence.id.includes(name), `${workflow}: step id ${occurrence.id} embeds ${name}`);
+                for (const name of ['dor-' + 'gate', 'artifact-' + 'review'])
+                    assert.ok(!occurrence.id.includes(name), `${workflow}: step id ${occurrence.id} embeds ${name}`);
             }
         }
     },
@@ -366,9 +471,11 @@ const tests = [
             assert.match(description, /^\[Project Management\] Use when a workflow step or the user asks for \S/);
             assert.ok(description.length <= 250, `description is ${description.length} chars, over 250`);
             for (const mode of MODES) assert.ok(description.includes(mode), `description names the ${mode} mode`);
-            for (const intent of ['task refinement', 'story slicing', 'HTML mockups', 'draft challenges', 'artifact review', 'readiness check']) assert.ok(description.includes(intent), `description retains routing intent ${intent}`);
+            for (const intent of ['task refinement', 'story slicing', 'HTML mockups', 'draft challenges', 'artifact review', 'readiness check'])
+                assert.ok(description.includes(intent), `description retains routing intent ${intent}`);
             // Operational flags and role/acceptance details remain in the dispatch contract.
-            for (const keyword of ['--mode=', '--explore', '--type=', 'Dev BA PIC', 'acceptance criteria']) assert.ok(skillText().includes(keyword), `dispatch retains ${keyword}`);
+            for (const keyword of ['--mode=', '--explore', '--type=', 'Dev BA PIC', 'acceptance criteria'])
+                assert.ok(skillText().includes(keyword), `dispatch retains ${keyword}`);
         }
     },
     {
@@ -391,10 +498,16 @@ const tests = [
             // The design review type points at where the ui-intent-layer body lives (its own Shared UI protocol bodies section), never at a SKILL.md guide line or another file
             const design = ref('review-type-design.md');
             assert.ok(!design.includes('guide line in `SKILL.md`'), 'review-type-design.md must not point at a SKILL.md guide line');
-            assert.ok(design.includes('`SYNC:ui-intent-layer` (full body in Shared UI protocol bodies below)'), 'review-type-design.md names its Shared UI protocol bodies section as the body owner');
+            assert.ok(
+                design.includes('`SYNC:ui-intent-layer` (full body in Shared UI protocol bodies below)'),
+                'review-type-design.md names its Shared UI protocol bodies section as the body owner'
+            );
             const sharedSection = design.indexOf('\n## Shared UI protocol bodies\n');
             assert.ok(sharedSection >= 0, 'review-type-design.md has the Shared UI protocol bodies section');
-            assert.ok(design.indexOf('<!-- SYNC:ui-intent-layer -->') > sharedSection, 'the ui-intent-layer body sits in the Shared UI protocol bodies section it is named by');
+            assert.ok(
+                design.indexOf('<!-- SYNC:ui-intent-layer -->') > sharedSection,
+                'the ui-intent-layer body sits in the Shared UI protocol bodies section it is named by'
+            );
             assert.ok(!ref('mode-review.md').includes('<!-- SYNC:ui-intent-layer -->'), 'mode-review.md does not duplicate the ui-intent-layer body');
             // The old type names are not used as bare reference links any more
             for (const stale of ['task', 'story', 'design', 'spec-tests']) {
@@ -418,7 +531,10 @@ const tests = [
                     if (!defaults.occurrences.some(occurrence => occurrence.skill === 'work-item')) continue;
                     const lines = skillMd.split('\n').filter(line => /IMPORTANT MANDATORY Steps/.test(line));
                     const expected = defaults.sequence.map(step => `/${step}`).join(' -> ');
-                    assert.ok(lines.some(line => line.includes(expected)), `${id}: the step line equals the resolved manifest (${expected})`);
+                    assert.ok(
+                        lines.some(line => line.includes(expected)),
+                        `${id}: the step line equals the resolved manifest (${expected})`
+                    );
                     checked += 1;
                     continue;
                 }
@@ -452,7 +568,9 @@ const tests = [
             assert.ok(scanned > 500, `tripwire: the scan covers the framework sources (${scanned} files)`);
             assert.deepEqual(offenders, [], 'replace each with `work-item --mode=<x>`');
             // The allow-list is live: SKILL.md names the removed commands only on the formerly lines
-            const named = skillText().split('\n').filter(line => MENTION.test(line));
+            const named = skillText()
+                .split('\n')
+                .filter(line => MENTION.test(line));
             assert.ok(named.length >= 1 && named.every(line => /[Ff]ormerly/.test(line)), 'work-item/SKILL.md names the removed commands only as "formerly"');
         }
     }

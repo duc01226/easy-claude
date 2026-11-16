@@ -183,10 +183,19 @@ const IS_FRAMEWORK_REPO = frameworkRepoGuard.isFrameworkRepo(PROJECT_DIR);
 // preloads `commit`; `learn` auto-activates by design; the agent resolves conflicts from its own pull-before-commit step and
 // regenerates the host mirrors once the framework source is final).
 const COMMAND_ONLY_UTILITIES = [
-    'custom-agent', 'docx-convert', 'pdf-convert', 'playwright-cli',
-    'presentation-builder', 'remotion', 'sync-skills-shared-protocols', 'release-doc',
-    'git-developer-performance', 'skill-creator', 'scan-codebase-health',
-    'project-help', 'custom-prompt',
+    'custom-agent',
+    'docx-convert',
+    'pdf-convert',
+    'playwright-cli',
+    'presentation-builder',
+    'remotion',
+    'sync-skills-shared-protocols',
+    'release-doc',
+    'git-developer-performance',
+    'skill-creator',
+    'scan-codebase-health',
+    'project-help',
+    'custom-prompt'
 ];
 const MODEL_CALLABLE_BY_DECISION = ['commit', 'learn', 'git-conflict-resolve', 'sync-codex'];
 
@@ -202,7 +211,7 @@ const RENAMED_TRACKING_SKILLS = [
     // The three planning workflows merged into one with a mode each (P41).
     ['workflow-initiative-to-task', 'workflow-planned-work'],
     ['workflow-initiative-to-spec', 'workflow-planned-work'],
-    ['workflow-spec-to-task', 'workflow-planned-work'],
+    ['workflow-spec-to-task', 'workflow-planned-work']
 ];
 // Skill reference files (relative to the skills root) that carry the same one-line rule.
 const HTML_EXPORT_CALLER_REFERENCES = ['ui-design/references/lane-marketing/motion-storyboard.md', 'work-item/references/mode-mockup.md'];
@@ -220,7 +229,10 @@ function htmlExportExitTableDefects(markdown, EXIT) {
     if (header === -1) return ['no `| Exit |` table'];
     const rows = [];
     for (let i = header + 2; i < lines.length && lines[i].startsWith('|'); i++) {
-        const cells = lines[i].split('|').slice(1, -1).map(cell => cell.trim());
+        const cells = lines[i]
+            .split('|')
+            .slice(1, -1)
+            .map(cell => cell.trim());
         rows.push({ codes: (cells[0].match(/\d+/g) || []).map(Number), text: cells.slice(1).join(' | ') });
     }
     const defects = [];
@@ -237,7 +249,7 @@ function htmlExportExitTableDefects(markdown, EXIT) {
         [EXIT.PAGE_ERROR, [/\bfix the\b/i, /\bre-(?:run|render)\b/i]],
         [EXIT.DEPENDENCY, [/`NOT VERIFIABLE`/, /never run an? install/i]],
         [EXIT.ERROR, toolFailure],
-        [EXIT.USAGE, toolFailure],
+        [EXIT.USAGE, toolFailure]
     ];
     for (const [code, patterns] of required) {
         const row = rowFor(code);
@@ -261,12 +273,13 @@ const EMPHASIS_ANCHOR_FLOORS = {
     'business-evaluation': { top: 9, closing: 39 },
     // 36 since the mandatory Next Steps menu became a results-based follow-up: one closing line, two markers fewer.
     test: { top: 11, closing: 36 },
-    'work-item/references/mode-dor.md': { top: 6, closing: 35 },
+    'work-item/references/mode-dor.md': { top: 6, closing: 35 }
 };
 // Returns one line per anchor that lost markers (or is missing). Frontmatter and SYNC bodies are
 // excluded: they are not the skill's own anchor text.
 function emphasisAnchorGaps(body, floors) {
-    const text = String(body).replace(/\r\n?/g, '\n')
+    const text = String(body)
+        .replace(/\r\n?/g, '\n')
         .replace(/^---\n[\s\S]*?\n---\n/, '')
         .replace(/<!-- SYNC:([^\s>]+) -->[\s\S]*?<!-- \/SYNC:\1 -->/g, '');
     const count = region => (region.match(EMPHASIS_MARKERS) || []).length;
@@ -294,8 +307,7 @@ const modelInvocationValues = body => {
 };
 
 // The graph-code build-mode first step (TC-ADS-004 Test Data): one install command, identical on Windows, macOS and Linux.
-const GRAPH_TOOLING_INSTALL_COMMAND =
-    'node -e "const r=require(\'./.claude/hooks/lib/graph-utils.cjs\').ensurePythonDeps(); process.exit(r && r.ok ? 0 : 1)"';
+const GRAPH_TOOLING_INSTALL_COMMAND = 'node -e "const r=require(\'./.claude/hooks/lib/graph-utils.cjs\').ensurePythonDeps(); process.exit(r && r.ok ? 0 : 1)"';
 // Text from `start` up to (not including) the next `end` after it; '' when `start` is absent.
 const sectionBetween = (body, start, end) => {
     const from = body.indexOf(start);
@@ -322,7 +334,7 @@ const HOOK_TRUST_NOTES = {
     'a new or changed step runs only after review': /\bnew or changed\b[^.]*\b(?:skipped|not run|never runs?)\b[^.]*\buntil\b[^.]*\breview/i,
     'the review step is named': /\breview\w*\b[^.]{0,60}\bin `\/hooks`/i,
     'guides deliver until the review': /\buntil then\b[^.]*\bguide/i,
-    'an unchanged step keeps its earlier review': /\b(?:did not change|unchanged)\b[^.]*\bearlier review still holds\b/i,
+    'an unchanged step keeps its earlier review': /\b(?:did not change|unchanged)\b[^.]*\bearlier review still holds\b/i
 };
 // The trust notes the best `/hooks` paragraph lacks; every note name when no paragraph names `/hooks`.
 function hookTrustNoteGaps(guide) {
@@ -336,7 +348,7 @@ function hookTrustNoteGaps(guide) {
 // standard and its validator; feature-presentation's review deck passes it under `review`. The five editing
 // checks are a literal on purpose: the test pins the contract, it never reads the set back from the script.
 const PD_EDITING_CHECKS = ['draft-persistence', 'edit-mode', 'edit-state', 'export', 'reset'];
-const PD_SKIP = IS_FRAMEWORK_REPO ? false : 'asserts the framework repo\'s own presentation skills (framework-repo signal)';
+const PD_SKIP = IS_FRAMEWORK_REPO ? false : "asserts the framework repo's own presentation skills (framework-repo signal)";
 const pdSkillPath = (...parts) => path.join(SKILLS_DIR, ...parts);
 // Markdown read with CRLF/CR normalized, so section and fence extraction work on any checkout.
 const pdReadText = (...parts) => readFile(pdSkillPath(...parts)).replace(/\r\n?/g, '\n');
@@ -366,16 +378,24 @@ const pdSlideIdOf = tag => {
     const match = /\bdata-slide-id\s*=\s*(["'])(.*?)\1/i.exec(tag);
     return match ? match[2] : null;
 };
-const pdErrorIds = result => result.checks.filter(check => !check.pass && check.level === 'error').map(check => check.id).sort();
+const pdErrorIds = result =>
+    result.checks
+        .filter(check => !check.pass && check.level === 'error')
+        .map(check => check.id)
+        .sort();
 const pdCheck = (result, id) => result.checks.find(check => check.id === id);
 // A presenter-conforming deck (literal markup, so the invariant cases need no generator). Notes carry the
 // Say/Why/Question labels and exceed the 40-character depth floor.
 function pdFixtureDeck(slideIds = ['opening', 'evidence']) {
-    const slides = slideIds.map(id => `
+    const slides = slideIds
+        .map(
+            id => `
     <section class="slide" data-slide-id="${id}" data-purpose="explain" data-principle="This slide advances the story">
       <h2>${id}</h2><p>The claim and supporting context.</p>
       <template class="slide-notes"><p><strong>Say:</strong> Explain the claim.</p><p><strong>Why:</strong> Connect it to the audience.</p><p><strong>Question:</strong> What changes next?</p></template>
-    </section>`).join('\n');
+    </section>`
+        )
+        .join('\n');
     return `<!doctype html>
 <html lang="en"><head><meta name="presentation-id" content="fixture"><style>
   @media print { .controls { display: none; } }
@@ -412,11 +432,28 @@ function pdMutate(html, label, mutate) {
 // (Portable Test Contract). The Windows well-known folder keys (SYSTEMDRIVE, PROGRAMDATA, ...) stay: without them a
 // child that touches the shell writes its cache files under its working directory.
 const PD_CHILD_ENV_ALLOWLIST = new Set([
-    'PATH', 'PATHEXT', 'SYSTEMROOT', 'WINDIR', 'COMSPEC',
-    'SYSTEMDRIVE', 'PROGRAMDATA', 'ALLUSERSPROFILE', 'PUBLIC',
-    'PROGRAMFILES', 'PROGRAMFILES(X86)', 'PROGRAMW6432',
-    'COMMONPROGRAMFILES', 'COMMONPROGRAMFILES(X86)', 'COMMONPROGRAMW6432',
-    'PROCESSOR_ARCHITECTURE', 'PROCESSOR_ARCHITEW6432', 'NUMBER_OF_PROCESSORS', 'OS', 'LANG', 'LC_ALL', 'TZ',
+    'PATH',
+    'PATHEXT',
+    'SYSTEMROOT',
+    'WINDIR',
+    'COMSPEC',
+    'SYSTEMDRIVE',
+    'PROGRAMDATA',
+    'ALLUSERSPROFILE',
+    'PUBLIC',
+    'PROGRAMFILES',
+    'PROGRAMFILES(X86)',
+    'PROGRAMW6432',
+    'COMMONPROGRAMFILES',
+    'COMMONPROGRAMFILES(X86)',
+    'COMMONPROGRAMW6432',
+    'PROCESSOR_ARCHITECTURE',
+    'PROCESSOR_ARCHITEW6432',
+    'NUMBER_OF_PROCESSORS',
+    'OS',
+    'LANG',
+    'LC_ALL',
+    'TZ'
 ]);
 // A scrubbed child environment for a PD script run: the allow-listed OS keys only (Windows spells `Path`, so names
 // compare upper-cased), with home and every temp key at the fixture dir (Node reads TEMP first on Windows, TMPDIR
@@ -452,16 +489,25 @@ function pdWithFixtureDeckFile(prefix, use) {
 // fails this suite loudly instead of being judged by a matcher that does not understand it.
 function pdSelectorMatches(selectorList, tag) {
     const name = (/^<([a-z][\w-]*)/i.exec(tag) || [])[1] || '';
-    return selectorList.split(',').map(part => part.trim()).some(compound => {
-        const parts = /^([a-z][\w-]*)?((?:\.[\w-]+)*)((?:\[[\w-]+\])*)$/i.exec(compound);
-        if (!compound || !parts) throw new Error(`unsupported selector syntax "${compound}" in "${selectorList}"`);
-        const [, element, classes, attributes] = parts;
-        if (element && element.toLowerCase() !== name.toLowerCase()) return false;
-        const tokens = pdClassTokens(tag);
-        if (classes.split('.').filter(Boolean).some(cls => !tokens.includes(cls))) return false;
-        const attrNames = (attributes.match(/[\w-]+/g) || []);
-        return attrNames.every(attr => new RegExp(`\\s${attr}(?=[\\s=/>])`, 'i').test(tag));
-    });
+    return selectorList
+        .split(',')
+        .map(part => part.trim())
+        .some(compound => {
+            const parts = /^([a-z][\w-]*)?((?:\.[\w-]+)*)((?:\[[\w-]+\])*)$/i.exec(compound);
+            if (!compound || !parts) throw new Error(`unsupported selector syntax "${compound}" in "${selectorList}"`);
+            const [, element, classes, attributes] = parts;
+            if (element && element.toLowerCase() !== name.toLowerCase()) return false;
+            const tokens = pdClassTokens(tag);
+            if (
+                classes
+                    .split('.')
+                    .filter(Boolean)
+                    .some(cls => !tokens.includes(cls))
+            )
+                return false;
+            const attrNames = attributes.match(/[\w-]+/g) || [];
+            return attrNames.every(attr => new RegExp(`\\s${attr}(?=[\\s=/>])`, 'i').test(tag));
+        });
 }
 // Run the review-deck scaffold's REAL engine (its one inline <script>, as extracted from the deck template) in node:vm
 // against the smallest fake page it needs: the desktop layout, where the slide stage scrolls (getComputedStyle
@@ -481,34 +527,56 @@ function pdRunDeckEngine(engineSource, { heights = [900, 900, 900], viewport = 5
         const handlers = {};
         const classes = new Set(members.classes || []);
         const node = {
-            hidden: false, textContent: '', scrollTop: 0, dataset: {},
+            hidden: false,
+            textContent: '',
+            scrollTop: 0,
+            dataset: {},
             classList: {
                 add: name => classes.add(name),
                 contains: name => classes.has(name),
                 toggle: (name, force) => {
                     const on = force === undefined ? !classes.has(name) : Boolean(force);
-                    if (on) classes.add(name); else classes.delete(name);
+                    if (on) classes.add(name);
+                    else classes.delete(name);
                     return on;
-                },
+                }
             },
-            setAttribute(name, value) { attributes[name] = String(value); },
-            getAttribute(name) { return Object.prototype.hasOwnProperty.call(attributes, name) ? attributes[name] : null; },
-            hasAttribute(name) { return Object.prototype.hasOwnProperty.call(attributes, name); },
-            addEventListener(type, listener) { (handlers[type] = handlers[type] || []).push(listener); },
-            click() { (handlers.click || []).forEach(listener => listener({})); },
-            focus() {}, replaceChildren() {}, scrollIntoView() {},
-            remove() { node.removed = true; },
-            querySelector: () => null, querySelectorAll: () => [], closest: () => null,
-            getBoundingClientRect: () => ({ top: 0, bottom: 0 }),
+            setAttribute(name, value) {
+                attributes[name] = String(value);
+            },
+            getAttribute(name) {
+                return Object.prototype.hasOwnProperty.call(attributes, name) ? attributes[name] : null;
+            },
+            hasAttribute(name) {
+                return Object.prototype.hasOwnProperty.call(attributes, name);
+            },
+            addEventListener(type, listener) {
+                (handlers[type] = handlers[type] || []).push(listener);
+            },
+            click() {
+                (handlers.click || []).forEach(listener => listener({}));
+            },
+            focus() {},
+            replaceChildren() {},
+            scrollIntoView() {},
+            remove() {
+                node.removed = true;
+            },
+            querySelector: () => null,
+            querySelectorAll: () => [],
+            closest: () => null,
+            getBoundingClientRect: () => ({ top: 0, bottom: 0 })
         };
         for (const [key, value] of Object.entries(members)) if (key !== 'classes') node[key] = value;
         return node;
     };
-    const slides = heights.map((_, k) => element({
-        classes: ['slide', 'deck__slide'],
-        dataset: { slideId: `slide-job-${k}` },
-        querySelector: selector => (selector === 'h2' ? { textContent: `Title ${k + 1}` } : null),
-    }));
+    const slides = heights.map((_, k) =>
+        element({
+            classes: ['slide', 'deck__slide'],
+            dataset: { slideId: `slide-job-${k}` },
+            querySelector: selector => (selector === 'h2' ? { textContent: `Title ${k + 1}` } : null)
+        })
+    );
     const activeIndex = () => slides.findIndex(slide => slide.classList.contains('deck__slide--active'));
     // A scroll area clamps like a browser and records each requested step as [name, delta].
     const scroller = (name, members) => {
@@ -527,7 +595,7 @@ function pdRunDeckEngine(engineSource, { heights = [900, 900, 900], viewport = 5
         scrollHeight: notesHeight,
         clientHeight: notesViewport,
         contains: node => Boolean(node && node.inNotes),
-        querySelector: selector => (selector === '.deck__notes-head' ? notesHead : null),
+        querySelector: selector => (selector === '.deck__notes-head' ? notesHead : null)
     });
     const byId = {
         'deck-status': element(),
@@ -535,13 +603,19 @@ function pdRunDeckEngine(engineSource, { heights = [900, 900, 900], viewport = 5
         'notes-slide': element(),
         'notes-content': element(),
         overview: element({ open: false }),
-        'overview-list': element(),
+        'overview-list': element()
     };
     const buttons = {};
     for (const action of ['previous', 'next', 'overview', 'toggle-notes', 'fullscreen', 'theme', 'close-notes', 'close-overview']) buttons[action] = element();
-    const singles = { '.deck': element(), '.deck__stage': stage, '.deck__nav': element({ getBoundingClientRect: () => ({ top: viewport - 60, bottom: viewport }) }) };
+    const singles = {
+        '.deck': element(),
+        '.deck__stage': stage,
+        '.deck__nav': element({ getBoundingClientRect: () => ({ top: viewport - 60, bottom: viewport }) })
+    };
     const embedElements = embeds(element);
-    const unexpected = what => { throw new Error(`fake page: the engine asked for ${what}, which this harness does not model`); };
+    const unexpected = what => {
+        throw new Error(`fake page: the engine asked for ${what}, which this harness does not model`);
+    };
     const document = {
         documentElement: element(),
         scrollingElement: null,
@@ -557,16 +631,18 @@ function pdRunDeckEngine(engineSource, { heights = [900, 900, 900], viewport = 5
             return unexpected(`querySelectorAll("${selector}")`);
         },
         getElementById: id => (Object.prototype.hasOwnProperty.call(byId, id) ? byId[id] : unexpected(`#${id}`)),
-        addEventListener(type, listener, capture) { documentListeners.push({ type, listener, capture: Boolean(capture) }); },
+        addEventListener(type, listener, capture) {
+            documentListeners.push({ type, listener, capture: Boolean(capture) });
+        },
         createTextNode: text => ({ text }),
-        createElement: () => element(),
+        createElement: () => element()
     };
     const context = {
         document,
         window: { matchMedia: () => ({ matches: false }), innerHeight: viewport },
         getComputedStyle: node => ({ overflowY: node === stage ? 'auto' : 'visible' }),
         history: { replaceState() {} },
-        location: { hash: '' },
+        location: { hash: '' }
     };
     new vm.Script(engineSource, { filename: 'deck-template-engine.js' }).runInNewContext(context);
     // Dispatch like a browser: capture listeners first, then the rest, in registration order.
@@ -578,17 +654,30 @@ function pdRunDeckEngine(engineSource, { heights = [900, 900, 900], viewport = 5
     };
     const page = { tagName: 'BODY', isContentEditable: false, closest: () => null };
     return {
-        calls, stage, notesPanel, buttons,
+        calls,
+        stage,
+        notesPanel,
+        buttons,
         notesSlide: byId['notes-slide'],
         index: activeIndex,
         status: () => byId['deck-status'].textContent,
-        press: (key, { shiftKey = false, repeat = false, target = page } = {}) => dispatch('keydown', {
-            key, shiftKey, repeat, target, altKey: false, ctrlKey: false, metaKey: false, defaultPrevented: false,
-            preventDefault() { this.defaultPrevented = true; },
-        }),
+        press: (key, { shiftKey = false, repeat = false, target = page } = {}) =>
+            dispatch('keydown', {
+                key,
+                shiftKey,
+                repeat,
+                target,
+                altKey: false,
+                ctrlKey: false,
+                metaKey: false,
+                defaultPrevented: false,
+                preventDefault() {
+                    this.defaultPrevented = true;
+                }
+            }),
         mousedown: () => dispatch('mousedown', { target: page }),
         notesTarget: { tagName: 'DIV', isContentEditable: false, closest: () => null, inNotes: true },
-        embeds: embedElements,
+        embeds: embedElements
     };
 }
 
@@ -598,8 +687,7 @@ function pdRunDeckEngine(engineSource, { heights = [900, 900, 900], viewport = 5
 const assertRelocated = (deletedHook, skill, phrases) => {
     const body = skill.includes('/') ? readFile(path.join(SKILLS_DIR, ...skill.split('/'))) : readSkill(skill);
     const missing = phrases.filter(p => !body.includes(p));
-    assertTrue(missing.length === 0,
-        `${deletedHook} guidance lost from ${skill} (relocation regressed):\n  ${missing.join('\n  ')}`);
+    assertTrue(missing.length === 0, `${deletedHook} guidance lost from ${skill} (relocation regressed):\n  ${missing.join('\n  ')}`);
 };
 
 module.exports = {
@@ -625,29 +713,27 @@ module.exports = {
                     'frontend-patterns-reference.md',
                     'integration-test-reference.md',
                     'e2e-test-reference.md',
-                    'spec-system-reference.md',
+                    'spec-system-reference.md'
                 ]) {
                     if (!claudeMd.includes(doc)) missing.push(`pointer to ${doc}`);
                 }
-                assertTrue(missing.length === 0,
-                    `CLAUDE.md missing relocated routing guidance:\n  ${missing.join('\n  ')}`);
-            },
+                assertTrue(missing.length === 0, `CLAUDE.md missing relocated routing guidance:\n  ${missing.join('\n  ')}`);
+            }
         },
         {
             name: '[content-presence] TC-CP-008 tracked contexts carry no route text: no pointer, gate or catalog',
             fn: () => {
                 for (const relative of ['CLAUDE.md', 'AGENTS.md']) {
                     const body = readFile(path.resolve(PROJECT_DIR, relative));
-                    assertTrue(!body.includes('<!-- CK:WORKFLOW-ROUTE-POINTER -->'),
-                        `${relative} carries a route pointer; the route hook is the only carrier`);
-                    assertTrue(!body.includes('<!-- CK:WORKFLOW-GATE -->') && !body.includes('**Workflow question**'),
-                        `${relative} carries route rules; the route hook is their only carrier`);
-                    assertTrue(!body.includes('<!-- CK:WORKFLOW-SKILLS -->'),
-                        `${relative} carries the runtime workflow catalog`);
-                    assertTrue(!/###\s+Workflows Index \(\d+\)/.test(body),
-                        `${relative} carries a static Workflows Index`);
+                    assertTrue(!body.includes('<!-- CK:WORKFLOW-ROUTE-POINTER -->'), `${relative} carries a route pointer; the route hook is the only carrier`);
+                    assertTrue(
+                        !body.includes('<!-- CK:WORKFLOW-GATE -->') && !body.includes('**Workflow question**'),
+                        `${relative} carries route rules; the route hook is their only carrier`
+                    );
+                    assertTrue(!body.includes('<!-- CK:WORKFLOW-SKILLS -->'), `${relative} carries the runtime workflow catalog`);
+                    assertTrue(!/###\s+Workflows Index \(\d+\)/.test(body), `${relative} carries a static Workflows Index`);
                 }
-            },
+            }
         },
         {
             // Guards routing INTENT: a brief complexity assessment picks direct / custom-simple /
@@ -669,42 +755,40 @@ module.exports = {
                     'A behavior change keeps its test and review steps',
                     'a direct, single-skill or custom-simple route (a Catalog-fit downgrade included) proceeds without asking',
                     "the declared route is the user's override point",
-                    '— because {key signals}',
+                    '— because {key signals}'
                 ].filter(phrase => !gate.includes(phrase));
-                assertTrue(missing.length === 0,
-                    `workflow-first-gate.md lost routing-assessment guidance:\n  ${missing.join('\n  ')}`);
+                assertTrue(missing.length === 0, `workflow-first-gate.md lost routing-assessment guidance:\n  ${missing.join('\n  ')}`);
 
                 // Downgrade guards: the Signals → Route table is the default and catalog fit may only
                 // trim no-work steps — a downgraded route keeps root-cause investigation, spec/doc
                 // sync, test and review. The same phrases must reach every routing surface.
                 const DOWNGRADE_GUARDS = [
                     'trimming only steps that would do no real work',
-                    'a downgraded route also keeps root-cause investigation for bugs and spec/doc sync when behavior or a public contract changes',
+                    'a downgraded route also keeps root-cause investigation for bugs and spec/doc sync when behavior or a public contract changes'
                 ];
-                const missingGuards = (label, body) => DOWNGRADE_GUARDS
-                    .filter(phrase => !body.includes(phrase)).map(phrase => `${label} → "${phrase}"`);
-                assertTrue(/the table route is the default/i.test(gate),
-                    'workflow-first-gate.md no longer states the Signals → Route table takes precedence over catalog fit');
+                const missingGuards = (label, body) => DOWNGRADE_GUARDS.filter(phrase => !body.includes(phrase)).map(phrase => `${label} → "${phrase}"`);
+                assertTrue(
+                    /the table route is the default/i.test(gate),
+                    'workflow-first-gate.md no longer states the Signals → Route table takes precedence over catalog fit'
+                );
 
                 const { buildWorkflowSkillsCatalog } = require(path.resolve(PROJECT_DIR, '.claude', 'scripts', 'lib', 'workflow-skills-catalog.cjs'));
                 const guide = buildWorkflowSkillsCatalog({ rootDir: PROJECT_DIR, sections: ['routing'] });
-                assertTrue(guide.includes('>80% of its unconditional steps would do real work'),
-                    'runtime Routing Decision Guide diverges from the gate catalog-fit rule');
-                assertTrue(guide.includes('never ask which path to take'),
-                    'runtime Routing Decision Guide lost the auto-select rule');
-                assertTrue(/the table route is the default/i.test(guide),
-                    'runtime Routing Decision Guide lost the table-precedence rule');
-                assertTrue(guide.includes('A behavior change keeps its test and review steps'),
-                    'runtime Routing Decision Guide lost the test/review guard');
+                assertTrue(
+                    guide.includes('>80% of its unconditional steps would do real work'),
+                    'runtime Routing Decision Guide diverges from the gate catalog-fit rule'
+                );
+                assertTrue(guide.includes('never ask which path to take'), 'runtime Routing Decision Guide lost the auto-select rule');
+                assertTrue(/the table route is the default/i.test(guide), 'runtime Routing Decision Guide lost the table-precedence rule');
+                assertTrue(guide.includes('A behavior change keeps its test and review steps'), 'runtime Routing Decision Guide lost the test/review guard');
 
                 const skill = readSkill('start-workflow');
                 const guardGaps = [
                     ...missingGuards('workflow-first-gate.md', gate),
                     ...missingGuards('Routing Decision Guide', guide),
-                    ...missingGuards('start-workflow/SKILL.md', skill),
+                    ...missingGuards('start-workflow/SKILL.md', skill)
                 ];
-                assertTrue(guardGaps.length === 0,
-                    `downgrade guards diverge across routing surfaces:\n  ${guardGaps.join('\n  ')}`);
+                assertTrue(guardGaps.length === 0, `downgrade guards diverge across routing surfaces:\n  ${guardGaps.join('\n  ')}`);
 
                 // Mid-session guard: the workflow question is a first-task-of-session behavior only. Losing
                 // it lets a follow-up or correction mid-work start — or re-ask about — a full workflow over
@@ -719,16 +803,22 @@ module.exports = {
                     'required gates (root-cause investigation for a bug, test, review, spec/doc sync, and any other required quality gate) still run and do not count toward that cap',
                     'continuing a workflow already running is not activating one',
                     'An explicit workflow request always runs, mid-session included',
-                    'or the user asking in words to use a workflow; follow it.',
+                    'or the user asking in words to use a workflow; follow it.'
                 ];
                 // The route hook is the only carrier of the gate: its ask payload must carry the same rule. The
                 // generated roots carry no route text (TC-CP-008).
                 const routeHook = require(path.resolve(PROJECT_DIR, '.claude', 'hooks', 'lib', 'workflow-route-delivery.cjs'));
                 const hookPayload = routeHook.buildInjection(PROJECT_DIR, '', 'ask', 'default', COMPATIBLE_PROFILE);
-                const midSessionGaps = [['workflow-first-gate.md', gate], ['Routing Decision Guide', guide], ['start-workflow/SKILL.md', skill], ['route hook payload (ask)', hookPayload]]
-                    .flatMap(([label, body]) => MID_SESSION.filter(p => !body.includes(p)).map(p => `${label} → "${p}"`));
-                assertTrue(midSessionGaps.length === 0,
-                    `mid-session no-auto-activation rule diverges across routing surfaces:\n  ${midSessionGaps.join('\n  ')}`);
+                const midSessionGaps = [
+                    ['workflow-first-gate.md', gate],
+                    ['Routing Decision Guide', guide],
+                    ['start-workflow/SKILL.md', skill],
+                    ['route hook payload (ask)', hookPayload]
+                ].flatMap(([label, body]) => MID_SESSION.filter(p => !body.includes(p)).map(p => `${label} → "${p}"`));
+                assertTrue(
+                    midSessionGaps.length === 0,
+                    `mid-session no-auto-activation rule diverges across routing surfaces:\n  ${midSessionGaps.join('\n  ')}`
+                );
                 // Mode auto carries the same guard: it asks the same question, on the first task only (P46).
                 const autoPayload = routeHook.buildInjection(PROJECT_DIR, '', 'auto', 'default', COMPATIBLE_PROFILE);
                 const autoGaps = [
@@ -744,21 +834,24 @@ module.exports = {
                 for (const [pattern, why] of [
                     [/MAY propose/, '"MAY propose" a route'],
                     [/How to present \(ask user question tool/, 'an ask user question tool route-presentation step'],
-                    [/Propose Custom Pipeline/i, 'a "Propose Custom Pipeline" step'],
+                    [/Propose Custom Pipeline/i, 'a "Propose Custom Pipeline" step']
                 ]) {
-                    assertTrue(!pattern.test(skill),
-                        `start-workflow carries ${why}, contradicting the auto-select gate`);
+                    assertTrue(!pattern.test(skill), `start-workflow carries ${why}, contradicting the auto-select gate`);
                 }
-                const section = skill.slice(skill.indexOf('## Custom Pipeline Option'),
-                    skill.indexOf('### Task creation for Custom Pipeline'));
+                const section = skill.slice(skill.indexOf('## Custom Pipeline Option'), skill.indexOf('### Task creation for Custom Pipeline'));
                 assertTrue(section.length > 0, 'start-workflow lost its Custom Pipeline section');
-                assertTrue(section.includes('Do NOT use `ask user question tool` to choose'),
-                    'start-workflow must auto-select the custom pipeline without a confirmation prompt');
+                assertTrue(
+                    section.includes('Do NOT use `ask user question tool` to choose'),
+                    'start-workflow must auto-select the custom pipeline without a confirmation prompt'
+                );
 
                 // Example routes teach the model the step vocabulary: every step in a
                 // `Route: custom-simple [a → b]` example must be a real canonical skill id.
                 const invalidSteps = [];
-                for (const [label, body] of [['workflow-first-gate.md', gate], ['start-workflow/SKILL.md', skill]]) {
+                for (const [label, body] of [
+                    ['workflow-first-gate.md', gate],
+                    ['start-workflow/SKILL.md', skill]
+                ]) {
                     const examples = [...body.matchAll(/Route: custom-simple(?: "[^"]*")? \[([^\]]+)\]/g)];
                     assertTrue(examples.length > 0, `${label} lost its custom-simple route example`);
                     for (const match of examples) {
@@ -769,9 +862,8 @@ module.exports = {
                         }
                     }
                 }
-                assertTrue(invalidSteps.length === 0,
-                    `route examples name non-canonical step ids:\n  ${invalidSteps.join('\n  ')}`);
-            },
+                assertTrue(invalidSteps.length === 0, `route examples name non-canonical step ids:\n  ${invalidSteps.join('\n  ')}`);
+            }
         },
         {
             // Guards the workflow-question INTENT (BR-WFR-06): a workflow the model matched on its own —
@@ -788,17 +880,21 @@ module.exports = {
                 const guide = buildWorkflowSkillsCatalog({ rootDir: PROJECT_DIR, sections: ['routing'] });
                 const legend = buildWorkflowSkillsCatalog({ rootDir: PROJECT_DIR, sections: ['workflows'], compact: true });
                 const skill = readSkill('start-workflow');
-                const readIfPresent = rel => [[rel, path.join(PROJECT_DIR, rel)]]
-                    .filter(([, abs]) => fs.existsSync(abs)).map(([r, abs]) => [r, readFile(abs)]);
+                const readIfPresent = rel => [[rel, path.join(PROJECT_DIR, rel)]].filter(([, abs]) => fs.existsSync(abs)).map(([r, abs]) => [r, readFile(abs)]);
                 // The roots carry no route text (TC-CP-008); the route hook's ask payload carries the gate.
                 const routeHook = require(path.resolve(PROJECT_DIR, '.claude', 'hooks', 'lib', 'workflow-route-delivery.cjs'));
                 const hookPayload = routeHook.buildInjection(PROJECT_DIR, '', 'ask', 'default', COMPATIBLE_PROFILE);
                 const autoPayload = routeHook.buildInjection(PROJECT_DIR, '', 'auto', 'default', COMPATIBLE_PROFILE);
-                const generatedCopies = [['route hook payload (ask)', hookPayload], ['route hook payload (auto)', autoPayload]];
+                const generatedCopies = [
+                    ['route hook payload (ask)', hookPayload],
+                    ['route hook payload (auto)', autoPayload]
+                ];
                 const mirrorPaths = [path.join('.agents', 'skills', 'start-workflow', 'SKILL.md')];
                 const skillMirrors = mirrorPaths.flatMap(readIfPresent);
-                assertTrue(skillMirrors.length === mirrorPaths.filter(rel => fs.existsSync(path.join(PROJECT_DIR, rel))).length,
-                    'every existing workflow-start mirror must reach the routing-surface assertions');
+                assertTrue(
+                    skillMirrors.length === mirrorPaths.filter(rel => fs.existsSync(path.join(PROJECT_DIR, rel))).length,
+                    'every existing workflow-start mirror must reach the routing-surface assertions'
+                );
                 // The always-loaded gate is byte-budgeted, so it carries the compact rule; start-workflow and the
                 // runtime catalog carry the full procedure. Phrases avoid host-rewritten tokens so the Codex /
                 // OpenCode projections are checked with the same strings.
@@ -807,12 +903,12 @@ module.exports = {
                     'ask the workflow question (below) only when YOUR route is to start a catalog workflow',
                     'it NEVER starts before the answer',
                     '**Workflow question** (every tier): only when your route is to start a catalog workflow (never for direct or custom-simple)',
-                    "use ask user question tool to ask user, else plain text, then stop until the user answers",
+                    'use ask user question tool to ask user, else plain text, then stop until the user answers',
                     'the recommended one first with a one-line reason',
                     '(a) the full workflow `<id>`',
                     '(b) a slimmer custom route listing its steps, keeping every required gate',
                     '(c) execute directly, no workflow or skill',
-                    'runs any tier with no question',
+                    'runs any tier with no question'
                 ];
                 const START = [
                     '**Workflow question**',
@@ -820,26 +916,35 @@ module.exports = {
                     'whatever its tier, is NEVER activated before the user answers ONE question',
                     '(c) execute directly, no workflow or skill',
                     'activates any tier with no question',
-                    'ask no other route question',
+                    'ask no other route question'
                 ];
                 const surfaces = [
                     ['workflow-first-gate.md', gate, GATE],
                     ...generatedCopies.map(([rel, body]) => [rel, body, GATE]),
-                    ['Routing Decision Guide', guide, [
-                        'when your route is to start a catalog workflow (never for a direct, single-skill or custom-simple route), never start it on your own',
-                        '(c) execute directly, no workflow or skill',
-                        'An explicit user request runs every tier directly, with no question',
-                    ]],
-                    ['runtime tier legend', legend, [
-                        'before you start a catalog workflow, in every tier; a direct, single-skill or custom-simple route asks nothing',
-                        'An explicit request runs every tier with no question',
-                    ]],
+                    [
+                        'Routing Decision Guide',
+                        guide,
+                        [
+                            'when your route is to start a catalog workflow (never for a direct, single-skill or custom-simple route), never start it on your own',
+                            '(c) execute directly, no workflow or skill',
+                            'An explicit user request runs every tier directly, with no question'
+                        ]
+                    ],
+                    [
+                        'runtime tier legend',
+                        legend,
+                        [
+                            'before you start a catalog workflow, in every tier; a direct, single-skill or custom-simple route asks nothing',
+                            'An explicit request runs every tier with no question'
+                        ]
+                    ],
                     ['start-workflow/SKILL.md', skill, START],
-                    ...skillMirrors.map(([rel, body]) => [rel, body, START]),
+                    ...skillMirrors.map(([rel, body]) => [rel, body, START])
                 ];
                 // When each surface is checked for the rule, and for the tier semantics it replaced
                 const gaps = surfaces.flatMap(([label, body, phrases]) =>
-                    phrases.filter(phrase => !body.includes(phrase)).map(phrase => `${label} → "${phrase}"`));
+                    phrases.filter(phrase => !body.includes(phrase)).map(phrase => `${label} → "${phrase}"`)
+                );
                 const STALE = [
                     /the route gate may select and start it/,
                     /never self-start a `manual` workflow/,
@@ -850,10 +955,9 @@ module.exports = {
                     /a route that matches a catalog workflow, whatever its tier, NEVER starts on your own/,
                     /every tier asks the workflow question/,
                     /never start a catalog workflow you matched on your own/,
-                    /(?:direct|custom-simple)[^.;|]{0,80}\b(?:must|MUST|always) ask\b/,
+                    /(?:direct|custom-simple)[^.;|]{0,80}\b(?:must|MUST|always) ask\b/
                 ];
-                const stale = surfaces.flatMap(([label, body]) =>
-                    STALE.filter(pattern => pattern.test(body)).map(pattern => `${label} → ${pattern}`));
+                const stale = surfaces.flatMap(([label, body]) => STALE.filter(pattern => pattern.test(body)).map(pattern => `${label} → ${pattern}`));
                 // And no surface a person or the model reads says mode auto starts a self-selected workflow unasked (P46):
                 // the routing surfaces above, every workflow skill and the docs that explain the modes
                 // Each pattern matches a sentence a carrier held before P46 (checked against `git show HEAD:` of every file
@@ -871,42 +975,77 @@ module.exports = {
                     /\bstarts? (?:a matched|the catalog) workflow[^.;]{0,40}(?:without asking|by its tier)/,
                     /\bstart the catalog workflow you matched without asking/,
                     // Bound to a workflow subject, so a skill saying a dev server or a heavy skill "starts automatically" never trips it
-                    /\b(?:workflows?|the workflow|a matched workflow)\b[^.;|\n]{0,40}\bstarts? automatically\b/i,
+                    /\b(?:workflows?|the workflow|a matched workflow)\b[^.;|\n]{0,40}\bstarts? automatically\b/i
                 ];
                 const harmless = ['The dev server starts automatically when the app runs.', 'Heavy skills start automatically unless disabled.'];
-                assertTrue(harmless.every(text => !AUTO_STALE.some(pattern => pattern.test(text))), 'the auto-start guard must not flag text about anything but a workflow');
+                assertTrue(
+                    harmless.every(text => !AUTO_STALE.some(pattern => pattern.test(text))),
+                    'the auto-start guard must not flag text about anything but a workflow'
+                );
                 // In the framework repo every skill and framework doc is scanned, not a hand-kept list: each review round found one more
                 // carrier the list missed. An adopter's own skills and docs are theirs, so there only the routing surfaces above are scanned.
-                const workflowSkills = IS_FRAMEWORK_REPO ? fs.readdirSync(SKILLS_DIR).map(name => path.join('.claude', 'skills', name, 'SKILL.md')).flatMap(readIfPresent) : [];
-                const docFiles = dir => fs.existsSync(dir) ? fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry =>
-                    entry.isDirectory() ? docFiles(path.join(dir, entry.name)) : /\.(md|html)$/.test(entry.name) ? [path.join(dir, entry.name)] : []) : [];
-                const modeDocs = IS_FRAMEWORK_REPO ? [...docFiles(path.join(PROJECT_DIR, '.claude', 'docs')).map(abs => path.relative(PROJECT_DIR, abs)),
-                    '.claude/config/README.md', '.claude/scripts/lib/config-option-describes.cjs', '.claude/hooks/lib/project-config-schema.cjs',
-                    '.claude/scripts/lib/workflow-routing-config.cjs', '.claude/skills/shared/protocols/concise-workflow-route.md',
-                    'README.md'].flatMap(readIfPresent) : [];
+                const workflowSkills = IS_FRAMEWORK_REPO
+                    ? fs
+                          .readdirSync(SKILLS_DIR)
+                          .map(name => path.join('.claude', 'skills', name, 'SKILL.md'))
+                          .flatMap(readIfPresent)
+                    : [];
+                const docFiles = dir =>
+                    fs.existsSync(dir)
+                        ? fs
+                              .readdirSync(dir, { withFileTypes: true })
+                              .flatMap(entry =>
+                                  entry.isDirectory()
+                                      ? docFiles(path.join(dir, entry.name))
+                                      : /\.(md|html)$/.test(entry.name)
+                                        ? [path.join(dir, entry.name)]
+                                        : []
+                              )
+                        : [];
+                const modeDocs = IS_FRAMEWORK_REPO
+                    ? [
+                          ...docFiles(path.join(PROJECT_DIR, '.claude', 'docs')).map(abs => path.relative(PROJECT_DIR, abs)),
+                          '.claude/config/README.md',
+                          '.claude/scripts/lib/config-option-describes.cjs',
+                          '.claude/hooks/lib/project-config-schema.cjs',
+                          '.claude/scripts/lib/workflow-routing-config.cjs',
+                          '.claude/skills/shared/protocols/concise-workflow-route.md',
+                          'README.md'
+                      ].flatMap(readIfPresent)
+                    : [];
                 const autoCatalog = buildWorkflowSkillsCatalog({ rootDir: PROJECT_DIR, sections: ['workflows'], compact: true, mode: 'auto' });
                 assertTrue(autoCatalog.includes('**Activation (mode auto):**'), 'the auto tier legend must reach the auto-start scan');
                 const autoStale = [...surfaces, ...workflowSkills, ...modeDocs, ['runtime tier legend (auto)', autoCatalog]].flatMap(([label, body]) =>
-                    AUTO_STALE.filter(pattern => pattern.test(body)).map(pattern => `${label} → ${pattern}`));
+                    AUTO_STALE.filter(pattern => pattern.test(body)).map(pattern => `${label} → ${pattern}`)
+                );
                 assertTrue(!IS_FRAMEWORK_REPO || workflowSkills.length > 0, 'the framework skills must reach the auto-start scan');
                 // And every confirm-tier workflow skill states the auto rule in its own words: the same question, full workflow first
                 const registry = JSON.parse(readFile(path.join(PROJECT_DIR, '.claude', 'workflows.json'))).workflows;
                 const confirmTier = Object.keys(registry).filter(id => registry[id].activation === 'confirm');
-                const confirmGaps = confirmTier.filter(id => !readFile(path.join(SKILLS_DIR, id, 'SKILL.md')).includes('Route mode `auto` asks the same question, recommending the full workflow first'));
+                const confirmGaps = confirmTier.filter(
+                    id =>
+                        !readFile(path.join(SKILLS_DIR, id, 'SKILL.md')).includes(
+                            'Route mode `auto` asks the same question, recommending the full workflow first'
+                        )
+                );
                 // The framework's own tiers only: an adopter may retier its copy of the registry
-                if (IS_FRAMEWORK_REPO) assertTrue(confirmTier.length > 0 && confirmGaps.length === 0, `confirm-tier skills must say auto asks the same question: ${confirmGaps.join(', ')}`);
+                if (IS_FRAMEWORK_REPO)
+                    assertTrue(
+                        confirmTier.length > 0 && confirmGaps.length === 0,
+                        `confirm-tier skills must say auto asks the same question: ${confirmGaps.join(', ')}`
+                    );
                 // Then every surface carries the question and none lets a tier start on its own
                 assertTrue(gaps.length === 0, `workflow-question rule diverges across routing surfaces:\n  ${gaps.join('\n  ')}`);
                 assertTrue(stale.length === 0, `a routing surface still lets a tier self-start:\n  ${stale.join('\n  ')}`);
                 assertTrue(autoStale.length === 0, `a surface still lets mode auto start a workflow unasked:\n  ${autoStale.join('\n  ')}`);
-            },
+            }
         },
         {
             // Guards the SINGLE-ASK intent: only the root route gate offers a workflow. A step skill that
             // carries its own "use ask user question tool to pick a workflow" block asks a second, divergent
             // question (and has named workflows that do not exist), overriding the gate's direct route.
             name: '[content-presence] TC-CP-017b no skill carries its own workflow-recommendation question',
-            skip: IS_FRAMEWORK_REPO ? false : 'asserts the framework repo\'s own skills; an adopter\'s custom skills are theirs (framework-repo signal)',
+            skip: IS_FRAMEWORK_REPO ? false : "asserts the framework repo's own skills; an adopter's custom skills are theirs (framework-repo signal)",
             fn: () => {
                 // Given every shipped skill body
                 const offenders = [];
@@ -920,7 +1059,7 @@ module.exports = {
                 }
                 // Then none asks on its own — the gate's workflow question is the only one
                 assertTrue(offenders.length === 0, `skills ask a second workflow question:\n  ${offenders.join('\n  ')}`);
-            },
+            }
         },
         {
             // Guards BR-GWF-01 + BR-GWF-13 (the quality floor of the flex rules): `core`/`optional` steps
@@ -934,20 +1073,20 @@ module.exports = {
                 const required = [
                     '`gate` steps ALWAYS run and are NEVER skipped, merged away, simplified away or reordered',
                     'every deviation writes one line',
-                    'only after both the comment and the deviation-log line',
+                    'only after both the comment and the deviation-log line'
                 ];
                 const missing = required.filter(p => !protocol.includes(p));
                 // Then the gate-never-skips rule and the log requirement are both stated
                 assertTrue(protocol.length > 0, 'start-workflow lost its Step Execution Protocol section');
-                assertTrue(missing.length === 0,
-                    `start-workflow step contract lost load-bearing rules:\n  ${missing.join('\n  ')}`);
+                assertTrue(missing.length === 0, `start-workflow step contract lost load-bearing rules:\n  ${missing.join('\n  ')}`);
                 // And every step row inside its phase task shows its role, so gate steps stay visible
-                assertTrue(readSkill('start-workflow').includes('- [ ] {occurrence-id} [{role}] /{skill} {args}'),
-                    'start-workflow phase-task rows no longer show the occurrence role');
+                assertTrue(
+                    readSkill('start-workflow').includes('- [ ] {occurrence-id} [{role}] /{skill} {args}'),
+                    'start-workflow phase-task rows no longer show the occurrence role'
+                );
                 // And the always-read closing reminder repeats the gate rule
-                assertTrue(readSkill('start-workflow').includes('`gate` steps never skip;'),
-                    'start-workflow closing reminder lost the gate-never-skips rule');
-            },
+                assertTrue(readSkill('start-workflow').includes('`gate` steps never skip;'), 'start-workflow closing reminder lost the gate-never-skips rule');
+            }
         },
         {
             // Guards BR-GWF-13 + BR-GWF-16: intent first, core/optional steps may be skipped, merged,
@@ -963,12 +1102,12 @@ module.exports = {
                     '`outcomeGates`',
                     '`core` and `optional` steps are recommendations',
                     'Intent first, you may skip, merge, simplify or reorder one when every applicable outcome gate can still be satisfied',
-                    'Simplified and reordered steps still execute their skill protocol and add their line',
+                    'Simplified and reordered steps still execute their skill protocol and add their line'
                 ];
                 const missing = required.filter(p => !protocol.includes(p));
                 // Then the freedom, its limit and its log are all stated
                 assertTrue(missing.length === 0, `start-workflow flex rules lost:\n  ${missing.join('\n  ')}`);
-            },
+            }
         },
         {
             // Guards BR-GWF-14: a review of unfinished work, or of an unsynced spec, proves nothing.
@@ -982,12 +1121,12 @@ module.exports = {
                     'a change is made before it is reviewed and before its tests run',
                     'the spec sync runs before the review that checks it',
                     'the close runs last',
-                    'A reorder or merge that breaks one of these is not allowed.',
+                    'A reorder or merge that breaks one of these is not allowed.'
                 ];
                 const missing = required.filter(p => !protocol.includes(p));
                 // Then all three standing dependencies and the prohibition are stated
                 assertTrue(missing.length === 0, `start-workflow dependency rule lost:\n  ${missing.join('\n  ')}`);
-            },
+            }
         },
         {
             // Guards BR-GWF-15: "tests are recommendations" covers which tests run, never whether the
@@ -1002,15 +1141,17 @@ module.exports = {
                     'Tests are recommendations of which, never of whether',
                     'The choice of test steps and test cases may flex',
                     'every behaviour the run changed is covered by tests that ran green in this run',
-                    'A skip or merge that would leave changed behaviour untested or failing is not allowed.',
+                    'A skip or merge that would leave changed behaviour untested or failing is not allowed.'
                 ].filter(p => !protocol.includes(p));
                 // Then the scope is stated in the starter
                 assertTrue(starterGaps.length === 0, `start-workflow test-scope rule lost:\n  ${starterGaps.join('\n  ')}`);
                 // And the close accepts only tests that cover the changed behaviour
                 const testsRule = check.split('\n').find(line => line.includes('`tests-pass`:')) || '';
-                assertTrue(testsRule.includes('cover every behaviour the run changed and ran green in this run'),
-                    'workflow-end tests-pass evidence no longer has to cover the changed behaviour');
-            },
+                assertTrue(
+                    testsRule.includes('cover every behaviour the run changed and ran green in this run'),
+                    'workflow-end tests-pass evidence no longer has to cover the changed behaviour'
+                );
+            }
         },
         {
             // Guards BR-GWF-13 (workflow-step mode): a skill run as a workflow step leaves the next step, the goal
@@ -1030,12 +1171,12 @@ module.exports = {
                     "Citation never replaces a proof: a root-cause trace counts only when this run's own step produced it for the same problem, a user decision only as the user's answer (asked now, or recorded in this run's decision log under rule 12)",
                     'and findings validation, a mutation check or gate evidence only as a result of this run.',
                     '**Decision log.**',
-                    'asks only what it leaves open or what new evidence reopened',
+                    'asks only what it leaves open or what new evidence reopened'
                 ];
                 const missing = required.filter(p => !protocol.includes(p));
                 // Then every duty and the never-by-citation list are stated
                 assertTrue(missing.length === 0, `start-workflow workflow-step rules lost:\n  ${missing.join('\n  ')}`);
-            },
+            }
         },
         {
             // Guards BR-GWF-02 (triage batch close): optional steps whose condition is false at triage close in one
@@ -1051,18 +1192,25 @@ module.exports = {
                     'mark each of those tasks `completed`',
                     'reopens `in_progress` and runs',
                     // Only conditions already false at triage close; one that depends on a later step stays open
-                    'is already false at triage in one batch (a condition that depends on a later step stays open and is decided when reached)',
+                    'is already false at triage in one batch (a condition that depends on a later step stays open and is decided when reached)'
                 ];
                 const missing = required.filter(p => !protocol.includes(p));
                 // Then the batch keeps one log line and one task per skipped step
                 assertTrue(missing.length === 0, `start-workflow batch-close rule lost:\n  ${missing.join('\n  ')}`);
                 // And every workflow skill's generated call block points to the batch close
-                const wrappers = fs.readdirSync(SKILLS_DIR).filter(dir => dir.startsWith('workflow-')
-                    && fs.existsSync(path.join(SKILLS_DIR, dir, 'SKILL.md'))
-                    && readSkill(dir).includes('<!-- WORKFLOW-CALLS:START -->'));
-                const lacking = wrappers.filter(dir => !readSkill(dir).includes('close, in one batch at triage, the todos whose condition is already false there'));
+                const wrappers = fs
+                    .readdirSync(SKILLS_DIR)
+                    .filter(
+                        dir =>
+                            dir.startsWith('workflow-') &&
+                            fs.existsSync(path.join(SKILLS_DIR, dir, 'SKILL.md')) &&
+                            readSkill(dir).includes('<!-- WORKFLOW-CALLS:START -->')
+                    );
+                const lacking = wrappers.filter(
+                    dir => !readSkill(dir).includes('close, in one batch at triage, the todos whose condition is already false there')
+                );
                 assertTrue(wrappers.length > 0 && lacking.length === 0, `call blocks without the batch close: ${lacking.join(', ')}`);
-            },
+            }
         },
         {
             // Guards the step-skill rules the workflow optimization moved: each line keeps a gate, a validation or a
@@ -1073,26 +1221,59 @@ module.exports = {
                 // Given each rule's owner file and the sentence that carries the guarantee
                 const rules = [
                     ['changes-review/SKILL.md', "with `--loop-owner=caller`, the caller's single validation of the merged report satisfies this"],
-                    ['domain-analysis/references/mode-review.md', 'Called with `--loop-owner=caller` → log "Skipped — the caller validates the merged report once"'],
-                    ['workflow-review-changes/references/caller-mode.md', "the separate terminal `/why-review --validate-findings` call runs once, on the caller's merged report"],
+                    [
+                        'domain-analysis/references/mode-review.md',
+                        'Called with `--loop-owner=caller` → log "Skipped — the caller validates the merged report once"'
+                    ],
+                    [
+                        'workflow-review-changes/references/caller-mode.md',
+                        "the separate terminal `/why-review --validate-findings` call runs once, on the caller's merged report"
+                    ],
                     ['work-item/references/mode-dor.md', '**ST4 M1-M7 per story**'],
-                    ['work-item/references/mode-dor.md', 'A task, or one of its stories when the DoR covers them (row ST4), violating any of M1-M5 or M7 is NOT ready to plan'],
-                    ['spec/references/tests.md', 'whose sequence runs both an independent `/work-item --mode=review --type=spec-tests` and `/spec [mode=clarify]` after this step'],
-                    ['spec/references/tests.md', 'otherwise, inside a workflow, keep this question narrowed to the material decisions the cases encode; a standalone run keeps the full TC-list review'],
+                    [
+                        'work-item/references/mode-dor.md',
+                        'A task, or one of its stories when the DoR covers them (row ST4), violating any of M1-M5 or M7 is NOT ready to plan'
+                    ],
+                    [
+                        'spec/references/tests.md',
+                        'whose sequence runs both an independent `/work-item --mode=review --type=spec-tests` and `/spec [mode=clarify]` after this step'
+                    ],
+                    [
+                        'spec/references/tests.md',
+                        'otherwise, inside a workflow, keep this question narrowed to the material decisions the cases encode; a standalone run keeps the full TC-list review'
+                    ],
                     ['changes-review/SKILL.md', 'always invoke `/why-review --target=whole-review-target` on the complete review target'],
-                    ['changes-review/SKILL.md', 'Run it once in every review/re-review pass, including caller-owned, documentation-only and zero-finding passes'],
+                    [
+                        'changes-review/SKILL.md',
+                        'Run it once in every review/re-review pass, including caller-owned, documentation-only and zero-finding passes'
+                    ],
                     ['changes-review/SKILL.md', '`--defer=whole-target` cannot defer or waive it'],
                     // A test verify run starts only after an environment check sized to the project, stack and OS
-                    ['integration-test/references/mode-verify.md', '**Environment readiness (before any test command):** decide from this project, its stack and the OS what the run needs'],
-                    ['integration-test/references/mode-verify.md', 'free only disposable output this step\'s own earlier runs created and no other run is using, or report `ENVIRONMENT-BLOCKED`'],
+                    [
+                        'integration-test/references/mode-verify.md',
+                        '**Environment readiness (before any test command):** decide from this project, its stack and the OS what the run needs'
+                    ],
+                    [
+                        'integration-test/references/mode-verify.md',
+                        "free only disposable output this step's own earlier runs created and no other run is using, or report `ENVIRONMENT-BLOCKED`"
+                    ],
                     // The shared rule requires two greens where persistent/shared or async state warrants them.
-                    ['shared/sync-inline-versions.md', 'an integration suite whose persistent/shared state or async effects make one run insufficient converges on two consecutive fresh green runs; any other suite converges on one fresh green run'],
+                    [
+                        'shared/sync-inline-versions.md',
+                        'an integration suite whose persistent/shared state or async effects make one run insufficient converges on two consecutive fresh green runs; any other suite converges on one fresh green run'
+                    ],
                     ['e2e-test/references/mode-verify.md', 'Before the command, check environment readiness — what this project, its stack and the OS need'],
                     ['e2e-test/references/mode-verify.md', 'this report-only pass frees nothing'],
                     ['test/SKILL.md', 'first check the environment can run the suites (what this project, stack and OS need'],
-                    ['shared/protocols/task-planning-rules.md', '**Before a test verify run**, check its environment is ready — whatever this project, stack and OS need'],
+                    [
+                        'shared/protocols/task-planning-rules.md',
+                        '**Before a test verify run**, check its environment is ready — whatever this project, stack and OS need'
+                    ],
                     // E2E retains its configured single-fresh default; integration repeat depth depends on state.
-                    ['shared/verify-convergence-loop.md', '— 2 for integration tests, where one run hides order/state flakiness; 1 for every other suite, E2E included'],
+                    [
+                        'shared/verify-convergence-loop.md',
+                        '— 2 for integration tests, where one run hides order/state flakiness; 1 for every other suite, E2E included'
+                    ],
                     ['e2e-test/SKILL.md', 'one fresh green full run converges unless the project configures more'],
                     ['workflow-e2e/SKILL.md', 'Converge on one fresh green run (default 1; the project may configure more consecutive greens)'],
                     // Repeat proof follows configured policy and the actual state/isolation scope.
@@ -1101,10 +1282,16 @@ module.exports = {
                     ['integration-test/SKILL.md', "isolated deterministic suites use the runner's normal fresh run"],
                     ['integration-test/SKILL.md', 'Clean up only owned fixture state.'],
                     // why-review's second adversarial round runs only where it pays; the analysis block never drops (P41 X8)
-                    ['why-review/references/full-mode.md', '**When it runs:** only when Round 1 found at least one MEDIUM or higher finding, or the target is a one-way door'],
+                    [
+                        'why-review/references/full-mode.md',
+                        '**When it runs:** only when Round 1 found at least one MEDIUM or higher finding, or the target is a one-way door'
+                    ],
                     ['why-review/references/full-mode.md', 'Round 1 then fills the Adversarial Analysis itself'],
                     // spec-sync reviews once, after the spec sync, and loops back when a review fix changes behavior (P41)
-                    ['workflow-spec-sync/SKILL.md', 'A review fix that changes behavior re-runs `/spec [mode=tests]`, the changed-case review when it changed a case, and `/spec [mode=sync]` on the changed part, then the review again on the settled tree, before the verify'],
+                    [
+                        'workflow-spec-sync/SKILL.md',
+                        'A review fix that changes behavior re-runs `/spec [mode=tests]`, the changed-case review when it changed a case, and `/spec [mode=sync]` on the changed part, then the review again on the settled tree, before the verify'
+                    ],
                     ['workflow-spec-sync/SKILL.md', 'whose reviewed scope (commit or diff identity) still matches the trigger'],
                     ['workflow-spec-sync/SKILL.md', 'any trigger edit made after that report is part of the delta, and the review is never skipped'],
                     // The task review carries the checks an optional challenge used to own (P41 B3)
@@ -1113,18 +1300,36 @@ module.exports = {
                     ['work-item/references/review-type-task.md', '| 12  | **Cross-cutting concerns addressed**'],
                     // Search and query changes never scan rows on large data: both review owners block on it
                     ['performance-review/SKILL.md', '**[BLOCKING] Query Scan Gate — no search or query scans rows on large data.**'],
-                    ['performance-review/SKILL.md', 'or an unindexed filter, join, sort or group key on such data is at least a HIGH finding and blocks the verdict'],
+                    [
+                        'performance-review/SKILL.md',
+                        'or an unindexed filter, join, sort or group key on such data is at least a HIGH finding and blocks the verdict'
+                    ],
                     ['changes-review/SKILL.md', "Apply `/performance-review`'s Query Scan Gate, the single owner of the patterns it blocks"],
                     // A focused review of a performance-sensitive change runs the performance review as its own step (P53)
-                    ['changes-review/SKILL.md', '**Performance review (conditional step):** when the diff touches data access (queries, loops over collections, paging, indexes), hot paths, caching, concurrency, batch/job throughput, or render-heavy UI, run `/performance-review` on the changed code as its own step'],
-                    ['changes-review/SKILL.md', 'Skip it only when `--defer=specialists` assigns it to a named caller (`workflow-review-changes` runs it as its own conditional step)'],
-                    ['changes-review/SKILL.md', '**Query scan gate (blocking):** every query, search or filter the change adds or alters on data that can grow large uses an index-backed, sargable access path with a bounded result.'],
+                    [
+                        'changes-review/SKILL.md',
+                        '**Performance review (conditional step):** when the diff touches data access (queries, loops over collections, paging, indexes), hot paths, caching, concurrency, batch/job throughput, or render-heavy UI, run `/performance-review` on the changed code as its own step'
+                    ],
+                    [
+                        'changes-review/SKILL.md',
+                        'Skip it only when `--defer=specialists` assigns it to a named caller (`workflow-review-changes` runs it as its own conditional step)'
+                    ],
+                    [
+                        'changes-review/SKILL.md',
+                        '**Query scan gate (blocking):** every query, search or filter the change adds or alters on data that can grow large uses an index-backed, sargable access path with a bounded result.'
+                    ],
                     // The universal planning rule every prompt and spawned agent receives: code changes carry tests, docs sync and review
-                    ['shared/protocols/task-planning-rules.md', '**A task that changes code** always plans, as its own tasks, updating its tests, syncing stale docs and specs, and a review after those edits'],
+                    [
+                        'shared/protocols/task-planning-rules.md',
+                        '**A task that changes code** always plans, as its own tasks, updating its tests, syncing stale docs and specs, and a review after those edits'
+                    ],
                     ['spec/references/mode-clarify.md', 'an applied change to the reviewed content re-runs that review on the changed part'],
                     ['test/SKILL.md', '`@verify` covers nothing and every requested tier runs'],
                     ['integration-test/references/fix-loop.md', 'except that (b) runs only when (a) leaves a test-side fault possible'],
-                    ['e2e-test/references/mode-verify.md', "**Nested deferral:** when this loop runs inside a parent workflow whose `workflow-review-changes` gate re-runs after this step's edits"],
+                    [
+                        'e2e-test/references/mode-verify.md',
+                        "**Nested deferral:** when this loop runs inside a parent workflow whose `workflow-review-changes` gate re-runs after this step's edits"
+                    ],
                     ['seed-test-data/SKILL.md', 'skip the loop and hand the final independent review to that gate'],
                     ['plan/SKILL.md', "`Human approval` and the branch's owner-approval fields included"],
                     ['shared/product-roadmap-contract.md', '**Light-profile evidence.**'],
@@ -1139,14 +1344,21 @@ module.exports = {
                     ['plan/SKILL.md', 'an unapproved Plan Gate (`Human approval: REQUIRED`) counts as one, and its question is the plan approval'],
                     ['work-item/references/mode-dor.md', '| ST4 | M1-M5/M7 per story |'],
                     ['workflow-end/SKILL.md', 'in a writing mode (not `--review-only` or `--report-only`, whose findings are handed off as diagnostics)'],
-                    ...['why-review/references/full-mode.md', 'architecture/references/mode-review.md', 'ui-design/references/mode-review.md', 'ai-engineering-review/SKILL.md', 'production-readiness-review/SKILL.md', 'performance-review/SKILL.md', 'security-audit/SKILL.md']
-                        .map(rel => [rel, 'Also skip when called with `--loop-owner=caller`: the caller validates the merged report once']),
+                    ...[
+                        'why-review/references/full-mode.md',
+                        'architecture/references/mode-review.md',
+                        'ui-design/references/mode-review.md',
+                        'ai-engineering-review/SKILL.md',
+                        'production-readiness-review/SKILL.md',
+                        'performance-review/SKILL.md',
+                        'security-audit/SKILL.md'
+                    ].map(rel => [rel, 'Also skip when called with `--loop-owner=caller`: the caller validates the merged report once'])
                 ];
                 // When each owner file is read
                 const missing = rules.filter(([rel, phrase]) => !read(rel).includes(phrase)).map(([rel, phrase]) => `${rel}: ${phrase}`);
                 // Then every guarantee is still stated by its owner
                 assertTrue(missing.length === 0, `step-skill gate rules lost:\n  ${missing.join('\n  ')}`);
-            },
+            }
         },
         {
             // Guards BR-GWF-08: one deviation log per run, keyed by the baseline run id, with a closed
@@ -1164,7 +1376,7 @@ module.exports = {
                     '`<occurrence-id> · <deviation-kind> · <evidence>`',
                     'the baseline run id captured at activation',
                     "a nested workflow writes to its parent's log",
-                    'there is no other id format',
+                    'there is no other id format'
                 ]) {
                     assertTrue(protocol.includes(phrase), `start-workflow deviation-log contract lost "${phrase}"`);
                 }
@@ -1172,8 +1384,10 @@ module.exports = {
                 const marker = 'Deviation kinds (closed set; the reason code):';
                 const kindsLine = protocol.split('\n').find(line => line.includes(marker)) || '';
                 const kinds = [...kindsLine.slice(kindsLine.indexOf(marker)).matchAll(/`([a-z][a-z-]*)` \(/g)].map(m => m[1]);
-                assertTrue(JSON.stringify(kinds) === JSON.stringify(DEVIATION_KINDS),
-                    `deviation kinds changed: expected ${DEVIATION_KINDS.join(', ')}; got ${kinds.join(', ') || 'none'}`);
+                assertTrue(
+                    JSON.stringify(kinds) === JSON.stringify(DEVIATION_KINDS),
+                    `deviation kinds changed: expected ${DEVIATION_KINDS.join(', ')}; got ${kinds.join(', ') || 'none'}`
+                );
                 // And workflow-end writes only kinds from that set
                 const written = [...end.matchAll(/ · ([a-z][a-z-]*) · /g)].map(m => m[1]);
                 assertTrue(written.length > 0, 'workflow-end no longer writes a deviation-log line');
@@ -1184,7 +1398,7 @@ module.exports = {
                 for (const name of ['workflow-review-changes', 'changes-review']) {
                     assertTrue(readSkill(name).includes(readLine), `${name} no longer reads the deviation log as a review input`);
                 }
-            },
+            }
         },
         {
             // Guards BR-GWF-03 + BR-GWF-15 (SC-3): a run cannot close while any declared outcome gate
@@ -1198,20 +1412,25 @@ module.exports = {
                 const steps = sectionBetween(end, '## What To Do', '\n---');
                 // When its first numbered step is read
                 const firstStep = /^(\d+)\. \*\*([^*]+)\*\*/m.exec(steps);
-                assertTrue(firstStep !== null && firstStep[1] === '0' && firstStep[2] === 'Outcome-gate evidence check',
-                    `workflow-end's first step is not step 0, the outcome-gate evidence check (found "${firstStep && firstStep[0]}")`);
+                assertTrue(
+                    firstStep !== null && firstStep[1] === '0' && firstStep[2] === 'Outcome-gate evidence check',
+                    `workflow-end's first step is not step 0, the outcome-gate evidence check (found "${firstStep && firstStep[0]}")`
+                );
                 const check = outcomeGateCheck();
                 // Then it refuses the close on missing evidence, names the gate, and maps every gate id
-                assertTrue(check.includes('**Missing evidence for any gate blocks the close:**'),
-                    'the outcome-gate check no longer blocks on missing evidence');
-                assertTrue(check.includes('name the gate and the missing evidence'),
-                    'the outcome-gate refusal no longer names the gate');
+                assertTrue(
+                    check.includes('**Missing evidence for any gate blocks the close:**'),
+                    'the outcome-gate check no longer blocks on missing evidence'
+                );
+                assertTrue(check.includes('name the gate and the missing evidence'), 'the outcome-gate refusal no longer names the gate');
                 const unmapped = gateIds.filter(id => !check.includes(`\`${id}\`:`));
                 assertTrue(unmapped.length === 0, `outcome gates without an evidence rule: ${unmapped.join(', ')}`);
                 // And the ordered mandatory sequence starts with it
-                assertTrue(/\*\*IMPORTANT MANDATORY Steps:\*\* outcome-gate-evidence-check -> /.test(end),
-                    'workflow-end mandatory step list does not start with the outcome-gate evidence check');
-            },
+                assertTrue(
+                    /\*\*IMPORTANT MANDATORY Steps:\*\* outcome-gate-evidence-check -> /.test(end),
+                    'workflow-end mandatory step list does not start with the outcome-gate evidence check'
+                );
+            }
         },
         {
             // Guards BR-GWF-03 (R2-11): review-converged is machine-checked through the receipt CLI's
@@ -1221,7 +1440,10 @@ module.exports = {
             name: '[content-presence] TC-GWF-042 review-converged reads the receipt JSON and accepts a cited report as a logged deviation',
             fn: () => {
                 // Given workflow-end's outcome-gate check
-                const rule = outcomeGateCheck().split('\n').find(line => line.includes('`review-converged`:')) || '';
+                const rule =
+                    outcomeGateCheck()
+                        .split('\n')
+                        .find(line => line.includes('`review-converged`:')) || '';
                 // When the review-converged rule is read
                 const required = [
                     'node .claude/hooks/lib/review-receipt.cjs check',
@@ -1244,13 +1466,12 @@ module.exports = {
                     'stale: predates <occurrence-id>',
                     'the close message repeats it',
                     'Neither a receipt nor a cited report → block',
-                    'a commit still needs the receipt',
+                    'a commit still needs the receipt'
                 ];
                 const missing = required.filter(p => !rule.includes(p));
                 // Then every branch of the receipt contract is present
-                assertTrue(missing.length === 0,
-                    `workflow-end review-converged rule lost:\n  ${missing.join('\n  ')}`);
-            },
+                assertTrue(missing.length === 0, `workflow-end review-converged rule lost:\n  ${missing.join('\n  ')}`);
+            }
         },
         {
             // Guards BR-GWF-01 + BR-GWF-14: a nested workflow-review-changes stays in the main session,
@@ -1261,11 +1482,15 @@ module.exports = {
                 const skill = readSkill('start-workflow');
                 // When the nested-workflow gate and the flex rules are read
                 // Then both keep the inline rule
-                assertTrue(skill.includes('**EXCEPTION — `workflow-review-changes` runs INLINE in the main session (never a sub-agent):**'),
-                    'start-workflow lost the workflow-review-changes inline exception');
-                assertTrue(stepContract().includes('a nested `workflow-review-changes` runs inline'),
-                    'the flex rules no longer keep the nested review inline as a data dependency');
-            },
+                assertTrue(
+                    skill.includes('**EXCEPTION — `workflow-review-changes` runs INLINE in the main session (never a sub-agent):**'),
+                    'start-workflow lost the workflow-review-changes inline exception'
+                );
+                assertTrue(
+                    stepContract().includes('a nested `workflow-review-changes` runs inline'),
+                    'the flex rules no longer keep the nested review inline as a data dependency'
+                );
+            }
         },
         {
             // Guards BR-GWF-04: the lean route never builds behavior the supplied spec does not contain.
@@ -1279,13 +1504,13 @@ module.exports = {
                     'the requested behavior is not in the supplied spec',
                     'STOP before `/plan`',
                     'ask the user to clarify the spec or switch to `workflow-feature`, which updates the spec first',
-                    'Never guess the missing behavior and never drop it silently',
+                    'Never guess the missing behavior and never drop it silently'
                 ];
                 // Then all three triggers, both options and the no-guess rule sit in that one paragraph
                 assertTrue(Boolean(escalation), 'workflow-implement-spec lost its escalation paragraph');
                 const missing = required.filter(p => !escalation.includes(p));
                 assertTrue(missing.length === 0, `workflow-implement-spec escalation lost:\n  ${missing.join('\n  ')}`);
-            },
+            }
         },
         {
             // Guards BR-GWF-05: spec-supplied work does not grow beyond the spec it was given.
@@ -1300,16 +1525,17 @@ module.exports = {
                     '`/plan` names it as governing intent',
                     'keeps every phase and acceptance gate within that baseline',
                     '`Proposed additions — owner approval required`',
-                    'never an accepted plan phase',
+                    'never an accepted plan phase'
                 ];
                 // Then the workflow owns the baseline while plan keeps the outcome-level guard
                 assertTrue(Boolean(anchor), 'workflow-implement-spec lost its plan-scope anchor paragraph');
                 const missing = required.filter(p => !anchor.includes(p));
                 assertTrue(missing.length === 0, `workflow-implement-spec plan-scope anchor lost:\n  ${missing.join('\n  ')}`);
-                assertTrue(plan.includes('**Supplied spec:** preserve the supplied baseline') &&
-                    plan.includes('`Proposed additions — owner approval required`'),
-                    'plan must preserve supplied scope without reintroducing a heavyweight baseline section');
-            },
+                assertTrue(
+                    plan.includes('**Supplied spec:** preserve the supplied baseline') && plan.includes('`Proposed additions — owner approval required`'),
+                    'plan must preserve supplied scope without reintroducing a heavyweight baseline section'
+                );
+            }
         },
         {
             // Guards BR-GWF-09 + BR-GWF-04: missing behavior is specified first, never built from a guess.
@@ -1322,16 +1548,21 @@ module.exports = {
                 const [escalation] = paragraphsMentioning(lean, /\[ESCALATION/);
                 const description = body => (/^description:[ \t]*(.*)$/m.exec(body) || [])[1] || '';
                 // Then the lean route stops at its gap review, which runs before planning
-                assertTrue(Boolean(escalation) && escalation.includes('`/spec [mode=clarify]` runs as a gap review of the supplied spec against the request'),
-                    'workflow-implement-spec must run /spec [mode=clarify] as the gap review that can stop the route');
-                assertTrue(/IMPORTANT MANDATORY Steps:\*\* \/investigate -> \/spec \[mode=clarify\] -> \/plan ->/.test(lean),
-                    'the gap review must run between /investigate and /plan');
+                assertTrue(
+                    Boolean(escalation) && escalation.includes('`/spec [mode=clarify]` runs as a gap review of the supplied spec against the request'),
+                    'workflow-implement-spec must run /spec [mode=clarify] as the gap review that can stop the route'
+                );
+                assertTrue(
+                    /IMPORTANT MANDATORY Steps:\*\* \/investigate -> \/spec \[mode=clarify\] -> \/plan ->/.test(lean),
+                    'the gap review must run between /investigate and /plan'
+                );
                 // And each description sends the other case to the other route
-                assertTrue(/\bworkflow-feature\b/.test(description(lean)),
-                    'the lean description must route a spec gap to workflow-feature');
-                assertTrue(/\bworkflow-implement-spec\b/.test(description(feature)),
-                    'the feature description must route spec-complete work to workflow-implement-spec');
-            },
+                assertTrue(/\bworkflow-feature\b/.test(description(lean)), 'the lean description must route a spec gap to workflow-feature');
+                assertTrue(
+                    /\bworkflow-implement-spec\b/.test(description(feature)),
+                    'the feature description must route spec-complete work to workflow-implement-spec'
+                );
+            }
         },
         {
             name: '[content-presence] TC-CP-002 universal subagent-bootstrap phrases present in sampled agents',
@@ -1340,9 +1571,9 @@ module.exports = {
                 // The meta-rationale header was removed (no operational value to the agent);
                 // assert only the actionable load-bearing guidance.
                 const phrases = [
-                    'Plan first, then act',               // plan-first
-                    'Context guard / progress file',      // progress-file protocol
-                    'tmp/ck-agent-',                      // progress-file path contract
+                    'Plan first, then act', // plan-first
+                    'Context guard / progress file', // progress-file protocol
+                    'tmp/ck-agent-' // progress-file path contract
                 ];
                 const missing = [];
                 for (const agent of ['backend-developer', 'docs-manager']) {
@@ -1355,9 +1586,8 @@ module.exports = {
                         missing.push(`${agent} → autonomy paragraph re-appeared (should be removed)`);
                     }
                 }
-                assertTrue(missing.length === 0,
-                    `subagent-bootstrap guidance drift:\n  ${missing.join('\n  ')}`);
-            },
+                assertTrue(missing.length === 0, `subagent-bootstrap guidance drift:\n  ${missing.join('\n  ')}`);
+            }
         },
         {
             name: '[content-presence] TC-CP-003 agent-code-standards reaches code agents, not non-code agents',
@@ -1372,9 +1602,8 @@ module.exports = {
                 if (!codeBody.includes('backend-patterns-reference.md')) missing.push('code agent missing pattern-doc pointer');
                 // Non-code agent MUST NOT carry it — "Development rules" appears only in this block.
                 if (nonCodeBody.includes('Development rules')) missing.push('non-code agent LEAKS code-standards guidance');
-                assertTrue(missing.length === 0,
-                    `agent-code-standards relocation drift:\n  ${missing.join('\n  ')}`);
-            },
+                assertTrue(missing.length === 0, `agent-code-standards relocation drift:\n  ${missing.join('\n  ')}`);
+            }
         },
         {
             name: '[content-presence] TC-CP-004 design-system-canonical guidance relocated into design skill',
@@ -1390,30 +1619,25 @@ module.exports = {
             // the obvious key: it also appears in the authority-resolution step earlier in the
             // skill, so it survives deleting this bullet entirely and would assert nothing here
             // while reading as though it did.
-            fn: () => assertRelocated('design-system-canonical-guide', 'ui-design', [
-                'before choosing tokens, component patterns, breakpoints, or BEM conventions',
-                'never invent a canonical path or token vocabulary',
-            ]),
+            fn: () =>
+                assertRelocated('design-system-canonical-guide', 'ui-design', [
+                    'before choosing tokens, component patterns, breakpoints, or BEM conventions',
+                    'never invent a canonical path or token vocabulary'
+                ])
         },
         {
             name: '[content-presence] TC-CP-006 ba-refinement DoR/hypothesis guidance relocated into the work-item refine mode',
-            fn: () => assertRelocated('ba-refinement-context', 'work-item/references/mode-refine.md', [
-                'readiness check',
-                'hypothesis validation',
-            ]),
+            fn: () => assertRelocated('ba-refinement-context', 'work-item/references/mode-refine.md', ['readiness check', 'hypothesis validation'])
         },
         {
             name: '[content-presence] TC-CP-007 graph-grep post-grep graph hint relocated into investigate skill as optional advice',
-            fn: () => assertRelocated('graph-grep-suggester', 'investigate', [
-                'Post-Grep Graph Hint (optional)',
-                'grep may not reveal',
-            ]),
+            fn: () => assertRelocated('graph-grep-suggester', 'investigate', ['Post-Grep Graph Hint (optional)', 'grep may not reveal'])
         },
         {
             // Guards the work-tracker vocabulary rename: an adopter refreshing `.claude/` learns the move from the
             // skill itself and from the adopter table, and a leftover old folder would keep answering the old command.
             name: '[content-presence] renamed work-tracking skills carry a "Renamed: formerly" note, their old folders stay removed and the adopter table lists every rename',
-            skip: IS_FRAMEWORK_REPO ? false : 'asserts the framework repo\'s own skills and adopter guide (framework-repo signal)',
+            skip: IS_FRAMEWORK_REPO ? false : "asserts the framework repo's own skills and adopter guide (framework-repo signal)",
             fn: () => {
                 const defects = [];
                 const guide = fs.readFileSync(path.resolve(PROJECT_DIR, '.claude', 'config', 'README.md'), 'utf8');
@@ -1421,17 +1645,22 @@ module.exports = {
                 for (const [former, current] of RENAMED_TRACKING_SKILLS) {
                     if (fs.existsSync(path.join(SKILLS_DIR, former))) defects.push(`${former}: the old skill folder still exists`);
                     const skillFile = path.join(SKILLS_DIR, current, 'SKILL.md');
-                    if (!fs.existsSync(skillFile)) { defects.push(`${current}: SKILL.md is missing`); continue; }
+                    if (!fs.existsSync(skillFile)) {
+                        defects.push(`${current}: SKILL.md is missing`);
+                        continue;
+                    }
                     const body = fs.readFileSync(skillFile, 'utf8');
                     if (!new RegExp(`^name: ${current}\\r?$`, 'm').test(body)) defects.push(`${current}: frontmatter name is not ${current}`);
                     const note = body.split(/\r?\n/).find(line => /\*\*Renamed:\*\*/.test(line));
                     if (!note) defects.push(`${current}: no "**Renamed:** formerly" note`);
-                    else if (!new RegExp(`formerly \`/?${former}\``).test(note)) defects.push(`${current}: the Renamed note does not name the former ${former}`);
+                    else if (!new RegExp(`formerly \`/?${former}\``).test(note))
+                        defects.push(`${current}: the Renamed note does not name the former ${former}`);
                     const mentions = name => new RegExp(`\`/?${name}\``);
-                    if (!rows.some(row => mentions(former).test(row) && mentions(current).test(row))) defects.push(`adopter table: no row maps ${former} to ${current}`);
+                    if (!rows.some(row => mentions(former).test(row) && mentions(current).test(row)))
+                        defects.push(`adopter table: no row maps ${former} to ${current}`);
                 }
                 assertTrue(defects.length === 0, `renamed-skill guidance is incomplete:\n  ${defects.join('\n  ')}`);
-            },
+            }
         },
         {
             name: '[content-presence] TC-CP-009 integration-test execution-discipline rules present in EVERY integration-test-family skill',
@@ -1445,22 +1674,21 @@ module.exports = {
                     'no-shortcut-that-skips-invariant': 'Never use a shortcut that skips the behavior the assertion is meant to protect',
                     'investigate-debug-on-failure': '`/investigate --mode=debug` the root cause',
                     'timeouts-are-budgets': 'Use project timeouts as budgets, not as fixes',
-                    'configured-repeat-policy': 'Follow the configured repeat policy',
+                    'configured-repeat-policy': 'Follow the configured repeat policy'
                 };
                 // Every integration-test-family skill — integration-test (write, plus its `--mode=review`
                 // and `--mode=verify` modes, which load under the same skill) and the workflow that chains
                 // them. Adding a family skill without these rules (or dropping one here) must surface as a
                 // failure, not a silent gap.
-                const familySkills = [
-                    'integration-test',
-                    'workflow-integration-test',
-                ];
+                const familySkills = ['integration-test', 'workflow-integration-test'];
                 const missing = familyRuleGaps(SKILLS_DIR, familySkills, 'integration-test-execution-discipline', rules);
-                assertTrue(missing.length === 0,
+                assertTrue(
+                    missing.length === 0,
                     `integration-test execution-discipline rule drift:\n  ${missing.join('\n  ')}\n` +
-                    `Fix: re-sync SYNC:integration-test-execution-discipline ` +
-                    `(py -3 .claude/scripts/sync-update-blocks.py integration-test-execution-discipline).`);
-            },
+                        `Fix: re-sync SYNC:integration-test-execution-discipline ` +
+                        `(py -3 .claude/scripts/sync-update-blocks.py integration-test-execution-discipline).`
+                );
+            }
         },
         {
             name: '[content-presence] TC-CP-010 test-failure fault-adjudication rules present in EVERY debug/fix/test-family skill',
@@ -1477,26 +1705,21 @@ module.exports = {
                     'triangulate-owner-and-source': 'Triangulate against the owner artifact AND the source',
                     'classify-source-wrong': 'SOURCE-WRONG',
                     'classify-test-wrong': 'TEST-WRONG',
-                    'ask-user-when-unclear': 'Ask the user when intended behavior is unclear',
+                    'ask-user-when-unclear': 'Ask the user when intended behavior is unclear'
                 };
                 // Every debug/fix/test-family skill — investigate, fix, the test runner,
                 // integration-test (incl. its review and verify modes), e2e, and the bugfix workflow.
                 // Adding a family skill without these rules (or dropping one here) must surface as
                 // a failure, not a silent gap.
-                const familySkills = [
-                    'investigate/references/mode-debug.md',
-                    'fix',
-                    'test',
-                    'integration-test',
-                    'e2e-test',
-                    'workflow-bugfix',
-                ];
+                const familySkills = ['investigate/references/mode-debug.md', 'fix', 'test', 'integration-test', 'e2e-test', 'workflow-bugfix'];
                 const missing = familyRuleGaps(SKILLS_DIR, familySkills, 'test-failure-fault-adjudication', rules);
-                assertTrue(missing.length === 0,
+                assertTrue(
+                    missing.length === 0,
                     `test-failure fault-adjudication rule drift:\n  ${missing.join('\n  ')}\n` +
-                    `Fix: re-sync SYNC:test-failure-fault-adjudication ` +
-                    `(py -3 .claude/scripts/sync-update-blocks.py test-failure-fault-adjudication).`);
-            },
+                        `Fix: re-sync SYNC:test-failure-fault-adjudication ` +
+                        `(py -3 .claude/scripts/sync-update-blocks.py test-failure-fault-adjudication).`
+                );
+            }
         },
         {
             // Guards R2-19: once a family skill carries either pinned protocol as a guide entry, the
@@ -1516,7 +1739,12 @@ module.exports = {
                         fs.mkdirSync(path.dirname(skillFile), { recursive: true });
                         const rules = { 'first-rule': 'First pinned fragment', 'second-rule': 'Second pinned fragment' };
                         fs.writeFileSync(projection, `> ${rules['first-rule']}.\n> ${rules['second-rule']}.\n`);
-                        const guideLine = guideCarrier.formatGuideLine({ tag, summary: 'Fixture protocol', when: 'testing', path: `.claude/skills/shared/protocols/${tag}.md` });
+                        const guideLine = guideCarrier.formatGuideLine({
+                            tag,
+                            summary: 'Fixture protocol',
+                            when: 'testing',
+                            path: `.claude/skills/shared/protocols/${tag}.md`
+                        });
                         fs.writeFileSync(skillFile, `# Family\n\n${guideCarrier.GUIDE_BLOCK_START}\n\n${guideLine}\n\n${guideCarrier.GUIDE_BLOCK_END}\n`);
                         const gaps = () => familyRuleGaps(skillsDir, ['family-skill'], tag, rules);
 
@@ -1524,13 +1752,17 @@ module.exports = {
                         assertTrue(gaps().length === 0, `${tag}: guide carrier rejected: ${gaps().join('; ')}`);
                         // When the projection lacks one fragment, Then it fails naming the skill and rule.
                         fs.writeFileSync(projection, `> ${rules['first-rule']}.\n`);
-                        assertTrue(gaps().length === 1 && gaps()[0].startsWith('family-skill → missing rule "second-rule"'),
-                            `${tag}: a projection missing a fragment must fail: ${gaps().join('; ')}`);
+                        assertTrue(
+                            gaps().length === 1 && gaps()[0].startsWith('family-skill → missing rule "second-rule"'),
+                            `${tag}: a projection missing a fragment must fail: ${gaps().join('; ')}`
+                        );
                         // When the guide entry is removed (projection whole again), Then both rules fail.
                         fs.writeFileSync(projection, `> ${rules['first-rule']}.\n> ${rules['second-rule']}.\n`);
                         fs.writeFileSync(skillFile, '# Family\n\nNo carrier.\n');
-                        assertTrue(gaps().length === 2 && gaps().every(g => g.startsWith('family-skill → missing rule')),
-                            `${tag}: a skill with neither form must fail: ${gaps().join('; ')}`);
+                        assertTrue(
+                            gaps().length === 2 && gaps().every(g => g.startsWith('family-skill → missing rule')),
+                            `${tag}: a skill with neither form must fail: ${gaps().join('; ')}`
+                        );
                         // And the inline form still passes on its own.
                         fs.writeFileSync(skillFile, `# Family\n\n${rules['first-rule']}. ${rules['second-rule']}.\n`);
                         fs.rmSync(projection);
@@ -1539,7 +1771,7 @@ module.exports = {
                 } finally {
                     fs.rmSync(tmp, { recursive: true, force: true });
                 }
-            },
+            }
         },
         {
             // Business Intent / Invariant Guarded (BR-PDL-05, BR-PDL-15): an unreviewed second-host step
@@ -1557,15 +1789,21 @@ module.exports = {
                 // And removing a note (boundary counter-case) fails, naming exactly that note
                 const note = paragraphsMentioning(guide, /`\/hooks`/).find(p => hookTrustNoteGaps(p).length === 0);
                 const withoutUnchanged = note.replace(/[^.]*\bearlier review still holds\b[^.]*\./i, '');
-                assertTrue(JSON.stringify(hookTrustNoteGaps(withoutUnchanged)) === JSON.stringify(['an unchanged step keeps its earlier review']),
-                    `dropping the unchanged-step sentence must fail on that note alone: ${hookTrustNoteGaps(withoutUnchanged).join('; ')}`);
+                assertTrue(
+                    JSON.stringify(hookTrustNoteGaps(withoutUnchanged)) === JSON.stringify(['an unchanged step keeps its earlier review']),
+                    `dropping the unchanged-step sentence must fail on that note alone: ${hookTrustNoteGaps(withoutUnchanged).join('; ')}`
+                );
                 const withoutReviewGate = note.replace(/[^.]*\bnew or changed\b[^.]*\./i, '');
-                assertTrue(hookTrustNoteGaps(withoutReviewGate).includes('a new or changed step runs only after review'),
-                    `dropping the review-gate sentence must fail: ${hookTrustNoteGaps(withoutReviewGate).join('; ')}`);
+                assertTrue(
+                    hookTrustNoteGaps(withoutReviewGate).includes('a new or changed step runs only after review'),
+                    `dropping the review-gate sentence must fail: ${hookTrustNoteGaps(withoutReviewGate).join('; ')}`
+                );
                 // And a guide with no `/hooks` paragraph fails on every note
-                assertTrue(hookTrustNoteGaps('# Hooks\n\nNo trust note here.\n').length === Object.keys(HOOK_TRUST_NOTES).length,
-                    'a guide without the trust note must fail on every note');
-            },
+                assertTrue(
+                    hookTrustNoteGaps('# Hooks\n\nNo trust note here.\n').length === Object.keys(HOOK_TRUST_NOTES).length,
+                    'a guide without the trust note must fail on every note'
+                );
+            }
         },
         {
             name: '[content-presence] TC-CP-011 understand skill carries its report contract + both reference files',
@@ -1592,7 +1830,7 @@ module.exports = {
                     // The report is ONE combined file at every tier. This rule replaced a
                     // report-DIRECTORY rule that survived unexamined until a real run emitted 12
                     // files; without an assertion it is one edit away from returning.
-                    'one-file-always': 'ONE file at every tier',
+                    'one-file-always': 'ONE file at every tier'
                 };
                 const missing = [];
                 const body = readSkill('understand');
@@ -1608,7 +1846,7 @@ module.exports = {
                         'Target forms — the single-owner contract',
                         'The form registry — the ONE enumeration',
                         'Where this sits in the system that already existed',
-                        '## 0. Detailed Summary',
+                        '## 0. Detailed Summary'
                     ],
                     // D5 deliberately has NO per-diagram spec section — review-path.md owns all five
                     // of its fields. A stub here that only pointed there drifted out of agreement
@@ -1618,7 +1856,7 @@ module.exports = {
                         'D7 — Story map (MANDATORY)',
                         'Derivation ladder',
                         '**MANDATORY** — rendered in §4, not §2',
-                        '**D5 has no spec here**',
+                        '**D5 has no spec here**'
                     ],
                     // 'Cap: 3 context files per stage' was asserted here until the contract
                     // deliberately REMOVED that cap: a cap makes a run drop a file the reviewer
@@ -1626,11 +1864,14 @@ module.exports = {
                     // Asserting a rule the contract retired would have pushed the next maintainer
                     // to "fix" the red by restoring the cap — so the assertion moved to the
                     // replacement wording instead. TC-CP-013 makes the cap's RETURN a failure.
-                    'review-path.md': ['No cap on context files', '[context — not changed]'],
+                    'review-path.md': ['No cap on context files', '[context — not changed]']
                 };
                 for (const [file, phrases] of Object.entries(refPhrases)) {
                     const p = path.join(SKILLS_DIR, 'understand', 'references', file);
-                    if (!fs.existsSync(p)) { missing.push(`understand/references/${file} → FILE MISSING`); continue; }
+                    if (!fs.existsSync(p)) {
+                        missing.push(`understand/references/${file} → FILE MISSING`);
+                        continue;
+                    }
                     const ref = readFile(p);
                     for (const phrase of phrases) {
                         if (!ref.includes(phrase)) missing.push(`understand/references/${file} → missing "${phrase}"`);
@@ -1660,26 +1901,36 @@ module.exports = {
                 const ownerPath = path.join(SKILLS_DIR, 'understand', 'references', OWNER);
                 const owner = fs.existsSync(ownerPath) ? readFile(ownerPath) : '';
                 const chunks = owner.split(/^### /m);
-                const chunkFor = (heading) => chunks.find((c) => c.startsWith(heading)) || '';
+                const chunkFor = heading => chunks.find(c => c.startsWith(heading)) || '';
 
                 // Registry rows are `| **F1** | Diff | ... |`; detail rows are `| **F1 · Diff** |`.
                 // The closing `**` right after the digits keeps the two patterns disjoint.
-                const registryIds = [...chunkFor('The form registry')
-                    .matchAll(/^\|\s*\*\*(F\d+)\*\*\s*\|/gm)].map((m) => m[1]);
+                const registryIds = [...chunkFor('The form registry').matchAll(/^\|\s*\*\*(F\d+)\*\*\s*\|/gm)].map(m => m[1]);
 
                 if (registryIds.length < 2) {
-                    missing.push(`understand/references/${OWNER} → form registry missing or has <2 rows (expected "| **F1** | … |" rows under "### The form registry")`);
+                    missing.push(
+                        `understand/references/${OWNER} → form registry missing or has <2 rows (expected "| **F1** | … |" rows under "### The form registry")`
+                    );
                 } else {
                     const expected = registryIds.map((_, i) => `F${i + 1}`).join(',');
                     if (registryIds.join(',') !== expected) {
-                        missing.push(`understand/references/${OWNER} → registry IDs are [${registryIds.join(', ')}], expected sequential [${expected}] — renumber so a form's ID is stable and greppable`);
+                        missing.push(
+                            `understand/references/${OWNER} → registry IDs are [${registryIds.join(', ')}], expected sequential [${expected}] — renumber so a form's ID is stable and greppable`
+                        );
                     }
                     for (const table of ['Table 1 of 3', 'Table 2 of 3', 'Table 3 of 3']) {
                         const chunk = chunkFor(table);
-                        if (!chunk) { missing.push(`understand/references/${OWNER} → "### ${table}" section absent — the contract's three per-form tables must stay in the owner file`); continue; }
-                        const ids = [...chunk.matchAll(/^\|\s*\*\*(F\d+)\s*·/gm)].map((m) => m[1]);
+                        if (!chunk) {
+                            missing.push(
+                                `understand/references/${OWNER} → "### ${table}" section absent — the contract's three per-form tables must stay in the owner file`
+                            );
+                            continue;
+                        }
+                        const ids = [...chunk.matchAll(/^\|\s*\*\*(F\d+)\s*·/gm)].map(m => m[1]);
                         if (ids.join(',') !== registryIds.join(',')) {
-                            missing.push(`understand/references/${OWNER} → "${table}" covers [${ids.join(', ') || 'none'}] but the registry declares [${registryIds.join(', ')}] — a form was added or removed in one place only; every form needs a row in the registry AND in all three tables`);
+                            missing.push(
+                                `understand/references/${OWNER} → "${table}" covers [${ids.join(', ') || 'none'}] but the registry declares [${registryIds.join(', ')}] — a form was added or removed in one place only; every form needs a row in the registry AND in all three tables`
+                            );
                         }
                     }
                 }
@@ -1701,22 +1952,34 @@ module.exports = {
                 }
                 for (const [where, text] of Object.entries(nonOwner)) {
                     const count = text.match(COUNT_RX);
-                    if (count) missing.push(`understand/${where} → asserts a target-form COUNT ("${count[0]}") — the set is enumerated ONLY in references/${OWNER}'s registry; delete the count and point there`);
-                    if (ID_ROW_RX.test(text)) missing.push(`understand/${where} → carries form-registry rows ("| **F…") — only references/${OWNER} may enumerate the form set`);
-                    if (LEGACY_ROW_RX.test(text)) missing.push(`understand/${where} → carries a per-form table keyed on form names — that second list is what drifted from the owner three rounds running; replace it with a pointer to references/${OWNER}`);
+                    if (count)
+                        missing.push(
+                            `understand/${where} → asserts a target-form COUNT ("${count[0]}") — the set is enumerated ONLY in references/${OWNER}'s registry; delete the count and point there`
+                        );
+                    if (ID_ROW_RX.test(text))
+                        missing.push(`understand/${where} → carries form-registry rows ("| **F…") — only references/${OWNER} may enumerate the form set`);
+                    if (LEGACY_ROW_RX.test(text))
+                        missing.push(
+                            `understand/${where} → carries a per-form table keyed on form names — that second list is what drifted from the owner three rounds running; replace it with a pointer to references/${OWNER}`
+                        );
                     // Dangling deixis. Consolidation moved the per-form tables out of these files
                     // but left two prose pointers reading "see the target-form matrix below" —
                     // aimed at a table no longer there. A cross-file pointer must name the FILE, so
                     // "below"/"above" deixis about the form contract is banned outside the owner.
                     const dangling = text.match(/target[- ]form matrix|form matrix (?:below|above)/i);
-                    if (dangling) missing.push(`understand/${where} → points at a "${dangling[0]}" that does not live here — the per-form tables are in references/${OWNER}; cite it by filename and table number, never by "below"`);
+                    if (dangling)
+                        missing.push(
+                            `understand/${where} → points at a "${dangling[0]}" that does not live here — the per-form tables are in references/${OWNER}; cite it by filename and table number, never by "below"`
+                        );
                 }
 
-                assertTrue(missing.length === 0,
+                assertTrue(
+                    missing.length === 0,
                     `understand report-contract drift:\n  ${missing.join('\n  ')}\n` +
-                    `Fix: restore the dropped contract text, or update this TC if the contract ` +
-                    `intentionally changed (a deliberate contract change SHOULD edit this test).`);
-            },
+                        `Fix: restore the dropped contract text, or update this TC if the contract ` +
+                        `intentionally changed (a deliberate contract change SHOULD edit this test).`
+                );
+            }
         },
         {
             name: '[content-presence] TC-CP-012 understand skill emits ONE report file — no multi-file vocabulary',
@@ -1735,7 +1998,7 @@ module.exports = {
                 const FILE_SHAPED = [/00-index/i, /NN-\{group-slug\}/i, /sub-spine/i, /block path/i];
                 const dir = path.join(SKILLS_DIR, 'understand');
                 const files = [];
-                const walk = (d) => {
+                const walk = d => {
                     for (const e of fs.readdirSync(d, { withFileTypes: true })) {
                         const p = path.join(d, e.name);
                         if (e.isDirectory()) walk(p);
@@ -1745,9 +2008,11 @@ module.exports = {
                 walk(dir);
 
                 // Vacuity guard: a glob that matches nothing asserts nothing.
-                assertTrue(files.length >= 5,
+                assertTrue(
+                    files.length >= 5,
                     `TC-CP-012 found only ${files.length} markdown file(s) under .claude/skills/understand — ` +
-                    `expected at least 5 (SKILL.md + 4 references). The scan is vacuous; fix the walk before trusting a green.`);
+                        `expected at least 5 (SKILL.md + 4 references). The scan is vacuous; fix the walk before trusting a green.`
+                );
 
                 const hits = [];
                 for (const p of files) {
@@ -1757,12 +2022,14 @@ module.exports = {
                         if (m) hits.push(`${path.relative(SKILLS_DIR, p)} → "${m[0]}"`);
                     }
                 }
-                assertTrue(hits.length === 0,
+                assertTrue(
+                    hits.length === 0,
                     `understand multi-file vocabulary returned:\n  ${hits.join('\n  ')}\n` +
-                    `Fix: the report is ONE file at every tier — see references/report-template.md → ` +
-                    `"Scaled report layout". At >12 groups it NESTS in the same file, never splits. ` +
-                    `If the contract intentionally changed back, update this TC.`);
-            },
+                        `Fix: the report is ONE file at every tier — see references/report-template.md → ` +
+                        `"Scaled report layout". At >12 groups it NESTS in the same file, never splits. ` +
+                        `If the contract intentionally changed back, update this TC.`
+                );
+            }
         },
         {
             name: '[content-presence] TC-CP-013 understand skill caps nothing it SAYS, and keeps every split trigger',
@@ -1785,11 +2052,16 @@ module.exports = {
                 // report-template.md's caps-vs-triggers note is the human-readable rule a reviewer
                 // reads. Do not trust this guard past that range.
                 const CAP_PHRASINGS = [
-                    /1[–-]4 concepts/i, /concepts MAX/i, /1[–-]3 flows/i,
-                    /3[–-]7[- ]stages?/i, /bounds the route to 3[–-]7/i, /Cap: 3 context files/i,
+                    /1[–-]4 concepts/i,
+                    /concepts MAX/i,
+                    /1[–-]3 flows/i,
+                    /3[–-]7[- ]stages?/i,
+                    /bounds the route to 3[–-]7/i,
+                    /Cap: 3 context files/i,
                     // Word forms. The digit patterns above cannot see these, which is exactly how
                     // SKILL.md's "exactly three lines — no more" survived the first cap inventory.
-                    /exactly three lines/i, /lines? — no more/i,
+                    /exactly three lines/i,
+                    /lines? — no more/i
                 ];
                 // Digit-free sentences BUILT ON a removed cap. No cap-shaped pattern can see these
                 // — none contains a number. The last two catch the subtler second-order failure:
@@ -1797,10 +2069,7 @@ module.exports = {
                 // rule, which abolished the named-but-unrouted mechanism outright. A paraphrase
                 // that keeps the mechanism contradicts the rule on the same page, and is harder to
                 // spot than the dangling reference it replaced.
-                const ORPHAN_PHRASINGS = [
-                    /context cap/i, /cap of 3/i, /The cap bounds/i, /(file|stage) cap/i,
-                    /named but/i, /(did|could) not route/i,
-                ];
+                const ORPHAN_PHRASINGS = [/context cap/i, /cap of 3/i, /The cap bounds/i, /(file|stage) cap/i, /named but/i, /(did|could) not route/i];
                 // The other half: exceeding one of these ADDS structure. They must survive.
                 // SECOND KNOWN BLIND SPOT, measured not assumed: this is a FILE-LEVEL presence
                 // check, and several triggers are stated twice in their owning file (once in the
@@ -1816,12 +2085,12 @@ module.exports = {
                     { file: 'references/scale-protocol.md', rx: /≤ ?2000/, what: 'group size (≤2000 diff-lines)' },
                     { file: 'references/scale-protocol.md', rx: /≤ ?12/, what: 'groups per level (≤12 → nest)' },
                     { file: 'references/scale-protocol.md', rx: /≤ ?10 lines/, what: 'sub-agent return bound (a MESSAGE bound, not a report bound)' },
-                    { file: 'references/diagram-catalog.md', rx: /~ ?20 nodes/, what: 'diagram size (~20 nodes → split/subgraph)' },
+                    { file: 'references/diagram-catalog.md', rx: /~ ?20 nodes/, what: 'diagram size (~20 nodes → split/subgraph)' }
                 ];
 
                 const dir = path.join(SKILLS_DIR, 'understand');
                 const files = [];
-                const walk = (d) => {
+                const walk = d => {
                     for (const e of fs.readdirSync(d, { withFileTypes: true })) {
                         const p = path.join(d, e.name);
                         if (e.isDirectory()) walk(p);
@@ -1829,9 +2098,11 @@ module.exports = {
                     }
                 };
                 walk(dir);
-                assertTrue(files.length >= 5,
+                assertTrue(
+                    files.length >= 5,
                     `TC-CP-013 found only ${files.length} markdown file(s) under .claude/skills/understand — ` +
-                    `expected at least 5. The scan is vacuous; fix the walk before trusting a green.`);
+                        `expected at least 5. The scan is vacuous; fix the walk before trusting a green.`
+                );
 
                 const problems = [];
                 for (const p of files) {
@@ -1852,18 +2123,20 @@ module.exports = {
                     if (!t.rx.test(text)) problems.push(`${t.file} → SPLIT TRIGGER DELETED: ${t.what}`);
                 }
 
-                assertTrue(problems.length === 0,
+                assertTrue(
+                    problems.length === 0,
                     `understand cap/trigger contract broken:\n  ${problems.join('\n  ')}\n` +
-                    `Fix — "content cap returned": no rule may cap what the report SAYS; a limit that ` +
-                    `binds makes a run drop knowledge to fit. Replace the count with the quality rule ` +
-                    `it approximated.\n` +
-                    `Fix — "orphaned cap reference": a sentence still points at (or paraphrases) a cap ` +
-                    `this contract removed. Delete the clause; do not reword it into the replacement ` +
-                    `rule's vocabulary.\n` +
-                    `Fix — "SPLIT TRIGGER DELETED": removing a trigger does NOT remove a cap — it ` +
-                    `removes the structure that keeps a large target readable. See ` +
-                    `references/report-template.md → "Caps vs split triggers".`);
-            },
+                        `Fix — "content cap returned": no rule may cap what the report SAYS; a limit that ` +
+                        `binds makes a run drop knowledge to fit. Replace the count with the quality rule ` +
+                        `it approximated.\n` +
+                        `Fix — "orphaned cap reference": a sentence still points at (or paraphrases) a cap ` +
+                        `this contract removed. Delete the clause; do not reword it into the replacement ` +
+                        `rule's vocabulary.\n` +
+                        `Fix — "SPLIT TRIGGER DELETED": removing a trigger does NOT remove a cap — it ` +
+                        `removes the structure that keeps a large target readable. See ` +
+                        `references/report-template.md → "Caps vs split triggers".`
+                );
+            }
         },
         {
             name: '[content-presence] TC-CP-014 no skill or framework config instructs CHANGELOG.md generation',
@@ -1884,15 +2157,11 @@ module.exports = {
                     /\b(?:write|writes|writing|update|updates|updating|prepend|prepends|prepending|append|appends|appending|generate|generates|generating|create|creates|creating|maintain|maintains|maintaining)\s+(?:the\s+|a\s+|an\s+|to\s+|into\s+)*[`'"]?CHANGELOG\.md/i;
                 // The verb also shows up AFTER the filename ("Aggregated log: CHANGELOG.md
                 // (prepended)"), so match that shape too — same verb set, opposite order.
-                const WRITTEN_SUFFIX =
-                    /CHANGELOG\.md[^\n]{0,40}?\b(?:prepended|appended|generated|written|created|updated|maintained|auto-saved)\b/i;
+                const WRITTEN_SUFFIX = /CHANGELOG\.md[^\n]{0,40}?\b(?:prepended|appended|generated|written|created|updated|maintained|auto-saved)\b/i;
                 const OUTPUT_KEYS = /\b(?:changelog_file|changelog_root|per_service_changelog)\b/;
                 const GENERATOR_REF = /\bupdate-changelog(?:\.cjs)?\b/;
 
-                const roots = [
-                    path.join(PROJECT_DIR, '.claude', 'skills'),
-                    path.join(PROJECT_DIR, '.claude', 'config'),
-                ];
+                const roots = [path.join(PROJECT_DIR, '.claude', 'skills'), path.join(PROJECT_DIR, '.claude', 'config')];
                 const EXT = /\.(?:md|ya?ml|json|c?js|mjs)$/i;
                 // Skill-local dependencies are installed beside documented skill
                 // runners. Their third-party CHANGELOGs are not framework guidance.
@@ -1905,16 +2174,17 @@ module.exports = {
                         if (e.isDirectory()) {
                             if (IGNORED_DIRS.has(e.name)) continue;
                             walk(p);
-                        }
-                        else if (EXT.test(e.name)) files.push(p);
+                        } else if (EXT.test(e.name)) files.push(p);
                     }
                 };
                 for (const r of roots) walk(r);
 
-                assertTrue(files.length >= 100,
+                assertTrue(
+                    files.length >= 100,
                     `TC-CP-014 scanned only ${files.length} file(s) under .claude/skills + ` +
-                    `.claude/config — expected at least 100. The walk is vacuous; fix it before ` +
-                    `trusting a green.`);
+                        `.claude/config — expected at least 100. The walk is vacuous; fix it before ` +
+                        `trusting a green.`
+                );
 
                 const problems = [];
                 for (const p of files) {
@@ -1924,20 +2194,22 @@ module.exports = {
                         ['writes a CHANGELOG.md', WRITE_VERBS],
                         ['declares a CHANGELOG.md as written output', WRITTEN_SUFFIX],
                         ['changelog output config key', OUTPUT_KEYS],
-                        ['changelog generator script reference', GENERATOR_REF],
+                        ['changelog generator script reference', GENERATOR_REF]
                     ]) {
                         const m = text.match(rx);
                         if (m) problems.push(`${rel} → ${label}: "${m[0]}"`);
                     }
                 }
 
-                assertTrue(problems.length === 0,
+                assertTrue(
+                    problems.length === 0,
                     `CHANGELOG generation re-introduced:\n  ${problems.join('\n  ')}\n` +
-                    `Fix: this framework produces release notes only — one dated file per release ` +
-                    `under the configured release-notes output dir. Remove the changelog step, key, ` +
-                    `or script; do not rename it. Reading an existing or third-party CHANGELOG is ` +
-                    `fine — writing one is not.`);
-            },
+                        `Fix: this framework produces release notes only — one dated file per release ` +
+                        `under the configured release-notes output dir. Remove the changelog step, key, ` +
+                        `or script; do not rename it. Reading an existing or third-party CHANGELOG is ` +
+                        `fine — writing one is not.`
+                );
+            }
         },
         {
             name: '[content-presence] TC-CP-016 UI review judges whole surfaces, surface load, container fit, and binds plans',
@@ -1948,48 +2220,58 @@ module.exports = {
             fn: () => {
                 const DOCS_DIR = path.resolve(PROJECT_DIR, '.claude', 'docs');
                 const expectations = [
-                    ['docs/design-review-checklist.md', readFile(path.join(DOCS_DIR, 'design-review-checklist.md')), [
-                        '### 0.5 Surface scope and composition',
-                        'Severity vocabulary map',
-                        '| B12 | **Surface load fits the task**',
-                        '| B15 | **Complexity budget respected**',
-                        '| E9  | **Container fits the task**',
-                        '| E11 | Dismissing a container with unsaved input is protected',
-                        '## R. Forms & Data Entry',
-                        'Field Necessity Matrix',
-                        '| I15 | Dialogs and overlays manage focus',
-                        '| K10 | Every visible control works end to end',
-                        '## H. Expert, Data-Heavy & Enterprise Use',
-                    ]],
-                    ['docs/design-review-calibration.md', readFile(path.join(DOCS_DIR, 'design-review-calibration.md')), [
-                        '## C1 — The overloaded creation dialog',
-                        '**NOT a finding.**',
-                    ]],
-                    ['skills/ui-design/references/mode-review.md', readFile(path.join(SKILLS_DIR, 'ui-design', 'references', 'mode-review.md')), [
-                        '**Expand files → surfaces (MANDATORY when UI files match).**',
-                        '## Phase 2B: Surface Composition',
-                        '**Style-origin map.**',
-                        '## Phase 2C: Surface UX Pass',
-                        '**Stacking-context trap**',
-                        '/surfaces/{surface}.md',
-                    ]],
-                    ['skills/plan/references/mode-review.md', readFile(path.join(SKILLS_DIR, 'plan', 'references', 'mode-review.md')), [
-                        '**User-facing UI:** apply journey, design-system, accessibility, state, and container-fit plan checks.',
-                    ]],
-                    ['skills/plan/SKILL.md', readSkill('plan'), [
-                        '**User-facing UI:** apply the configured UX/design authority and bind relevant states/accessibility criteria to acceptance evidence',
-                    ]],
-                    ['skills/design-spec/SKILL.md', readSkill('design-spec'), [
-                        '## 1b. Information Priority & Container',
-                    ]],
+                    [
+                        'docs/design-review-checklist.md',
+                        readFile(path.join(DOCS_DIR, 'design-review-checklist.md')),
+                        [
+                            '### 0.5 Surface scope and composition',
+                            'Severity vocabulary map',
+                            '| B12 | **Surface load fits the task**',
+                            '| B15 | **Complexity budget respected**',
+                            '| E9  | **Container fits the task**',
+                            '| E11 | Dismissing a container with unsaved input is protected',
+                            '## R. Forms & Data Entry',
+                            'Field Necessity Matrix',
+                            '| I15 | Dialogs and overlays manage focus',
+                            '| K10 | Every visible control works end to end',
+                            '## H. Expert, Data-Heavy & Enterprise Use'
+                        ]
+                    ],
+                    [
+                        'docs/design-review-calibration.md',
+                        readFile(path.join(DOCS_DIR, 'design-review-calibration.md')),
+                        ['## C1 — The overloaded creation dialog', '**NOT a finding.**']
+                    ],
+                    [
+                        'skills/ui-design/references/mode-review.md',
+                        readFile(path.join(SKILLS_DIR, 'ui-design', 'references', 'mode-review.md')),
+                        [
+                            '**Expand files → surfaces (MANDATORY when UI files match).**',
+                            '## Phase 2B: Surface Composition',
+                            '**Style-origin map.**',
+                            '## Phase 2C: Surface UX Pass',
+                            '**Stacking-context trap**',
+                            '/surfaces/{surface}.md'
+                        ]
+                    ],
+                    [
+                        'skills/plan/references/mode-review.md',
+                        readFile(path.join(SKILLS_DIR, 'plan', 'references', 'mode-review.md')),
+                        ['**User-facing UI:** apply journey, design-system, accessibility, state, and container-fit plan checks.']
+                    ],
+                    [
+                        'skills/plan/SKILL.md',
+                        readSkill('plan'),
+                        ['**User-facing UI:** apply the configured UX/design authority and bind relevant states/accessibility criteria to acceptance evidence']
+                    ],
+                    ['skills/design-spec/SKILL.md', readSkill('design-spec'), ['## 1b. Information Priority & Container']]
                 ];
                 const missing = [];
                 for (const [label, body, phrases] of expectations) {
                     for (const phrase of phrases) if (!body.includes(phrase)) missing.push(`${label} → ${phrase}`);
                 }
-                assertTrue(missing.length === 0,
-                    `UI-review surface obligations lost:\n  ${missing.join('\n  ')}`);
-            },
+                assertTrue(missing.length === 0, `UI-review surface obligations lost:\n  ${missing.join('\n  ')}`);
+            }
         },
         {
             name: '[content-presence] TC-CP-018 UI actions take their lightest form and a copy budget is measured',
@@ -2002,29 +2284,50 @@ module.exports = {
                 const SKILLS_DIR = path.resolve(PROJECT_DIR, '.claude', 'skills');
                 const read = (...parts) => readFile(path.join(...parts));
                 const expectations = [
-                    ['docs/design-review-checklist.md', read(DOCS_DIR, 'design-review-checklist.md'), [
-                        '| B16 | **Copy budget**', '| C14 | **One primary commit per view**', '| C15 | **Uniform action groups**',
-                        '| C16 | **List-row actions**', '| C17 | **Icon-only controls**',
-                        '| C18 | **Regular grids**', '| C19 | **Alignment and width**', '| C20 | **Placeholder variety**',
-                    ]],
+                    [
+                        'docs/design-review-checklist.md',
+                        read(DOCS_DIR, 'design-review-checklist.md'),
+                        [
+                            '| B16 | **Copy budget**',
+                            '| C14 | **One primary commit per view**',
+                            '| C15 | **Uniform action groups**',
+                            '| C16 | **List-row actions**',
+                            '| C17 | **Icon-only controls**',
+                            '| C18 | **Regular grids**',
+                            '| C19 | **Alignment and width**',
+                            '| C20 | **Placeholder variety**'
+                        ]
+                    ],
                     ['docs/design-review-calibration.md', read(DOCS_DIR, 'design-review-calibration.md'), ['## C7 — The ragged action column']],
                     ['docs/ux-journey-process.md', read(DOCS_DIR, 'ux-journey-process.md'), ['| AD-1–AD-6 actions & attention |']],
-                    ['ui-design/references/mode-review.md', read(SKILLS_DIR, 'ui-design', 'references', 'mode-review.md'), ['## Phase 3D: Action & Density Pass']],
-                    ['work-item/references/mode-mockup.md', read(SKILLS_DIR, 'work-item', 'references', 'mode-mockup.md'), [
-                        '#### Action & Attention Build Constraints', '| Primary action ',
-                    ]],
-                    ['work-item/references/mockup-interactive-demo.md', read(SKILLS_DIR, 'work-item', 'references', 'mockup-interactive-demo.md'), [
-                        '**Actions & attention (`AD-1`–`AD-6`)**',
-                    ]],
+                    [
+                        'ui-design/references/mode-review.md',
+                        read(SKILLS_DIR, 'ui-design', 'references', 'mode-review.md'),
+                        ['## Phase 3D: Action & Density Pass']
+                    ],
+                    [
+                        'work-item/references/mode-mockup.md',
+                        read(SKILLS_DIR, 'work-item', 'references', 'mode-mockup.md'),
+                        ['#### Action & Attention Build Constraints', '| Primary action ']
+                    ],
+                    [
+                        'work-item/references/mockup-interactive-demo.md',
+                        read(SKILLS_DIR, 'work-item', 'references', 'mockup-interactive-demo.md'),
+                        ['**Actions & attention (`AD-1`–`AD-6`)**']
+                    ],
                     ['design-spec/SKILL.md', readSkill('design-spec'), ['**Action forms (`AD-1`–`AD-2`):**']],
                     // The guards that keep the gate from over-reaching: heuristic cap, house pattern, other surfaces, decks.
-                    ['shared/protocols/ui-action-density-gate.md', read(SKILLS_DIR, 'shared', 'protocols', 'ui-action-density-gate.md'), [
-                        'a finding that rests only on an undeclared default ranks no higher than P3',
-                        'A documented house pattern is not a defect',
-                        'record a clause with no equivalent as N/A with the reason',
-                        'Slide decks are out of scope',
-                        'a dashboard of different widgets, a bento layout, or a feed, thread, chat or board whose items vary in height is not a collection grid',
-                    ]],
+                    [
+                        'shared/protocols/ui-action-density-gate.md',
+                        read(SKILLS_DIR, 'shared', 'protocols', 'ui-action-density-gate.md'),
+                        [
+                            'a finding that rests only on an undeclared default ranks no higher than P3',
+                            'A documented house pattern is not a defect',
+                            'record a clause with no equivalent as N/A with the reason',
+                            'Slide decks are out of scope',
+                            'a dashboard of different widgets, a bento layout, or a feed, thread, chat or board whose items vary in height is not a collection grid'
+                        ]
+                    ]
                 ];
                 const missing = [];
                 for (const [label, body, phrases] of expectations) {
@@ -2032,10 +2335,10 @@ module.exports = {
                 }
                 // And the mock-up template no longer maps every action to a primary/secondary button variant
                 const mockup = read(SKILLS_DIR, 'work-item', 'references', 'mode-mockup.md');
-                if (/\| Button +\| `<button>` with primary\/secondary variants/.test(mockup)) missing.push('mode-mockup.md still maps every action to a <button> variant');
-                assertTrue(missing.length === 0,
-                    `UI action & attention obligations lost:\n  ${missing.join('\n  ')}`);
-            },
+                if (/\| Button +\| `<button>` with primary\/secondary variants/.test(mockup))
+                    missing.push('mode-mockup.md still maps every action to a <button> variant');
+                assertTrue(missing.length === 0, `UI action & attention obligations lost:\n  ${missing.join('\n  ')}`);
+            }
         },
         {
             name: '[content-presence] TC-CP-020 a test fix needs a root-cause verdict and a fix never works around its cause',
@@ -2049,19 +2352,35 @@ module.exports = {
                 const routing = protocol('quality-skill-routing');
                 const review = readSkill('changes-review');
                 const rules = [
-                    ['ai-mistake-prevention', mistakes, /failed or unstable test, use the project's test-investigation protocol to name the root cause before any fix/],
+                    [
+                        'ai-mistake-prevention',
+                        mistakes,
+                        /failed or unstable test, use the project's test-investigation protocol to name the root cause before any fix/
+                    ],
                     ['ai-mistake-prevention', mistakes, /Fix only the side the traced verdict names: NEVER edit a test merely to match the code/],
-                    ['quality-skill-routing', routing, /`investigate --mode=debug` establishes the root cause of a failed command, test or unexpected error before any fix/],
+                    [
+                        'quality-skill-routing',
+                        routing,
+                        /`investigate --mode=debug` establishes the root cause of a failed command, test or unexpected error before any fix/
+                    ],
                     ['quality-skill-routing', routing, /never by an ad hoc patch or workaround: repair the cause at its owner/],
                     ['quality-skill-routing', routing, /special-casing, retries, sleeps, skipped or loosened checks, suppressed errors/],
                     ['quality-skill-routing', routing, /out of scope, stop and report rather than patch around it/],
-                    ['changes-review', review, /flag a test fix with no root-cause verdict naming the wrong side, test or source, against the governing spec or stated intent/],
+                    [
+                        'changes-review',
+                        review,
+                        /flag a test fix with no root-cause verdict naming the wrong side, test or source, against the governing spec or stated intent/
+                    ],
                     ['changes-review', review, /including a test edited merely to match the code/],
-                    ['changes-review', review, /fix that works around its cause[^.]*special-casing, retries or sleeps, skipped or loosened checks or suppressed errors that hide it/],
+                    [
+                        'changes-review',
+                        review,
+                        /fix that works around its cause[^.]*special-casing, retries or sleeps, skipped or loosened checks or suppressed errors that hide it/
+                    ]
                 ];
                 const missing = rules.filter(([, text, re]) => !re.test(text)).map(([owner, , re]) => `${owner}: ${re}`);
                 assertTrue(missing.length === 0, `root-cause / no-workaround rules lost:\n  ${missing.join('\n  ')}`);
-            },
+            }
         },
         {
             name: '[content-presence] TC-CP-019 every prototype ships a design-system page and shared controls are built once',
@@ -2076,33 +2395,54 @@ module.exports = {
                 const read = (...parts) => readFile(path.join(...parts));
                 const mockup = read(SKILLS_DIR, 'work-item', 'references', 'mode-mockup.md');
                 const expectations = [
-                    ['work-item/references/mode-mockup.md', mockup, [
-                        '| Design-system page (`PD-1`) |', '### Step 5b: [BLOCKING] Generate the Design-System Page',
-                        '**Define each control once (`PD-3`):**', '- Design-system page (PD-1):', '13. **Design-system page (`PD-1`–`PD-6`)**', 'Items 0-7 and 13 stay blocking here', '5b. **[BLOCKING] Design-System Page (`PD-1`–`PD-6`)**',
-                        'Find the project\'s shared component library from evidence (`PD-4`)',
-                    ]],
-                    ['docs/design-review-checklist.md', read(DOCS_DIR, 'design-review-checklist.md'), ['| M10 | New or changed work implements no control twice']],
+                    [
+                        'work-item/references/mode-mockup.md',
+                        mockup,
+                        [
+                            '| Design-system page (`PD-1`) |',
+                            '### Step 5b: [BLOCKING] Generate the Design-System Page',
+                            '**Define each control once (`PD-3`):**',
+                            '- Design-system page (PD-1):',
+                            '13. **Design-system page (`PD-1`–`PD-6`)**',
+                            'Items 0-7 and 13 stay blocking here',
+                            '5b. **[BLOCKING] Design-System Page (`PD-1`–`PD-6`)**',
+                            "Find the project's shared component library from evidence (`PD-4`)"
+                        ]
+                    ],
+                    [
+                        'docs/design-review-checklist.md',
+                        read(DOCS_DIR, 'design-review-checklist.md'),
+                        ['| M10 | New or changed work implements no control twice']
+                    ],
                     // The guards that keep the rule universal: evidence over assumed frameworks, purpose over counts, no invented tokens.
-                    ['shared/protocols/prototype-design-system.md', read(SKILLS_DIR, 'shared', 'protocols', 'prototype-design-system.md'), [
-                        'Never assume a framework or a folder name',
-                        'a look-alike with a different purpose stays separate',
-                        'a token system is adopted only when the plan decides to',
-                        'a legacy duplicate outside the change is `M8`',
-                    ]],
+                    [
+                        'shared/protocols/prototype-design-system.md',
+                        read(SKILLS_DIR, 'shared', 'protocols', 'prototype-design-system.md'),
+                        [
+                            'Never assume a framework or a folder name',
+                            'a look-alike with a different purpose stays separate',
+                            'a token system is adopted only when the plan decides to',
+                            'a legacy duplicate outside the change is `M8`'
+                        ]
+                    ],
                     ['plan/SKILL.md', readSkill('plan'), ['- `prototype-design-system` —', '<!-- SYNC:prototype-design-system:reminder -->']],
                     ['workflow-spec-to-mockup/SKILL.md', readSkill('workflow-spec-to-mockup'), ['| **Design-system page** (`PD-1`–`PD-6`) |']],
-                    ['plan/references/mode-execute.md', read(SKILLS_DIR, 'plan', 'references', 'mode-execute.md'), ['UI phases build or confirm the shared components']],
-                    ['ui-design/SKILL.md', readSkill('ui-design'), ['## Design-System Page Contract (prototype-producing modes)']],
+                    [
+                        'plan/references/mode-execute.md',
+                        read(SKILLS_DIR, 'plan', 'references', 'mode-execute.md'),
+                        ['UI phases build or confirm the shared components']
+                    ],
+                    ['ui-design/SKILL.md', readSkill('ui-design'), ['## Design-System Page Contract (prototype-producing modes)']]
                 ];
                 const missing = [];
                 for (const [label, body, phrases] of expectations) {
                     for (const phrase of phrases) if (!body.includes(phrase)) missing.push(`${label} → ${phrase}`);
                 }
                 // And brownfield discovery no longer assumes one framework's file names
-                if (mockup.includes('Glob("**/libs/*common*/**/*.component.ts")')) missing.push('mode-mockup.md still discovers components with a framework-specific glob');
-                assertTrue(missing.length === 0,
-                    `Prototype design-system obligations lost:\n  ${missing.join('\n  ')}`);
-            },
+                if (mockup.includes('Glob("**/libs/*common*/**/*.component.ts")'))
+                    missing.push('mode-mockup.md still discovers components with a framework-specific glob');
+                assertTrue(missing.length === 0, `Prototype design-system obligations lost:\n  ${missing.join('\n  ')}`);
+            }
         },
         {
             // Guards BR-ADS-05: with the trailer switch off (the default) the commit guidance asks for no line
@@ -2114,13 +2454,16 @@ module.exports = {
                 const body = readSkill('commit');
                 // Absent/false must not add a trailer; compact guidance need not
                 // restore the old multi-section message template to express it.
-                assertTrue(/Only when `commit\.fixOriginTrailer: true`, add `Fix-Origin:/.test(body),
-                    'Fix-Origin must remain conditional on an explicitly true setting');
+                assertTrue(
+                    /Only when `commit\.fixOriginTrailer: true`, add `Fix-Origin:/.test(body),
+                    'Fix-Origin must remain conditional on an explicitly true setting'
+                );
                 // And no paragraph about the trailer claims a sensor, a presence check or a mandatory field
-                const claims = paragraphsMentioning(body, /Fix-Origin|fixOriginTrailer/)
-                    .filter(p => /\bsensors?\b|verif(?:y|ies)\s+(?:its\s+)?presence|required on every/i.test(p));
+                const claims = paragraphsMentioning(body, /Fix-Origin|fixOriginTrailer/).filter(p =>
+                    /\bsensors?\b|verif(?:y|ies)\s+(?:its\s+)?presence|required on every/i.test(p)
+                );
                 assertTrue(claims.length === 0, `commit skill claims a Fix-Origin check or requirement:\n  ${claims.join('\n  ')}`);
-            },
+            }
         },
         {
             // Guards BR-ADS-05: turning the trailer on never leads anyone to rewrite existing history.
@@ -2135,14 +2478,14 @@ module.exports = {
                     '`regression` (earlier defect)',
                     '`not-applicable` (not a fix)',
                     'to new commits',
-                    'never reword history to add it',
+                    'never reword history to add it'
                 ].filter(p => !body.includes(p));
                 // Then it names the switch and scopes the trailer to new commits only
                 assertTrue(missing.length === 0, `commit Fix-Origin opt-in text lost:\n  ${missing.join('\n  ')}`);
                 // And no sentence advises rewording existing commits
                 const rewordAdvice = body.split(/(?<=[.!?])\s+/).filter(s => /\breword/i.test(s) && !/\bnever\b/i.test(s));
                 assertTrue(rewordAdvice.length === 0, `commit skill advises rewording commits:\n  ${rewordAdvice.join('\n  ')}`);
-            },
+            }
         },
         {
             // Guards BR-ADS-02: sessions no longer install the graph tooling, so the explicit build installs it
@@ -2157,18 +2500,20 @@ module.exports = {
                 const firstGraphCallAt = steps.indexOf('python .claude/scripts/code_graph');
                 // Then the node install command is present and precedes every graph CLI call
                 assertTrue(body.includes('## Steps') && installAt !== -1, 'graph-code build mode lost the node ensurePythonDeps install step');
-                assertTrue(firstGraphCallAt === -1 || installAt < firstGraphCallAt,
-                    'graph-code build mode runs a graph CLI command before installing the graph tooling');
+                assertTrue(
+                    firstGraphCallAt === -1 || installAt < firstGraphCallAt,
+                    'graph-code build mode runs a graph CLI command before installing the graph tooling'
+                );
                 // And a failed install stops the build with a message
                 const step0 = sectionBetween(steps, '### Step 0', '### ');
                 assertTrue(/Non-zero exit:\*\*\s*stop\./.test(step0), 'graph-code build mode Step 0 no longer stops when the install fails');
-            },
+            }
         },
         {
             // Guards decision D-2 (and spec TC-PD-021: the general deck builder starts only on a developer request): a utility that drops its manual-only flag re-enters the model's skill
             // list and self-triggers again; a flipped `commit`/`learn` breaks the agent and lesson paths.
             name: '[content-presence] TC-ADS-008 command-only utility skills are manual-only; commit, learn, git-conflict-resolve and sync-codex stay callable',
-            skip: IS_FRAMEWORK_REPO ? false : 'asserts the framework repo\'s own skill defaults (framework-repo signal)',
+            skip: IS_FRAMEWORK_REPO ? false : "asserts the framework repo's own skill defaults (framework-repo signal)",
             fn: () => {
                 // Given the command-only utilities and the skills the owner keeps model-callable
                 const defects = [];
@@ -2186,13 +2531,13 @@ module.exports = {
                 }
                 // Then every utility is manual-only and the callable pair is untouched
                 assertTrue(defects.length === 0, `command-only skill policy (D-2) broken:\n  ${defects.join('\n  ')}`);
-            },
+            }
         },
         {
             // Guards the by-path coupling: callers restate html-export's exit codes in prose, so a code
             // change in EXIT or a reworded caller would otherwise mis-route a render result silently.
             name: '[content-presence] TC-HTMLX-052 html-export callers share one exit rule that matches EXIT',
-            skip: IS_FRAMEWORK_REPO ? false : 'asserts the framework repo\'s own caller skills (framework-repo signal)',
+            skip: IS_FRAMEWORK_REPO ? false : "asserts the framework repo's own caller skills (framework-repo signal)",
             fn: () => {
                 // Given html-export's exit-code table and the three skills that call its script by path
                 const { EXIT } = require(path.join(SKILLS_DIR, 'html-export', 'scripts', 'lib', 'exit-codes.cjs'));
@@ -2201,7 +2546,7 @@ module.exports = {
                 // When each caller's exit-rule line is read (skills, then reference files)
                 const callers = [
                     ...HTML_EXPORT_CALLERS.map(name => [name, readSkill(name)]),
-                    ...HTML_EXPORT_CALLER_REFERENCES.map(rel => [rel, readFile(path.join(SKILLS_DIR, ...rel.split('/')))]),
+                    ...HTML_EXPORT_CALLER_REFERENCES.map(rel => [rel, readFile(path.join(SKILLS_DIR, ...rel.split('/')))])
                 ];
                 for (const [name, body] of callers) {
                     const found = body.match(HTML_EXPORT_EXIT_RULE) || [];
@@ -2230,7 +2575,7 @@ module.exports = {
                     `exit ${EXIT.PAGE_ERROR} → fix the page and re-run`,
                     `exit ${EXIT.DEPENDENCY} → \`NOT VERIFIABLE\``,
                     `exit ${EXIT.ERROR}/${EXIT.USAGE} → tool failure`,
-                    'mark `NOT VERIFIABLE`',
+                    'mark `NOT VERIFIABLE`'
                 ];
                 for (const rule of distinct) {
                     for (const clause of expectedClauses) if (!rule.includes(clause)) defects.push(`exit rule lacks "${clause}"`);
@@ -2242,7 +2587,7 @@ module.exports = {
                 // And the script the callers name exists
                 if (!fs.existsSync(path.resolve(PROJECT_DIR, HTML_EXPORT_SCRIPT))) defects.push(`${HTML_EXPORT_SCRIPT} is missing`);
                 assertTrue(defects.length === 0, `html-export caller exit rule drifted:\n  ${defects.join('\n  ')}`);
-            },
+            }
         },
         {
             // Proves the table form of the guard can fail: each kind of drift a caller's exit table can
@@ -2251,12 +2596,12 @@ module.exports = {
             fn: () => {
                 // Given the canonical exit codes and a table that routes each one as the caller rule does
                 const EXIT = { OK: 0, ERROR: 1, USAGE: 2, DEPENDENCY: 3, PAGE_ERROR: 4 };
-                const table = (rows) => ['Read the exit code first:', '', '| Exit | Meaning | Action |', '| --- | --- | --- |', ...rows, '', 'After.'].join('\n');
+                const table = rows => ['Read the exit code first:', '', '| Exit | Meaning | Action |', '| --- | --- | --- |', ...rows, '', 'After.'].join('\n');
                 const good = [
                     '| 0 | Evidence as scoped | Open the PNGs |',
                     '| 4 | A page fault | Fix the draft, re-render |',
                     '| 3 | A dependency is missing | Mark `NOT VERIFIABLE`. NEVER run an install command |',
-                    '| 1 or 2 | Tool failure | Quote stderr, mark `NOT VERIFIABLE`. Never count it as a design defect or a pass |',
+                    '| 1 or 2 | Tool failure | Quote stderr, mark `NOT VERIFIABLE`. Never count it as a design defect or a pass |'
                 ];
                 // When the intact table is checked, Then nothing is reported
                 const clean = htmlExportExitTableDefects(table(good), EXIT);
@@ -2267,15 +2612,18 @@ module.exports = {
                     [[...good, '| 5 | New | Tool failure, `NOT VERIFIABLE`, never count it as a design defect or a pass |'], /routes codes \[0,1,2,3,4,5\]/],
                     [good.map(row => row.replace('Tool failure', 'Retry later')), /exit 1 row lacks/],
                     [good.map(row => row.replace('NEVER run an install command', 'install it')), /exit 3 row lacks/],
-                    [[...good.slice(0, 3), good[3].replace('1 or 2', '1'), good[3].replace('1 or 2', '2')], /must share one tool-failure row/],
+                    [[...good.slice(0, 3), good[3].replace('1 or 2', '1'), good[3].replace('1 or 2', '2')], /must share one tool-failure row/]
                 ];
                 for (const [rows, expected] of drifts) {
                     const found = htmlExportExitTableDefects(table(rows), EXIT);
-                    assertTrue(found.some(line => expected.test(line)), `expected ${expected} in: ${found.join('; ') || '(none)'}`);
+                    assertTrue(
+                        found.some(line => expected.test(line)),
+                        `expected ${expected} in: ${found.join('; ') || '(none)'}`
+                    );
                 }
                 // And a file with no exit table is named, never passed
                 assertTrue(htmlExportExitTableDefects('No table here.', EXIT).length === 1, 'a missing table must be reported');
-            },
+            }
         },
         {
             // Guards the primacy/recency rule under the emphasis diet: body prose may go plain, the
@@ -2285,41 +2633,73 @@ module.exports = {
                 // Given a fixture skill whose anchors hold emphasis and whose body is plain
                 const floors = { top: 2, closing: 2 };
                 const skill = [
-                    '---', 'name: fx', "description: 'Fixture.'", '---', '',
-                    '<!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->', '> **[BLOCKING]** Run steps in order.', '<!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->', '',
-                    '## Quick Summary', '', 'NEVER skip the checklist.', '',
-                    '## Step 1', '', 'Read the input; stop when it is missing.', '',
-                    '<!-- SYNC:fx -->', 'MUST MUST MUST', '<!-- /SYNC:fx -->', '',
-                    '## Closing Reminders', '', '**IMPORTANT MUST ATTENTION** cite evidence.', '',
+                    '---',
+                    'name: fx',
+                    "description: 'Fixture.'",
+                    '---',
+                    '',
+                    '<!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->',
+                    '> **[BLOCKING]** Run steps in order.',
+                    '<!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->',
+                    '',
+                    '## Quick Summary',
+                    '',
+                    'NEVER skip the checklist.',
+                    '',
+                    '## Step 1',
+                    '',
+                    'Read the input; stop when it is missing.',
+                    '',
+                    '<!-- SYNC:fx -->',
+                    'MUST MUST MUST',
+                    '<!-- /SYNC:fx -->',
+                    '',
+                    '## Closing Reminders',
+                    '',
+                    '**IMPORTANT MUST ATTENTION** cite evidence.',
+                    ''
                 ].join('\n');
                 // When it is checked, Then no anchor gap is reported
                 assertTrue(emphasisAnchorGaps(skill, floors).length === 0, `unexpected gaps: ${emphasisAnchorGaps(skill, floors).join('; ')}`);
                 // When the Quick Summary loses its marker, Then the top anchor is named
                 const plainTop = emphasisAnchorGaps(skill.replace('NEVER skip', 'Do not skip'), floors);
-                assertTrue(plainTop.some(g => g.startsWith('top anchor')), `top anchor not named: ${plainTop.join('; ')}`);
+                assertTrue(
+                    plainTop.some(g => g.startsWith('top anchor')),
+                    `top anchor not named: ${plainTop.join('; ')}`
+                );
                 // When the closing reminder goes plain, Then the closing anchor is named
                 const plainClose = emphasisAnchorGaps(skill.replace('**IMPORTANT MUST ATTENTION** cite', 'Cite'), floors);
-                assertTrue(plainClose.some(g => g.startsWith('closing anchor')), `closing anchor not named: ${plainClose.join('; ')}`);
+                assertTrue(
+                    plainClose.some(g => g.startsWith('closing anchor')),
+                    `closing anchor not named: ${plainClose.join('; ')}`
+                );
                 // When a section is removed, Then its absence is named
-                assertTrue(emphasisAnchorGaps(skill.replace('## Closing Reminders', '## Notes'), floors).some(g => g.includes('no `## Closing Reminders`')), 'missing closing section not named');
+                assertTrue(
+                    emphasisAnchorGaps(skill.replace('## Closing Reminders', '## Notes'), floors).some(g => g.includes('no `## Closing Reminders`')),
+                    'missing closing section not named'
+                );
                 // And a SYNC body's markers never count toward an anchor (moving the markers into SYNC fails)
                 const syncOnly = skill.replace('NEVER skip', 'Do not skip').replace('## Step 1', '<!-- SYNC:q -->\nNEVER NEVER\n<!-- /SYNC:q -->\n\n## Step 1');
-                assertTrue(emphasisAnchorGaps(syncOnly, floors).some(g => g.startsWith('top anchor')), 'SYNC markers were counted toward the top anchor');
-            },
+                assertTrue(
+                    emphasisAnchorGaps(syncOnly, floors).some(g => g.startsWith('top anchor')),
+                    'SYNC markers were counted toward the top anchor'
+                );
+            }
         },
         {
             name: '[content-presence] TC-ADS-025 the emphasis-diet skills keep their top and closing anchor markers',
-            skip: IS_FRAMEWORK_REPO ? false : 'asserts the framework repo\'s own skill anchors (framework-repo signal)',
+            skip: IS_FRAMEWORK_REPO ? false : "asserts the framework repo's own skill anchors (framework-repo signal)",
             fn: () => {
                 // Given the five G3-selected skills and the anchor counts they held when selected
                 const gaps = [];
                 // When each SKILL.md is read
                 for (const [name, floors] of Object.entries(EMPHASIS_ANCHOR_FLOORS)) {
-                    for (const gap of emphasisAnchorGaps(name.includes('/') ? readFile(path.join(SKILLS_DIR, ...name.split('/'))) : readSkill(name), floors)) gaps.push(`${name}: ${gap}`);
+                    for (const gap of emphasisAnchorGaps(name.includes('/') ? readFile(path.join(SKILLS_DIR, ...name.split('/'))) : readSkill(name), floors))
+                        gaps.push(`${name}: ${gap}`);
                 }
                 // Then no anchor lost emphasis markers
                 assertTrue(gaps.length === 0, `emphasis anchors stripped:\n  ${gaps.join('\n  ')}`);
-            },
+            }
         },
         {
             // Business Intent (BR-PD-02): existing general decks keep their verdict — naming no profile is the
@@ -2333,7 +2713,7 @@ module.exports = {
                 const decks = [
                     ['conforming', conforming],
                     ['draft-saving', pdMutate(conforming, 'drop draft saving', html => html.replace(/localStorage\.setItem\([^;]+;/, ''))],
-                    ['print', pdMutate(conforming, 'drop print CSS', html => html.replace('@media print', '@media screen'))],
+                    ['print', pdMutate(conforming, 'drop print CSS', html => html.replace('@media print', '@media screen'))]
                 ];
                 const defects = [];
                 for (const [label, html] of decks) {
@@ -2347,13 +2727,15 @@ module.exports = {
                 const verdictOf = label => validatePresentation(decks.find(([name]) => name === label)[1]);
                 if (!verdictOf('conforming').ok) defects.push(`conforming deck failed: ${verdictOf('conforming').errors.join('; ')}`);
                 if (JSON.stringify(pdErrorIds(verdictOf('draft-saving'))) !== '["draft-persistence"]') {
-                    defects.push(`draft-saving deck must fail only draft-persistence with no profile, got ${JSON.stringify(pdErrorIds(verdictOf('draft-saving')))}`);
+                    defects.push(
+                        `draft-saving deck must fail only draft-persistence with no profile, got ${JSON.stringify(pdErrorIds(verdictOf('draft-saving')))}`
+                    );
                 }
                 if (JSON.stringify(pdErrorIds(verdictOf('print'))) !== '["print"]') {
                     defects.push(`print deck must fail only print, got ${JSON.stringify(pdErrorIds(verdictOf('print')))}`);
                 }
                 assertTrue(defects.length === 0, `TC-PD-001 default verdict drifted from presenter:\n  ${defects.join('\n  ')}`);
-            },
+            }
         },
         {
             // Business Intent (BR-PD-03): a review deck is not forced to carry editing, and nothing else is
@@ -2365,11 +2747,17 @@ module.exports = {
                 // Given a conforming deck with editing, draft saving, reset and export removed, keeping an edit
                 // control that announces no state (so edit-state is exercised, not skipped)
                 const noEditing = [
-                    ['unstated edit toggle', html => html.replace('<button aria-pressed="false" data-action="toggle-edit">', '<button data-action="toggle-edit">')],
+                    [
+                        'unstated edit toggle',
+                        html => html.replace('<button aria-pressed="false" data-action="toggle-edit">', '<button data-action="toggle-edit">')
+                    ],
                     ['drop edit-state script', html => html.replace(/document\.querySelector\('\[data-action="toggle-edit"\]'\)[^;]+;/, '')],
                     ['drop editing implementation', html => html.replace(/document\.querySelector\('\.editable'\)[^;]+;/, '')],
                     ['drop draft saving', html => html.replace(/localStorage\.setItem\([^;]+;/, '')],
-                    ['drop reset and export', html => html.replace('<button data-action="reset">Reset</button><button data-action="export">Export</button>', '')],
+                    [
+                        'drop reset and export',
+                        html => html.replace('<button data-action="reset">Reset</button><button data-action="export">Export</button>', '')
+                    ]
                 ].reduce((html, [label, mutate]) => pdMutate(html, label, mutate), pdFixtureDeck());
                 // When it is checked against presenter and against review
                 const presenter = validatePresentation(noEditing, { profile: 'presenter' });
@@ -2379,11 +2767,15 @@ module.exports = {
                     .filter(check => check.level === 'error' && (pdCheck(review, check.id) || {}).level === 'warning')
                     .map(check => check.id)
                     .sort();
-                assertTrue(JSON.stringify(demoted) === JSON.stringify(PD_EDITING_CHECKS),
-                    `TC-PD-002 review demotes ${JSON.stringify(demoted)}, expected exactly ${JSON.stringify(PD_EDITING_CHECKS)}`);
+                assertTrue(
+                    JSON.stringify(demoted) === JSON.stringify(PD_EDITING_CHECKS),
+                    `TC-PD-002 review demotes ${JSON.stringify(demoted)}, expected exactly ${JSON.stringify(PD_EDITING_CHECKS)}`
+                );
                 // And presenter fails on exactly those five, while review passes listing each as advisory
-                assertTrue(JSON.stringify(pdErrorIds(presenter)) === JSON.stringify(PD_EDITING_CHECKS),
-                    `TC-PD-002 presenter must fail exactly the editing checks, got ${JSON.stringify(pdErrorIds(presenter))}`);
+                assertTrue(
+                    JSON.stringify(pdErrorIds(presenter)) === JSON.stringify(PD_EDITING_CHECKS),
+                    `TC-PD-002 presenter must fail exactly the editing checks, got ${JSON.stringify(pdErrorIds(presenter))}`
+                );
                 assertTrue(review.ok === true, `TC-PD-002 review failed the deck: ${review.errors.join('; ')}`);
                 const unlisted = PD_EDITING_CHECKS.filter(id => !review.warnings.some(warning => warning.startsWith(`${id}:`)));
                 assertTrue(unlisted.length === 0, `TC-PD-002 review omits advisories for: ${unlisted.join(', ')}`);
@@ -2400,16 +2792,31 @@ module.exports = {
                 // Edge: a deck with no editing (or notes) control has nothing to judge — the state check passes
                 // in both profiles and says so, instead of asking for a state the deck does not need
                 const noToggles = [
-                    ['edit-state', pdMutate(pdFixtureDeck(), 'drop edit toggle', html => html.replace('<button aria-pressed="false" data-action="toggle-edit">Edit mode</button>', ''))],
-                    ['notes-state', pdMutate(pdFixtureDeck(), 'drop notes toggle', html => html.replace('<button aria-expanded="false" data-action="toggle-notes" aria-controls="notes-panel">Notes</button>', ''))],
+                    [
+                        'edit-state',
+                        pdMutate(pdFixtureDeck(), 'drop edit toggle', html =>
+                            html.replace('<button aria-pressed="false" data-action="toggle-edit">Edit mode</button>', '')
+                        )
+                    ],
+                    [
+                        'notes-state',
+                        pdMutate(pdFixtureDeck(), 'drop notes toggle', html =>
+                            html.replace('<button aria-expanded="false" data-action="toggle-notes" aria-controls="notes-panel">Notes</button>', '')
+                        )
+                    ]
                 ];
                 const asking = [];
-                for (const [id, html] of noToggles) for (const profile of ['presenter', 'review']) {
-                    const check = pdCheck(validatePresentation(html, { profile }), id);
-                    if (!check || check.pass !== true || /needs/.test(check.details)) asking.push(`${id} (${profile}): ${check ? check.details : 'missing'}`);
-                }
-                assertTrue(asking.length === 0, `TC-PD-002 a state check with nothing to judge must pass without asking for a state:\n  ${asking.join('\n  ')}`);
-            },
+                for (const [id, html] of noToggles)
+                    for (const profile of ['presenter', 'review']) {
+                        const check = pdCheck(validatePresentation(html, { profile }), id);
+                        if (!check || check.pass !== true || /needs/.test(check.details))
+                            asking.push(`${id} (${profile}): ${check ? check.details : 'missing'}`);
+                    }
+                assertTrue(
+                    asking.length === 0,
+                    `TC-PD-002 a state check with nothing to judge must pass without asking for a state:\n  ${asking.join('\n  ')}`
+                );
+            }
         },
         {
             // Business Intent (BR-PD-04): every deck can be presented by someone else — missing or blank notes
@@ -2423,7 +2830,12 @@ module.exports = {
                 const notesOf = id => new RegExp(`(data-slide-id="${id}"[\\s\\S]*?)<template class="slide-notes">[\\s\\S]*?<\\/template>`);
                 const cases = [
                     ['evidence', pdMutate(deck, 'drop evidence notes', html => html.replace(notesOf('evidence'), '$1'))],
-                    ['close', pdMutate(deck, 'blank close notes', html => html.replace(notesOf('close'), '$1<template class="slide-notes">   <p> </p><strong></strong>&nbsp; </template>'))],
+                    [
+                        'close',
+                        pdMutate(deck, 'blank close notes', html =>
+                            html.replace(notesOf('close'), '$1<template class="slide-notes">   <p> </p><strong></strong>&nbsp; </template>')
+                        )
+                    ]
                 ];
                 const defects = [];
                 for (const profile of ['presenter', 'review']) {
@@ -2439,7 +2851,7 @@ module.exports = {
                     }
                 }
                 assertTrue(defects.length === 0, `TC-PD-003 notes rule weakened:\n  ${defects.join('\n  ')}`);
-            },
+            }
         },
         {
             // Business Intent (BR-PD-03 property): the review profile relaxes editing only — a deck failing one
@@ -2453,7 +2865,7 @@ module.exports = {
                     ['print', html => html.replace('@media print', '@media screen')],
                     ['live-status', html => html.replace(/aria-live="polite"/g, 'data-live="polite"')],
                     ['document-lang', html => html.replace('<html lang="en">', '<html>')],
-                    ['reduced-motion', html => html.replace(/prefers-reduced-motion: reduce/, 'motion-disabled')],
+                    ['reduced-motion', html => html.replace(/prefers-reduced-motion: reduce/, 'motion-disabled')]
                 ]) {
                     // Given a deck failing only that one non-editing check
                     const html = pdMutate(pdFixtureDeck(), id, mutate);
@@ -2461,9 +2873,11 @@ module.exports = {
                     const presenter = validatePresentation(html, { profile: 'presenter' });
                     const review = validatePresentation(html, { profile: 'review' });
                     // Then both fail on exactly that check at error level
-                    if (JSON.stringify(pdErrorIds(presenter)) !== JSON.stringify([id])) defects.push(`fixture must fail only ${id} under presenter, got ${JSON.stringify(pdErrorIds(presenter))}`);
+                    if (JSON.stringify(pdErrorIds(presenter)) !== JSON.stringify([id]))
+                        defects.push(`fixture must fail only ${id} under presenter, got ${JSON.stringify(pdErrorIds(presenter))}`);
                     if (review.ok) defects.push(`review passed a deck failing ${id}`);
-                    if (JSON.stringify(pdErrorIds(review)) !== JSON.stringify([id])) defects.push(`review must error on ${id} as presenter does, got ${JSON.stringify(pdErrorIds(review))}`);
+                    if (JSON.stringify(pdErrorIds(review)) !== JSON.stringify([id]))
+                        defects.push(`review must error on ${id} as presenter does, got ${JSON.stringify(pdErrorIds(review))}`);
                     // And the failure names what is missing — never the wording of the same check passing
                     const passed = pdCheck(validatePresentation(pdFixtureDeck(), { profile: 'presenter' }), id);
                     if (!passed || passed.pass !== true) defects.push(`fixture setup: ${id} must pass on the conforming deck`);
@@ -2472,86 +2886,111 @@ module.exports = {
                 // Given a deck longer than six slides with no overview (jump) control — the one check whose level
                 // depends on deck length, so the two-slide fixture above never reaches its error branch
                 const longIds = ['opening', 'problem', 'evidence', 'options', 'decision', 'risks', 'close'];
-                const longDeck = pdMutate(pdFixtureDeck(longIds), 'drop overview control', html => html.replace('<button data-action="overview">All slides</button>', ''));
+                const longDeck = pdMutate(pdFixtureDeck(longIds), 'drop overview control', html =>
+                    html.replace('<button data-action="overview">All slides</button>', '')
+                );
                 // When it is checked against presenter and against review
                 const longPresenter = validatePresentation(longDeck, { profile: 'presenter' });
                 const longReview = validatePresentation(longDeck, { profile: 'review' });
                 // Then both fail on exactly the overview check, at error level
-                if (longPresenter.slideCount !== longIds.length) defects.push(`fixture setup: long deck has ${longPresenter.slideCount} slides, expected ${longIds.length}`);
-                if (JSON.stringify(pdErrorIds(longPresenter)) !== '["overview"]') defects.push(`7-slide deck with no overview must fail only overview under presenter, got ${JSON.stringify(pdErrorIds(longPresenter))}`);
+                if (longPresenter.slideCount !== longIds.length)
+                    defects.push(`fixture setup: long deck has ${longPresenter.slideCount} slides, expected ${longIds.length}`);
+                if (JSON.stringify(pdErrorIds(longPresenter)) !== '["overview"]')
+                    defects.push(`7-slide deck with no overview must fail only overview under presenter, got ${JSON.stringify(pdErrorIds(longPresenter))}`);
                 if (longReview.ok) defects.push('review passed a 7-slide deck with no overview control');
-                if (JSON.stringify(pdErrorIds(longReview)) !== '["overview"]') defects.push(`review must error on overview for a 7-slide deck as presenter does, got ${JSON.stringify(pdErrorIds(longReview))}`);
+                if (JSON.stringify(pdErrorIds(longReview)) !== '["overview"]')
+                    defects.push(`review must error on overview for a 7-slide deck as presenter does, got ${JSON.stringify(pdErrorIds(longReview))}`);
                 assertTrue(defects.length === 0, `TC-PD-004 review relaxed a non-editing check:\n  ${defects.join('\n  ')}`);
-            },
+            }
         },
         {
             // Business Intent (BR-PD-01): a typo never yields a silently wrong verdict — only the exact names
             // presenter and review produce one, through the CLI that feature-presentation's hand-off gate runs.
             name: '[content-presence] TC-PD-005 the validator CLI refuses an unknown or malformed profile with exit 2 and no verdict',
             skip: PD_SKIP,
-            fn: () => pdWithFixtureDeckFile('ck-pd-profile-', (root, deck) => {
-                const defects = [];
-                // Given a readable conforming deck
-                // When the CLI names another word, a different letter case, an empty name, or the name without "="
-                for (const args of [[deck, '--profile=draft'], [deck, '--profile=Review'], [deck, '--profile='], [deck, '--profile', 'review']]) {
-                    const label = args.slice(1).join(' ');
-                    const run = pdRunValidatorCli(root, args);
-                    // Then it exits 2, prints no verdict, and the message names both valid profiles
-                    if (run.code !== 2) defects.push(`${label}: exit ${run.code}${run.error ? ` (${run.error.message})` : ''}, expected 2`);
-                    if (run.stdout.trim() !== '') defects.push(`${label}: printed a verdict: ${run.stdout.split('\n')[0]}`);
-                    if (!/presenter/.test(run.stderr) || !/review/.test(run.stderr)) defects.push(`${label}: stderr does not name presenter and review: ${run.stderr}`);
-                }
-                // And the profile is judged before the deck is read: an unknown name on a missing file is a profile error
-                const beforeRead = pdRunValidatorCli(root, [path.join(root, 'missing.html'), '--profile=draft']);
-                if (beforeRead.code !== 2 || !/Unknown profile/.test(beforeRead.stderr)) defects.push(`unknown profile on a missing deck: exit ${beforeRead.code}, stderr ${beforeRead.stderr}`);
-                // When the exact names are given, Then each produces a passing verdict naming that profile
-                for (const profile of ['review', 'presenter']) {
-                    const run = pdRunValidatorCli(root, [deck, `--profile=${profile}`]);
-                    if (run.code !== 0) defects.push(`--profile=${profile}: exit ${run.code}, expected 0: ${run.stderr}`);
-                    if (!run.stdout.split('\n')[0].includes(`(profile: ${profile})`)) defects.push(`--profile=${profile}: verdict does not name ${profile}: ${run.stdout.split('\n')[0]}`);
-                }
-                // Given a deck failing exactly one non-editing check (no document language)
-                const failing = path.join(root, 'failing-deck.html');
-                fs.writeFileSync(failing, pdMutate(pdFixtureDeck(), 'drop document language', html => html.replace('<html lang="en">', '<html>')), 'utf8');
-                // When the CLI checks it under review and with no profile named
-                for (const args of [[failing, '--profile=review'], [failing]]) {
-                    const label = args.length > 1 ? args[1] : 'no profile';
-                    const run = pdRunValidatorCli(root, args);
-                    // Then it exits 1 (a verdict, not a usage error) and prints a FAIL verdict naming the check
-                    if (run.code !== 1) defects.push(`failing deck, ${label}: exit ${run.code}${run.error ? ` (${run.error.message})` : ''}, expected 1`);
-                    if (!run.stdout.split('\n')[0].startsWith('FAIL ')) defects.push(`failing deck, ${label}: verdict is not FAIL: ${run.stdout.split('\n')[0]}`);
-                    if (!run.stdout.includes('document-lang:')) defects.push(`failing deck, ${label}: verdict does not name document-lang`);
-                }
-                assertTrue(defects.length === 0, `TC-PD-005 validator profile names drifted:\n  ${defects.join('\n  ')}`);
-            }),
+            fn: () =>
+                pdWithFixtureDeckFile('ck-pd-profile-', (root, deck) => {
+                    const defects = [];
+                    // Given a readable conforming deck
+                    // When the CLI names another word, a different letter case, an empty name, or the name without "="
+                    for (const args of [
+                        [deck, '--profile=draft'],
+                        [deck, '--profile=Review'],
+                        [deck, '--profile='],
+                        [deck, '--profile', 'review']
+                    ]) {
+                        const label = args.slice(1).join(' ');
+                        const run = pdRunValidatorCli(root, args);
+                        // Then it exits 2, prints no verdict, and the message names both valid profiles
+                        if (run.code !== 2) defects.push(`${label}: exit ${run.code}${run.error ? ` (${run.error.message})` : ''}, expected 2`);
+                        if (run.stdout.trim() !== '') defects.push(`${label}: printed a verdict: ${run.stdout.split('\n')[0]}`);
+                        if (!/presenter/.test(run.stderr) || !/review/.test(run.stderr))
+                            defects.push(`${label}: stderr does not name presenter and review: ${run.stderr}`);
+                    }
+                    // And the profile is judged before the deck is read: an unknown name on a missing file is a profile error
+                    const beforeRead = pdRunValidatorCli(root, [path.join(root, 'missing.html'), '--profile=draft']);
+                    if (beforeRead.code !== 2 || !/Unknown profile/.test(beforeRead.stderr))
+                        defects.push(`unknown profile on a missing deck: exit ${beforeRead.code}, stderr ${beforeRead.stderr}`);
+                    // When the exact names are given, Then each produces a passing verdict naming that profile
+                    for (const profile of ['review', 'presenter']) {
+                        const run = pdRunValidatorCli(root, [deck, `--profile=${profile}`]);
+                        if (run.code !== 0) defects.push(`--profile=${profile}: exit ${run.code}, expected 0: ${run.stderr}`);
+                        if (!run.stdout.split('\n')[0].includes(`(profile: ${profile})`))
+                            defects.push(`--profile=${profile}: verdict does not name ${profile}: ${run.stdout.split('\n')[0]}`);
+                    }
+                    // Given a deck failing exactly one non-editing check (no document language)
+                    const failing = path.join(root, 'failing-deck.html');
+                    fs.writeFileSync(
+                        failing,
+                        pdMutate(pdFixtureDeck(), 'drop document language', html => html.replace('<html lang="en">', '<html>')),
+                        'utf8'
+                    );
+                    // When the CLI checks it under review and with no profile named
+                    for (const args of [[failing, '--profile=review'], [failing]]) {
+                        const label = args.length > 1 ? args[1] : 'no profile';
+                        const run = pdRunValidatorCli(root, args);
+                        // Then it exits 1 (a verdict, not a usage error) and prints a FAIL verdict naming the check
+                        if (run.code !== 1) defects.push(`failing deck, ${label}: exit ${run.code}${run.error ? ` (${run.error.message})` : ''}, expected 1`);
+                        if (!run.stdout.split('\n')[0].startsWith('FAIL '))
+                            defects.push(`failing deck, ${label}: verdict is not FAIL: ${run.stdout.split('\n')[0]}`);
+                        if (!run.stdout.includes('document-lang:')) defects.push(`failing deck, ${label}: verdict does not name document-lang`);
+                    }
+                    assertTrue(defects.length === 0, `TC-PD-005 validator profile names drifted:\n  ${defects.join('\n  ')}`);
+                })
         },
         {
             // Business Intent (BR-PD-01): every verdict states the standard it was judged against, so a review pass
             // is never mistaken for a presenter pass.
             name: '[content-presence] TC-PD-006 every validator CLI verdict names the profile it was judged against',
             skip: PD_SKIP,
-            fn: () => pdWithFixtureDeckFile('ck-pd-verdict-', (root, deck) => {
-                const defects = [];
-                // Given the conforming fixture deck
-                // When it is checked through the CLI against review, with no profile named, and against review as JSON
-                const review = pdRunValidatorCli(root, [deck, '--profile=review']);
-                const unnamed = pdRunValidatorCli(root, [deck]);
-                const json = pdRunValidatorCli(root, [deck, '--json', '--profile=review']);
-                // Then the review verdict names review and the unnamed one names presenter
-                if (!review.stdout.split('\n')[0].includes('(profile: review)')) defects.push(`review verdict: ${review.stdout.split('\n')[0]}`);
-                if (!unnamed.stdout.split('\n')[0].includes('(profile: presenter)')) defects.push(`no-profile verdict: ${unnamed.stdout.split('\n')[0]}`);
-                // And the JSON verdict carries the profile as a field
-                let jsonProfile;
-                let jsonSteps = [];
-                try { ({ profile: jsonProfile, manualVerification: jsonSteps = [] } = JSON.parse(json.stdout)); } catch (error) { jsonProfile = `unparseable JSON (${error.message})`; }
-                if (jsonProfile !== 'review') defects.push(`JSON verdict profile is ${JSON.stringify(jsonProfile)}, expected "review"`);
-                // And its follow-up steps fit the review profile: no editing, draft, reset or export walk
-                if (!Array.isArray(jsonSteps) || jsonSteps.length === 0) defects.push('JSON verdict carries no follow-up steps');
-                else for (const step of [/edit/i, /draft/i, /reset/i, /export/i]) {
-                    if (step.test(jsonSteps.join('\n'))) defects.push(`review follow-up steps still ask for ${step}`);
-                }
-                assertTrue(defects.length === 0, `TC-PD-006 verdict profile naming drifted:\n  ${defects.join('\n  ')}`);
-            }),
+            fn: () =>
+                pdWithFixtureDeckFile('ck-pd-verdict-', (root, deck) => {
+                    const defects = [];
+                    // Given the conforming fixture deck
+                    // When it is checked through the CLI against review, with no profile named, and against review as JSON
+                    const review = pdRunValidatorCli(root, [deck, '--profile=review']);
+                    const unnamed = pdRunValidatorCli(root, [deck]);
+                    const json = pdRunValidatorCli(root, [deck, '--json', '--profile=review']);
+                    // Then the review verdict names review and the unnamed one names presenter
+                    if (!review.stdout.split('\n')[0].includes('(profile: review)')) defects.push(`review verdict: ${review.stdout.split('\n')[0]}`);
+                    if (!unnamed.stdout.split('\n')[0].includes('(profile: presenter)')) defects.push(`no-profile verdict: ${unnamed.stdout.split('\n')[0]}`);
+                    // And the JSON verdict carries the profile as a field
+                    let jsonProfile;
+                    let jsonSteps = [];
+                    try {
+                        ({ profile: jsonProfile, manualVerification: jsonSteps = [] } = JSON.parse(json.stdout));
+                    } catch (error) {
+                        jsonProfile = `unparseable JSON (${error.message})`;
+                    }
+                    if (jsonProfile !== 'review') defects.push(`JSON verdict profile is ${JSON.stringify(jsonProfile)}, expected "review"`);
+                    // And its follow-up steps fit the review profile: no editing, draft, reset or export walk
+                    if (!Array.isArray(jsonSteps) || jsonSteps.length === 0) defects.push('JSON verdict carries no follow-up steps');
+                    else
+                        for (const step of [/edit/i, /draft/i, /reset/i, /export/i]) {
+                            if (step.test(jsonSteps.join('\n'))) defects.push(`review follow-up steps still ask for ${step}`);
+                        }
+                    assertTrue(defects.length === 0, `TC-PD-006 verdict profile naming drifted:\n  ${defects.join('\n  ')}`);
+                })
         },
         {
             // Business Intent (BR-PD-04/05, §6.4, §7): the review deck as documented meets the shared standard —
@@ -2577,13 +3016,17 @@ module.exports = {
                 for (const slide of slides) {
                     const notes = /<template\b[^>]*\bslide-notes\b[^>]*>([\s\S]*?)<\/template>/i.exec(slide.html);
                     const id = pdSlideIdOf(slide.openingTag) || `#${slide.index}`;
-                    if (!notes) { defects.push(`${id}: no slide-notes template`); continue; }
+                    if (!notes) {
+                        defects.push(`${id}: no slide-notes template`);
+                        continue;
+                    }
                     for (const label of ['Say:', 'Why:', 'Question:']) if (!notes[1].includes(label)) defects.push(`${id}: notes lack "${label}"`);
                 }
                 // And no editing, draft-saving, reset or export control is offered (TC-PD-022)
                 const actions = [...scaffold.matchAll(/\bdata-action\s*=\s*(["'])(.*?)\1/gi)].flatMap(m => m[2].split(/\s+/));
                 if (!actions.includes('next') || !actions.includes('toggle-notes')) defects.push('data-action scan found no deck controls (scan is vacuous)');
-                for (const forbidden of ['toggle-edit', 'reset', 'export']) if (actions.includes(forbidden)) defects.push(`editing control data-action="${forbidden}" present`);
+                for (const forbidden of ['toggle-edit', 'reset', 'export'])
+                    if (actions.includes(forbidden)) defects.push(`editing control data-action="${forbidden}" present`);
                 if (/\b(?:localStorage|sessionStorage|indexedDB)\b/.test(scaffold)) defects.push('browser draft storage present');
                 // And nothing is editable in place: no contenteditable attribute in the markup (script and style bodies
                 // stripped, so the engine's own `isContentEditable` key guard is not markup) and no designMode anywhere
@@ -2598,7 +3041,7 @@ module.exports = {
                     ['overview control', /\bdata-action\s*=\s*(["'])overview\1/i],
                     ['overview close', /\bdata-action\s*=\s*(["'])close-overview\1/i],
                     ['reduced-motion path', /prefers-reduced-motion/i],
-                    ['empty-demo message', /No prototype or design available/],
+                    ['empty-demo message', /No prototype or design available/]
                 ];
                 for (const [state, pattern] of states) if (!pattern.test(scaffold)) defects.push(`missing key state: ${state}`);
                 // And a demo with nothing to embed drops its Simulated note: the empty-demo handler removes the
@@ -2608,7 +3051,8 @@ module.exports = {
                 const handlerAt = scaffold.search(/\.deck__embed['"]\)\.forEach\(/);
                 const handler = handlerAt === -1 ? '' : scaffold.slice(handlerAt, scaffold.indexOf('\n', scaffold.indexOf('});', handlerAt)));
                 if (!handler) defects.push('no empty-demo handler over .deck__embed');
-                else if (!/deck__sim-note['"]\)\.forEach\(\(?\w+\)?\s*=>\s*\w+\.remove\(\)\)/.test(handler)) defects.push('empty-demo handler no longer removes the Simulated note');
+                else if (!/deck__sim-note['"]\)\.forEach\(\(?\w+\)?\s*=>\s*\w+\.remove\(\)\)/.test(handler))
+                    defects.push('empty-demo handler no longer removes the Simulated note');
                 // And the swap acts only on an embed that holds an iframe: a wireframe demo (no iframe) is left as it is
                 const frameName = (/\b(?:const|let)\s+(\w+)\s*=\s*\w+\.querySelector\(['"]iframe['"]\)/.exec(handler) || [])[1];
                 if (handler && !(frameName && new RegExp(`\\bif\\s*\\(\\s*!\\s*${frameName}\\s*\\|\\|`).test(handler))) {
@@ -2621,16 +3065,19 @@ module.exports = {
                 else {
                     // The frame replaces the iframe AND the empty-state line, so no empty-state text misfires beside it
                     const pre = (/<pre\b[^>]*>(?=\{ESCAPED_ASCII_FRAME\}<\/pre>)/.exec(wireframe) || [])[0];
-                    if (!pre || !pdClassTokens(pre).includes('deck__wireframe')) defects.push('wireframe fence has no escaped-frame <pre class="deck__wireframe">');
+                    if (!pre || !pdClassTokens(pre).includes('deck__wireframe'))
+                        defects.push('wireframe fence has no escaped-frame <pre class="deck__wireframe">');
                     // And the frame, which scrolls sideways when wider than its box, is a keyboard-reachable named region
                     // (WCAG 2.1.1: a scroller the keyboard cannot reach hides a wide frame at 200% zoom)
                     else {
                         if (!/\stabindex="0"/.test(pre)) defects.push('wireframe <pre> is not focusable (tabindex="0")');
                         if (!/\srole="region"/.test(pre)) defects.push('wireframe <pre> is not a region (role="region")');
-                        if (!/\saria-label(?:ledby)?="[^"]*\S[^"]*"/.test(pre)) defects.push('wireframe <pre> has no accessible name (aria-label or aria-labelledby)');
+                        if (!/\saria-label(?:ledby)?="[^"]*\S[^"]*"/.test(pre))
+                            defects.push('wireframe <pre> has no accessible name (aria-label or aria-labelledby)');
                     }
                     if (/<iframe\b|deck__empty/.test(wireframe)) defects.push('wireframe fence still carries an iframe or the empty-state line');
-                    const escapedFrame = '+------------------------------+\n| &lt;input&gt; Name   [ Q&amp;A ] |\n| &lt;/section&gt; ends nothing   |\n+------------------------------+';
+                    const escapedFrame =
+                        '+------------------------------+\n| &lt;input&gt; Name   [ Q&amp;A ] |\n| &lt;/section&gt; ends nothing   |\n+------------------------------+';
                     // Every other placeholder gets plain text; the first frame drops its -1 suffix (the narration id keeps it)
                     const frame = n => {
                         const filled = wireframe
@@ -2649,14 +3096,16 @@ module.exports = {
                         // Then it passes, and the standard finds both frames as whole slides with their own ids
                         if (!spliced.ok) defects.push(`scaffold with the wireframe demo fails review: ${spliced.errors.join('; ')}`);
                         const splicedIds = findSlides(withWireframe).map(slide => pdSlideIdOf(slide.openingTag));
-                        if (!splicedIds.includes('demo-x') || !splicedIds.includes('demo-x-2')) defects.push(`wireframe frames not found as slides: ${JSON.stringify(splicedIds)}`);
+                        if (!splicedIds.includes('demo-x') || !splicedIds.includes('demo-x-2'))
+                            defects.push(`wireframe frames not found as slides: ${JSON.stringify(splicedIds)}`);
                         if (splicedIds.length !== slides.length + 2) defects.push(`${splicedIds.length} slides after splicing 2 frames into ${slides.length}`);
                     }
                 }
                 // And the live status announces the position together with the current slide's title
-                if (!/'Slide '\s*\+[^\n]*' of '\s*\+[^\n]*': '\s*\+\s*titleOf\(/.test(scaffold)) defects.push('status no longer announces "Slide N of M: title"');
+                if (!/'Slide '\s*\+[^\n]*' of '\s*\+[^\n]*': '\s*\+\s*titleOf\(/.test(scaffold))
+                    defects.push('status no longer announces "Slide N of M: title"');
                 assertTrue(defects.length === 0, `TC-PD-007 review-deck scaffold drifted:\n  ${defects.join('\n  ')}`);
-            },
+            }
         },
         {
             // Business Intent (BR-PD-05, BR-PD-06 embed clause): a failing review deck is never handed to
@@ -2682,7 +3131,13 @@ module.exports = {
                 // And Step 6 carries the outside-asset scan with its declaration and the viewer notice
                 const scan = step6.split('\n').find(line => line.includes('**Outside-asset scan')) || '';
                 // (the regex runs case-insensitively — the test below applies it with the `i` flag the guidance names)
-                for (const phrase of ['presentation-asset-policy', 'external-allowed', 'how-to slide', 'Demos load outside assets; open online to see them exactly.', 'case-insensitively (flag `i`)']) {
+                for (const phrase of [
+                    'presentation-asset-policy',
+                    'external-allowed',
+                    'how-to slide',
+                    'Demos load outside assets; open online to see them exactly.',
+                    'case-insensitively (flag `i`)'
+                ]) {
                     if (!scan.includes(phrase)) defects.push(`Step 6 outside-asset scan lacks "${phrase}"`);
                 }
                 // And both places that run the look-behind regex name an engine that supports it and warn off the ones
@@ -2690,7 +3145,10 @@ module.exports = {
                 // there would report "no outside asset" for a mockup that loads one
                 const recheck = step8.split('\n').find(line => line.includes('Step 6 regex')) || '';
                 if (!recheck) defects.push('Step 8 no longer re-runs the Step 6 regex on the deck');
-                for (const [label, text] of [['Step 6 outside-asset scan', scan], ['Step 8 deck re-check', recheck]]) {
+                for (const [label, text] of [
+                    ['Step 6 outside-asset scan', scan],
+                    ['Step 8 deck re-check', recheck]
+                ]) {
                     if (!text.includes('JavaScript RegExp')) defects.push(`${label} does not name the JavaScript RegExp engine`);
                     if (!/grep -Pi?\b|rg --pcre2/.test(text)) defects.push(`${label} names no PCRE command-line engine (grep -P or rg --pcre2)`);
                     if (!/\bnever\b[^.]*`grep -E`[^.]*plain `rg`/.test(text)) defects.push(`${label} does not warn off \`grep -E\` and plain \`rg\``);
@@ -2720,7 +3178,7 @@ module.exports = {
                         '<style>@import"https://fonts.example.test/inter.css";</style>',
                         '<object data="https://cdn.example.test/chart.svg" type="image/svg+xml"></object>',
                         '<IMG SRC="HTTPS://CDN.EXAMPLE.TEST/HERO.PNG" ALT="Hero">',
-                        '<div style="background:URL(https://cdn.example.test/bg.jpg)"></div>',
+                        '<div style="background:URL(https://cdn.example.test/bg.jpg)"></div>'
                     ];
                     const local = [
                         '<img src="local.png" alt="Local">',
@@ -2729,14 +3187,14 @@ module.exports = {
                         '<a href="https://docs.example.test/guide">Guide</a>',
                         '<a href=//docs.example.test/guide>Guide</a>',
                         '<img data-src="https://cdn.example.test/lazy.png" src="local.png" alt="Lazy">',
-                        '<link rel="stylesheet" href="styles/local.css">',
+                        '<link rel="stylesheet" href="styles/local.css">'
                     ];
                     // Then every network load is flagged and neither local counter-case is
                     for (const sample of flagged) if (!rule.test(sample)) defects.push(`scan misses outside asset: ${sample}`);
                     for (const sample of local) if (rule.test(sample)) defects.push(`scan flags a local or plain-text reference: ${sample}`);
                 }
                 assertTrue(defects.length === 0, `TC-PD-008 review hand-off gate drifted:\n  ${defects.join('\n  ')}`);
-            },
+            }
         },
         {
             // Business Intent (BR-PD-06): a review deck opens with its intended look without a network unless it
@@ -2752,8 +3210,10 @@ module.exports = {
                 const outside = [
                     ['<link> to a network address', /<link\b[^>]*https?:\/\//i],
                     ['url() to a network address', /\burl\(\s*["']?https?:\/\//i],
-                    ['src/href to a network address', /\b(?:src|href)\s*=\s*["']?https?:\/\//i],
-                ].filter(([, pattern]) => pattern.test(scaffold)).map(([label]) => label);
+                    ['src/href to a network address', /\b(?:src|href)\s*=\s*["']?https?:\/\//i]
+                ]
+                    .filter(([, pattern]) => pattern.test(scaffold))
+                    .map(([label]) => label);
                 const declared = policyMeta.test(scaffold);
                 const defects = [];
                 // When its markup is inspected, Then it loads nothing from a network unless it declares the policy
@@ -2761,13 +3221,19 @@ module.exports = {
                 // And the declaration is conditional, never a default (only the Step 6 scan adds it)
                 if (declared) defects.push('the scaffold declares external-allowed by default');
                 // When an outside web font is added, Then review fails on the asset rule until the deck declares it
-                const withFont = pdMutate(scaffold, 'add outside font', html => html.replace('</head>', '<link rel="stylesheet" href="https://fonts.example.test/x.css"></head>'));
+                const withFont = pdMutate(scaffold, 'add outside font', html =>
+                    html.replace('</head>', '<link rel="stylesheet" href="https://fonts.example.test/x.css"></head>')
+                );
                 const undeclaredCheck = pdCheck(validatePresentation(withFont, { profile: 'review' }), 'asset-policy');
-                if (!undeclaredCheck || undeclaredCheck.pass || undeclaredCheck.level !== 'error') defects.push('an undeclared outside font passes the review asset rule');
-                const withPolicy = pdMutate(withFont, 'declare outside assets', html => html.replace('</head>', '<meta name="presentation-asset-policy" content="external-allowed" /></head>'));
-                if (!(pdCheck(validatePresentation(withPolicy, { profile: 'review' }), 'asset-policy') || {}).pass) defects.push('a declared outside font still fails the asset rule');
+                if (!undeclaredCheck || undeclaredCheck.pass || undeclaredCheck.level !== 'error')
+                    defects.push('an undeclared outside font passes the review asset rule');
+                const withPolicy = pdMutate(withFont, 'declare outside assets', html =>
+                    html.replace('</head>', '<meta name="presentation-asset-policy" content="external-allowed" /></head>')
+                );
+                if (!(pdCheck(validatePresentation(withPolicy, { profile: 'review' }), 'asset-policy') || {}).pass)
+                    defects.push('a declared outside font still fails the asset rule');
                 assertTrue(defects.length === 0, `TC-PD-009 review-deck asset rule drifted:\n  ${defects.join('\n  ')}`);
-            },
+            }
         },
         {
             // Business Intent (BR-PD-07): a review deck exports every slide whichever route is used, and a slide
@@ -2801,9 +3267,11 @@ module.exports = {
                 // (loads without Playwright) so a changed selector is judged as it ships
                 const { DEFAULT_SLIDE_SELECTOR } = require(pdSkillPath('html-export', 'scripts', 'lib', 'slides.cjs'));
                 // (matcher sanity: the selector needs the shared `slide` class AND a slide id on the section)
-                assertTrue(pdSelectorMatches(DEFAULT_SLIDE_SELECTOR, '<section class="slide deck__slide" data-slide-id="x">')
-                    && !pdSelectorMatches(DEFAULT_SLIDE_SELECTOR, '<section class="deck__slide" data-slide-id="x">'),
-                    `fixture setup: the default-selector matcher misjudges "${DEFAULT_SLIDE_SELECTOR}"`);
+                assertTrue(
+                    pdSelectorMatches(DEFAULT_SLIDE_SELECTOR, '<section class="slide deck__slide" data-slide-id="x">') &&
+                        !pdSelectorMatches(DEFAULT_SLIDE_SELECTOR, '<section class="deck__slide" data-slide-id="x">'),
+                    `fixture setup: the default-selector matcher misjudges "${DEFAULT_SLIDE_SELECTOR}"`
+                );
                 // Opening tags outside script and style bodies, so engine code never reads as markup
                 const markup = scaffold.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, '');
                 const defaultRoute = [...markup.matchAll(/<[a-z][\w-]*\b[^>]*>/gi)]
@@ -2812,10 +3280,12 @@ module.exports = {
                     .map(pdSlideIdOf);
                 // Then it finds every review-deck slide, in the same order and nothing else
                 if (JSON.stringify(defaultRoute) !== JSON.stringify(exportRoute)) {
-                    defects.push(`html-export default selector "${DEFAULT_SLIDE_SELECTOR}" finds ${JSON.stringify(defaultRoute)}, review-deck route finds ${JSON.stringify(exportRoute)}`);
+                    defects.push(
+                        `html-export default selector "${DEFAULT_SLIDE_SELECTOR}" finds ${JSON.stringify(defaultRoute)}, review-deck route finds ${JSON.stringify(exportRoute)}`
+                    );
                 }
                 assertTrue(defects.length === 0, `TC-PD-010 review-deck slide identity drifted:\n  ${defects.join('\n  ')}`);
-            },
+            }
         },
         {
             // Business Intent (BR-PD-09, SOFT): a developer always learns when a deck ignored the design plan and
@@ -2847,7 +3317,10 @@ module.exports = {
                     const chosen = build('themed', themed);
                     const defects = [];
                     // Then both decks are built with exit 0
-                    for (const [label, run] of [['no-theme', plain], ['themed', chosen]]) {
+                    for (const [label, run] of [
+                        ['no-theme', plain],
+                        ['themed', chosen]
+                    ]) {
                         if (run.status !== 0 || !run.built) defects.push(`${label}: build failed (exit ${run.status}): ${run.stderr}`);
                     }
                     // And only the no-theme run prints the default-look warning, on stderr and never stdout
@@ -2858,7 +3331,7 @@ module.exports = {
                 } finally {
                     fs.rmSync(root, { recursive: true, force: true });
                 }
-            },
+            }
         },
         {
             // Business Intent (BR-PD-08, BR-PD-10, BR-PD-11): the routes between design, the general deck and the
@@ -2879,7 +3352,8 @@ module.exports = {
                 for (const phrase of ['Design authority read', 'none configured', 'checked:', 'direction-approved.md', 'run-notes.md']) {
                     if (!plan.includes(phrase)) defects.push(`presentation-builder Step 4 lacks "${phrase}"`);
                 }
-                if (!/\bdesign authority\b[^\n]*\bBEFORE writing the plan\b/.test(plan)) defects.push('presentation-builder no longer reads design authority before writing the plan');
+                if (!/\bdesign authority\b[^\n]*\bBEFORE writing the plan\b/.test(plan))
+                    defects.push('presentation-builder no longer reads design authority before writing the plan');
                 if (!/\badopt\b[^.\n]*\bcolou?r and type\b/i.test(plan)) defects.push('presentation-builder lacks the adopt-colour-and-type instruction');
                 // And it routes a feature-artifact synthesis deck to feature-presentation, naming the review profile
                 const toReview = pb.split('\n').find(line => /\bsynthesi[sz]es\b[^\n]*\bartifacts\b/i.test(line) && line.includes('`feature-presentation`'));
@@ -2887,16 +3361,20 @@ module.exports = {
                 else if (!toReview.includes('--profile=review')) defects.push('presentation-builder names feature-presentation without its --profile=review');
                 if (!pb.includes('--profile=review')) defects.push('presentation-builder lacks --profile=review');
                 // And the review step says a general-subject deck belongs to the general builder
-                if (!/general-subject decks go to `\/presentation-builder`/i.test(fp)) defects.push('feature-presentation no longer routes general-subject decks to /presentation-builder');
+                if (!/general-subject decks go to `\/presentation-builder`/i.test(fp))
+                    defects.push('feature-presentation no longer routes general-subject decks to /presentation-builder');
                 // And it names the general builder as owner of the deck standard, and adopts a slide hand-off with its fixes
-                if (!/`presentation-builder` owns the deck standard/.test(fp)) defects.push('feature-presentation no longer names presentation-builder as owner of the deck standard');
+                if (!/`presentation-builder` owns the deck standard/.test(fp))
+                    defects.push('feature-presentation no longer names presentation-builder as owner of the deck standard');
                 const fpDesign = sectionBetween(fp, '### Step 3', '\n### ');
                 for (const phrase of ['direction-approved.md', 'run-notes.md']) {
                     if (!fpDesign.includes(phrase)) defects.push(`feature-presentation Step 3 no longer adopts the explore hand-off "${phrase}"`);
                 }
                 // And a picked direction's web font is packaged or replaced, and a replacement is recorded as a departure (TC-PD-061)
-                if (!/web font[\s\S]{0,300}packag[\s\S]{0,300}departure/i.test(fpDesign)) defects.push('feature-presentation Step 3 no longer states the packaged-or-replaced web-font rule with a recorded departure');
-                if (!/web font[\s\S]{0,300}packag[\s\S]{0,300}departure/i.test(plan)) defects.push('presentation-builder Step 4 no longer states the packaged-or-replaced web-font rule with a recorded departure');
+                if (!/web font[\s\S]{0,300}packag[\s\S]{0,300}departure/i.test(fpDesign))
+                    defects.push('feature-presentation Step 3 no longer states the packaged-or-replaced web-font rule with a recorded departure');
+                if (!/web font[\s\S]{0,300}packag[\s\S]{0,300}departure/i.test(plan))
+                    defects.push('presentation-builder Step 4 no longer states the packaged-or-replaced web-font rule with a recorded departure');
                 // When design explore Step 10 is read
                 const step10 = sectionBetween(explore, '## Step 10', '\n## ');
                 const lines = step10.split('\n');
@@ -2907,7 +3385,8 @@ module.exports = {
                     if (!slide.includes(phrase)) defects.push(`design explore Step 10 slide hand-off lacks "${phrase}"`);
                 }
                 if (!/do NOT run `--mode=good`/.test(slide)) defects.push('design explore Step 10 no longer keeps a slide deliverable out of --mode=good');
-                if (!/web font[\s\S]{0,300}packag[\s\S]{0,300}departure/i.test(slide)) defects.push('design explore Step 10 slide hand-off no longer states the packaged-or-replaced web-font rule with a recorded departure');
+                if (!/web font[\s\S]{0,300}packag[\s\S]{0,300}departure/i.test(slide))
+                    defects.push('design explore Step 10 slide hand-off no longer states the packaged-or-replaced web-font rule with a recorded departure');
                 // And every other deliverable still continues to its refinement step
                 if (!other.includes('--mode=good')) defects.push('design explore Step 10 lost the --mode=good refinement for other deliverables');
                 // When the explore gate-file templates are read (BR-PD-10: the picked direction's tokens travel in a file)
@@ -2918,36 +3397,52 @@ module.exports = {
                 // Then direction-approved.md carries a Design Plan tokens section with named hex colours and type roles
                 const tokens = sectionBetween(approved, '## Design Plan tokens', '\n## ');
                 if (!approved.includes('\n## Design Plan tokens\n')) defects.push('direction-approved.md template has no "## Design Plan tokens" section');
-                else if (!/#RRGGBB/.test(tokens) || !/Type family/.test(tokens)) defects.push('direction-approved.md Design Plan tokens section lost its hex-colour or type-family table');
+                else if (!/#RRGGBB/.test(tokens) || !/Type family/.test(tokens))
+                    defects.push('direction-approved.md Design Plan tokens section lost its hex-colour or type-family table');
                 // And run-notes.md carries the Journey fixes (UX-8) table the deck builder marks
                 if (!runNotes.includes('\n## Journey fixes (UX-8)\n')) defects.push('run-notes.md template has no "## Journey fixes (UX-8)" section');
                 // And option-board.md records both shortlists, the style x layout options, and the owner's verbatim pick or mix
                 const board = templateOf('option-board.md') || '';
-                for (const phrase of ['## Style shortlist', '## Layout shortlist', '## Options', "Owner's reply (verbatim)", 'Feel turned into a pin', '## Mix rounds', '## Broaden rounds']) {
+                for (const phrase of [
+                    '## Style shortlist',
+                    '## Layout shortlist',
+                    '## Options',
+                    "Owner's reply (verbatim)",
+                    'Feel turned into a pin',
+                    '## Mix rounds',
+                    '## Broaden rounds'
+                ]) {
                     if (!board.includes(phrase)) defects.push(`option-board.md template lacks "${phrase}"`);
                 }
                 // And the procedure composes options that each pair a different style with a different layout, keeps the
                 // two separable, and builds a mix ("style of B, layout of A") as one new draft that is shown and confirmed
                 const discovery = pdReadText('ui-design', 'references', 'explore', 'option-discovery.md');
                 for (const [phrase, defect] of [
-                    ['no style family and no layout archetype is used twice', 'option discovery no longer forbids repeating a style or a layout across the options'],
-                    ['keeps its style in one place and its layout in another', 'option discovery no longer keeps each draft\'s style separable from its layout'],
+                    [
+                        'no style family and no layout archetype is used twice',
+                        'option discovery no longer forbids repeating a style or a layout across the options'
+                    ],
+                    ['keeps its style in one place and its layout in another', "option discovery no longer keeps each draft's style separable from its layout"],
                     ['**A mix or a swap** builds ONE new draft', 'option discovery no longer builds a mix as one new draft'],
-                    ['There is no confirm question', 'option discovery asks before building the options'],
+                    ['There is no confirm question', 'option discovery asks before building the options']
                 ]) {
                     if (!discovery.includes(phrase)) defects.push(defect);
                 }
                 // And explore Step 1 keeps a brief's adjectives as a feel to explore, while Step 3 runs the option board
                 if (!/The brief describes a feel/.test(explore)) defects.push('design explore Step 1 lost the feel-versus-pin row');
-                if (!sectionBetween(explore, '## Step 3', '\n## ').includes('references/explore/option-discovery.md')) defects.push('design explore Step 3 no longer runs the option board');
+                if (!sectionBetween(explore, '## Step 3', '\n## ').includes('references/explore/option-discovery.md'))
+                    defects.push('design explore Step 3 no longer runs the option board');
                 // And both deck builders read the tokens from that section when they adopt a picked direction
                 if (!plan.includes('## Design Plan tokens')) defects.push('presentation-builder Step 4 does not name the "## Design Plan tokens" section');
                 if (!fpDesign.includes('## Design Plan tokens')) defects.push('feature-presentation Step 3 does not name the "## Design Plan tokens" section');
-                for (const [label, body] of [['presentation-builder Step 4', plan], ['feature-presentation Step 3', fpDesign]]) {
+                for (const [label, body] of [
+                    ['presentation-builder Step 4', plan],
+                    ['feature-presentation Step 3', fpDesign]
+                ]) {
                     if (!body.includes('## Journey fixes (UX-8)')) defects.push(`${label} does not name the "## Journey fixes (UX-8)" table`);
                 }
                 assertTrue(defects.length === 0, `TC-PD-012 presentation routes drifted:\n  ${defects.join('\n  ')}`);
-            },
+            }
         },
         {
             // Business Intent (§6.4 key states, runtime contract §3): a reviewer driving the review deck by keyboard
@@ -2966,17 +3461,26 @@ module.exports = {
                 const engine = scripts[0];
                 const defects = [];
                 const expect = (label, actual, expected) => {
-                    if (!require('util').isDeepStrictEqual(actual, expected)) defects.push(`${label}: got ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`);
+                    if (!require('util').isDeepStrictEqual(actual, expected))
+                        defects.push(`${label}: got ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`);
                 };
                 // A three-slide deck, each slide 900px tall in a 500px stage: 400px of every slide is below the screen
                 const deck = options => pdRunDeckEngine(engine, options);
                 {
                     const fresh = deck();
-                    expect('the deck opens on the first slide at its top', [fresh.index(), fresh.stage.scrollTop, fresh.status()], [0, 0, 'Slide 1 of 3: Title 1']);
+                    expect(
+                        'the deck opens on the first slide at its top',
+                        [fresh.index(), fresh.stage.scrollTop, fresh.status()],
+                        [0, 0, 'Slide 1 of 3: Title 1']
+                    );
                 }
                 // When a down key is pressed on a slide with content below the screen
                 // Then the slide scrolls (a line key one line, a page key up to the slide's end) and the slide stays
-                for (const [key, step] of [['ArrowDown', 40], ['PageDown', 400], [' ', 400]]) {
+                for (const [key, step] of [
+                    ['ArrowDown', 40],
+                    ['PageDown', 400],
+                    [' ', 400]
+                ]) {
                     const d = deck();
                     const event = d.press(key);
                     expect(`${JSON.stringify(key)} on a long slide`, [event.defaultPrevented, d.calls, d.index()], [true, [['stage', step]], 0]);
@@ -2999,7 +3503,11 @@ module.exports = {
                 }
                 // When the slide changes by Right, End or the Next button from the middle of a scrolled slide
                 // Then the new slide opens at its top
-                for (const [label, act] of [['ArrowRight', d => d.press('ArrowRight')], ['End', d => d.press('End')], ['Next button', d => d.buttons.next.click()]]) {
+                for (const [label, act] of [
+                    ['ArrowRight', d => d.press('ArrowRight')],
+                    ['End', d => d.press('End')],
+                    ['Next button', d => d.buttons.next.click()]
+                ]) {
                     const d = deck();
                     d.stage.scrollTop = 200;
                     act(d);
@@ -3041,14 +3549,26 @@ module.exports = {
                     d.stage.scrollTop = 400;
                     for (const key of ['ArrowDown', 'PageDown', ' ']) {
                         const event = d.press(key, { target: d.notesTarget });
-                        expect(`fresh ${JSON.stringify(key)} at the notes end after Tab`, [event.defaultPrevented, d.calls.splice(0), d.index(), d.stage.scrollTop], [true, [], 0, 400]);
+                        expect(
+                            `fresh ${JSON.stringify(key)} at the notes end after Tab`,
+                            [event.defaultPrevented, d.calls.splice(0), d.index(), d.stage.scrollTop],
+                            [true, [], 0, 400]
+                        );
                     }
                     // And at the notes' top a fresh back scroll key does not go back a slide either
                     d.press('ArrowRight');
                     d.notesPanel.scrollTop = 0;
-                    for (const [key, shiftKey] of [['ArrowUp', false], ['PageUp', false], [' ', true]]) {
+                    for (const [key, shiftKey] of [
+                        ['ArrowUp', false],
+                        ['PageUp', false],
+                        [' ', true]
+                    ]) {
                         const event = d.press(key, { shiftKey, target: d.notesTarget });
-                        expect(`fresh ${key === ' ' ? 'Shift+Space' : key} at the notes top after Tab`, [event.defaultPrevented, d.calls.splice(0), d.index(), d.stage.scrollTop], [true, [], 1, 0]);
+                        expect(
+                            `fresh ${key === ' ' ? 'Shift+Space' : key} at the notes top after Tab`,
+                            [event.defaultPrevented, d.calls.splice(0), d.index(), d.stage.scrollTop],
+                            [true, [], 1, 0]
+                        );
                     }
                     // And ArrowLeft, ArrowRight, Home and End still change slide from the notes (only scroll keys stay there)
                     d.press('ArrowLeft', { target: d.notesTarget });
@@ -3077,7 +3597,11 @@ module.exports = {
                     d.stage.scrollTop = 400;
                     d.press('Tab');
                     const event = d.press('ArrowDown', { target: d.notesTarget });
-                    expect('ArrowDown in notes that fit, after Tab', [event.defaultPrevented, d.calls.splice(0), d.index(), d.stage.scrollTop], [true, [], 0, 400]);
+                    expect(
+                        'ArrowDown in notes that fit, after Tab',
+                        [event.defaultPrevented, d.calls.splice(0), d.index(), d.stage.scrollTop],
+                        [true, [], 0, 400]
+                    );
                 }
                 // Given a demo embed whose iframe has nothing to show, and a wireframe embed (no iframe) left with a
                 // stray empty-state line
@@ -3087,15 +3611,23 @@ module.exports = {
                     const frame = element();
                     const demoEmpty = element({ hidden: true });
                     const wireEmpty = element({ hidden: true });
-                    const parts = (iframe, empty, slide) => element({
-                        querySelector: selector => ({ iframe, '.deck__empty': empty })[selector] || null,
-                        closest: selector => (selector === '.deck__slide' ? slide : null),
-                    });
-                    return [Object.assign(parts(frame, demoEmpty, demoSlide), { note, frame, empty: demoEmpty }), Object.assign(parts(null, wireEmpty, element()), { empty: wireEmpty })];
+                    const parts = (iframe, empty, slide) =>
+                        element({
+                            querySelector: selector => ({ iframe, '.deck__empty': empty })[selector] || null,
+                            closest: selector => (selector === '.deck__slide' ? slide : null)
+                        });
+                    return [
+                        Object.assign(parts(frame, demoEmpty, demoSlide), { note, frame, empty: demoEmpty }),
+                        Object.assign(parts(null, wireEmpty, element()), { empty: wireEmpty })
+                    ];
                 };
                 // When the engine starts
                 let started = null;
-                try { started = deck({ embeds: embedsOf }); } catch (error) { defects.push(`the engine threw on a wireframe embed with no iframe: ${error.message}`); }
+                try {
+                    started = deck({ embeds: embedsOf });
+                } catch (error) {
+                    defects.push(`the engine threw on a wireframe embed with no iframe: ${error.message}`);
+                }
                 if (started) {
                     const [demo, wire] = started.embeds;
                     // Then the empty demo shows its message instead of a blank frame and drops its Simulated note,
@@ -3104,7 +3636,7 @@ module.exports = {
                     expect('wireframe embed untouched', wire.empty.hidden, true);
                 }
                 assertTrue(defects.length === 0, `TC-PD-062 review-deck engine key states drifted:\n  ${defects.join('\n  ')}`);
-            },
+            }
         },
         {
             // Business Intent (TC-PD-062 generator key states, TC-PD-011 default-look warning, BR-PD-02..04 validator
@@ -3121,12 +3653,21 @@ module.exports = {
                     for (const file of ['validate-presentation.test.cjs', 'create-presentation.test.cjs', 'skill-genericity.test.cjs']) {
                         // Given a skill-local test file
                         const script = pdSkillPath('presentation-builder', 'tests', file);
-                        if (!fs.existsSync(script)) { defects.push(`${file}: missing`); continue; }
+                        if (!fs.existsSync(script)) {
+                            defects.push(`${file}: missing`);
+                            continue;
+                        }
                         // When it runs as its own node process (argv array, no shell, scrubbed env, repository cwd)
                         const run = spawnSync(process.execPath, [script], { cwd: PROJECT_DIR, env: pdChildEnv(root), encoding: 'utf8', timeout: 120000 });
                         // Then it exits 0
                         if (run.status !== 0) {
-                            const why = run.error ? run.error.message : String(run.stderr || run.stdout || '').trim().split('\n').slice(-6).join('\n    ');
+                            const why = run.error
+                                ? run.error.message
+                                : String(run.stderr || run.stdout || '')
+                                      .trim()
+                                      .split('\n')
+                                      .slice(-6)
+                                      .join('\n    ');
                             defects.push(`${file}: exit ${run.status}${run.signal ? ` (${run.signal})` : ''}\n    ${why}`);
                         }
                     }
@@ -3134,7 +3675,7 @@ module.exports = {
                 } finally {
                     fs.rmSync(root, { recursive: true, force: true });
                 }
-            },
+            }
         },
         {
             // Guards the post-fix lesson check: every verified fix names its bug class, and a generic,
@@ -3147,10 +3688,20 @@ module.exports = {
                 const bugfix = readSkill('workflow-bugfix');
                 // When their text is read
                 const gaps = [
-                    ...(/`\/why-review` → post-fix lesson check \(`references\/post-fix-lesson-check\.md`\) → verify once/.test(fix) ? [] : ['fix: the standalone order does not run the check between the review and the verify']),
-                    ...(/post-fix lesson check \(`\.\.\/fix\/references\/post-fix-lesson-check\.md`\) after `\/workflow-review-changes` converges and before `\/integration-test --mode=verify`/.test(bugfix) ? [] : ['workflow-bugfix: the check does not run between the converged review and the verify']),
-                    ...(/under any other caller[^\n]*records the bug class and any lesson candidate[^\n]*hands them back/.test(fix) ? [] : ['fix: a nested step under another caller no longer hands its lesson candidate back']),
-                    ...(/§5 `\/why-review` gates and the §5a post-fix lesson check/.test(fix) ? [] : ['fix: the standalone --target branches no longer inherit the check']),
+                    ...(/`\/why-review` → post-fix lesson check \(`references\/post-fix-lesson-check\.md`\) → verify once/.test(fix)
+                        ? []
+                        : ['fix: the standalone order does not run the check between the review and the verify']),
+                    ...(/post-fix lesson check \(`\.\.\/fix\/references\/post-fix-lesson-check\.md`\) after `\/workflow-review-changes` converges and before `\/integration-test --mode=verify`/.test(
+                        bugfix
+                    )
+                        ? []
+                        : ['workflow-bugfix: the check does not run between the converged review and the verify']),
+                    ...(/under any other caller[^\n]*records the bug class and any lesson candidate[^\n]*hands them back/.test(fix)
+                        ? []
+                        : ['fix: a nested step under another caller no longer hands its lesson candidate back']),
+                    ...(/§5 `\/why-review` gates and the §5a post-fix lesson check/.test(fix)
+                        ? []
+                        : ['fix: the standalone --target branches no longer inherit the check']),
                     ...(/^> 6\. \*\*Verify once\*\*[^\n]*the final todo/m.test(fix) ? [] : ['fix: the verify is no longer the final todo']),
                     ...[
                         ['classifies the bug class', /\*\*Classify the bug class\*\*/],
@@ -3160,12 +3711,14 @@ module.exports = {
                         ['asks the user before saving', /ask through the host question tool whether to save it/],
                         ['saves through /learn', /invoke `\/learn` with the generalized lesson/],
                         ['records the outcome', /`Lesson: none — <reason>`/],
-                        ['never saves without an answer', /never save without the user's answer/],
-                    ].filter(([, pattern]) => !pattern.test(check)).map(([label]) => `post-fix-lesson-check.md no longer ${label}`),
+                        ['never saves without an answer', /never save without the user's answer/]
+                    ]
+                        .filter(([, pattern]) => !pattern.test(check))
+                        .map(([label]) => `post-fix-lesson-check.md no longer ${label}`)
                 ];
                 // Then both skills run it at the right point and it keeps every guard
                 assertTrue(gaps.length === 0, `post-fix lesson check gaps:\n  ${gaps.join('\n  ')}`);
-            },
+            }
         },
         {
             // Guards lessons.md "a tripwire per guard": every CJS suite that gates a self-check on
@@ -3221,9 +3774,11 @@ module.exports = {
                     }
                 }
                 // And this checkout resolves identically through both
-                assertTrue(helper.isFrameworkRepo(PROJECT_DIR) === IS_FRAMEWORK_REPO,
-                    `guard parity: helper=${helper.isFrameworkRepo(PROJECT_DIR)} sync=${IS_FRAMEWORK_REPO}`);
-            },
-        },
-    ],
+                assertTrue(
+                    helper.isFrameworkRepo(PROJECT_DIR) === IS_FRAMEWORK_REPO,
+                    `guard parity: helper=${helper.isFrameworkRepo(PROJECT_DIR)} sync=${IS_FRAMEWORK_REPO}`
+                );
+            }
+        }
+    ]
 };

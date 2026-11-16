@@ -71,32 +71,25 @@ function runCheck(file) {
 }
 
 function runCatalogCheck() {
-    return runPython(
-        [SCRIPT, '--skills', '--check', '.claude/SKILLS.yaml'],
-        '--skills --check .claude/SKILLS.yaml'
-    );
+    return runPython([SCRIPT, '--skills', '--check', '.claude/SKILLS.yaml'], '--skills --check .claude/SKILLS.yaml');
 }
 
 function countDirectSkillFiles() {
     const skillsDir = path.join(REPO_ROOT, '.claude', 'skills');
-    return fs.readdirSync(skillsDir, { withFileTypes: true })
-        .filter((entry) => entry.isDirectory())
-        .filter((entry) => fs.existsSync(path.join(skillsDir, entry.name, 'SKILL.md')))
-        .length;
+    return fs
+        .readdirSync(skillsDir, { withFileTypes: true })
+        .filter(entry => entry.isDirectory())
+        .filter(entry => fs.existsSync(path.join(skillsDir, entry.name, 'SKILL.md'))).length;
 }
 
 function countTopLevelHooks() {
     const hooksDir = path.join(REPO_ROOT, '.claude', 'hooks');
-    return fs.readdirSync(hooksDir, { withFileTypes: true })
-        .filter((entry) => entry.isFile() && entry.name.endsWith('.cjs'))
-        .length;
+    return fs.readdirSync(hooksDir, { withFileTypes: true }).filter(entry => entry.isFile() && entry.name.endsWith('.cjs')).length;
 }
 
 function countLibModules() {
     const libDir = path.join(REPO_ROOT, '.claude', 'hooks', 'lib');
-    return fs.readdirSync(libDir, { withFileTypes: true })
-        .filter((entry) => entry.isFile() && entry.name.endsWith('.cjs'))
-        .length;
+    return fs.readdirSync(libDir, { withFileTypes: true }).filter(entry => entry.isFile() && entry.name.endsWith('.cjs')).length;
 }
 
 function listFilesRecursive(root, predicate) {
@@ -113,17 +106,12 @@ function listFilesRecursive(root, predicate) {
 }
 
 function countHookSuiteFiles() {
-    return listFilesRecursive(
-        path.join(REPO_ROOT, '.claude', 'hooks', 'tests', 'suites'),
-        (_full, name) => /\.test\.(?:cjs|mjs)$/.test(name)
-    ).length;
+    return listFilesRecursive(path.join(REPO_ROOT, '.claude', 'hooks', 'tests', 'suites'), (_full, name) => /\.test\.(?:cjs|mjs)$/.test(name)).length;
 }
 
 function countTopLevelHookTestFiles() {
     const testsDir = path.join(REPO_ROOT, '.claude', 'hooks', 'tests');
-    return fs.readdirSync(testsDir, { withFileTypes: true })
-        .filter((entry) => entry.isFile() && /^test-[^/]+/.test(entry.name))
-        .length;
+    return fs.readdirSync(testsDir, { withFileTypes: true }).filter(entry => entry.isFile() && /^test-[^/]+/.test(entry.name)).length;
 }
 
 function listAuthoredMarkdownPaths() {
@@ -135,26 +123,27 @@ function listAuthoredMarkdownPaths() {
     if (result.error || result.status !== 0) {
         throw new Error(`Unable to enumerate authored Markdown through git: ${(result.error || result.stderr || '').toString().trim()}`);
     }
-    return result.stdout
-        .split('\0')
-        .filter(Boolean)
-        .map((file) => file.split(path.sep).join('/'))
-        .filter((file) => file.toLowerCase().endsWith('.md'))
-        // A tracked file deleted in the working tree is still listed by --cached; it is not authored content on disk.
-        .filter((file) => fs.existsSync(path.join(REPO_ROOT, file)));
+    return (
+        result.stdout
+            .split('\0')
+            .filter(Boolean)
+            .map(file => file.split(path.sep).join('/'))
+            .filter(file => file.toLowerCase().endsWith('.md'))
+            // A tracked file deleted in the working tree is still listed by --cached; it is not authored content on disk.
+            .filter(file => fs.existsSync(path.join(REPO_ROOT, file)))
+    );
 }
 
 function listAuthoredMarkdownUnion() {
-    return new Set(listAuthoredMarkdownPaths().filter((file) =>
-        !file.includes('/')
-        || file.startsWith('docs/')
-        || file.startsWith('.claude/docs/')
-        || file.startsWith('.claude/skills/')
-    ));
+    return new Set(
+        listAuthoredMarkdownPaths().filter(
+            file => !file.includes('/') || file.startsWith('docs/') || file.startsWith('.claude/docs/') || file.startsWith('.claude/skills/')
+        )
+    );
 }
 
 function countSkillMarkdownFiles() {
-    return listAuthoredMarkdownPaths().filter((file) => file.startsWith('.claude/skills/')).length;
+    return listAuthoredMarkdownPaths().filter(file => file.startsWith('.claude/skills/')).length;
 }
 
 const PROJECT_REFERENCE_DIR = path.join(REPO_ROOT, 'docs', 'project-reference');
@@ -225,21 +214,26 @@ function makeMarkdownFixture({ withGit = true } = {}) {
     write('.claude/scripts/generate_catalogs.py', fs.readFileSync(SCRIPT, 'utf8'));
     fs.cpSync(path.join(REPO_ROOT, '.claude', 'hooks', 'lib'), path.join(project, '.claude', 'hooks', 'lib'), { recursive: true });
     write('.gitignore', '/tmp/\n');
-    write('README.md');                                // root-level: counted
-    write('docs/guide.md');                            // docs: counted
-    write('docs/knowledge-base/alpha.md');             // docs and a project pack
-    write('docs/knowledge-base/beta.md');              // docs and a project pack
-    write('docs/knowledge-base/README.md');            // docs, but never a pack
-    write('docs/gone.md');                             // tracked, then deleted below: not on disk
-    write('.claude/docs/overview.md');                 // framework docs: counted
-    write('.claude/skills/demo/SKILL.md');             // skill Markdown: counted
-    write('.claude/skills/demo/references/notes.md');  // skill Markdown: counted
-    write('tools/notes.md');                           // outside every counted scope
-    write('tmp/scratch.md');                           // ignored by git
+    write('README.md'); // root-level: counted
+    write('docs/guide.md'); // docs: counted
+    write('docs/knowledge-base/alpha.md'); // docs and a project pack
+    write('docs/knowledge-base/beta.md'); // docs and a project pack
+    write('docs/knowledge-base/README.md'); // docs, but never a pack
+    write('docs/gone.md'); // tracked, then deleted below: not on disk
+    write('.claude/docs/overview.md'); // framework docs: counted
+    write('.claude/skills/demo/SKILL.md'); // skill Markdown: counted
+    write('.claude/skills/demo/references/notes.md'); // skill Markdown: counted
+    write('tools/notes.md'); // outside every counted scope
+    write('tmp/scratch.md'); // ignored by git
     const env = {
         ...process.env,
-        HOME: root, USERPROFILE: root, TMPDIR: root, TEMP: root, TMP: root,
-        GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: path.join(root, 'no-gitconfig'),
+        HOME: root,
+        USERPROFILE: root,
+        TMPDIR: root,
+        TEMP: root,
+        TMP: root,
+        GIT_CONFIG_NOSYSTEM: '1',
+        GIT_CONFIG_GLOBAL: path.join(root, 'no-gitconfig'),
         CLAUDE_PROJECT_DIR: project
     };
     if (withGit) {
@@ -252,7 +246,7 @@ function makeMarkdownFixture({ withGit = true } = {}) {
         git(['-c', 'user.email=fixture@example.invalid', '-c', 'user.name=fixture', '-c', 'commit.gpgsign=false', 'commit', '-q', '-m', 'fixture']);
     }
     fs.rmSync(path.join(project, 'docs', 'gone.md'));
-    write('CHANGELOG.md');                             // untracked, not ignored: counted
+    write('CHANGELOG.md'); // untracked, not ignored: counted
     return { root, project, env, script: path.join(project, '.claude', 'scripts', 'generate_catalogs.py') };
 }
 
@@ -269,21 +263,21 @@ function assertMatches(file, text, pattern, description) {
 }
 
 const tests = [
-    ...PILOT_FILES.map((file) => ({
-    name: `[count-drift] ${file} markers match filesystem truth`,
-    skip: !fs.existsSync(path.join(REPO_ROOT, file)),
-    fn: () => {
-        const result = runCheck(file);
-        if (result.status !== 0) {
-            const stderr = (result.stderr || '').trim();
-            const stdout = (result.stdout || '').trim();
-            throw new Error(
-                `--check-counts ${file} exited ${result.status}.\n` +
-                `stderr: ${stderr}\nstdout: ${stdout}\n` +
-                `Fix: run \`${formatPythonCommand()} .claude/scripts/generate_catalogs.py --inject-counts ${file}\``
-            );
+    ...PILOT_FILES.map(file => ({
+        name: `[count-drift] ${file} markers match filesystem truth`,
+        skip: !fs.existsSync(path.join(REPO_ROOT, file)),
+        fn: () => {
+            const result = runCheck(file);
+            if (result.status !== 0) {
+                const stderr = (result.stderr || '').trim();
+                const stdout = (result.stdout || '').trim();
+                throw new Error(
+                    `--check-counts ${file} exited ${result.status}.\n` +
+                        `stderr: ${stderr}\nstdout: ${stdout}\n` +
+                        `Fix: run \`${formatPythonCommand()} .claude/scripts/generate_catalogs.py --inject-counts ${file}\``
+                );
+            }
         }
-    }
     })),
     {
         name: '[count-drift] .claude/SKILLS.yaml matches regenerated skills catalog',
@@ -294,8 +288,8 @@ const tests = [
                 const stdout = (result.stdout || '').trim();
                 throw new Error(
                     `--skills --check .claude/SKILLS.yaml exited ${result.status}.\n` +
-                    `stderr: ${stderr}\nstdout: ${stdout}\n` +
-                    `Fix: run \`${formatPythonCommand()} .claude/scripts/generate_catalogs.py --skills --output .claude/SKILLS.yaml\``
+                        `stderr: ${stderr}\nstdout: ${stdout}\n` +
+                        `Fix: run \`${formatPythonCommand()} .claude/scripts/generate_catalogs.py --skills --output .claude/SKILLS.yaml\``
                 );
             }
         }
@@ -305,7 +299,7 @@ const tests = [
         // These hand-kept numbers describe the framework's own inventory. An adopting project adds
         // skills, hooks and workflows of its own, which framework updates keep, so only the
         // recomputable count markers above apply there.
-        skip: IS_FRAMEWORK_REPO ? false : 'the framework repository\'s own inventory; an adopting project adds its own skills, hooks and workflows',
+        skip: IS_FRAMEWORK_REPO ? false : "the framework repository's own inventory; an adopting project adds its own skills, hooks and workflows",
         fn: () => {
             const skillCount = countDirectSkillFiles();
             const hookCount = countTopLevelHooks();
@@ -313,41 +307,20 @@ const tests = [
             const libCount = countLibModules();
             const hookSuiteCount = countHookSuiteFiles();
             const topLevelHookTestCount = countTopLevelHookTestFiles();
-            const docsReadme = fs.readFileSync(
-                path.join(REPO_ROOT, '.claude', 'docs', 'README.md'),
-                'utf8'
-            );
-            const frameworkGuide = fs.readFileSync(
-                path.join(REPO_ROOT, '.claude', 'docs', 'claude-ai-agent-framework-guide.md'),
-                'utf8'
-            );
-            const quickStart = fs.readFileSync(
-                path.join(REPO_ROOT, '.claude', 'docs', 'quick-start.md'),
-                'utf8'
-            );
+            const docsReadme = fs.readFileSync(path.join(REPO_ROOT, '.claude', 'docs', 'README.md'), 'utf8');
+            const frameworkGuide = fs.readFileSync(path.join(REPO_ROOT, '.claude', 'docs', 'claude-ai-agent-framework-guide.md'), 'utf8');
+            const quickStart = fs.readFileSync(path.join(REPO_ROOT, '.claude', 'docs', 'quick-start.md'), 'utf8');
             const rootReadmePath = path.join(REPO_ROOT, 'README.md');
-            const rootReadme = fs.existsSync(rootReadmePath)
-                ? fs.readFileSync(rootReadmePath, 'utf8')
-                : null;
+            const rootReadme = fs.existsSync(rootReadmePath) ? fs.readFileSync(rootReadmePath, 'utf8') : null;
 
-            assertMatches(
-                '.claude/docs/README.md',
-                docsReadme,
-                new RegExp(`\\|\\s*Skills\\s*\\|\\s*${skillCount}\\s*\\|`),
-                'skill'
-            );
+            assertMatches('.claude/docs/README.md', docsReadme, new RegExp(`\\|\\s*Skills\\s*\\|\\s*${skillCount}\\s*\\|`), 'skill');
             assertMatches(
                 '.claude/docs/README.md',
                 docsReadme,
                 new RegExp(`\\|\\s*Hook files \\(top-level\\)\\s*\\|\\s*${hookCount}\\s*\\|`),
                 'top-level hook'
             );
-            assertMatches(
-                '.claude/docs/README.md',
-                docsReadme,
-                new RegExp(`\\|\\s*Workflows\\s*\\|\\s*${workflowCount}\\s*\\|`),
-                'workflow'
-            );
+            assertMatches('.claude/docs/README.md', docsReadme, new RegExp(`\\|\\s*Workflows\\s*\\|\\s*${workflowCount}\\s*\\|`), 'workflow');
             assertMatches(
                 '.claude/docs/claude-ai-agent-framework-guide.md',
                 frameworkGuide,
@@ -365,19 +338,20 @@ const tests = [
                 assertMatches(
                     'docs/project-reference/project-structure-reference.md',
                     projectStructure,
-                    new RegExp('\\|\\s*HT\\s*\\|\\s*Hook Tests\\s*\\|[^\\n]*\\|\\s*' + hookSuiteCount + ' suite files \\+ ' + topLevelHookTestCount + ' top-level `test-\\*` files'),
+                    new RegExp(
+                        '\\|\\s*HT\\s*\\|\\s*Hook Tests\\s*\\|[^\\n]*\\|\\s*' +
+                            hookSuiteCount +
+                            ' suite files \\+ ' +
+                            topLevelHookTestCount +
+                            ' top-level `test-\\*` files'
+                    ),
                     'hook test module inventory'
                 );
             }
 
             // --- Inventory-count surfaces gated against filesystem truth ---
             // quick-start.md directory tree: "<skills> skills", "<hooks> top-level hook files + <lib> lib modules"
-            assertMatches(
-                '.claude/docs/quick-start.md',
-                quickStart,
-                new RegExp(`${skillCount}\\s+skills\\s+\\(invoked`),
-                'skill'
-            );
+            assertMatches('.claude/docs/quick-start.md', quickStart, new RegExp(`${skillCount}\\s+skills\\s+\\(invoked`), 'skill');
             assertMatches(
                 '.claude/docs/quick-start.md',
                 quickStart,
@@ -410,20 +384,10 @@ const tests = [
             const ROOT_README_SKILL_HEADING = /###\s+Skills\s+\(\d+ definitions\)/;
             const ROOT_README_TOTALS = /\d+ Hook Files\s+\+\s+\d+ Skills/;
             if (rootReadme && ROOT_README_SKILL_HEADING.test(rootReadme)) {
-                assertMatches(
-                    'README.md',
-                    rootReadme,
-                    new RegExp(`###\\s+Skills\\s+\\(${skillCount} definitions\\)`),
-                    'skill'
-                );
+                assertMatches('README.md', rootReadme, new RegExp(`###\\s+Skills\\s+\\(${skillCount} definitions\\)`), 'skill');
             }
             if (rootReadme && ROOT_README_TOTALS.test(rootReadme)) {
-                assertMatches(
-                    'README.md',
-                    rootReadme,
-                    new RegExp(`${hookCount} Hook Files\\s+\\+\\s+${skillCount} Skills`),
-                    'hook + skill'
-                );
+                assertMatches('README.md', rootReadme, new RegExp(`${hookCount} Hook Files\\s+\\+\\s+${skillCount} Skills`), 'hook + skill');
             }
         }
     },
@@ -439,12 +403,12 @@ const tests = [
         fn: () => {
             const docsIndex = fs.readFileSync(DOCS_INDEX_PATH, 'utf8');
             const docs = listProjectReferenceDocs();
-            const missing = docs.filter((rel) => !docsIndex.includes(rel));
+            const missing = docs.filter(rel => !docsIndex.includes(rel));
             if (missing.length > 0) {
                 throw new Error(
                     `docs-index-reference.md omits ${missing.length} on-disk project-reference doc(s): ${missing.join(', ')}.\n` +
-                    `Every docs/project-reference/**/*.md MUST appear in the Doc Lookup Guide (and tree).\n` +
-                    `Fix: regenerate via \`scan --target=docs-index\` — counts are glob-verified, the tree/lookup are not, and this guard closes that gap.`
+                        `Every docs/project-reference/**/*.md MUST appear in the Doc Lookup Guide (and tree).\n` +
+                        `Fix: regenerate via \`scan --target=docs-index\` — counts are glob-verified, the tree/lookup are not, and this guard closes that gap.`
                 );
             }
         }
@@ -455,11 +419,11 @@ const tests = [
         fn: () => {
             const docsIndex = fs.readFileSync(DOCS_INDEX_PATH, 'utf8');
             const referenced = new Set(docsIndex.match(/docs\/project-reference\/[A-Za-z0-9._/-]+\.md/g) || []);
-            const stale = [...referenced].filter((rel) => !fs.existsSync(path.join(REPO_ROOT, rel)));
+            const stale = [...referenced].filter(rel => !fs.existsSync(path.join(REPO_ROOT, rel)));
             if (stale.length > 0) {
                 throw new Error(
                     `docs-index-reference.md references ${stale.length} project-reference path(s) that no longer exist: ${stale.join(', ')}.\n` +
-                    `Fix: regenerate via \`scan --target=docs-index\` after the rename/removal.`
+                        `Fix: regenerate via \`scan --target=docs-index\` after the rename/removal.`
                 );
             }
         }
@@ -484,7 +448,7 @@ const tests = [
             if (actual !== expected) {
                 throw new Error(
                     `docs-index-reference.md "Project reference" count is ${actual} but docs/project-reference/ holds ${expected} docs.\n` +
-                    `Fix: regenerate via \`scan --target=docs-index\`.`
+                        `Fix: regenerate via \`scan --target=docs-index\`.`
                 );
             }
         }
@@ -499,26 +463,20 @@ const tests = [
             const totalCount = listAuthoredMarkdownUnion().size;
 
             // When each repeated count surface is compared with the normalized authored union.
-            assertMatches(
-                'docs-index-reference.md',
-                docsIndex,
-                new RegExp(`\\|\\s*Skill Markdown\\s*\\|\\s*${skillCount}\\s*\\|`),
-                'Skill Markdown category'
-            );
+            assertMatches('docs-index-reference.md', docsIndex, new RegExp(`\\|\\s*Skill Markdown\\s*\\|\\s*${skillCount}\\s*\\|`), 'Skill Markdown category');
             assertMatches(
                 'docs-index-reference.md',
                 docsIndex,
                 new RegExp(`\\.claude/skills/\\s*# ${skillCount} authored/tracked markdown assets`),
                 'Skill Markdown tree'
             );
-            const totals = [...renderCountMarkers(docsIndex).matchAll(/(?:Index\s+)?(\d+) unique authored [Mm]arkdown files/g)]
-                .map((match) => Number(match[1]));
+            const totals = [...renderCountMarkers(docsIndex).matchAll(/(?:Index\s+)?(\d+) unique authored [Mm]arkdown files/g)].map(match => Number(match[1]));
 
             // Then both prose totals must agree with the same source of truth.
-            if (totals.length !== 2 || totals.some((count) => count !== totalCount)) {
+            if (totals.length !== 2 || totals.some(count => count !== totalCount)) {
                 throw new Error(
                     `docs-index-reference.md authored Markdown totals are ${JSON.stringify(totals)} but the normalized filesystem union has ${totalCount}.\n` +
-                    'Fix: run the sync (its `counts` stage fills the markers) or regenerate via `scan --target=docs-index`.'
+                        'Fix: run the sync (its `counts` stage fills the markers) or regenerate via `scan --target=docs-index`.'
                 );
             }
             // And every one of those numbers is a COUNT marker, so adding any authored Markdown file
@@ -527,7 +485,7 @@ const tests = [
             if (markers('authored') !== 2 || markers('skills') !== 2) {
                 throw new Error(
                     `docs-index-reference.md must carry both authored totals and both Skill Markdown figures as COUNT:markdown markers; ` +
-                    `found authored=${markers('authored')}, skills=${markers('skills')} (expected 2 each).`
+                        `found authored=${markers('authored')}, skills=${markers('skills')} (expected 2 each).`
                 );
             }
         }
@@ -550,7 +508,9 @@ const tests = [
                 const expected = render(countTopLevelHooks());
                 const actual = fs.readFileSync(file, 'utf8');
                 if (actual !== expected) {
-                    throw new Error(`--inject-counts changed bytes beyond the marker value.\nexpected: ${JSON.stringify(expected)}\nactual:   ${JSON.stringify(actual)}`);
+                    throw new Error(
+                        `--inject-counts changed bytes beyond the marker value.\nexpected: ${JSON.stringify(expected)}\nactual:   ${JSON.stringify(actual)}`
+                    );
                 }
             } finally {
                 fs.rmSync(dir, { recursive: true, force: true });
@@ -583,7 +543,8 @@ const tests = [
                 if (injected.status !== 0) throw new Error(`--inject-counts exited ${injected.status}: ${(injected.stderr || '').trim()}`);
                 const actual = fs.readFileSync(file, 'utf8');
                 const expected = render(9, 2, 4, 2);
-                if (actual !== expected) throw new Error(`markdown counts are wrong.\nexpected: ${JSON.stringify(expected)}\nactual:   ${JSON.stringify(actual)}`);
+                if (actual !== expected)
+                    throw new Error(`markdown counts are wrong.\nexpected: ${JSON.stringify(expected)}\nactual:   ${JSON.stringify(actual)}`);
                 if (checked.status !== 0) throw new Error(`--check-counts reported drift right after injection: ${(checked.stderr || '').trim()}`);
             } finally {
                 fs.rmSync(fx.root, { recursive: true, force: true });
@@ -602,7 +563,8 @@ const tests = [
                 fs.writeFileSync(file, before);
                 const result = runPython([fx.script, '--inject-counts', file], '--inject-counts no-git fixture', { cwd: fx.project, env: fx.env });
                 if (result.status === 0) throw new Error('--inject-counts must fail when git cannot list the project files');
-                if (!/git/i.test(result.stderr || '')) throw new Error(`the failure must name git as the missing file list; stderr: ${(result.stderr || '').trim()}`);
+                if (!/git/i.test(result.stderr || ''))
+                    throw new Error(`the failure must name git as the missing file list; stderr: ${(result.stderr || '').trim()}`);
                 if (fs.readFileSync(file, 'utf8') !== before) throw new Error('a refused injection must not rewrite the file');
             } finally {
                 fs.rmSync(fx.root, { recursive: true, force: true });
@@ -621,7 +583,8 @@ const tests = [
                 fs.writeFileSync(file, before);
                 const result = runPython([fx.script, '--inject-counts', file], '--inject-counts unknown filter', { cwd: fx.project, env: fx.env });
                 if (result.status === 0) throw new Error('--inject-counts must fail on an unknown markdown filter');
-                if (!/needs a filter/.test(result.stderr || '')) throw new Error(`the failure must name the accepted filters; stderr: ${(result.stderr || '').trim()}`);
+                if (!/needs a filter/.test(result.stderr || ''))
+                    throw new Error(`the failure must name the accepted filters; stderr: ${(result.stderr || '').trim()}`);
                 if (fs.readFileSync(file, 'utf8') !== before) throw new Error('a refused injection must not rewrite the file');
             } finally {
                 fs.rmSync(fx.root, { recursive: true, force: true });
@@ -635,8 +598,10 @@ const tests = [
             // Given: source paths and host-prefixed invocations both contain a slash.
             const findInvocations = text => text.match(/[$/]scan\b(?![\\/])/g) || [];
             // When: checking navigation, preserve valid paths but reject commands.
-            if (findInvocations('`.claude/skills/scan/tests/README.md`').length !== 0 ||
-                findInvocations('`/scan --target=docs-index` and `$scan --target=docs-index`').length !== 2) {
+            if (
+                findInvocations('`.claude/skills/scan/tests/README.md`').length !== 0 ||
+                findInvocations('`/scan --target=docs-index` and `$scan --target=docs-index`').length !== 2
+            ) {
                 throw new Error('Invocation check must distinguish source navigation from host-specific commands');
             }
             // Then: the authored index uses host-neutral invocation syntax.
@@ -645,7 +610,7 @@ const tests = [
             if (hostSpecificCommands.length > 0) {
                 throw new Error(
                     `docs-index-reference.md contains host-specific scan invocation(s): ${hostSpecificCommands.join(', ')}.\n` +
-                    `Shared generated docs MUST use the bare \`scan --target=docs-index\` skill name so each AI host can apply its own invocation prefix.`
+                        `Shared generated docs MUST use the bare \`scan --target=docs-index\` skill name so each AI host can apply its own invocation prefix.`
                 );
             }
         }

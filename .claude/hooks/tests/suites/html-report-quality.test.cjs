@@ -64,8 +64,11 @@ const tests = [
         name: '[html-report] TC-HRQ-002 watzup: the Status column markup lives in the template; status placeholders are plain text',
         fn: () => {
             const html = WATZUP_TEMPLATE();
-            assert.match(html, /<td data-label="Status"><span class="st st-\{\{STATUS_KIND\}\}">\{\{STATUS\}\}<\/span><\/td>/,
-                'the status span is template markup around plain-text placeholders');
+            assert.match(
+                html,
+                /<td data-label="Status"><span class="st st-\{\{STATUS_KIND\}\}">\{\{STATUS\}\}<\/span><\/td>/,
+                'the status span is template markup around plain-text placeholders'
+            );
             assert.match(html, /STATUS_KIND is done \| partial \| open/, 'the allowed STATUS_KIND values are stated');
             for (const kind of ['done', 'partial', 'open']) assert.match(html, new RegExp(`\\.st-${kind} \\{`), `a .st-${kind} style exists`);
             assert.doesNotMatch(html, /status is one of\s*<span/, 'no instruction to put markup inside a placeholder value');
@@ -81,8 +84,11 @@ const tests = [
             const html = WATZUP_TEMPLATE();
             const keyChanges = html.slice(html.indexOf('id="key-changes"'), html.indexOf('id="why"'));
             assert.match(keyChanges, /repeat this <tbody> per area/, 'the repeat instruction targets the whole <tbody>');
-            assert.match(keyChanges, /<tbody>\s*<tr class="group"><th scope="rowgroup" colspan="2">\{\{AREA\}\}<\/th><\/tr>/,
-                'the area header is the first row of its own <tbody>');
+            assert.match(
+                keyChanges,
+                /<tbody>\s*<tr class="group"><th scope="rowgroup" colspan="2">\{\{AREA\}\}<\/th><\/tr>/,
+                'the area header is the first row of its own <tbody>'
+            );
             assert.equal((keyChanges.match(/scope="rowgroup"/g) || []).length, 1, 'one rowgroup header per repeated <tbody>');
         }
     },
@@ -96,7 +102,11 @@ const tests = [
             const write = report.indexOf('**Write**');
             assert.ok(write >= 0 && check > write && open > check, 'order: Write → Check readability → Open');
             assert.match(report, /every Done row has a text status/, 'the check covers the text status');
-            assert.match(report, /\{\{STATUS\}\}.*\{\{STATUS_KIND\}\}|\{\{STATUS_KIND\}\}.*\{\{STATUS\}\}/, 'the skill names both plain-text status placeholders');
+            assert.match(
+                report,
+                /\{\{STATUS\}\}.*\{\{STATUS_KIND\}\}|\{\{STATUS_KIND\}\}.*\{\{STATUS\}\}/,
+                'the skill names both plain-text status placeholders'
+            );
         }
     },
     {

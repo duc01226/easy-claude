@@ -61,9 +61,25 @@ const FORMATTER_PRESETS = {
         package: 'prettier',
         args: ['--write', '--ignore-unknown'],
         extensions: [
-            '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.json', '.jsonc', '.scss',
-            '.css', '.less', '.html', '.htm', '.md', '.mdx', '.yaml', '.yml',
-            '.graphql', '.gql'
+            '.ts',
+            '.tsx',
+            '.js',
+            '.jsx',
+            '.mjs',
+            '.cjs',
+            '.json',
+            '.jsonc',
+            '.scss',
+            '.css',
+            '.less',
+            '.html',
+            '.htm',
+            '.md',
+            '.mdx',
+            '.yaml',
+            '.yml',
+            '.graphql',
+            '.gql'
         ]
     },
     biome: {
@@ -152,9 +168,7 @@ function resolveFormatPlan(filePath, formatting) {
     if (typeof formatting.command === 'string' && formatting.command.trim()) {
         const template = formatting.command.trim();
         const quoted = quoteForShell(filePath);
-        const command = template.includes('{file}')
-            ? template.split('{file}').join(quoted)
-            : `${template} ${quoted}`;
+        const command = template.includes('{file}') ? template.split('{file}').join(quoted) : `${template} ${quoted}`;
         return { command, args: [], useShell: true };
     }
 
@@ -163,15 +177,11 @@ function resolveFormatPlan(filePath, formatting) {
     const preset = FORMATTER_PRESETS[presetName];
 
     // Extension gate — never hand a preset a file it cannot format.
-    const extensions = Array.isArray(formatting.fileExtensions) && formatting.fileExtensions.length
-        ? formatting.fileExtensions
-        : preset.extensions;
+    const extensions = Array.isArray(formatting.fileExtensions) && formatting.fileExtensions.length ? formatting.fileExtensions : preset.extensions;
     const ext = path.extname(filePath).toLowerCase();
     if (extensions.length > 0 && !extensions.includes(ext)) return null;
 
-    const extraArgs = Array.isArray(formatting.args)
-        ? formatting.args.filter(arg => typeof arg === 'string')
-        : [];
+    const extraArgs = Array.isArray(formatting.args) ? formatting.args.filter(arg => typeof arg === 'string') : [];
     const tailArgs = [...preset.args, ...extraArgs, filePath];
 
     const isWindows = process.platform === 'win32';
@@ -189,9 +199,7 @@ function resolveFormatPlan(filePath, formatting) {
 
 /** Quote a single path for a shell command string (custom `command` templates only). */
 function quoteForShell(value) {
-    return process.platform === 'win32'
-        ? `"${String(value).replace(/"/g, '""')}"`
-        : `'${String(value).replace(/'/g, `'\\''`)}'`;
+    return process.platform === 'win32' ? `"${String(value).replace(/"/g, '""')}"` : `'${String(value).replace(/'/g, `'\\''`)}'`;
 }
 
 /**

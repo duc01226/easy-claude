@@ -13,13 +13,7 @@
 const fs = require('fs');
 const path = require('path');
 const referenceRegistry = require('./project-reference-registry.cjs');
-const {
-    SCAN_SKILL_MAP,
-    REFERENCE_DOC_ALIASES,
-    resolveReferenceDocAlias,
-    resolveReferenceDocTarget,
-    resolveContainedPath
-} = referenceRegistry;
+const { SCAN_SKILL_MAP, REFERENCE_DOC_ALIASES, resolveReferenceDocAlias, resolveReferenceDocTarget, resolveContainedPath } = referenceRegistry;
 const { validateConfig } = require('./project-config-schema.cjs');
 const {
     loadProjectConfig,
@@ -352,7 +346,8 @@ const REFERENCE_DOC_CATALOG = [
     },
     {
         filename: 'custom-prompts-reference.md',
-        purpose: 'Index of project-specific custom prompts (name, description, triggers) — written and managed via the /custom-prompt skill; bodies live in docs/project-prompts/.',
+        purpose:
+            'Index of project-specific custom prompts (name, description, triggers) — written and managed via the /custom-prompt skill; bodies live in docs/project-prompts/.',
         sections: [],
         templatePath: '.claude/templates/reference-docs/custom-prompts-reference.md'
     },
@@ -414,9 +409,7 @@ const PORTABLE_BASELINE_REFERENCE_DOCS = Object.freeze([]);
 const DEFAULT_REFERENCE_DOCS = PORTABLE_BASELINE_REFERENCE_DOCS;
 
 // Always-on routing inputs are not members of the task-specific `referenceDocs` selection.
-const ALWAYS_ON_PROJECT_CONTEXT_DOCS = Object.freeze(
-    REFERENCE_DOC_CATALOG.filter(doc => ['lessons.md', 'docs-index-reference.md'].includes(doc.filename))
-);
+const ALWAYS_ON_PROJECT_CONTEXT_DOCS = Object.freeze(REFERENCE_DOC_CATALOG.filter(doc => ['lessons.md', 'docs-index-reference.md'].includes(doc.filename)));
 
 /** Return always-on owner docs, resolving docs-index to the configured index file path. */
 function getAlwaysOnReferenceDocs() {
@@ -434,7 +427,7 @@ const PLACEHOLDER_MARKER = "<!-- Fill in your project's details below. -->";
 // token file cannot collide with this string by accident. Detection in
 // isPlaceholderFile is LINE-ANCHORED (full-line equality, not substring).
 // MUST be removed by /scan --target=design-system Phase 3 authoring step.
-const PLACEHOLDER_MARKER_SCSS = "/* @claude:placeholder — do not commit */";
+const PLACEHOLDER_MARKER_SCSS = '/* @claude:placeholder — do not commit */';
 
 // =============================================================================
 // Helper functions — from init-reference-docs.cjs
@@ -459,7 +452,7 @@ function isPlaceholderFile(filePath) {
         fs.closeSync(fd);
         const head = buf.toString('utf-8');
         const ext = path.extname(filePath).toLowerCase();
-        const marker = (ext === '.scss' || ext === '.css') ? PLACEHOLDER_MARKER_SCSS : PLACEHOLDER_MARKER;
+        const marker = ext === '.scss' || ext === '.css' ? PLACEHOLDER_MARKER_SCSS : PLACEHOLDER_MARKER;
         return head.split('\n').some(line => line.trim() === marker);
     } catch {
         return false;
@@ -584,12 +577,7 @@ const CAPABILITY_REFERENCE_DOCS = Object.freeze({
     frontend: ['frontend-patterns-reference.md'],
     integrationTests: ['integration-test-reference.md'],
     performanceTests: ['performance-test-reference.md'],
-    featureSpecs: [
-        'feature-spec-reference.md',
-        'spec-system-reference.md',
-        'spec-principles.md',
-        'workflow-spec-test-code-cycle-reference.md'
-    ],
+    featureSpecs: ['feature-spec-reference.md', 'spec-system-reference.md', 'spec-principles.md', 'workflow-spec-test-code-cycle-reference.md'],
     scss: ['scss-styling-guide.md'],
     designSystem: ['design-system/README.md'],
     e2e: ['e2e-test-reference.md'],
@@ -642,22 +630,23 @@ function resolveDefaultReferenceDocs(config = loadProjectConfig()) {
         hasConfiguredValue(projectConfig.api) ||
         hasConfiguredValue(projectConfig.databases) ||
         hasConfiguredValue(projectConfig.messaging)
-    ) includeCapability('backend');
+    )
+        includeCapability('backend');
     if (
         hasFrameworkDoc(projectConfig, 'frontendPatternsDoc') ||
         hasConfiguredValue(projectConfig.frontendApps) ||
         hasConfiguredValue(projectConfig.designSystem) ||
         modules.some(module => /\b(frontend|ui|client)\b/i.test(`${module?.kind || ''} ${(module?.tags || []).join(' ')}`))
-    ) includeCapability('frontend');
+    )
+        includeCapability('frontend');
     if (
         hasFrameworkDoc(projectConfig, 'integrationTestDoc') ||
         hasConfiguredValue(projectConfig.integrationTestVerify) ||
         (Array.isArray(projectConfig.testing?.integrationRules) && projectConfig.testing.integrationRules.length > 0)
-    ) includeCapability('integrationTests');
-    if (
-        hasFrameworkDoc(projectConfig, 'performanceTestDoc') ||
-        hasConfiguredValue(projectConfig.testing?.filePatterns?.performance)
-    ) includeCapability('performanceTests');
+    )
+        includeCapability('integrationTests');
+    if (hasFrameworkDoc(projectConfig, 'performanceTestDoc') || hasConfiguredValue(projectConfig.testing?.filePatterns?.performance))
+        includeCapability('performanceTests');
     if (hasFrameworkDoc(projectConfig, 'e2eTestDoc') || hasConfiguredValue(projectConfig.e2eTesting)) {
         includeCapability('e2e');
     }
@@ -666,7 +655,8 @@ function resolveDefaultReferenceDocs(config = loadProjectConfig()) {
         (Array.isArray(styling.fileExtensions) && styling.fileExtensions.some(ext => /\.(scss|sass)$/i.test(ext))) ||
         (typeof styling.technology === 'string' && /\b(scss|sass)\b/i.test(styling.technology)) ||
         (Array.isArray(styling.patterns) && styling.patterns.some(pattern => hasConfiguredValue(pattern?.scssExamples)))
-    ) includeCapability('scss');
+    )
+        includeCapability('scss');
     if (hasConfiguredValue(projectConfig.designSystem)) includeCapability('designSystem');
     if (modules.some(moduleHasDomainSemantics)) includeCapability('domainModel');
     if (
@@ -707,14 +697,12 @@ function normalizeReferenceDocs(configDocs, projectConfig) {
     // Trim once (never case-fold), mirroring mergeReferenceDocs, so a trailing-space legacy
     // entry is detected as a rename here too instead of surviving silently in config.
     // Empty/whitespace-only filenames are dropped.
-    const beforeNames = before
-        .map(d => (d && typeof d.filename === 'string') ? d.filename.trim() : '')
-        .filter(Boolean);
+    const beforeNames = before.map(d => (d && typeof d.filename === 'string' ? d.filename.trim() : '')).filter(Boolean);
 
     const renames = [];
     const removedLegacy = [];
     const seenLegacy = new Set(); // a duplicate
-                                  // legacy entry must not emit duplicate rename/removal instructions.
+    // legacy entry must not emit duplicate rename/removal instructions.
     for (const name of beforeNames) {
         const resolved = resolveReferenceDocAlias(name);
         if (resolved !== name && !seenLegacy.has(name)) {
@@ -728,9 +716,7 @@ function normalizeReferenceDocs(configDocs, projectConfig) {
     const added = hasExplicitSelection ? [] : normalized.map(d => d.filename).filter(name => !satisfied.has(name));
 
     const afterNames = normalized.map(d => d.filename);
-    const changed = renames.length > 0 || added.length > 0 ||
-        beforeNames.length !== afterNames.length ||
-        beforeNames.some((n, i) => n !== afterNames[i]);
+    const changed = renames.length > 0 || added.length > 0 || beforeNames.length !== afterNames.length || beforeNames.some((n, i) => n !== afterNames[i]);
 
     return { normalized, renames, added, removedLegacy, changed };
 }
@@ -758,9 +744,7 @@ function isReferenceDocNotApplicable(doc) {
  */
 function getReferenceDocs(config = loadProjectConfig()) {
     const projectConfig = config && typeof config === 'object' && !Array.isArray(config) ? config : {};
-    return Array.isArray(projectConfig.referenceDocs)
-        ? mergeReferenceDocs(projectConfig.referenceDocs)
-        : resolveDefaultReferenceDocs(projectConfig);
+    return Array.isArray(projectConfig.referenceDocs) ? mergeReferenceDocs(projectConfig.referenceDocs) : resolveDefaultReferenceDocs(projectConfig);
 }
 
 /** Resolve built-in, generic, or manual scan ownership for a selected reference doc. */
@@ -794,7 +778,7 @@ function generatePlaceholderContent(doc) {
         try {
             if (fs.existsSync(templatePath) && fs.statSync(templatePath).isFile()) {
                 const templateContent = fs.readFileSync(templatePath, 'utf-8');
-                return templateContent.endsWith('\n') ? templateContent : (templateContent + '\n');
+                return templateContent.endsWith('\n') ? templateContent : templateContent + '\n';
             }
         } catch {
             /* fall through to generated placeholder content */
@@ -802,9 +786,7 @@ function generatePlaceholderContent(doc) {
     }
 
     const ext = path.extname(doc.filename).toLowerCase();
-    const baseName = doc.filename
-        .replace(/\.(md|scss|css)$/, '')
-        .replace(/.*\//, ''); // strip directory prefix for title
+    const baseName = doc.filename.replace(/\.(md|scss|css)$/, '').replace(/.*\//, ''); // strip directory prefix for title
     const title = baseName.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     const sections = doc.sections || [];
 
@@ -823,12 +805,7 @@ function generatePlaceholderContent(doc) {
     }
 
     // Markdown default (preserves existing behaviour; literal marker → constant)
-    const lines = [
-        `# ${title}`,
-        '',
-        `<!-- This file is referenced by Claude skills and agents for project-specific context. -->`,
-        PLACEHOLDER_MARKER
-    ];
+    const lines = [`# ${title}`, '', `<!-- This file is referenced by Claude skills and agents for project-specific context. -->`, PLACEHOLDER_MARKER];
     for (const section of sections) {
         lines.push('', `## ${section}`, '', `<!-- Document your ${section.toLowerCase()} here -->`);
     }
@@ -993,9 +970,7 @@ function isGreenfieldProject(projectDir) {
 
         // Check for populated project-config.json
         const configuredConfigPath = path.relative(PROJECT_DIR, CONFIG_PATH);
-        const configPath = dir === PROJECT_DIR
-            ? CONFIG_PATH
-            : path.join(dir, configuredConfigPath);
+        const configPath = dir === PROJECT_DIR ? CONFIG_PATH : path.join(dir, configuredConfigPath);
         if (fs.existsSync(configPath)) {
             try {
                 const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
@@ -1052,9 +1027,7 @@ function readScanVerifiedLedger() {
     try {
         if (!fs.existsSync(SCAN_VERIFIED_PATH)) return {};
         const parsed = JSON.parse(fs.readFileSync(SCAN_VERIFIED_PATH, 'utf-8'));
-        return parsed && typeof parsed === 'object' && parsed.docs && typeof parsed.docs === 'object'
-            ? parsed.docs
-            : {};
+        return parsed && typeof parsed === 'object' && parsed.docs && typeof parsed.docs === 'object' ? parsed.docs : {};
     } catch {
         return {}; // Corrupt or unreadable ledger degrades to stamp-only behavior
     }

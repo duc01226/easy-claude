@@ -251,8 +251,12 @@ async function runNodeScript(scriptName, args = []) {
 
         let stdout = '';
         let stderr = '';
-        proc.stdout.on('data', data => { stdout += data.toString(); });
-        proc.stderr.on('data', data => { stderr += data.toString(); });
+        proc.stdout.on('data', data => {
+            stdout += data.toString();
+        });
+        proc.stderr.on('data', data => {
+            stderr += data.toString();
+        });
         proc.on('close', code => resolve({ code: code || 0, stdout, stderr }));
         proc.on('error', err => resolve({ code: -1, stdout: '', stderr: err.message }));
     });
@@ -357,8 +361,13 @@ async function testGraphSessionInit() {
             const stubLog = path.join(tmpDir, 'spawn-stub.jsonl');
             const env = {
                 CLAUDE_PROJECT_DIR: tmpDir,
-                HOME: home, USERPROFILE: home, LOCALAPPDATA: cache, XDG_CACHE_HOME: cache,
-                TMPDIR: temp, TEMP: temp, TMP: temp
+                HOME: home,
+                USERPROFILE: home,
+                LOCALAPPDATA: cache,
+                XDG_CACHE_HOME: cache,
+                TMPDIR: temp,
+                TEMP: temp,
+                TMP: temp
             };
             for (const key of Object.keys(process.env)) {
                 if (/^CK_/i.test(key)) env[key] = ''; // inherited feature switches blanked
@@ -397,11 +406,7 @@ function readSkeletonWithDocsIndex(docsIndexPath) {
     const tmpDir = createMarkedTestProject();
     try {
         if (docsIndexPath) {
-            fs.writeFileSync(
-                path.join(tmpDir, '.claude', '.ck.json'),
-                JSON.stringify({ portability: { docsIndexPath } }, null, 2),
-                'utf-8'
-            );
+            fs.writeFileSync(path.join(tmpDir, '.claude', '.ck.json'), JSON.stringify({ portability: { docsIndexPath } }, null, 2), 'utf-8');
         }
         const helperPath = path.join(HOOKS_DIR, 'lib', 'session-init-helpers.cjs');
         const script = `process.stdout.write(JSON.stringify(require(${JSON.stringify(helperPath)}).SKELETON));`;
@@ -466,11 +471,7 @@ async function testProjectConfigInit() {
             const configPath = path.join(docsDir, 'project-config.json');
             const invalidConfig = JSON.stringify({ project: { name: '  ' } });
             fs.writeFileSync(configPath, invalidConfig);
-            const result = await runHook(
-                'session-init-docs.cjs',
-                { source: 'startup' },
-                { env: { CLAUDE_PROJECT_DIR: tmpDir } }
-            );
+            const result = await runHook('session-init-docs.cjs', { source: 'startup' }, { env: { CLAUDE_PROJECT_DIR: tmpDir } });
             logResult('Exits 0 when config is invalid', result.code === 0);
             logResult('Preserves invalid config for project-init repair', fs.readFileSync(configPath, 'utf-8') === invalidConfig);
             logResult('Does not create reference docs while config is invalid', !fs.existsSync(path.join(docsDir, 'project-reference')));
@@ -483,22 +484,10 @@ async function testProjectConfigInit() {
     // stack/capability sections or task-specific reference-doc selection.
     {
         const relocated = readSkeletonWithDocsIndex('documentation/reference/docs-index-reference.md');
-        logResult(
-            'Skeleton derives a non-empty project identity',
-            typeof relocated.project?.name === 'string' && relocated.project.name.trim().length > 0
-        );
-        logResult(
-            'Skeleton omits unknown framework and design-system capabilities',
-            relocated.framework === undefined && relocated.designSystem === undefined
-        );
-        logResult(
-            'Skeleton omits optional doc roots and reference-doc selection',
-            relocated.docsRoots === undefined && relocated.referenceDocs === undefined
-        );
-        logResult(
-            'Skeleton carries no framework path derived from optional docs-index settings',
-            relocated.framework === undefined
-        );
+        logResult('Skeleton derives a non-empty project identity', typeof relocated.project?.name === 'string' && relocated.project.name.trim().length > 0);
+        logResult('Skeleton omits unknown framework and design-system capabilities', relocated.framework === undefined && relocated.designSystem === undefined);
+        logResult('Skeleton omits optional doc roots and reference-doc selection', relocated.docsRoots === undefined && relocated.referenceDocs === undefined);
+        logResult('Skeleton carries no framework path derived from optional docs-index settings', relocated.framework === undefined);
     }
 
     // Test 2c: TC-DOCROOT-074 — R9 regression guard. The skeleton SEEDS, it never
@@ -526,10 +515,7 @@ async function testProjectConfigInit() {
             );
             await runHook('session-init-docs.cjs', { source: 'startup' }, { env: { CLAUDE_PROJECT_DIR: tmpDir } });
             const after = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-            logResult(
-                'TC-DOCROOT-074 existing framework.codeReviewDoc survives an init run',
-                after.framework.codeReviewDoc === 'custom/rules.md'
-            );
+            logResult('TC-DOCROOT-074 existing framework.codeReviewDoc survives an init run', after.framework.codeReviewDoc === 'custom/rules.md');
             logResult(
                 'TC-DOCROOT-074b existing docsRoots.projectReference.path survives an init run',
                 after.docsRoots?.projectReference?.path === 'documentation/reference'
@@ -712,11 +698,15 @@ async function testInitPromptGate() {
     const writeScanStaleFlag = tmpClaudeDir => {
         fs.writeFileSync(
             path.join(tmpClaudeDir, '.scan-stale'),
-            JSON.stringify({
-                staleDays: 60,
-                docs: [{ filename: 'backend-patterns-reference.md', ageDays: 95, scanSkill: 'scan --target=backend-patterns' }],
-                checkedAt: new Date().toISOString()
-            }, null, 2)
+            JSON.stringify(
+                {
+                    staleDays: 60,
+                    docs: [{ filename: 'backend-patterns-reference.md', ageDays: 95, scanSkill: 'scan --target=backend-patterns' }],
+                    checkedAt: new Date().toISOString()
+                },
+                null,
+                2
+            )
         );
     };
     const runInvalidConfigPrompt = async prompt => {
@@ -784,7 +774,10 @@ async function testInitPromptGate() {
                     env: { CLAUDE_PROJECT_DIR: tmpDir }
                 }
             );
-            logResult('Schema-invalid config warns without blocking normal work', !result.stdout.includes('"decision"') && result.stdout.includes('is invalid'));
+            logResult(
+                'Schema-invalid config warns without blocking normal work',
+                !result.stdout.includes('"decision"') && result.stdout.includes('is invalid')
+            );
             logResult('Warning identifies project-init repair route', result.stdout.includes('/project-init'));
             logResult('Warning names the non-empty project identity requirement', result.stdout.includes('project.name'));
         } finally {
@@ -824,7 +817,10 @@ async function testInitPromptGate() {
         logResult('Repair route: Codex $project-init invocation passes through', result.code === 0 && result.stdout === '');
 
         const incidental = await runInvalidConfigPrompt('Implement this feature; /project-init is a later setup step.');
-        logResult('Incidental repair-command mention does not suppress the warning', !incidental.stdout.includes('"decision"') && incidental.stdout.includes('is invalid'));
+        logResult(
+            'Incidental repair-command mention does not suppress the warning',
+            !incidental.stdout.includes('"decision"') && incidental.stdout.includes('is invalid')
+        );
     }
 
     // Test 4: Scan cannot bypass the required config file.
@@ -909,7 +905,10 @@ async function testInitPromptGate() {
                     env: { CLAUDE_PROJECT_DIR: tmpDir }
                 }
             );
-            logResult('Dismiss: active flag cannot suppress the invalid-config warning', !result.stdout.includes('"decision"') && result.stdout.includes('is invalid'));
+            logResult(
+                'Dismiss: active flag cannot suppress the invalid-config warning',
+                !result.stdout.includes('"decision"') && result.stdout.includes('is invalid')
+            );
         } finally {
             cleanupTempDir(tmpDir);
         }
@@ -944,7 +943,10 @@ async function testInitPromptGate() {
                     env: { CLAUDE_PROJECT_DIR: tmpDir }
                 }
             );
-            logResult('Dismiss: expired flag cannot suppress the invalid-config warning', !result.stdout.includes('"decision"') && result.stdout.includes('is invalid'));
+            logResult(
+                'Dismiss: expired flag cannot suppress the invalid-config warning',
+                !result.stdout.includes('"decision"') && result.stdout.includes('is invalid')
+            );
         } finally {
             cleanupTempDir(tmpDir);
         }
@@ -1015,10 +1017,7 @@ async function testInitPromptGate() {
             const tmpClaudeDir = setupPopulatedPromptGateProject(tmpDir);
             writeScanStaleFlag(tmpClaudeDir);
             const dismissedAt = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000);
-            fs.writeFileSync(
-                path.join(tmpClaudeDir, '.scan-stale-dismissed'),
-                JSON.stringify({ dismissedAt: dismissedAt.toISOString(), ttlDays: 7 }, null, 2)
-            );
+            fs.writeFileSync(path.join(tmpClaudeDir, '.scan-stale-dismissed'), JSON.stringify({ dismissedAt: dismissedAt.toISOString(), ttlDays: 7 }, null, 2));
             const result = await runHook('init-prompt-gate.cjs', { prompt: 'implement feature X' }, { env: { CLAUDE_PROJECT_DIR: tmpDir } });
             logResult('Active scan dismiss allows prompt', result.code === 0);
             logResult('Active scan dismiss suppresses stale-doc warning', !result.stdout.includes('Reference docs are stale'));
@@ -1034,10 +1033,7 @@ async function testInitPromptGate() {
             const tmpClaudeDir = setupPopulatedPromptGateProject(tmpDir);
             writeScanStaleFlag(tmpClaudeDir);
             const dismissedAt = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
-            fs.writeFileSync(
-                path.join(tmpClaudeDir, '.scan-stale-dismissed'),
-                JSON.stringify({ dismissedAt: dismissedAt.toISOString(), ttlDays: 7 }, null, 2)
-            );
+            fs.writeFileSync(path.join(tmpClaudeDir, '.scan-stale-dismissed'), JSON.stringify({ dismissedAt: dismissedAt.toISOString(), ttlDays: 7 }, null, 2));
             const result = await runHook('init-prompt-gate.cjs', { prompt: 'implement feature X' }, { env: { CLAUDE_PROJECT_DIR: tmpDir } });
             logResult('Expired scan dismiss allows prompt', result.code === 0);
             logResult('Expired scan dismiss shows stale-doc warning', result.stdout.includes('Reference docs are stale'));
@@ -1109,7 +1105,10 @@ async function testInitPromptGate() {
             fs.writeFileSync(path.join(docsDir, 'project-config.json'), JSON.stringify({ project: { name: '' }, modules: [] }));
             const result = await runHook('init-prompt-gate.cjs', { prompt: 'implement feature X' }, { env: { CLAUDE_PROJECT_DIR: tmpDir } });
             logResult('Invalid config warns before graph guidance', !result.stdout.includes('"decision"') && result.stdout.includes('is invalid'));
-            logResult('Warning is config repair (not graph setup)', result.stdout.includes('/project-config') && !result.stdout.includes('/graph-code --mode=build'));
+            logResult(
+                'Warning is config repair (not graph setup)',
+                result.stdout.includes('/project-config') && !result.stdout.includes('/graph-code --mode=build')
+            );
         } finally {
             cleanupTempDir(tmpDir);
         }
@@ -1202,12 +1201,18 @@ async function testLessonExtractionGate() {
     logResult('Routes the durable capture through /learn', body.includes('/learn'));
     // Invariant: /learn is recommended only for everyday-valuable lessons — a project convention or a
     // universal best-practice protocol — and never for rare agent quirks or one-off incidents.
-    logResult('Value gate names project conventions and universal best-practice protocols worth reading on everyday work',
-        /project convention or a universal best-practice protocol worth reading on everyday work/.test(body));
-    logResult('Value gate rejects rare AI-agent quirks, one-off incidents and current-task details',
-        /skip rare AI-agent quirks, one-off incidents and details of the current task/.test(body));
-    logResult('Recurrence and auto-fix gates come before the /learn request',
-        body.indexOf('Skip nonrecurring lessons') >= 0 && body.indexOf('Skip nonrecurring lessons') < body.indexOf('ask the user to run'));
+    logResult(
+        'Value gate names project conventions and universal best-practice protocols worth reading on everyday work',
+        /project convention or a universal best-practice protocol worth reading on everyday work/.test(body)
+    );
+    logResult(
+        'Value gate rejects rare AI-agent quirks, one-off incidents and current-task details',
+        /skip rare AI-agent quirks, one-off incidents and details of the current task/.test(body)
+    );
+    logResult(
+        'Recurrence and auto-fix gates come before the /learn request',
+        body.indexOf('Skip nonrecurring lessons') >= 0 && body.indexOf('Skip nonrecurring lessons') < body.indexOf('ask the user to run')
+    );
     logResult('Never self-edits instruction files', body.includes('never silently self-edit instructions'));
 }
 
@@ -1229,7 +1234,6 @@ async function testPostToolUseHooks() {
         });
         logResult(`post-edit-prettier (${tool})`, result.code === 0);
     }
-
 }
 
 // ============================================================================
@@ -1259,7 +1263,11 @@ async function testNotification() {
     }
 
     {
-        const result = await runHook(ROUTER, { notification_type: 'idle_prompt', hook_event_name: 'Notification', message: 'AI agent is waiting for your input', cwd: 'D:/Projects/MyProject' }, testEnv);
+        const result = await runHook(
+            ROUTER,
+            { notification_type: 'idle_prompt', hook_event_name: 'Notification', message: 'AI agent is waiting for your input', cwd: 'D:/Projects/MyProject' },
+            testEnv
+        );
         logResult('idle_prompt event routed (exit 0)', result.code === 0);
         logResult('idle_prompt passes whitelist', !result.stderr.includes('not in whitelist'));
     }
@@ -1267,7 +1275,11 @@ async function testNotification() {
     logSubsection('AskUserQuestion Tool Normalization');
 
     {
-        const result = await runHook(ROUTER, { hook_event_name: 'PreToolUse', tool_name: 'AskUserQuestion', cwd: 'D:/Projects/MyProject', session_id: 'test-003' }, testEnv);
+        const result = await runHook(
+            ROUTER,
+            { hook_event_name: 'PreToolUse', tool_name: 'AskUserQuestion', cwd: 'D:/Projects/MyProject', session_id: 'test-003' },
+            testEnv
+        );
         logResult('AskUserQuestion tool routed (exit 0)', result.code === 0);
         logResult('AskUserQuestion normalized into whitelist', !result.stderr.includes('not in whitelist'));
     }
@@ -1289,7 +1301,16 @@ async function testNotification() {
     logSubsection('Permission Prompt Handling');
 
     {
-        const result = await runHook(ROUTER, { hook_event_name: 'Notification', notification_type: 'permission_prompt', message: 'Claude needs your permission to use Bash', cwd: 'D:/Projects/MyProject' }, testEnv);
+        const result = await runHook(
+            ROUTER,
+            {
+                hook_event_name: 'Notification',
+                notification_type: 'permission_prompt',
+                message: 'Claude needs your permission to use Bash',
+                cwd: 'D:/Projects/MyProject'
+            },
+            testEnv
+        );
         logResult('permission_prompt routed (exit 0)', result.code === 0);
         logResult('permission_prompt passes whitelist', !result.stderr.includes('not in whitelist'));
     }
@@ -1403,11 +1424,7 @@ async function testCountDriftSuite() {
     const result = await runNodeScript('run-all-tests.cjs', ['--filter=count-drift']);
     if (VERBOSE && result.stdout) console.log(result.stdout);
     if (VERBOSE && result.stderr) console.error(result.stderr);
-    logResult(
-        'count-drift suite passes through primary runner',
-        result.code === 0,
-        result.code === 0 ? '' : (result.stderr || result.stdout).trim()
-    );
+    logResult('count-drift suite passes through primary runner', result.code === 0, result.code === 0 ? '' : (result.stderr || result.stdout).trim());
 }
 
 async function testSubagentRoutingSuite() {

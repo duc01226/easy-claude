@@ -33,7 +33,7 @@ const { isFrameworkRepo } = require('../lib/framework-repo-guard.cjs');
 const { resolveAllWorkflowManifests } = require('../../../scripts/lib/workflow-manifest.cjs');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
-const LIVE_SKIP = isFrameworkRepo(REPO_ROOT) ? false : 'asserts the framework repo\'s own step-skill descriptions (framework-repo signal)';
+const LIVE_SKIP = isFrameworkRepo(REPO_ROOT) ? false : "asserts the framework repo's own step-skill descriptions (framework-repo signal)";
 
 const PREFIX = 'Use when a workflow step or the user asks for';
 const FORM = /^(?:\[[^\]\r\n]+\] )?Use when a workflow step or the user asks for \S/;
@@ -46,7 +46,7 @@ function frontmatterDescription(text) {
     const line = fm[1].split(/\r?\n/).find(entry => /^description:/.test(entry));
     if (!line) return null;
     const raw = line.replace(/^description:\s*/, '');
-    if (/^'.*'$/.test(raw)) return raw.slice(1, -1).replace(/''/g, '\'');
+    if (/^'.*'$/.test(raw)) return raw.slice(1, -1).replace(/''/g, "'");
     if (/^".*"$/.test(raw)) return JSON.parse(raw);
     return raw;
 }
@@ -93,7 +93,7 @@ function withFixtureProject(workflows, descriptions, fn) {
         for (const [skill, description] of Object.entries(descriptions)) {
             const dir = path.join(root, '.claude', 'skills', skill);
             fs.mkdirSync(dir, { recursive: true });
-            fs.writeFileSync(path.join(dir, 'SKILL.md'), `---\nname: ${skill}\ndescription: '${description.replace(/'/g, '\'\'')}'\n---\n\n# ${skill}\n`);
+            fs.writeFileSync(path.join(dir, 'SKILL.md'), `---\nname: ${skill}\ndescription: '${description.replace(/'/g, "''")}'\n---\n\n# ${skill}\n`);
         }
         return fn(root);
     } finally {
@@ -127,7 +127,7 @@ const tests = [
                 const { problems } = lintStepSkillDescriptions(root);
                 assert.deepEqual(problems, [`alpha: description is ${MAX_CHARS + 1} chars, over ${MAX_CHARS}`]);
             });
-        },
+        }
     },
     {
         name: '[step-skill-description] TC-ADS-033: a workflow-* wrapper step is excluded from the rule',
@@ -141,7 +141,7 @@ const tests = [
                 assert.deepEqual(checked, ['alpha']);
                 assert.deepEqual(problems, []);
             });
-        },
+        }
     },
     {
         name: '[step-skill-description] TC-ADS-050: every step skill of the framework workflows.json matches the form',
@@ -152,8 +152,8 @@ const tests = [
             // Then no description breaks the form, and the check is not vacuous
             assert.deepEqual(problems, [], `step-skill descriptions:\n  ${problems.join('\n  ')}`);
             assert.ok(checked.length >= 20, `expected the real step-skill set, got ${checked.length}`);
-        },
-    },
+        }
+    }
 ];
 
 module.exports = { name: 'step-skill-description', tests };

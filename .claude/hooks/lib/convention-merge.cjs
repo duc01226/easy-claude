@@ -86,7 +86,12 @@ function findManifests(projectDir) {
         for (const entry of entries) {
             if (entry.isFile() && MANIFEST_NAME.test(entry.name)) {
                 found.push(path.join(dir, entry.name));
-            } else if (entry.isDirectory() && depth < MANIFEST_LIMITS.maxDepth && !entry.name.startsWith('.') && !MANIFEST_SKIP_DIRS.has(entry.name.toLowerCase())) {
+            } else if (
+                entry.isDirectory() &&
+                depth < MANIFEST_LIMITS.maxDepth &&
+                !entry.name.startsWith('.') &&
+                !MANIFEST_SKIP_DIRS.has(entry.name.toLowerCase())
+            ) {
                 queue.push([path.join(dir, entry.name), depth + 1]);
             }
         }
@@ -103,8 +108,9 @@ function manifestNamesAiSdk(fileName, text) {
         } catch {
             return false;
         }
-        const names = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']
-            .flatMap(section => (isPlainObject(parsed) && isPlainObject(parsed[section]) ? Object.keys(parsed[section]) : []));
+        const names = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'].flatMap(section =>
+            isPlainObject(parsed) && isPlainObject(parsed[section]) ? Object.keys(parsed[section]) : []
+        );
         return names.some(name => AI_SDK.js.includes(name) || AI_SDK.jsScopes.some(scope => name.startsWith(scope)));
     }
     const tokens = text.toLowerCase().match(/[a-z0-9@_./-]+/g) || [];
@@ -210,53 +216,80 @@ function detectGroups(config, opts = {}) {
     const testing = isPlainObject(cfg.testing) ? cfg.testing : {};
     const filePatterns = isPlainObject(testing.filePatterns) ? testing.filePatterns : {};
     const detected = [];
-    const push = group => { if (group) detected.push(group); };
+    const push = group => {
+        if (group) detected.push(group);
+    };
 
     const business = isPlainObject(cfg.specRoots) && isPlainObject(cfg.specRoots.business) ? cfg.specRoots.business : null;
     if (business && typeof business.path === 'string' && business.path.trim()) {
-        push(candidate({
-            name: 'feature-spec',
-            priority: 100,
-            pathGlobs: [`${trimSlashes(business.path)}/**/*.md`],
-            referenceDocs: specDocs(cfg),
-            skills: ['spec']
-        }, exists));
+        push(
+            candidate(
+                {
+                    name: 'feature-spec',
+                    priority: 100,
+                    pathGlobs: [`${trimSlashes(business.path)}/**/*.md`],
+                    referenceDocs: specDocs(cfg),
+                    skills: ['spec']
+                },
+                exists
+            )
+        );
     }
 
     const itv = isPlainObject(cfg.integrationTestVerify) ? cfg.integrationTestVerify : {};
     const integrationPatternGlobs = filePatternGlobs(filePatterns.integration);
-    const integrationGlobs = integrationPatternGlobs
-        .concat(strings(itv.testProjects).filter(p => /[\\/]/.test(p)).map(p => `${trimSlashes(p)}/**`));
+    const integrationGlobs = integrationPatternGlobs.concat(
+        strings(itv.testProjects)
+            .filter(p => /[\\/]/.test(p))
+            .map(p => `${trimSlashes(p)}/**`)
+    );
     const integrationRegexes = strings(itv.testProjectPattern).filter(isValidRegex);
-    push(candidate({
-        name: 'integration-test',
-        priority: 100,
-        pathRegexes: integrationRegexes,
-        pathGlobs: integrationGlobs,
-        referenceDocs: strings(framework.integrationTestDoc).concat(strings(itv.referenceDocs)),
-        skills: ['integration-test'],
-        rules: strings(testing.integrationRules)
-    }, exists));
+    push(
+        candidate(
+            {
+                name: 'integration-test',
+                priority: 100,
+                pathRegexes: integrationRegexes,
+                pathGlobs: integrationGlobs,
+                referenceDocs: strings(framework.integrationTestDoc).concat(strings(itv.referenceDocs)),
+                skills: ['integration-test'],
+                rules: strings(testing.integrationRules)
+            },
+            exists
+        )
+    );
 
-    push(candidate({
-        name: 'performance-test',
-        priority: 100,
-        pathGlobs: filePatternGlobs(filePatterns.performance),
-        referenceDocs: strings(framework.performanceTestDoc),
-        skills: ['performance-test']
-    }, exists));
+    push(
+        candidate(
+            {
+                name: 'performance-test',
+                priority: 100,
+                pathGlobs: filePatternGlobs(filePatterns.performance),
+                referenceDocs: strings(framework.performanceTestDoc),
+                skills: ['performance-test']
+            },
+            exists
+        )
+    );
 
     const e2e = isPlainObject(cfg.e2eTesting) ? cfg.e2eTesting : null;
     // strings() accepts a string or an array, so a non-string framework value cannot throw here.
     const e2eFrameworks = e2e ? strings(e2e.framework) : [];
     if (e2eFrameworks.length && !e2eFrameworks.every(name => /^none$/i.test(name))) {
-        push(candidate({
-            name: 'e2e-test',
-            priority: 100,
-            pathGlobs: strings(e2e.testsPath).concat(strings(e2e.pageObjectsPath)).map(p => `${trimSlashes(p)}/**`),
-            referenceDocs: strings(framework.e2eTestDoc).concat(strings(e2e.guideDoc)),
-            skills: ['e2e-test']
-        }, exists));
+        push(
+            candidate(
+                {
+                    name: 'e2e-test',
+                    priority: 100,
+                    pathGlobs: strings(e2e.testsPath)
+                        .concat(strings(e2e.pageObjectsPath))
+                        .map(p => `${trimSlashes(p)}/**`),
+                    referenceDocs: strings(framework.e2eTestDoc).concat(strings(e2e.guideDoc)),
+                    skills: ['e2e-test']
+                },
+                exists
+            )
+        );
     }
 
     const integrationSet = new Set(integrationPatternGlobs);
@@ -264,62 +297,88 @@ function detectGroups(config, opts = {}) {
         .filter(([kind]) => kind !== 'integration')
         .flatMap(([, value]) => filePatternGlobs(value))
         .filter(glob => !integrationSet.has(glob));
-    push(candidate({
-        name: 'test',
-        priority: 100,
-        pathGlobs: otherTestGlobs,
-        referenceDocs: strings(testing.guideDoc)
-    }, exists));
+    push(
+        candidate(
+            {
+                name: 'test',
+                priority: 100,
+                pathGlobs: otherTestGlobs,
+                referenceDocs: strings(testing.guideDoc)
+            },
+            exists
+        )
+    );
 
     const modules = Array.isArray(cfg.modules) ? cfg.modules.filter(isPlainObject) : [];
-    const moduleRegexes = prefix => modules
-        .filter(m => typeof m.kind === 'string' && m.kind.toLowerCase().startsWith(prefix))
-        .flatMap(m => strings(m.pathRegex))
-        .filter(isValidRegex);
+    const moduleRegexes = prefix =>
+        modules
+            .filter(m => typeof m.kind === 'string' && m.kind.toLowerCase().startsWith(prefix))
+            .flatMap(m => strings(m.pathRegex))
+            .filter(isValidRegex);
     const styling = isPlainObject(cfg.styling) ? cfg.styling : {};
 
     // Front-end evidence already recorded in the config: a frontend module or styling file types.
-    const hasFrontEnd = modules.some(m => typeof m.kind === 'string' && m.kind.toLowerCase().startsWith('frontend')) ||
-        strings(styling.fileExtensions).length > 0;
+    const hasFrontEnd =
+        modules.some(m => typeof m.kind === 'string' && m.kind.toLowerCase().startsWith('frontend')) || strings(styling.fileExtensions).length > 0;
     if (hasFrontEnd) push(candidate({ ...UI_UX_GATE, excludePathGlobs: GENERAL_EXCLUDES.slice() }, exists));
     // AI evidence: an AI SDK named in a dependency manifest (same SDK list the class's content signals use).
     if (hasAiSdkEvidence(opts.projectDir || process.cwd())) push(candidate({ ...AI_FEATURE_GATE }, exists));
 
-    push(candidate({
-        name: 'backend',
-        priority: 500,
-        pathRegexes: moduleRegexes('backend'),
-        referenceDocs: strings(framework.backendPatternsDoc)
-    }, exists));
-    push(candidate({
-        name: 'frontend',
-        priority: 500,
-        pathRegexes: moduleRegexes('frontend'),
-        referenceDocs: strings(framework.frontendPatternsDoc)
-    }, exists));
+    push(
+        candidate(
+            {
+                name: 'backend',
+                priority: 500,
+                pathRegexes: moduleRegexes('backend'),
+                referenceDocs: strings(framework.backendPatternsDoc)
+            },
+            exists
+        )
+    );
+    push(
+        candidate(
+            {
+                name: 'frontend',
+                priority: 500,
+                pathRegexes: moduleRegexes('frontend'),
+                referenceDocs: strings(framework.frontendPatternsDoc)
+            },
+            exists
+        )
+    );
 
     if (strings(styling.fileExtensions).length) {
-        push(candidate({
-            name: 'styling',
-            priority: 500,
-            pathGlobs: ['**/*'],
-            fileExtensions: styling.fileExtensions,
-            excludePathGlobs: GENERAL_EXCLUDES,
-            referenceDocs: strings(styling.guideDoc)
-        }, exists));
+        push(
+            candidate(
+                {
+                    name: 'styling',
+                    priority: 500,
+                    pathGlobs: ['**/*'],
+                    fileExtensions: styling.fileExtensions,
+                    excludePathGlobs: GENERAL_EXCLUDES,
+                    referenceDocs: strings(styling.guideDoc)
+                },
+                exists
+            )
+        );
     }
 
     const project = isPlainObject(cfg.project) ? cfg.project : {};
     const extensions = unique(strings(project.languages).flatMap(lang => LANGUAGE_EXTENSIONS[lang.toLowerCase()] || []));
     if (extensions.length) {
-        push(candidate({
-            name: 'general-code',
-            priority: 900,
-            pathGlobs: ['**/*'],
-            fileExtensions: extensions,
-            excludePathGlobs: GENERAL_EXCLUDES,
-            referenceDocs: strings(framework.codeReviewDoc)
-        }, exists));
+        push(
+            candidate(
+                {
+                    name: 'general-code',
+                    priority: 900,
+                    pathGlobs: ['**/*'],
+                    fileExtensions: extensions,
+                    excludePathGlobs: GENERAL_EXCLUDES,
+                    referenceDocs: strings(framework.codeReviewDoc)
+                },
+                exists
+            )
+        );
     }
     return detected;
 }
@@ -338,7 +397,11 @@ function canonical(value) {
 
 /** Fingerprint of a group's content, ignoring setup-owned metadata. */
 function fingerprintGroup(group) {
-    return crypto.createHash('sha256').update(JSON.stringify(canonical(group))).digest('hex').slice(0, 16);
+    return crypto
+        .createHash('sha256')
+        .update(JSON.stringify(canonical(group)))
+        .digest('hex')
+        .slice(0, 16);
 }
 
 /**
@@ -430,7 +493,7 @@ function runCli(argv) {
     if (configMissing && (args.merge || args.write)) {
         process.stderr.write(
             `convention-merge: no project config at ${configPath}. The config is optional, but ` +
-            `--merge/--write need one to merge into. Run /project-config to create it, then re-run.\n`
+                `--merge/--write need one to merge into. Run /project-config to create it, then re-run.\n`
         );
         return 1;
     }

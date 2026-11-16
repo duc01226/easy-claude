@@ -20,7 +20,10 @@ const GIT_TIMEOUT_MS = 120000;
 
 function git(repo, args, runCommand = execFileSync) {
     return runCommand('git', ['-c', 'core.autocrlf=false', '-c', `core.hooksPath=${path.join(path.dirname(repo), 'no-hooks')}`, '-C', repo, ...args], {
-        env: { ...gitEnv(), GIT_CONFIG_GLOBAL: path.join(path.dirname(repo), 'no-global-config') }, encoding: 'utf8', timeout: GIT_TIMEOUT_MS, maxBuffer: 4 * 1024 * 1024
+        env: { ...gitEnv(), GIT_CONFIG_GLOBAL: path.join(path.dirname(repo), 'no-global-config') },
+        encoding: 'utf8',
+        timeout: GIT_TIMEOUT_MS,
+        maxBuffer: 4 * 1024 * 1024
     });
 }
 
@@ -38,11 +41,30 @@ function create(entries, parent, { runCommand = execFileSync } = {}) {
         materialize(session.repo, entries);
         git(session.repo, ['init', '-q'], runCommand);
         git(session.repo, ['add', '--all', '--force'], runCommand);
-        git(session.repo, ['-c', 'user.name=Benchmark', '-c', 'user.email=benchmark@example.invalid', '-c', 'commit.gpgsign=false', 'commit', '--allow-empty', '-qm', 'Frozen benchmark input'], runCommand);
+        git(
+            session.repo,
+            [
+                '-c',
+                'user.name=Benchmark',
+                '-c',
+                'user.email=benchmark@example.invalid',
+                '-c',
+                'commit.gpgsign=false',
+                'commit',
+                '--allow-empty',
+                '-qm',
+                'Frozen benchmark input'
+            ],
+            runCommand
+        );
         git(session.repo, ['worktree', 'add', '--detach', session.work, 'HEAD'], runCommand);
         return session;
     } catch (error) {
-        try { remove(session, { runCommand }); } catch { /* preserve the original preparation error */ }
+        try {
+            remove(session, { runCommand });
+        } catch {
+            /* preserve the original preparation error */
+        }
         throw error;
     }
 }
@@ -50,7 +72,8 @@ function create(entries, parent, { runCommand = execFileSync } = {}) {
 function assertOwned(session) {
     if (!owned.has(session)) throw new Error('Refusing cleanup of an unowned benchmark worktree');
     const stat = fs.lstatSync(session.root, { bigint: true });
-    if (!stat.isDirectory() || stat.isSymbolicLink() || !sameFileIdentity(stat, session.identity) || fs.realpathSync(session.root) !== session.root) throw new Error('Benchmark cleanup identity changed');
+    if (!stat.isDirectory() || stat.isSymbolicLink() || !sameFileIdentity(stat, session.identity) || fs.realpathSync(session.root) !== session.root)
+        throw new Error('Benchmark cleanup identity changed');
     const marker = JSON.parse(fs.readFileSync(path.join(session.root, 'owner.json'), 'utf8'));
     if (marker.owner !== 'framework-benchmark-native-v1' || marker.id !== session.id) throw new Error('Benchmark cleanup owner changed');
 }
@@ -67,8 +90,11 @@ function remove(session, { runCommand = execFileSync } = {}) {
     if (session.retained) return retain(session);
     const failures = [];
     if (fs.existsSync(path.join(session.repo, '.git'))) {
-        try { git(session.repo, ['worktree', 'remove', '--force', '--force', session.work], runCommand); }
-        catch (error) { failures.push(`worktree-remove:${error.code || error.status || 'failed'}`); }
+        try {
+            git(session.repo, ['worktree', 'remove', '--force', '--force', session.work], runCommand);
+        } catch (error) {
+            failures.push(`worktree-remove:${error.code || error.status || 'failed'}`);
+        }
     }
     // root identity and process-owned handle were checked above; no parent/sibling is selected.
     fs.rmSync(session.root, { recursive: true, force: true });
@@ -77,7 +103,13 @@ function remove(session, { runCommand = execFileSync } = {}) {
 }
 
 function cleanup({ preserveUncollected = false } = {}) {
-    return [...owned].map(session => { try { return preserveUncollected ? retain(session) : remove(session); } catch (error) { return { id: session.id, error: error.message }; } });
+    return [...owned].map(session => {
+        try {
+            return preserveUncollected ? retain(session) : remove(session);
+        } catch (error) {
+            return { id: session.id, error: error.message };
+        }
+    });
 }
 
 module.exports = { gitEnv, git, create, assertOwned, retain, remove, cleanup };

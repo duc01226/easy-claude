@@ -24,12 +24,18 @@ require('./public-tests.cjs')(root, tests);
 require('./acceptance.cjs');
 // The new project's public CLI must accept a complete JSON request, emit only the order and reject errors.
 const good = spawnSync(process.execPath, [path.join(root, 'bin/plan.cjs')], {
-    input: JSON.stringify({ tasks: [{ id: 'ship', requires: ['build'] }, { id: 'build' }], targets: ['ship'] }), encoding: 'utf8', timeout: 5000
+    input: JSON.stringify({ tasks: [{ id: 'ship', requires: ['build'] }, { id: 'build' }], targets: ['ship'] }),
+    encoding: 'utf8',
+    timeout: 5000
 });
 assert.equal(good.status, 0, good.stderr);
 assert.deepEqual(JSON.parse(good.stdout), ['build', 'ship']);
-for (const [input, expected] of [['not-json', 'INVALID_INPUT'], [JSON.stringify({ tasks: [{ id: 'a', requires: ['missing'] }] }), 'UNKNOWN_TASK']]) {
+for (const [input, expected] of [
+    ['not-json', 'INVALID_INPUT'],
+    [JSON.stringify({ tasks: [{ id: 'a', requires: ['missing'] }] }), 'UNKNOWN_TASK']
+]) {
     const bad = spawnSync(process.execPath, [path.join(root, 'bin/plan.cjs')], { input, encoding: 'utf8', timeout: 5000 });
-    assert.notEqual(bad.status, 0); assert.equal(bad.stderr.trim(), expected);
+    assert.notEqual(bad.status, 0);
+    assert.equal(bad.stderr.trim(), expected);
 }
 console.log('Greenfield API and CLI acceptance passed');

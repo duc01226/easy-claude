@@ -12,7 +12,7 @@ const root = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, en
         const input = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));
         const manifest = JSON.parse(fs.readFileSync(path.join(root, '.claude/hooks/tests/fixtures/context-delivery/evaluation-tasks.json'), 'utf8'));
         // Evidence supplies receipts, never the expected identity of the current candidate.
-        const result = assessEvidence(manifest, input.records, { ...input.options, ...await currentIdentity(root) });
+        const result = assessEvidence(manifest, input.records, { ...input.options, ...(await currentIdentity(root)) });
         process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
         if (!result.eligible) process.exitCode = 1;
     } else if (!process.argv[2] || process.argv[2] === 'render') {

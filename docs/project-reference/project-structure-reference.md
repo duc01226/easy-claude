@@ -119,6 +119,17 @@ Read `.claude/hooks/task-tracking-route.cjs` and `.claude/hooks/lib/task-trackin
 
 Read `docs/specs/ContextDelivery/README.ProjectContextIntake.md` when changing project-rule discovery before planning, implementation or review; read `docs/specs/ContextDelivery/README.ProtocolDelivery.md` when changing universal reinjection. Universal bins reinject after about 150K tokens (3.3 MB of transcript growth; `.claude/hooks/lib/universal-delivery.cjs`, `.claude/hooks/lib/file-conventions.cjs`); the full-document reuse and generic convention horizons remain separate. Default-root examples; `specRoots.business.path` in `docs/project-config.json` overrides these locations.
 
+## Exemplars to Copy
+
+Read this when you add a new hook, hook library module, skill or scripts test: copy the shape of the named exemplar, not the most common pattern nearby. Code with a lint-baseline entry (`eslint-suppressions.json`) or a legacy marker is not precedent, however often it repeats. Each exemplar is lint-clean, and `.claude/scripts/codex/tests/framework-exemplars.test.mjs` fails when one disappears or gains a baseline entry.
+
+| Kind | Exemplar | Copy this |
+| --- | --- | --- |
+| Hook | `.claude/hooks/commit-skill-route.cjs` | Header contract (event, purpose, on/off switches), the runtime skip guard, `isHookEntryPoint`, silent failures with a debug switch, always exit 0 for an advisory hook |
+| Hook library | `.claude/hooks/lib/project-root.cjs` | A documented contract with a numbered resolution order, depends only on other lib modules, never on a top-level hook (ESLint enforces the direction) |
+| Skill | `.claude/skills/test/SKILL.md` | Quick Summary first, linked Contents, one owner per rule, closing reminders that repeat the critical rules |
+| Scripts test | `.claude/scripts/tests/commit-review-policy.test.cjs` | node:test with isolated temp fixtures cleaned up in `t.after`, assertions on owned outcomes |
+
 ## Closing Reminders
 
 Locate the authoritative component, resolve its runtime/configuration, then verify the affected output. Edit canonical framework source before regenerating host mirrors. Use source-defined commands, ranges and setting names; keep credentials private and leave unsupported deployment/port claims unknown.

@@ -20,38 +20,37 @@ const os = require('os');
  * @returns {string} Resolved absolute output path
  */
 function resolveOutputPath(inputPath, outputPath) {
-  const absoluteInput = path.resolve(inputPath);
-  const inputDir = path.dirname(absoluteInput);
-  const inputBasename = path.basename(absoluteInput, path.extname(absoluteInput));
+    const absoluteInput = path.resolve(inputPath);
+    const inputDir = path.dirname(absoluteInput);
+    const inputBasename = path.basename(absoluteInput, path.extname(absoluteInput));
 
-  // Default: same directory as input, .pdf extension
-  if (!outputPath) {
-    return path.join(inputDir, `${inputBasename}.pdf`);
-  }
+    // Default: same directory as input, .pdf extension
+    if (!outputPath) {
+        return path.join(inputDir, `${inputBasename}.pdf`);
+    }
 
-  const absoluteOutput = path.resolve(outputPath);
+    const absoluteOutput = path.resolve(outputPath);
 
-  // Check if output is a directory (existing or ends with separator)
-  const isDirectory = outputPath.endsWith(path.sep) ||
-                      outputPath.endsWith('/') ||
-                      (fs.existsSync(absoluteOutput) && fs.statSync(absoluteOutput).isDirectory());
+    // Check if output is a directory (existing or ends with separator)
+    const isDirectory =
+        outputPath.endsWith(path.sep) || outputPath.endsWith('/') || (fs.existsSync(absoluteOutput) && fs.statSync(absoluteOutput).isDirectory());
 
-  if (isDirectory) {
-    // Ensure directory exists
-    fs.mkdirSync(absoluteOutput, { recursive: true });
-    return path.join(absoluteOutput, `${inputBasename}.pdf`);
-  }
+    if (isDirectory) {
+        // Ensure directory exists
+        fs.mkdirSync(absoluteOutput, { recursive: true });
+        return path.join(absoluteOutput, `${inputBasename}.pdf`);
+    }
 
-  // Output is a file path - ensure parent directory exists
-  const outputDir = path.dirname(absoluteOutput);
-  fs.mkdirSync(outputDir, { recursive: true });
+    // Output is a file path - ensure parent directory exists
+    const outputDir = path.dirname(absoluteOutput);
+    fs.mkdirSync(outputDir, { recursive: true });
 
-  // Ensure .pdf extension
-  if (!absoluteOutput.toLowerCase().endsWith('.pdf')) {
-    return `${absoluteOutput}.pdf`;
-  }
+    // Ensure .pdf extension
+    if (!absoluteOutput.toLowerCase().endsWith('.pdf')) {
+        return `${absoluteOutput}.pdf`;
+    }
 
-  return absoluteOutput;
+    return absoluteOutput;
 }
 
 /**
@@ -60,9 +59,9 @@ function resolveOutputPath(inputPath, outputPath) {
  * @returns {string} Temporary file path
  */
 function createTempPath(prefix = 'md-to-pdf') {
-  const tempDir = path.join(os.tmpdir(), 'pdf-convert');
-  fs.mkdirSync(tempDir, { recursive: true });
-  return path.join(tempDir, `${prefix}-${Date.now()}.pdf`);
+    const tempDir = path.join(os.tmpdir(), 'pdf-convert');
+    fs.mkdirSync(tempDir, { recursive: true });
+    return path.join(tempDir, `${prefix}-${Date.now()}.pdf`);
 }
 
 /**
@@ -70,32 +69,32 @@ function createTempPath(prefix = 'md-to-pdf') {
  * @returns {void}
  */
 function cleanupTempFiles() {
-  const tempDir = path.join(os.tmpdir(), 'pdf-convert');
-  if (!fs.existsSync(tempDir)) return;
+    const tempDir = path.join(os.tmpdir(), 'pdf-convert');
+    if (!fs.existsSync(tempDir)) return;
 
-  const oneHourAgo = Date.now() - 60 * 60 * 1000;
+    const oneHourAgo = Date.now() - 60 * 60 * 1000;
 
-  try {
-    const files = fs.readdirSync(tempDir);
+    try {
+        const files = fs.readdirSync(tempDir);
 
-    for (const file of files) {
-      const filePath = path.join(tempDir, file);
-      try {
-        const stat = fs.statSync(filePath);
-        if (stat.mtimeMs < oneHourAgo) {
-          fs.unlinkSync(filePath);
+        for (const file of files) {
+            const filePath = path.join(tempDir, file);
+            try {
+                const stat = fs.statSync(filePath);
+                if (stat.mtimeMs < oneHourAgo) {
+                    fs.unlinkSync(filePath);
+                }
+            } catch {
+                // Ignore individual file errors
+            }
         }
-      } catch {
-        // Ignore individual file errors
-      }
+    } catch {
+        // Ignore cleanup errors
     }
-  } catch {
-    // Ignore cleanup errors
-  }
 }
 
 module.exports = {
-  resolveOutputPath,
-  createTempPath,
-  cleanupTempFiles
+    resolveOutputPath,
+    createTempPath,
+    cleanupTempFiles
 };

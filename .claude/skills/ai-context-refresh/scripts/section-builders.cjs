@@ -49,12 +49,7 @@ const REFERENCE_DOC_ROWS = [
 ];
 
 // Reference docs the doc-lookup table already routes by fixed rows; the `referenceDocs[]` pass skips them.
-const FIXED_ROUTE_DOCS = new Set([
-    'docs-index-reference.md',
-    'lessons.md',
-    'feature-spec-reference.md',
-    ...REFERENCE_DOC_ROWS.map(([, file]) => file)
-]);
+const FIXED_ROUTE_DOCS = new Set(['docs-index-reference.md', 'lessons.md', 'feature-spec-reference.md', ...REFERENCE_DOC_ROWS.map(([, file]) => file)]);
 
 /** The knowledge base's project index (owned by the /knowledge-base skill). */
 const KNOWLEDGE_INDEX_FILENAME = 'knowledge-base-reference.md';
@@ -96,9 +91,9 @@ function declaresNotApplicable(doc) {
 /** True when `docPath` is a selected reference doc the project declares N/A. Such a doc is named once, never routed. */
 function isDeclaredNotApplicable(config, docPath) {
     const referenceRoot = referenceDocsRoot(config);
-    return (Array.isArray(config?.referenceDocs) ? config.referenceDocs : []).some(doc =>
-        typeof doc?.filename === 'string' && docPath === underRoot(referenceRoot, doc.filename.trim()) &&
-        declaresNotApplicable(doc));
+    return (Array.isArray(config?.referenceDocs) ? config.referenceDocs : []).some(
+        doc => typeof doc?.filename === 'string' && docPath === underRoot(referenceRoot, doc.filename.trim()) && declaresNotApplicable(doc)
+    );
 }
 
 /** Slash-free `docsRoots.projectReference` root; default `docs/project-reference`. */
@@ -169,7 +164,8 @@ function isInfraBackingService(mod) {
 }
 
 const REDACTED_CREDENTIAL = '[REDACTED — use a secret-manager reference]';
-const SECRET_VALUE_PATTERN = /\b(?:password|passwd|passphrase|pwd?|pass|token|secret|api[\s_-]*key|private[\s_-]*key|client[\s_-]*secret|access[\s_-]*key|credential)\b["']?\s*[:=]/i;
+const SECRET_VALUE_PATTERN =
+    /\b(?:password|passwd|passphrase|pwd?|pass|token|secret|api[\s_-]*key|private[\s_-]*key|client[\s_-]*secret|access[\s_-]*key|credential)\b["']?\s*[:=]/i;
 const SECRET_URI_PATTERN = /^[a-z][a-z\d+.-]*:\/\/[^/\s:@]+:[^@\s]+@/i;
 const PRIVATE_KEY_PATTERN = /-----BEGIN [^-]*PRIVATE KEY-----/i;
 const TOKEN_PATTERN = /\b(?:sk|pk|ghp|github_pat|xox[baprs]-|AKIA)[A-Za-z0-9_-]{8,}\b/;
@@ -179,22 +175,32 @@ function renderCredentialReference(value) {
     // JSON text follows the same structural policy as config objects, including
     // escaped keys. Never serialize arbitrary fields in a credentials container.
     if (typeof value === 'string' && /^[\[{]/.test(value.trim())) {
-        try { value = JSON.parse(value); } catch (_) { return REDACTED_CREDENTIAL; }
+        try {
+            value = JSON.parse(value);
+        } catch (_) {
+            return REDACTED_CREDENTIAL;
+        }
     }
     if (typeof value !== 'string') {
-        if (!value || Array.isArray(value) || typeof value !== 'object' ||
-            Object.keys(value).length !== 1 || !Object.hasOwn(value, 'reference') ||
+        if (
+            !value ||
+            Array.isArray(value) ||
+            typeof value !== 'object' ||
+            Object.keys(value).length !== 1 ||
+            !Object.hasOwn(value, 'reference') ||
             typeof value.reference !== 'string' ||
-            !/^(?:vault|op):\/\/[^\s@?#]+$/i.test(value.reference)) return REDACTED_CREDENTIAL;
+            !/^(?:vault|op):\/\/[^\s@?#]+$/i.test(value.reference)
+        )
+            return REDACTED_CREDENTIAL;
         value = value.reference;
     }
     const text = value.trim();
     if (!text) return '—';
-    if (SECRET_VALUE_PATTERN.test(text) || SECRET_URI_PATTERN.test(text) ||
-        PRIVATE_KEY_PATTERN.test(text) || TOKEN_PATTERN.test(text)) return REDACTED_CREDENTIAL;
+    if (SECRET_VALUE_PATTERN.test(text) || SECRET_URI_PATTERN.test(text) || PRIVATE_KEY_PATTERN.test(text) || TOKEN_PATTERN.test(text))
+        return REDACTED_CREDENTIAL;
     // Keep references readable in a table while preventing config text from
     // injecting rows or arbitrary Markdown into the generated root.
-    return text.replace(/[|\r\n]/g, char => char === '|' ? '\\|' : ' ');
+    return text.replace(/[|\r\n]/g, char => (char === '|' ? '\\|' : ' '));
 }
 
 function buildTldr(config) {
@@ -203,7 +209,10 @@ function buildTldr(config) {
     const langs = config.project?.languages?.join(', ') || '';
     const framework = config.framework?.name || '';
     const modules = config.modules || [];
-    const apps = modules.filter(m => !isInfraBackingService(m)).map(m => m.name).join(', ');
+    const apps = modules
+        .filter(m => !isInfraBackingService(m))
+        .map(m => m.name)
+        .join(', ');
 
     const techParts = [langs, framework].filter(Boolean).join(' + ');
     const lines = [
@@ -220,8 +229,8 @@ function buildTldr(config) {
 const literal = value => `\`${String(value).replace(/`/g, '\\`')}\``;
 
 function ruleBearingGroups(config) {
-    return (config.contextGroups || []).filter(group =>
-        group && Array.isArray(group.rules) && group.rules.some(rule => typeof rule === 'string' && rule.trim())
+    return (config.contextGroups || []).filter(
+        group => group && Array.isArray(group.rules) && group.rules.some(rule => typeof rule === 'string' && rule.trim())
     );
 }
 
@@ -244,7 +253,8 @@ function pathRulesDelivery(config, projectDir) {
     const inline = reason => ({ requested, compact: false, reason, conventions: null, entries: [] });
     if (!requested || groups.length === 0) return inline(null);
     const conventions = loadFileConventions(process.env, process.cwd(), projectDir);
-    if (!conventions || typeof conventions.isEnabled !== 'function') return inline('the conventions lib (.claude/hooks/lib/file-conventions.cjs) is unavailable');
+    if (!conventions || typeof conventions.isEnabled !== 'function')
+        return inline('the conventions lib (.claude/hooks/lib/file-conventions.cjs) is unavailable');
     if (!conventions.isEnabled(config)) return inline('conventionInjection.enabled is not true');
     const ordered = conventions.sortEntries(conventions.injectableEntries(config));
     const entries = ordered.filter(entry => entry.rules.length);
@@ -261,19 +271,26 @@ function pathRulesDelivery(config, projectDir) {
     }
     const readOnly = entries.filter(entry => entry.on === (conventions.TRIGGER_READ || 'read'));
     if (readOnly.length) {
-        return inline(`rule-bearing group(s) ${readOnly.map(entry => literal(entry.name)).join(', ')} are read-only (on: read); the lookup prints only what a change delivers`);
+        return inline(
+            `rule-bearing group(s) ${readOnly.map(entry => literal(entry.name)).join(', ')} are read-only (on: read); the lookup prints only what a change delivers`
+        );
     }
     if (typeof conventions.resolveSettings !== 'function') return inline('the conventions lib does not expose resolveSettings');
     const settings = conventions.resolveSettings(config);
     const cap = settings.maxClassesPerEdit;
     const beyondCap = entries.filter(entry => ordered.indexOf(entry) >= cap);
     if (beyondCap.length) {
-        return inline(`rule-bearing group(s) ${beyondCap.map(entry => literal(entry.name)).join(', ')} rank beyond the per-path class cap (maxClassesPerEdit ${cap}), so a path matching more classes could drop them`);
+        return inline(
+            `rule-bearing group(s) ${beyondCap.map(entry => literal(entry.name)).join(', ')} rank beyond the per-path class cap (maxClassesPerEdit ${cap}), so a path matching more classes could drop them`
+        );
     }
-    if (typeof conventions.buildDigest !== 'function' || !Number.isInteger(conventions.PATH_CAP)) return inline('the conventions lib does not expose the digest budget');
+    if (typeof conventions.buildDigest !== 'function' || !Number.isInteger(conventions.PATH_CAP))
+        return inline('the conventions lib does not expose the digest budget');
     const worst = digestUpperBound(conventions, ordered, cap);
     if (worst > settings.maxChars) {
-        return inline(`a worst-case digest (${worst} chars) exceeds conventionInjection.maxChars ${settings.maxChars}, so an oversized digest could drop rule text`);
+        return inline(
+            `a worst-case digest (${worst} chars) exceeds conventionInjection.maxChars ${settings.maxChars}, so an oversized digest could drop rule text`
+        );
     }
     return { requested, compact: true, reason: null, conventions, entries };
 }
@@ -291,8 +308,9 @@ function digestUpperBound(conventions, ordered, cap) {
     const rels = new Array(1000).fill(worstPath);
     const bare = ordered.map(entry => ({ ...entry, rules: [] }));
     const triggers = [conventions.TRIGGER_EDIT || 'edit', conventions.TRIGGER_READ || 'read'];
-    const frame = Math.max(...triggers.map(trigger =>
-        conventions.buildDigest(bare, rels, { maxChars: Infinity }, { fileExists: () => true, trigger }).text.length));
+    const frame = Math.max(
+        ...triggers.map(trigger => conventions.buildDigest(bare, rels, { maxChars: Infinity }, { fileExists: () => true, trigger }).text.length)
+    );
     const ruleLengths = ordered
         .map(entry => entry.rules.reduce((sum, rule) => sum + rule.length + 3, 0))
         .sort((a, b) => b - a)
@@ -305,21 +323,28 @@ const CONTENT_EXTENSIONS_NAMED = 6;
 
 /** Project path/document map only; execution policy belongs outside root files. */
 function buildProjectContextMap(config) {
-    const list = value => Array.isArray(value) ? value.filter(nonBlank) : [];
+    const list = value => (Array.isArray(value) ? value.filter(nonBlank) : []);
     const rows = (config.contextGroups || []).flatMap(group => {
         // The doc fields of a group, as file-conventions `docsOf` reads them: a class may declare its
         // docs in `referenceDocs` alone.
-        const docs = [...new Set([group.patternsDoc, group.guideDoc, ...list(group.referenceDocs)].filter(nonBlank))]
-            .filter(doc => !/(?:^|[\\/])\.(?:claude|agents|codex|opencode)(?:[\\/]|$)/.test(doc));
+        const docs = [...new Set([group.patternsDoc, group.guideDoc, ...list(group.referenceDocs)].filter(nonBlank))].filter(
+            doc => !/(?:^|[\\/])\.(?:claude|agents|codex|opencode)(?:[\\/]|$)/.test(doc)
+        );
         if (!docs.length) return [];
         const includes = [...list(group.pathRegexes), ...list(group.pathGlobs), ...list(group.fileNameRegexes)];
         const excludes = [...list(group.excludePathRegexes), ...list(group.excludePathGlobs)];
-        const scope = [includes.join(', ') || group.name,
+        const scope = [
+            includes.join(', ') || group.name,
             list(group.fileExtensions).length ? `extensions: ${group.fileExtensions.join(', ')}` : '',
-            excludes.length ? `exclude: ${excludes.join(', ')}` : ''].filter(Boolean).join('; ');
+            excludes.length ? `exclude: ${excludes.join(', ')}` : ''
+        ]
+            .filter(Boolean)
+            .join('; ');
         return [`| ${tableCell(scope)} | ${docs.map(codeCell).join(', ')} |`];
     });
-    return rows.length ? `Read the relevant project convention before changing these files.\n\n| Files | Project reference |\n|---|---|\n${rows.join('\n')}` : null;
+    return rows.length
+        ? `Read the relevant project convention before changing these files.\n\n| Files | Project reference |\n|---|---|\n${rows.join('\n')}`
+        : null;
 }
 
 function buildGoldenRules(config, projectDir) {
@@ -329,13 +354,14 @@ function buildGoldenRules(config, projectDir) {
     const delivery = pathRulesDelivery(config, projectDir);
     if (delivery.compact) {
         const names = delivery.entries.map(entry => literal(entry.name)).join(', ');
-        if (delivery.completeLookup) return [
-            `**Path-scoped project rules** — loaded before action. Groups with rules: ${names}.`,
-            '',
-            `- BEFORE the first read, grep, edit or test of a target, run \`${delivery.conventions.LOOKUP_COMMAND} <path> --complete\`. Read ALL returned pages and required references. This applies to shell access and file tools.`,
-            '- The lookup includes every matching rule and document; follow its --page continuation until complete. Repeat for each target path when planning a change.',
-            '- Automatic PostToolUse reminders are bounded accelerators, never proof of complete pre-read coverage. Apply rules only to their matching paths.'
-        ].join('\n');
+        if (delivery.completeLookup)
+            return [
+                `**Path-scoped project rules** — loaded before action. Groups with rules: ${names}.`,
+                '',
+                `- BEFORE the first read, grep, edit or test of a target, run \`${delivery.conventions.LOOKUP_COMMAND} <path> --complete\`. Read ALL returned pages and required references. This applies to shell access and file tools.`,
+                '- The lookup includes every matching rule and document; follow its --page continuation until complete. Repeat for each target path when planning a change.',
+                '- Automatic PostToolUse reminders are bounded accelerators, never proof of complete pre-read coverage. Apply rules only to their matching paths.'
+            ].join('\n');
         return [
             `**Path-scoped project rules** — delivered just in time, not inlined here. Groups with rules: ${names}.`,
             '',
@@ -346,9 +372,7 @@ function buildGoldenRules(config, projectDir) {
         ].join('\n');
     }
 
-    const renderMatchers = (label, values) => values.length
-        ? `${label}: ${values.map(literal).join(', ')}`
-        : null;
+    const renderMatchers = (label, values) => (values.length ? `${label}: ${values.map(literal).join(', ')}` : null);
     const renderedGroups = groups.map(group => {
         const contentExtensions = Array.isArray(group.contentExtensions) ? group.contentExtensions.filter(nonBlank) : [];
         const includes = [
@@ -359,7 +383,9 @@ function buildGoldenRules(config, projectDir) {
             // The first few scanned types are named and the rest counted (the lookup command answers for a concrete file), so a long
             // extension list does not weigh on every session.
             ...(Array.isArray(group.contentRegexes) && group.contentRegexes.some(nonBlank) && contentExtensions.length
-                ? [`content signals (${nonBlank(group.contentLabel) ? group.contentLabel.trim() : 'file content'}) in ${contentExtensions.slice(0, CONTENT_EXTENSIONS_NAMED).map(literal).join(', ')}${contentExtensions.length > CONTENT_EXTENSIONS_NAMED ? ` +${contentExtensions.length - CONTENT_EXTENSIONS_NAMED} more` : ''} files`]
+                ? [
+                      `content signals (${nonBlank(group.contentLabel) ? group.contentLabel.trim() : 'file content'}) in ${contentExtensions.slice(0, CONTENT_EXTENSIONS_NAMED).map(literal).join(', ')}${contentExtensions.length > CONTENT_EXTENSIONS_NAMED ? ` +${contentExtensions.length - CONTENT_EXTENSIONS_NAMED} more` : ''} files`
+                  ]
                 : [])
         ];
         const scope = [
@@ -367,10 +393,10 @@ function buildGoldenRules(config, projectDir) {
             renderMatchers('extensions', group.fileExtensions || []),
             renderMatchers('exclude path regexes', group.excludePathRegexes || []),
             renderMatchers('exclude path globs', group.excludePathGlobs || [])
-        ].filter(Boolean).join('; ');
-        const rules = [...new Set(group.rules.map(rule => rule.trim()).filter(Boolean))]
-            .map((rule, index) => `  ${index + 1}. ${rule}`)
-            .join('\n');
+        ]
+            .filter(Boolean)
+            .join('; ');
+        const rules = [...new Set(group.rules.map(rule => rule.trim()).filter(Boolean))].map((rule, index) => `  ${index + 1}. ${rule}`).join('\n');
         return `- **${group.name || 'unnamed'}** — ${scope}\n${rules}`;
     });
 
@@ -533,8 +559,10 @@ function buildE2eTesting(config) {
     const doc = docNotApplicable ? null : configuredDoc;
     const frameworks = config.testing?.frameworks || [];
     const execution = e2e.execution || {};
-    const hasE2e = frameworks.some(f => /selenium|playwright|cypress|specflow/i.test(f)) ||
-        (!!e2e.framework && !ABSENT_VALUE.test(String(e2e.framework))) || Object.keys(execution).length > 0;
+    const hasE2e =
+        frameworks.some(f => /selenium|playwright|cypress|specflow/i.test(f)) ||
+        (!!e2e.framework && !ABSENT_VALUE.test(String(e2e.framework))) ||
+        Object.keys(execution).length > 0;
 
     if (!configuredDoc && !hasE2e) return null;
 
@@ -550,19 +578,17 @@ function buildE2eTesting(config) {
     };
     const arch = e2e.architecture || {};
     const stack = [arch.webDriverType, arch.bddFramework, arch.pattern]
-        .map(k => PRETTY[k]).filter(Boolean).join(' + ');
-    const docLink = doc
-        ? `Full guide: [${path.basename(doc)}](${doc}) for E2E test patterns, test organization, and execution configuration.`
-        : '';
+        .map(k => PRETTY[k])
+        .filter(Boolean)
+        .join(' + ');
+    const docLink = doc ? `Full guide: [${path.basename(doc)}](${doc}) for E2E test patterns, test organization, and execution configuration.` : '';
 
     // Keep generated root context useful without copying commands, credentials,
     // storage state, or arbitrary config text into a broadly consumed document.
     // The project-config remains the source of truth for exact values.
     const executionLines = [];
     const surfaceIds = Array.isArray(execution.surfaceIds) ? execution.surfaceIds : [];
-    const surfaces = Array.isArray(config.experienceVerification?.surfaces)
-        ? config.experienceVerification.surfaces
-        : [];
+    const surfaces = Array.isArray(config.experienceVerification?.surfaces) ? config.experienceVerification.surfaces : [];
     if (surfaceIds.length > 0) {
         const lifecycle = surfaceIds.map(id => {
             const surface = surfaces.find(s => s?.id === id);
@@ -570,11 +596,15 @@ function buildE2eTesting(config) {
         });
         executionLines.push(`- **E2E surfaces:** ${lifecycle.join(', ')}; use each surface's configured localRun owner.`);
     } else if (Object.keys(execution).length > 0) {
-        executionLines.push('- **E2E surfaces:** resolve surface IDs and localRun ownership from `experienceVerification.surfaces[]`; do not invent lifecycle details.');
+        executionLines.push(
+            '- **E2E surfaces:** resolve surface IDs and localRun ownership from `experienceVerification.surfaces[]`; do not invent lifecycle details.'
+        );
     }
     if (execution.auth) {
         const mode = execution.auth.mode ? `\`${String(execution.auth.mode).replace(/[|\r\n]/g, ' ')}\`` : 'configured mode';
-        executionLines.push(`- **E2E authentication:** ${mode}; use configured non-secret references/fixtures or the documented manual-login path, never raw credentials.`);
+        executionLines.push(
+            `- **E2E authentication:** ${mode}; use configured non-secret references/fixtures or the documented manual-login path, never raw credentials.`
+        );
     }
     if (execution.data) {
         const mode = execution.data.mode ? `\`${String(execution.data.mode).replace(/[|\r\n]/g, ' ')}\`` : 'configured policy';
@@ -583,25 +613,32 @@ function buildE2eTesting(config) {
     if (execution.browser) {
         const runner = execution.browser.runner ? ` runner \`${String(execution.browser.runner).replace(/[|\r\n]/g, ' ')}\`` : '';
         const headed = execution.browser.headed === true ? 'headed/visible' : execution.browser.headed === false ? 'headless' : 'configured visibility';
-        const configuredDelay = Number.isSafeInteger(execution.browser.actionDelayMs) && execution.browser.actionDelayMs >= 0
-            ? execution.browser.actionDelayMs
-            : null;
-        const pacing = configuredDelay === null
-            ? 'Apply action delays only when the project contract documents them.'
-            : `Apply the configured ${configuredDelay}ms post-action delay only for the project-defined pacing need.`;
-        executionLines.push(`- **E2E browser:**${runner}; ${headed}. Use runner-native waits or an evidenced project helper for observable readiness and postconditions; waits must not weaken the final assertion. ${pacing} A delay is never a readiness or settle signal.`);
+        const configuredDelay =
+            Number.isSafeInteger(execution.browser.actionDelayMs) && execution.browser.actionDelayMs >= 0 ? execution.browser.actionDelayMs : null;
+        const pacing =
+            configuredDelay === null
+                ? 'Apply action delays only when the project contract documents them.'
+                : `Apply the configured ${configuredDelay}ms post-action delay only for the project-defined pacing need.`;
+        executionLines.push(
+            `- **E2E browser:**${runner}; ${headed}. Use runner-native waits or an evidenced project helper for observable readiness and postconditions; waits must not weaken the final assertion. ${pacing} A delay is never a readiness or settle signal.`
+        );
     }
     if (execution.evidence) {
         const capture = Array.isArray(execution.evidence.capture) ? execution.evidence.capture.join(', ') : 'configured capture set';
-        executionLines.push(`- **E2E evidence:** capture ${capture}; store under the configured evidence root, read the evidence, and apply the configured redaction policy.`);
+        executionLines.push(
+            `- **E2E evidence:** capture ${capture}; store under the configured evidence root, read the evidence, and apply the configured redaction policy.`
+        );
     }
     if (execution.convergence) {
         const attempts = execution.convergence.maxAttempts ? `max ${execution.convergence.maxAttempts} attempts` : 'bounded attempts';
-        executionLines.push(`- **E2E convergence:** ${attempts}; preserve scope, classify failures before edits, review fixes, and escalate when the contract cannot converge.`);
+        executionLines.push(
+            `- **E2E convergence:** ${attempts}; preserve scope, classify failures before edits, review fixes, and escalate when the contract cannot converge.`
+        );
     }
-    const executionProfile = executionLines.length > 0
-        ? `\n\nE2E execution profile (read \`docs/project-config.json → e2eTesting.execution\` for exact project facts):\n${executionLines.join('\n')}`
-        : '';
+    const executionProfile =
+        executionLines.length > 0
+            ? `\n\nE2E execution profile (read \`docs/project-config.json → e2eTesting.execution\` for exact project facts):\n${executionLines.join('\n')}`
+            : '';
 
     if (stack && docLink) return `${stack}. ${docLink}${executionProfile}`;
     if (stack) return `E2E stack: ${stack}.${executionProfile}`;
@@ -617,17 +654,16 @@ function buildE2eTesting(config) {
 // compact copied skill keep the historical guide-doc-only table. The project root is the
 // generator's resolved project directory when given, else CLAUDE_PROJECT_DIR, else the cwd.
 function loadFileConventions(env = process.env, cwd = process.cwd(), projectDir) {
-    const envRoot = env && typeof env.CLAUDE_PROJECT_DIR === 'string' && env.CLAUDE_PROJECT_DIR.trim()
-        ? env.CLAUDE_PROJECT_DIR.trim()
-        : null;
-    const projectRoot = typeof projectDir === 'string' && projectDir.trim() ? projectDir : (envRoot || cwd);
+    const envRoot = env && typeof env.CLAUDE_PROJECT_DIR === 'string' && env.CLAUDE_PROJECT_DIR.trim() ? env.CLAUDE_PROJECT_DIR.trim() : null;
+    const projectRoot = typeof projectDir === 'string' && projectDir.trim() ? projectDir : envRoot || cwd;
     const candidates = [
         path.join(__dirname, '..', '..', '..', 'hooks', 'lib', 'file-conventions.cjs'),
         path.join(projectRoot, '.claude', 'hooks', 'lib', 'file-conventions.cjs')
     ];
-    const usable = lib => lib
-        && ['injectableEntries', 'sortEntries', 'conventionTag', 'normalizedExtensions'].every(name => typeof lib[name] === 'function')
-        && typeof lib.LOOKUP_COMMAND === 'string';
+    const usable = lib =>
+        lib &&
+        ['injectableEntries', 'sortEntries', 'conventionTag', 'normalizedExtensions'].every(name => typeof lib[name] === 'function') &&
+        typeof lib.LOOKUP_COMMAND === 'string';
     for (const candidate of candidates) {
         try {
             if (!fs.existsSync(candidate)) continue;
@@ -648,7 +684,7 @@ function activationPattern(regex) {
 const nonBlank = value => typeof value === 'string' && value.trim();
 
 function tableCell(text) {
-    return String(text).replace(/[|\r\n]/g, char => char === '|' ? '\\|' : ' ');
+    return String(text).replace(/[|\r\n]/g, char => (char === '|' ? '\\|' : ' '));
 }
 
 /**
@@ -693,7 +729,8 @@ function buildSkillActivation(config, projectDir) {
     const rows = entries.map(entry => {
         const group = entry.group;
         const list = value => (Array.isArray(value) ? value.filter(nonBlank) : []);
-        const patterns = list(group.pathRegexes).map(activationPattern)
+        const patterns = list(group.pathRegexes)
+            .map(activationPattern)
             .concat(list(group.pathGlobs))
             .concat(list(group.fileNameRegexes).map(r => `name:${r}`));
         const excludes = list(group.excludePathRegexes).map(activationPattern).concat(list(group.excludePathGlobs));
@@ -707,7 +744,10 @@ function buildSkillActivation(config, projectDir) {
         if (contentSignals) patternCell += ` · content signals: ${tableCell(contentSignals)}`;
         if (excludes.length) patternCell += ` · not ${excludes.map(p => `\`${tableCell(p)}\``).join(', ')}`;
         const skillCell = entry.skills.length ? entry.skills.map(s => `\`${tableCell(s)}\``).join(', ') : '_(auto-context)_';
-        const docCell = entry.docs.map(d => `\`${tableCell(d)}\``).concat(`\`${conventions.conventionTag(entry)}\``).join(', ');
+        const docCell = entry.docs
+            .map(d => `\`${tableCell(d)}\``)
+            .concat(`\`${conventions.conventionTag(entry)}\``)
+            .join(', ');
         return `| ${patternCell} | ${skillCell} | ${docCell} |`;
     });
     return `${SKILL_ACTIVATION_INTRO} (a shell read or edit gets no digest: \`${conventions.LOOKUP_COMMAND} <path>\`)\n\n${header}\n${rows.join('\n')}`;
@@ -836,7 +876,8 @@ function buildDiscoveryRows(config, projectDir, referenceRoot, routedPaths) {
     } catch {
         /* no ADR root: no row */
     }
-    if (hasAdr) bottom.push({ topic: 'Why the architecture or a convention is the way it is — accepted decisions and trade-offs', files: [underRoot(adrRoot, '')] });
+    if (hasAdr)
+        bottom.push({ topic: 'Why the architecture or a convention is the way it is — accepted decisions and trade-offs', files: [underRoot(adrRoot, '')] });
 
     return { top, bottom, notApplicable };
 }
@@ -856,9 +897,7 @@ function buildDocLookup(config, projectDir) {
 
     // Fixed rows are DATA `{ topic, files }` rendered once at the end, so filtering never has to
     // re-parse rendered markdown and every cell goes through the same escaping.
-    const rows = modules
-        .filter(m => m.meta?.domain)
-        .map(m => ({ topic: m.meta.domain, files: [underRoot(featureRoot, m.name, '')] }));
+    const rows = modules.filter(m => m.meta?.domain).map(m => ({ topic: m.meta.domain, files: [underRoot(featureRoot, m.name, '')] }));
 
     rows.push({
         topic: 'Feature specs, capability behavior, business rules, test cases',
@@ -867,9 +906,7 @@ function buildDocLookup(config, projectDir) {
     for (const [topic, file] of REFERENCE_DOC_ROWS) rows.push({ topic, files: [underRoot(referenceRoot, file)] });
 
     const hasProjectDir = typeof projectDir === 'string' && projectDir.length > 0;
-    const discovery = hasProjectDir
-        ? buildDiscoveryRows(config, projectDir, referenceRoot, new Set())
-        : null;
+    const discovery = hasProjectDir ? buildDiscoveryRows(config, projectDir, referenceRoot, new Set()) : null;
     // Add framework docs; a pattern doc declared N/A is never routed (with a project directory the
     // closing note names it once instead).
     if (config.framework?.backendPatternsDoc && !isDeclaredNotApplicable(config, config.framework.backendPatternsDoc)) {
@@ -884,16 +921,18 @@ function buildDocLookup(config, projectDir) {
     // The fixed rows obey the same promises as the discovery rows: a path missing on disk, or a doc the
     // project declares N/A, is dropped from its row, and a row left with no path is dropped entirely.
     const notApplicable = [...discovery.notApplicable];
-    const existingRows = rows.map(row => {
-        const present = row.files.filter(file => {
-            if (!existsUnder(projectDir, file)) return false;
-            if (!isDeclaredNotApplicable(config, file)) return true;
-            const name = codeCell(path.posix.relative(referenceRoot, file));
-            if (!notApplicable.includes(name)) notApplicable.push(name);
-            return false;
-        });
-        return present.length ? { topic: row.topic, files: present } : null;
-    }).filter(Boolean);
+    const existingRows = rows
+        .map(row => {
+            const present = row.files.filter(file => {
+                if (!existsUnder(projectDir, file)) return false;
+                if (!isDeclaredNotApplicable(config, file)) return true;
+                const name = codeCell(path.posix.relative(referenceRoot, file));
+                if (!notApplicable.includes(name)) notApplicable.push(name);
+                return false;
+            });
+            return present.length ? { topic: row.topic, files: present } : null;
+        })
+        .filter(Boolean);
 
     // A doc already routed by a fixed row above must not be routed twice below: a discovery row
     // naming any fixed path is dropped whole, as the fixed row already sends the reader there.
@@ -905,7 +944,8 @@ function buildDocLookup(config, projectDir) {
         : '';
     // Never render a header-only table: say what to do instead.
     if (allRows.length === 0) return `No project reference documents are configured or present.${skip}`;
-    const intro = 'Match the question or task to a row and read that doc before answering, planning, or editing; ' +
+    const intro =
+        'Match the question or task to a row and read that doc before answering, planning, or editing; ' +
         'every row names a file or folder that exists in this repo.';
     return `${intro}\n\n| If user prompt mentions... | Read first |\n|---|---|\n${allRows.join('\n')}${skip}`;
 }

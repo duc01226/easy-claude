@@ -164,7 +164,8 @@ function resolveGroups(data, tags, skillExists) {
     if (!Array.isArray(data.inlineSkills)) problems.push('inlineSkills must be an array of skill names');
     else {
         for (const name of data.inlineSkills) {
-            if (typeof name !== 'string' || !NAME_PATTERN.test(name)) problems.push(`inlineSkills entry ${JSON.stringify(name)} is not a skill name (${NAME_PATTERN})`);
+            if (typeof name !== 'string' || !NAME_PATTERN.test(name))
+                problems.push(`inlineSkills entry ${JSON.stringify(name)} is not a skill name (${NAME_PATTERN})`);
             else if (!skillExists(name)) problems.push(`inlineSkills entry "${name}" has no ${SKILLS_RELATIVE}/${name}/SKILL.md`);
         }
     }
@@ -324,9 +325,15 @@ function buildProjection({ canonicalText, groupsData, skillExists }) {
     }
     bins.forEach((bin, i) => {
         if (!bin.every(tag => bodies.has(tag))) return;
-        const length = renderBin(i + 1, bins.length, bin.map(tag => bodies.get(tag))).length;
+        const length = renderBin(
+            i + 1,
+            bins.length,
+            bin.map(tag => bodies.get(tag))
+        ).length;
         if (length > binChars) {
-            problems.push(`universal bin ${i + 1} (${bin.join(', ')}) renders ${length} chars, over the ${binChars}-char bin; move a tag to another bin in ${GROUPS_RELATIVE}`);
+            problems.push(
+                `universal bin ${i + 1} (${bin.join(', ')}) renders ${length} chars, over the ${binChars}-char bin; move a tag to another bin in ${GROUPS_RELATIVE}`
+            );
         }
     });
     if (problems.length) return { files: new Map(), problems, stats: { tags: tags.length, split } };
@@ -440,7 +447,9 @@ function main(argv = process.argv.slice(2)) {
 
     const { files, problems, stats } = buildFromRoot(rootDir);
     if (problems.length) {
-        process.stderr.write(`${PREFIX} ${problems.length} problem(s); nothing ${check ? 'checked' : 'written'}:\n${problems.map(p => `  - ${p}`).join('\n')}\n`);
+        process.stderr.write(
+            `${PREFIX} ${problems.length} problem(s); nothing ${check ? 'checked' : 'written'}:\n${problems.map(p => `  - ${p}`).join('\n')}\n`
+        );
         return 1;
     }
     const outputDir = path.join(rootDir, ...OUTPUT_RELATIVE.split('/'));

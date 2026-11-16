@@ -32,7 +32,12 @@ function withLargeFileIds(fsModule, pick, run) {
     }
     const restore = () => Object.assign(fsModule, native);
     let result;
-    try { result = run(); } catch (error) { restore(); throw error; }
+    try {
+        result = run();
+    } catch (error) {
+        restore();
+        throw error;
+    }
     if (result && typeof result.then === 'function') return result.finally(restore);
     restore();
     return result;

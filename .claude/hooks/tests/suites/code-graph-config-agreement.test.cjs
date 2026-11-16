@@ -107,12 +107,20 @@ function cliView(tree) {
         'print(json.dumps({"configPath": str(configured_project_config_path(Path(sys.argv[2])))}))'
     ].join('\n');
     const located = spawnSync(python.command, [...python.baseArgs, '-c', probe, SCRIPTS_DIR, tree.root], {
-        cwd: tree.root, encoding: 'utf8', timeout: 30000, windowsHide: true, env
+        cwd: tree.root,
+        encoding: 'utf8',
+        timeout: 30000,
+        windowsHide: true,
+        env
     });
     assert.ifError(located.error);
     assert.equal(located.status, 0, `CLI config probe failed:\n${located.stderr}`);
     const status = spawnSync(python.command, [...python.baseArgs, CLI_DIR, 'status', '--json', '--repo', tree.root], {
-        cwd: tree.root, encoding: 'utf8', timeout: 60000, windowsHide: true, env
+        cwd: tree.root,
+        encoding: 'utf8',
+        timeout: 60000,
+        windowsHide: true,
+        env
     });
     assert.ifError(status.error);
     const output = `${status.stdout}${status.stderr}`;
@@ -162,74 +170,86 @@ const ckJson = (tree, file, projectConfigPath) => writeJson(path.join(tree.root,
 module.exports = {
     name: 'code-graph-config-agreement',
     tests: [
-        parityCase('setting omitted: not off on either side',
-            tree => writeJson(defaultPath(tree), { project: { name: 'fixture-project' } }),
-            { off: false, configPath: defaultPath }),
-        parityCase('auto: not off on either side',
-            tree => writeJson(defaultPath(tree), graphConfig('auto')),
-            { off: false, configPath: defaultPath }),
-        parityCase('on: not off on either side',
-            tree => writeJson(defaultPath(tree), graphConfig('on')),
-            { off: false, configPath: defaultPath }),
-        parityCase('off: off on both sides',
-            tree => writeJson(defaultPath(tree), graphConfig('off')),
-            { off: true, configPath: defaultPath }),
-        parityCase('a value outside auto|on|off is off on both sides',
-            tree => writeJson(defaultPath(tree), graphConfig('no')),
-            { off: true, configPath: defaultPath }),
-        parityCase('a non-object codeGraph section is off on both sides',
+        parityCase('setting omitted: not off on either side', tree => writeJson(defaultPath(tree), { project: { name: 'fixture-project' } }), {
+            off: false,
+            configPath: defaultPath
+        }),
+        parityCase('auto: not off on either side', tree => writeJson(defaultPath(tree), graphConfig('auto')), { off: false, configPath: defaultPath }),
+        parityCase('on: not off on either side', tree => writeJson(defaultPath(tree), graphConfig('on')), { off: false, configPath: defaultPath }),
+        parityCase('off: off on both sides', tree => writeJson(defaultPath(tree), graphConfig('off')), { off: true, configPath: defaultPath }),
+        parityCase('a value outside auto|on|off is off on both sides', tree => writeJson(defaultPath(tree), graphConfig('no')), {
+            off: true,
+            configPath: defaultPath
+        }),
+        parityCase(
+            'a non-object codeGraph section is off on both sides',
             tree => writeJson(defaultPath(tree), { project: { name: 'fixture-project' }, hooks: { codeGraph: 'on' } }),
-            { off: true, configPath: defaultPath }),
-        parityCase('a config relocated by .claude/.ck.json that says off is off on both sides',
+            { off: true, configPath: defaultPath }
+        ),
+        parityCase(
+            'a config relocated by .claude/.ck.json that says off is off on both sides',
             tree => {
                 writeJson(defaultPath(tree), graphConfig('auto')); // decoy at the default path
                 writeJson(relocatedPath(tree), graphConfig('off'));
                 ckJson(tree, '.ck.json', 'cfg/project-config.json');
             },
-            { off: true, configPath: relocatedPath }),
-        parityCase('a relocated config that does not exist reads as no config, never the default file',
+            { off: true, configPath: relocatedPath }
+        ),
+        parityCase(
+            'a relocated config that does not exist reads as no config, never the default file',
             tree => {
                 writeJson(defaultPath(tree), graphConfig('off')); // decoy: must NOT be read
                 ckJson(tree, '.ck.json', 'cfg/project-config.json');
             },
-            { off: false, configPath: relocatedPath }),
-        parityCase('.claude/.ck.local.json outranks .claude/.ck.json',
+            { off: false, configPath: relocatedPath }
+        ),
+        parityCase(
+            '.claude/.ck.local.json outranks .claude/.ck.json',
             tree => {
                 writeJson(path.join(tree.root, 'cfg', 'shared.json'), graphConfig('auto'));
                 writeJson(relocatedPath(tree), graphConfig('off'));
                 ckJson(tree, '.ck.json', 'cfg/shared.json');
                 ckJson(tree, '.ck.local.json', 'cfg/project-config.json');
             },
-            { off: true, configPath: relocatedPath }),
-        parityCase('the user ~/.claude/.ck.json applies when the project declares nothing',
+            { off: true, configPath: relocatedPath }
+        ),
+        parityCase(
+            'the user ~/.claude/.ck.json applies when the project declares nothing',
             tree => {
                 writeJson(defaultPath(tree), graphConfig('auto'));
                 writeJson(relocatedPath(tree), graphConfig('off'));
                 writeJson(path.join(tree.home, '.claude', '.ck.json'), { portability: { projectConfigPath: 'cfg/project-config.json' } });
             },
-            { off: true, configPath: relocatedPath }),
-        parityCase('an absolute relocation is kept as given',
+            { off: true, configPath: relocatedPath }
+        ),
+        parityCase(
+            'an absolute relocation is kept as given',
             tree => {
                 const outside = path.join(tree.base, 'shared-config', 'project-config.json');
                 writeJson(outside, graphConfig('off'));
                 writeJson(defaultPath(tree), graphConfig('auto'));
                 ckJson(tree, '.ck.json', outside);
             },
-            { off: true, configPath: tree => path.join(tree.base, 'shared-config', 'project-config.json') }),
-        parityCase('a relative relocation escaping the project root falls back to the default',
+            { off: true, configPath: tree => path.join(tree.base, 'shared-config', 'project-config.json') }
+        ),
+        parityCase(
+            'a relative relocation escaping the project root falls back to the default',
             tree => {
                 writeJson(path.join(tree.base, 'escaped', 'project-config.json'), graphConfig('off'));
                 writeJson(defaultPath(tree), graphConfig('auto'));
                 ckJson(tree, '.ck.json', '../escaped/project-config.json');
             },
-            { off: false, configPath: defaultPath }),
-        parityCase('a non-object portability in a higher layer drops a lower-layer relocation',
+            { off: false, configPath: defaultPath }
+        ),
+        parityCase(
+            'a non-object portability in a higher layer drops a lower-layer relocation',
             tree => {
                 writeJson(defaultPath(tree), graphConfig('auto'));
                 writeJson(relocatedPath(tree), graphConfig('off'));
                 ckJson(tree, '.ck.json', 'cfg/project-config.json');
                 writeJson(path.join(tree.root, '.claude', '.ck.local.json'), { portability: 'none' });
             },
-            { off: false, configPath: defaultPath })
+            { off: false, configPath: defaultPath }
+        )
     ]
 };

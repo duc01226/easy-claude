@@ -10,10 +10,10 @@
  * @param {string} [msg] - Optional message prefix
  */
 function assertEqual(actual, expected, msg = '') {
-  if (actual !== expected) {
-    const prefix = msg ? `${msg}: ` : '';
-    throw new Error(`${prefix}Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
-  }
+    if (actual !== expected) {
+        const prefix = msg ? `${msg}: ` : '';
+        throw new Error(`${prefix}Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    }
 }
 
 /**
@@ -23,12 +23,12 @@ function assertEqual(actual, expected, msg = '') {
  * @param {string} [msg] - Optional message prefix
  */
 function assertDeepEqual(actual, expected, msg = '') {
-  const actualStr = JSON.stringify(actual, null, 2);
-  const expectedStr = JSON.stringify(expected, null, 2);
-  if (actualStr !== expectedStr) {
-    const prefix = msg ? `${msg}: ` : '';
-    throw new Error(`${prefix}Objects not equal.\nExpected:\n${expectedStr}\nGot:\n${actualStr}`);
-  }
+    const actualStr = JSON.stringify(actual, null, 2);
+    const expectedStr = JSON.stringify(expected, null, 2);
+    if (actualStr !== expectedStr) {
+        const prefix = msg ? `${msg}: ` : '';
+        throw new Error(`${prefix}Objects not equal.\nExpected:\n${expectedStr}\nGot:\n${actualStr}`);
+    }
 }
 
 /**
@@ -37,9 +37,9 @@ function assertDeepEqual(actual, expected, msg = '') {
  * @param {string} [msg] - Message to show on failure
  */
 function assertTrue(condition, msg = 'Expected condition to be true') {
-  if (!condition) {
-    throw new Error(msg);
-  }
+    if (!condition) {
+        throw new Error(msg);
+    }
 }
 
 /**
@@ -48,9 +48,9 @@ function assertTrue(condition, msg = 'Expected condition to be true') {
  * @param {string} [msg] - Message to show on failure
  */
 function assertFalse(condition, msg = 'Expected condition to be false') {
-  if (condition) {
-    throw new Error(msg);
-  }
+    if (condition) {
+        throw new Error(msg);
+    }
 }
 
 /**
@@ -60,14 +60,14 @@ function assertFalse(condition, msg = 'Expected condition to be false') {
  * @param {string} [msg] - Optional message prefix
  */
 function assertContains(str, substring, msg = '') {
-  if (typeof str !== 'string') {
-    throw new Error(`${msg ? msg + ': ' : ''}Expected string, got ${typeof str}`);
-  }
-  if (!str.includes(substring)) {
-    const preview = str.length > 200 ? str.substring(0, 200) + '...' : str;
-    const prefix = msg ? `${msg}: ` : '';
-    throw new Error(`${prefix}Expected string to contain "${substring}"\nGot: "${preview}"`);
-  }
+    if (typeof str !== 'string') {
+        throw new Error(`${msg ? msg + ': ' : ''}Expected string, got ${typeof str}`);
+    }
+    if (!str.includes(substring)) {
+        const preview = str.length > 200 ? str.substring(0, 200) + '...' : str;
+        const prefix = msg ? `${msg}: ` : '';
+        throw new Error(`${prefix}Expected string to contain "${substring}"\nGot: "${preview}"`);
+    }
 }
 
 /**
@@ -77,13 +77,13 @@ function assertContains(str, substring, msg = '') {
  * @param {string} [msg] - Optional message prefix
  */
 function assertNotContains(str, substring, msg = '') {
-  if (typeof str !== 'string') {
-    throw new Error(`${msg ? msg + ': ' : ''}Expected string, got ${typeof str}`);
-  }
-  if (str.includes(substring)) {
-    const prefix = msg ? `${msg}: ` : '';
-    throw new Error(`${prefix}Expected string NOT to contain "${substring}"`);
-  }
+    if (typeof str !== 'string') {
+        throw new Error(`${msg ? msg + ': ' : ''}Expected string, got ${typeof str}`);
+    }
+    if (str.includes(substring)) {
+        const prefix = msg ? `${msg}: ` : '';
+        throw new Error(`${prefix}Expected string NOT to contain "${substring}"`);
+    }
 }
 
 /**
@@ -93,10 +93,10 @@ function assertNotContains(str, substring, msg = '') {
  * @param {string} [msg] - Optional message prefix
  */
 function assertMatches(str, pattern, msg = '') {
-  if (!pattern.test(str)) {
-    const prefix = msg ? `${msg}: ` : '';
-    throw new Error(`${prefix}Expected string to match ${pattern}\nGot: "${str}"`);
-  }
+    if (!pattern.test(str)) {
+        const prefix = msg ? `${msg}: ` : '';
+        throw new Error(`${prefix}Expected string to match ${pattern}\nGot: "${str}"`);
+    }
 }
 
 /**
@@ -106,30 +106,30 @@ function assertMatches(str, pattern, msg = '') {
  * @param {string} [msg] - Optional message prefix
  */
 function assertThrows(fn, expectedError = null, msg = '') {
-  let threw = false;
-  let error = null;
-  try {
-    fn();
-  } catch (e) {
-    threw = true;
-    error = e;
-  }
-
-  const prefix = msg ? `${msg}: ` : '';
-  if (!threw) {
-    throw new Error(`${prefix}Expected function to throw`);
-  }
-
-  if (expectedError) {
-    const errorMsg = error.message || String(error);
-    if (expectedError instanceof RegExp) {
-      if (!expectedError.test(errorMsg)) {
-        throw new Error(`${prefix}Expected error to match ${expectedError}, got: "${errorMsg}"`);
-      }
-    } else if (!errorMsg.includes(expectedError)) {
-      throw new Error(`${prefix}Expected error to contain "${expectedError}", got: "${errorMsg}"`);
+    let threw = false;
+    let error = null;
+    try {
+        fn();
+    } catch (e) {
+        threw = true;
+        error = e;
     }
-  }
+
+    const prefix = msg ? `${msg}: ` : '';
+    if (!threw) {
+        throw new Error(`${prefix}Expected function to throw`);
+    }
+
+    if (expectedError) {
+        const errorMsg = error.message || String(error);
+        if (expectedError instanceof RegExp) {
+            if (!expectedError.test(errorMsg)) {
+                throw new Error(`${prefix}Expected error to match ${expectedError}, got: "${errorMsg}"`);
+            }
+        } else if (!errorMsg.includes(expectedError)) {
+            throw new Error(`${prefix}Expected error to contain "${expectedError}", got: "${errorMsg}"`);
+        }
+    }
 }
 
 /**
@@ -139,30 +139,30 @@ function assertThrows(fn, expectedError = null, msg = '') {
  * @param {string} [msg] - Optional message prefix
  */
 async function assertThrowsAsync(fn, expectedError = null, msg = '') {
-  let threw = false;
-  let error = null;
-  try {
-    await fn();
-  } catch (e) {
-    threw = true;
-    error = e;
-  }
-
-  const prefix = msg ? `${msg}: ` : '';
-  if (!threw) {
-    throw new Error(`${prefix}Expected async function to throw`);
-  }
-
-  if (expectedError) {
-    const errorMsg = error.message || String(error);
-    if (expectedError instanceof RegExp) {
-      if (!expectedError.test(errorMsg)) {
-        throw new Error(`${prefix}Expected error to match ${expectedError}, got: "${errorMsg}"`);
-      }
-    } else if (!errorMsg.includes(expectedError)) {
-      throw new Error(`${prefix}Expected error to contain "${expectedError}", got: "${errorMsg}"`);
+    let threw = false;
+    let error = null;
+    try {
+        await fn();
+    } catch (e) {
+        threw = true;
+        error = e;
     }
-  }
+
+    const prefix = msg ? `${msg}: ` : '';
+    if (!threw) {
+        throw new Error(`${prefix}Expected async function to throw`);
+    }
+
+    if (expectedError) {
+        const errorMsg = error.message || String(error);
+        if (expectedError instanceof RegExp) {
+            if (!expectedError.test(errorMsg)) {
+                throw new Error(`${prefix}Expected error to match ${expectedError}, got: "${errorMsg}"`);
+            }
+        } else if (!errorMsg.includes(expectedError)) {
+            throw new Error(`${prefix}Expected error to contain "${expectedError}", got: "${errorMsg}"`);
+        }
+    }
 }
 
 /**
@@ -171,10 +171,10 @@ async function assertThrowsAsync(fn, expectedError = null, msg = '') {
  * @param {string} [msg] - Optional message
  */
 function assertNullish(value, msg = '') {
-  if (value != null) {
-    const prefix = msg ? `${msg}: ` : '';
-    throw new Error(`${prefix}Expected null or undefined, got ${JSON.stringify(value)}`);
-  }
+    if (value != null) {
+        const prefix = msg ? `${msg}: ` : '';
+        throw new Error(`${prefix}Expected null or undefined, got ${JSON.stringify(value)}`);
+    }
 }
 
 /**
@@ -183,10 +183,10 @@ function assertNullish(value, msg = '') {
  * @param {string} [msg] - Optional message
  */
 function assertNotNullish(value, msg = '') {
-  if (value == null) {
-    const prefix = msg ? `${msg}: ` : '';
-    throw new Error(`${prefix}Expected value to be defined, got ${value}`);
-  }
+    if (value == null) {
+        const prefix = msg ? `${msg}: ` : '';
+        throw new Error(`${prefix}Expected value to be defined, got ${value}`);
+    }
 }
 
 /**
@@ -196,10 +196,10 @@ function assertNotNullish(value, msg = '') {
  * @param {string} [context] - Additional context for error message
  */
 function assertExitCode(actual, expected, context = '') {
-  if (actual !== expected) {
-    const ctx = context ? ` (${context})` : '';
-    throw new Error(`Expected exit code ${expected}, got ${actual}${ctx}`);
-  }
+    if (actual !== expected) {
+        const ctx = context ? ` (${context})` : '';
+        throw new Error(`Expected exit code ${expected}, got ${actual}${ctx}`);
+    }
 }
 
 /**
@@ -208,7 +208,7 @@ function assertExitCode(actual, expected, context = '') {
  * @param {string} [msg] - Optional message
  */
 function assertBlocked(exitCode, msg = '') {
-  assertExitCode(exitCode, 2, msg || 'Expected hook to block');
+    assertExitCode(exitCode, 2, msg || 'Expected hook to block');
 }
 
 /**
@@ -217,22 +217,22 @@ function assertBlocked(exitCode, msg = '') {
  * @param {string} [msg] - Optional message
  */
 function assertAllowed(exitCode, msg = '') {
-  assertExitCode(exitCode, 0, msg || 'Expected hook to allow');
+    assertExitCode(exitCode, 0, msg || 'Expected hook to allow');
 }
 
 module.exports = {
-  assertEqual,
-  assertDeepEqual,
-  assertTrue,
-  assertFalse,
-  assertContains,
-  assertNotContains,
-  assertMatches,
-  assertThrows,
-  assertThrowsAsync,
-  assertNullish,
-  assertNotNullish,
-  assertExitCode,
-  assertBlocked,
-  assertAllowed
+    assertEqual,
+    assertDeepEqual,
+    assertTrue,
+    assertFalse,
+    assertContains,
+    assertNotContains,
+    assertMatches,
+    assertThrows,
+    assertThrowsAsync,
+    assertNullish,
+    assertNotNullish,
+    assertExitCode,
+    assertBlocked,
+    assertAllowed
 };

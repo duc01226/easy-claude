@@ -8,8 +8,31 @@ const { fail, hash, scopedPath, readBytes, publishBytes } = require('./task-trac
 const vocabulary = require('./task-tracking-vocabulary.cjs');
 const { CURRENT_VERSION, BASE_VERSION, EARLIER_VERSION, RETIRED_VERSION } = vocabulary;
 
-const TRACKING_FIELDS = ['schemaVersion', 'revision', 'kind', 'assigneeId', 'collaboratorIds', 'criteria', 'readiness',
-    'links', 'level', 'type', 'priorityLevel', 'deadline', 'blocker', 'proofs', 'acceptanceHistory', 'history', 'receipts', 'context', 'activity', 'optOut', 'retired', 'health', 'memberProfiles'];
+const TRACKING_FIELDS = [
+    'schemaVersion',
+    'revision',
+    'kind',
+    'assigneeId',
+    'collaboratorIds',
+    'criteria',
+    'readiness',
+    'links',
+    'level',
+    'type',
+    'priorityLevel',
+    'deadline',
+    'blocker',
+    'proofs',
+    'acceptanceHistory',
+    'history',
+    'receipts',
+    'context',
+    'activity',
+    'optOut',
+    'retired',
+    'health',
+    'memberProfiles'
+];
 let yaml;
 function parser() {
     if (yaml) return yaml;
@@ -18,7 +41,9 @@ function parser() {
         if (require(path.join(base, 'package.json')).version !== '2.9.1') fail('MISSING_PARSER', 'Install the pinned task-track dependency');
         yaml = require(base);
         return yaml;
-    } catch (error) { fail('MISSING_PARSER', 'Run npm ci --ignore-scripts in the task-track package before tracking operations'); }
+    } catch (error) {
+        fail('MISSING_PARSER', 'Run npm ci --ignore-scripts in the task-track package before tracking operations');
+    }
 }
 
 function mappingField(map, name) {
@@ -34,8 +59,11 @@ function mappingField(map, name) {
 function parseRecord(bytes, ownerPath, kind, version = CURRENT_VERSION) {
     if (!Buffer.isBuffer(bytes) || bytes.length > LIMITS.recordBytes) fail('LIMIT_EXCEEDED', 'Record exceeds the byte budget');
     let text;
-    try { text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes); }
-    catch { fail('UNSUPPORTED', 'Record is not valid UTF-8; original bytes preserved'); }
+    try {
+        text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes);
+    } catch {
+        fail('UNSUPPORTED', 'Record is not valid UTF-8; original bytes preserved');
+    }
     const opening = /^(?:\uFEFF)?---\r?\n/.exec(text);
     if (!opening) fail('UNSUPPORTED', 'Record has no supported Markdown frontmatter');
     const closing = /^---(?:\r?\n|$)/m.exec(text.slice(opening[0].length));
@@ -45,32 +73,70 @@ function parseRecord(bytes, ownerPath, kind, version = CURRENT_VERSION) {
     const header = text.slice(start, end);
     const y = parser();
     const document = y.parseDocument(header, { uniqueKeys: true, prettyErrors: false });
-    if (document.errors.length || document.warnings.length || !y.isMap(document.contents)) fail('UNSUPPORTED', 'Ambiguous or malformed YAML; original bytes preserved');
+    if (document.errors.length || document.warnings.length || !y.isMap(document.contents))
+        fail('UNSUPPORTED', 'Ambiguous or malformed YAML; original bytes preserved');
     let unsupported = false;
     y.visit(document, {
-        Node(_key, node) { if (y.isAlias(node) || node.anchor || node.tag) { unsupported = true; return y.visit.BREAK; } },
+        Node(_key, node) {
+            if (y.isAlias(node) || node.anchor || node.tag) {
+                unsupported = true;
+                return y.visit.BREAK;
+            }
+        },
         Pair(_key, pair) {
-            if (!y.isScalar(pair.key) || typeof pair.key.value !== 'string' || pair.key.value === '<<') { unsupported = true; return y.visit.BREAK; }
+            if (!y.isScalar(pair.key) || typeof pair.key.value !== 'string' || pair.key.value === '<<') {
+                unsupported = true;
+                return y.visit.BREAK;
+            }
         }
     });
     if (unsupported) fail('UNSUPPORTED', 'YAML tags, anchors, aliases, merge keys, or complex keys are unsupported');
     const data = document.toJS({ maxAliasCount: 0 });
-    if (typeof data.id !== 'string' || !ITEM_ID.test(data.id) || typeof data.title !== 'string' || !data.title.trim()
-        || typeof data.status !== 'string') fail('UNSUPPORTED', 'Record identity, title, or recorded status is missing');
+    if (typeof data.id !== 'string' || !ITEM_ID.test(data.id) || typeof data.title !== 'string' || !data.title.trim() || typeof data.status !== 'string')
+        fail('UNSUPPORTED', 'Record identity, title, or recorded status is missing');
     const tracking = data.tracking;
     const mapping = tracking !== null && typeof tracking === 'object' && !Array.isArray(tracking);
     if (mapping && vocabulary.inCurrentStructure(version) && [EARLIER_VERSION, RETIRED_VERSION].includes(tracking.schemaVersion))
-        throw Object.assign(new Error(vocabulary.REFUSALS.EARLIER_VOCABULARY_RECORD), { code: 'EARLIER_VOCABULARY_RECORD', itemId: data.id, storedVersion: tracking.schemaVersion });
+        throw Object.assign(new Error(vocabulary.REFUSALS.EARLIER_VOCABULARY_RECORD), {
+            code: 'EARLIER_VOCABULARY_RECORD',
+            itemId: data.id,
+            storedVersion: tracking.schemaVersion
+        });
     if (mapping && vocabulary.inCurrentStructure(version) && vocabulary.inCurrentStructure(tracking.schemaVersion) && tracking.schemaVersion > version)
-        throw Object.assign(new Error(`Record is stamped for vocabulary version ${tracking.schemaVersion} and this project stores version ${version}; declare taskTracking.schemaVersion ${tracking.schemaVersion} in the project configuration to read it`),
-            { code: 'LATER_VOCABULARY_RECORD', itemId: data.id, storedVersion: tracking.schemaVersion });
-    if (tracking !== undefined && (!mapping
-        || !vocabulary.readableStamps(version).includes(tracking.schemaVersion) || !Number.isSafeInteger(tracking.revision) || tracking.revision < 1
-        || !vocabulary.wordsFor(version).kinds.includes(tracking.kind) || (kind && tracking.kind !== kind))) fail('UNSUPPORTED', 'Custom or unsupported tracking metadata is preserved without adoption');
+        throw Object.assign(
+            new Error(
+                `Record is stamped for vocabulary version ${tracking.schemaVersion} and this project stores version ${version}; declare taskTracking.schemaVersion ${tracking.schemaVersion} in the project configuration to read it`
+            ),
+            { code: 'LATER_VOCABULARY_RECORD', itemId: data.id, storedVersion: tracking.schemaVersion }
+        );
+    if (
+        tracking !== undefined &&
+        (!mapping ||
+            !vocabulary.readableStamps(version).includes(tracking.schemaVersion) ||
+            !Number.isSafeInteger(tracking.revision) ||
+            tracking.revision < 1 ||
+            !vocabulary.wordsFor(version).kinds.includes(tracking.kind) ||
+            (kind && tracking.kind !== kind))
+    )
+        fail('UNSUPPORTED', 'Custom or unsupported tracking metadata is preserved without adoption');
     const newline = header.includes('\r\n') ? '\r\n' : '\n';
-    return { id: data.id, kind: tracking?.kind || kind, ownerPath, data, tracking: tracking || null,
-        revision: tracking?.revision || 0, contentHash: hash(bytes), bytes, text, header, start, end,
-        body: text.slice(end + closing[0].length), document, newline };
+    return {
+        id: data.id,
+        kind: tracking?.kind || kind,
+        ownerPath,
+        data,
+        tracking: tracking || null,
+        revision: tracking?.revision || 0,
+        contentHash: hash(bytes),
+        bytes,
+        text,
+        header,
+        start,
+        end,
+        body: text.slice(end + closing[0].length),
+        document,
+        newline
+    };
 }
 
 function valueEdit(header, map, name, value, newline) {
@@ -112,8 +178,11 @@ function patchRecord(record, fields, tracking) {
     const node = mappingField(root, 'tracking')?.value;
     // Retained extensions carry no write authority; only existing equal values pass.
     for (const [key, value] of Object.entries(tracking)) {
-        if (!TRACKING_FIELDS.includes(key) && (!record.tracking || !Object.hasOwn(record.tracking, key)
-            || stableValue(record.tracking[key]) !== stableValue(value))) fail('INVALID_INPUT', 'Tracking field is not owned');
+        if (
+            !TRACKING_FIELDS.includes(key) &&
+            (!record.tracking || !Object.hasOwn(record.tracking, key) || stableValue(record.tracking[key]) !== stableValue(value))
+        )
+            fail('INVALID_INPUT', 'Tracking field is not owned');
     }
     if (record.tracking) {
         if (!parser().isMap(node)) fail('UNSUPPORTED', 'Tracking metadata is not a writable mapping');
@@ -125,7 +194,10 @@ function patchRecord(record, fields, tracking) {
     for (const edit of edits.sort((a, b) => a.start - b.start || a.end - b.end)) {
         const previous = combined[combined.length - 1];
         if (previous && previous.start === edit.start && previous.end === edit.end && edit.start === edit.end) previous.value += edit.value;
-        else { if (previous && previous.end > edit.start) fail('UNSUPPORTED', 'Overlapping owned fields cannot be safely patched'); combined.push({ ...edit }); }
+        else {
+            if (previous && previous.end > edit.start) fail('UNSUPPORTED', 'Overlapping owned fields cannot be safely patched');
+            combined.push({ ...edit });
+        }
     }
     let header = record.header;
     for (const edit of combined.reverse()) header = header.slice(0, edit.start) + edit.value + header.slice(edit.end);
@@ -133,7 +205,11 @@ function patchRecord(record, fields, tracking) {
     const candidate = parseRecord(bytes, record.ownerPath, record.kind);
     if (candidate.body !== record.body) fail('UNSUPPORTED', 'Candidate changed authored body');
     // A record without tracking metadata keeps none when no tracking value is written.
-    const expected = { ...record.data, ...fields, ...(record.tracking || Object.keys(tracking).length ? { tracking: { ...(record.tracking || {}), ...tracking } } : {}) };
+    const expected = {
+        ...record.data,
+        ...fields,
+        ...(record.tracking || Object.keys(tracking).length ? { tracking: { ...(record.tracking || {}), ...tracking } } : {})
+    };
     if (JSON.stringify(candidate.data) !== JSON.stringify(expected)) {
         // YAML key order is not authority; compare sorted semantic values.
         if (stableValue(candidate.data) !== stableValue(expected)) fail('UNSUPPORTED', 'Candidate does not preserve the expected record semantics');
@@ -144,7 +220,11 @@ function patchRecord(record, fields, tracking) {
 function stableValue(value, depth = 0) {
     if (depth > 32) fail('LIMIT_EXCEEDED', 'Metadata nesting exceeds the supported budget');
     if (Array.isArray(value)) return `[${value.map(v => stableValue(v, depth + 1)).join(',')}]`;
-    if (value && typeof value === 'object') return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableValue(value[key], depth + 1)}`).join(',')}}`;
+    if (value && typeof value === 'object')
+        return `{${Object.keys(value)
+            .sort()
+            .map(key => `${JSON.stringify(key)}:${stableValue(value[key], depth + 1)}`)
+            .join(',')}}`;
     return JSON.stringify(value);
 }
 
@@ -153,7 +233,12 @@ function newRecord({ id, kind, title, intent, tracking }, context) {
     const ownerPath = `${context.artifactsRoot}/${FOLDERS[kind]}/${id}.md`;
     // A new record starts in the first state of its kind's lifecycle.
     const header = { id, title, intent, status: vocabulary.lifecycleOf(kind).initial, tracking };
-    const bytes = Buffer.from(`---\n${Object.entries(header).map(([key, value]) => `${key}: ${JSON.stringify(value)}`).join('\n')}\n---\n\n`, 'utf8');
+    const bytes = Buffer.from(
+        `---\n${Object.entries(header)
+            .map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
+            .join('\n')}\n---\n\n`,
+        'utf8'
+    );
     return parseRecord(bytes, ownerPath, kind);
 }
 
@@ -169,10 +254,17 @@ function walkRecords(context, folders, read, state) {
         while (pending.length) {
             const directory = pending.pop();
             let children;
-            try { children = fs.readdirSync(scopedPath(context.root, directory), { withFileTypes: true }); }
-            catch (error) { if (error.code !== 'ENOENT') state.diagnostics.push({ path: directory, code: error.code, reason: 'Owner directory cannot be inspected' }); continue; }
+            try {
+                children = fs.readdirSync(scopedPath(context.root, directory), { withFileTypes: true });
+            } catch (error) {
+                if (error.code !== 'ENOENT') state.diagnostics.push({ path: directory, code: error.code, reason: 'Owner directory cannot be inspected' });
+                continue;
+            }
             for (const child of children.sort((a, b) => a.name.localeCompare(b.name, 'en'))) {
-                if (++state.entries > LIMITS.records * 4) { state.diagnostics.push({ code: 'LIMIT_EXCEEDED', reason: 'Owner enumeration budget exceeded' }); return false; }
+                if (++state.entries > LIMITS.records * 4) {
+                    state.diagnostics.push({ code: 'LIMIT_EXCEEDED', reason: 'Owner enumeration budget exceeded' });
+                    return false;
+                }
                 const ownerPath = `${directory}/${child.name}`;
                 if (child.isDirectory()) {
                     // A location nested in another kind's location belongs to its own kind and is walked once, as that kind.
@@ -180,12 +272,20 @@ function walkRecords(context, folders, read, state) {
                     continue;
                 }
                 if (!child.name.endsWith('.md')) continue;
-                if (state.records.length >= LIMITS.records) { state.diagnostics.push({ code: 'LIMIT_EXCEEDED', reason: 'Record count exceeds selected budget' }); return false; }
+                if (state.records.length >= LIMITS.records) {
+                    state.diagnostics.push({ code: 'LIMIT_EXCEEDED', reason: 'Record count exceeds selected budget' });
+                    return false;
+                }
                 try {
                     const record = read(readBytes(context.root, ownerPath), ownerPath, kind);
                     if (record) state.records.push(record);
                 } catch (error) {
-                    state.diagnostics.push({ path: ownerPath, ...(error.itemId ? { itemId: error.itemId } : {}), code: error.code || 'IO_FAILURE', reason: error.message });
+                    state.diagnostics.push({
+                        path: ownerPath,
+                        ...(error.itemId ? { itemId: error.itemId } : {}),
+                        code: error.code || 'IO_FAILURE',
+                        reason: error.message
+                    });
                 }
             }
         }
@@ -196,7 +296,11 @@ function walkRecords(context, folders, read, state) {
 /** A file in a location no current project reads is named and never counted; its identity is given when readable. Always throws that finding. */
 function earlierVocabularyRecord(bytes, ownerPath) {
     let itemId;
-    try { itemId = parseRecord(bytes, ownerPath, undefined, EARLIER_VERSION).id; } catch { /* named by its path alone */ }
+    try {
+        itemId = parseRecord(bytes, ownerPath, undefined, EARLIER_VERSION).id;
+    } catch {
+        /* named by its path alone */
+    }
     throw Object.assign(new Error(vocabulary.REFUSALS.EARLIER_VOCABULARY_RECORD), { code: 'EARLIER_VOCABULARY_RECORD', itemId });
 }
 
@@ -212,14 +316,16 @@ function projectRecord(bytes, ownerPath, kind, version) {
     return record;
 }
 
-const contextVocabulary = context => context.vocabulary
-    || vocabulary.projectVocabulary(context.root, context.artifactsRoot, context.config?.taskTracking?.schemaVersion);
+const contextVocabulary = context =>
+    context.vocabulary || vocabulary.projectVocabulary(context.root, context.artifactsRoot, context.config?.taskTracking?.schemaVersion);
 
 /** An identity stored in more than one record is ambiguous: it is named once, and the read is not whole. */
 function duplicateFindings(records) {
     const counts = new Map();
     for (const record of records) counts.set(record.id, (counts.get(record.id) || 0) + 1);
-    return [...counts].filter(([, count]) => count > 1).map(([id]) => ({ itemId: id, code: 'DUPLICATE_ID', reason: 'Identity has multiple authoritative homes' }));
+    return [...counts]
+        .filter(([, count]) => count > 1)
+        .map(([id]) => ({ itemId: id, code: 'DUPLICATE_ID', reason: 'Identity has multiple authoritative homes' }));
 }
 
 /**
@@ -232,7 +338,8 @@ function earlierProjectRecords(context) {
     const state = { records: [], diagnostics: [], entries: 0 };
     let whole = walkRecords(context, vocabulary.EARLIER.folders, (bytes, ownerPath, kind) => parseRecord(bytes, ownerPath, kind, EARLIER_VERSION), state);
     // An earlier project may still hold files of the first vocabulary; they are named and never counted.
-    if (whole) whole = walkRecords(context, Object.fromEntries(vocabulary.strayLocations(EARLIER_VERSION).map(name => [name, name])), earlierVocabularyRecord, state);
+    if (whole)
+        whole = walkRecords(context, Object.fromEntries(vocabulary.strayLocations(EARLIER_VERSION).map(name => [name, name])), earlierVocabularyRecord, state);
     // Required here, not at load: a project in the current vocabulary never needs the mapping.
     const shown = require('./task-tracking-earlier-project.cjs').currentProject(state.records, context.artifactsRoot);
     const diagnostics = [...state.diagnostics, ...(whole ? duplicateFindings(state.records) : []), ...shown.diagnostics];
@@ -264,10 +371,19 @@ function inspectRecords(context) {
  */
 function firstVocabularyRecords(context) {
     const state = { records: [], diagnostics: [], entries: 0 };
-    walkRecords(context, { ...vocabulary.EARLIER.folders, ...FOLDERS }, (bytes, ownerPath) => {
-        try { parseRecord(bytes, ownerPath); } catch (error) { if (error.storedVersion === RETIRED_VERSION) return { itemId: error.itemId, path: ownerPath }; }
-        return null;
-    }, state);
+    walkRecords(
+        context,
+        { ...vocabulary.EARLIER.folders, ...FOLDERS },
+        (bytes, ownerPath) => {
+            try {
+                parseRecord(bytes, ownerPath);
+            } catch (error) {
+                if (error.storedVersion === RETIRED_VERSION) return { itemId: error.itemId, path: ownerPath };
+            }
+            return null;
+        },
+        state
+    );
     return state.records;
 }
 
@@ -284,22 +400,36 @@ function inspectStoredRecords(context, { version, folders } = {}) {
     // The migration moves records between the earlier vocabulary and the base version of the current structure.
     const other = expected.version === EARLIER_VERSION ? BASE_VERSION : EARLIER_VERSION;
     const state = { records: [], diagnostics: [], entries: 0 };
-    const whole = walkRecords(context, folders || expected.folders, (bytes, ownerPath, kind) => {
-        let record;
-        try { record = parseRecord(bytes, ownerPath, kind, expected.version); }
-        catch (error) {
-            try { record = parseRecord(bytes, ownerPath, kind, other); } catch { throw error; }
-            if (record.tracking?.schemaVersion !== other) throw error;
-        }
-        return { ...record, storedVersion: record.tracking?.schemaVersion ?? null };
-    }, state);
+    const whole = walkRecords(
+        context,
+        folders || expected.folders,
+        (bytes, ownerPath, kind) => {
+            let record;
+            try {
+                record = parseRecord(bytes, ownerPath, kind, expected.version);
+            } catch (error) {
+                try {
+                    record = parseRecord(bytes, ownerPath, kind, other);
+                } catch {
+                    throw error;
+                }
+                if (record.tracking?.schemaVersion !== other) throw error;
+            }
+            return { ...record, storedVersion: record.tracking?.schemaVersion ?? null };
+        },
+        state
+    );
     return { records: state.records, diagnostics: state.diagnostics, coverage: whole && !state.diagnostics.length ? 'complete' : 'partial' };
 }
 
 /** Every comment a record's frontmatter holds, wherever it is attached. */
 function frontmatterComments(document) {
     const found = [document.comment, document.commentBefore];
-    parser().visit(document, { Node(_key, node) { found.push(node.comment, node.commentBefore); } });
+    parser().visit(document, {
+        Node(_key, node) {
+            found.push(node.comment, node.commentBefore);
+        }
+    });
     return found.filter(comment => typeof comment === 'string').sort();
 }
 
@@ -309,7 +439,10 @@ function memberSpan(header, map, index) {
     const last = pair.value?.range || pair.key.range;
     if (map.flow) {
         if (index + 1 < map.items.length) return [pair.key.range[0], map.items[index + 1].key.range[0]];
-        if (index > 0) { const previous = map.items[index - 1]; return [(previous.value?.range || previous.key.range)[1], last[1]]; }
+        if (index > 0) {
+            const previous = map.items[index - 1];
+            return [(previous.value?.range || previous.key.range)[1], last[1]];
+        }
         return [pair.key.range[0], last[1]];
     }
     const start = header.lastIndexOf('\n', pair.key.range[0] - 1) + 1;
@@ -339,10 +472,19 @@ function withoutTrackingValues(record, names, version) {
         if (index < 0 || !map.items[index].key.range) fail('UNSUPPORTED', 'Tracking value has no safe removal range');
         const [start, end] = memberSpan(current.header, map, index);
         const header = current.header.slice(0, start) + current.header.slice(end);
-        const candidate = parseRecord(Buffer.from(current.text.slice(0, current.start) + header + current.text.slice(current.end), 'utf8'), current.ownerPath, current.kind, version);
+        const candidate = parseRecord(
+            Buffer.from(current.text.slice(0, current.start) + header + current.text.slice(current.end), 'utf8'),
+            current.ownerPath,
+            current.kind,
+            version
+        );
         const { [name]: removed, ...kept } = current.tracking;
-        if (candidate.body !== current.body || stableValue(candidate.data) !== stableValue({ ...current.data, tracking: kept })
-            || stableValue(frontmatterComments(candidate.document)) !== stableValue(frontmatterComments(current.document))) fail('UNSUPPORTED', 'A stored value cannot be removed without changing other content');
+        if (
+            candidate.body !== current.body ||
+            stableValue(candidate.data) !== stableValue({ ...current.data, tracking: kept }) ||
+            stableValue(frontmatterComments(candidate.document)) !== stableValue(frontmatterComments(current.document))
+        )
+            fail('UNSUPPORTED', 'A stored value cannot be removed without changing other content');
         current = candidate;
     }
     return current;
@@ -353,4 +495,19 @@ function saveRecord(context, candidate, expectedHash) {
     return publishBytes(context.root, candidate.ownerPath, candidate.bytes, expectedHash);
 }
 
-module.exports = { ITEM_ID, TRACKING_FIELDS, parser, parseRecord, projectRecord, patchRecord, newRecord, earlierVocabularyRecord, inspectRecords, inspectStoredRecords, firstVocabularyRecords, withoutTrackingValues, saveRecord, stableValue };
+module.exports = {
+    ITEM_ID,
+    TRACKING_FIELDS,
+    parser,
+    parseRecord,
+    projectRecord,
+    patchRecord,
+    newRecord,
+    earlierVocabularyRecord,
+    inspectRecords,
+    inspectStoredRecords,
+    firstVocabularyRecords,
+    withoutTrackingValues,
+    saveRecord,
+    stableValue
+};

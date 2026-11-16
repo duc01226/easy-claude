@@ -55,7 +55,11 @@ function readFirstLine(filePath) {
         return null;
     } finally {
         if (fd !== undefined) {
-            try { fs.closeSync(fd); } catch { /* already closed */ }
+            try {
+                fs.closeSync(fd);
+            } catch {
+                /* already closed */
+            }
         }
     }
 }
@@ -102,9 +106,12 @@ function getUnattendedReason(input, hostEnv) {
     // belongs to the session in CLAUDE_CODE_SESSION_ID; another host's hook can inherit
     // both variables from an ancestor Claude terminal, so they count only when that id
     // is the payload's own session.
-    if (env.CLAUDE_CODE_SESSION_ATTENDED === '0' &&
-        typeof input.session_id === 'string' && input.session_id !== '' &&
-        env.CLAUDE_CODE_SESSION_ID === input.session_id) {
+    if (
+        env.CLAUDE_CODE_SESSION_ATTENDED === '0' &&
+        typeof input.session_id === 'string' &&
+        input.session_id !== '' &&
+        env.CLAUDE_CODE_SESSION_ID === input.session_id
+    ) {
         return 'unattended Claude session (headless, SDK, background or started by another agent)';
     }
 

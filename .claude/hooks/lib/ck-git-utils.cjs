@@ -18,19 +18,19 @@ const { sanitizeSlug } = require('./ck-path-utils.cjs');
  * @returns {string|null} Command output or null
  */
 function execSafe(cmd) {
-  // Whitelist of safe read-only commands
-  const allowedCommands = ['git branch --show-current', 'git rev-parse --abbrev-ref HEAD'];
-  if (!allowedCommands.includes(cmd)) {
-    return null;
-  }
+    // Whitelist of safe read-only commands
+    const allowedCommands = ['git branch --show-current', 'git rev-parse --abbrev-ref HEAD'];
+    if (!allowedCommands.includes(cmd)) {
+        return null;
+    }
 
-  try {
-    return require('child_process')
-      .execSync(cmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] })
-      .trim();
-  } catch (e) {
-    return null;
-  }
+    try {
+        return require('child_process')
+            .execSync(cmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] })
+            .trim();
+    } catch (e) {
+        return null;
+    }
 }
 
 /**
@@ -38,7 +38,7 @@ function execSafe(cmd) {
  * @returns {string|null} Current branch name or null
  */
 function getGitBranch() {
-  return execSafe('git branch --show-current');
+    return execSafe('git branch --show-current');
 }
 
 /**
@@ -47,17 +47,13 @@ function getGitBranch() {
  * @returns {string|null} Issue ID or null
  */
 function extractIssueFromBranch(branch) {
-  if (!branch) return null;
-  const patterns = [
-    /(?:issue|gh|fix|feat|bug)[/-]?(\d+)/i,
-    /[/-](\d+)[/-]/,
-    /#(\d+)/
-  ];
-  for (const pattern of patterns) {
-    const match = branch.match(pattern);
-    if (match) return match[1];
-  }
-  return null;
+    if (!branch) return null;
+    const patterns = [/(?:issue|gh|fix|feat|bug)[/-]?(\d+)/i, /[/-](\d+)[/-]/, /#(\d+)/];
+    for (const pattern of patterns) {
+        const match = branch.match(pattern);
+        if (match) return match[1];
+    }
+    return null;
 }
 
 /**
@@ -68,16 +64,16 @@ function extractIssueFromBranch(branch) {
  * @returns {string|null} Extracted slug or null
  */
 function extractSlugFromBranch(branch, pattern) {
-  if (!branch) return null;
-  const defaultPattern = /(?:feat|fix|chore|refactor|docs)\/(?:[^\/]+\/)?(.+)/;
-  const regex = pattern ? new RegExp(pattern) : defaultPattern;
-  const match = branch.match(regex);
-  return match ? sanitizeSlug(match[1]) : null;
+    if (!branch) return null;
+    const defaultPattern = /(?:feat|fix|chore|refactor|docs)\/(?:[^\/]+\/)?(.+)/;
+    const regex = pattern ? new RegExp(pattern) : defaultPattern;
+    const match = branch.match(regex);
+    return match ? sanitizeSlug(match[1]) : null;
 }
 
 module.exports = {
-  execSafe,
-  getGitBranch,
-  extractIssueFromBranch,
-  extractSlugFromBranch
+    execSafe,
+    getGitBranch,
+    extractIssueFromBranch,
+    extractSlugFromBranch
 };

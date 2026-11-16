@@ -41,28 +41,38 @@ function closed(item) {
 }
 // A person's blocks read from what needs them next to what is finished: each line from its last open stop back to its
 // first, blocked work beside the stop it waits at, and finished work last.
-const PEOPLE_ORDER = Object.freeze((() => {
-    const lines = Object.keys(VOCABULARY.lifecycles).map(stationsOf);
-    const open = lines.flatMap(line => (line.length > 1 ? line.slice(0, -1) : [...line]).reverse());
-    const ordered = [...new Set([...open, ...lines.filter(line => line.length > 1).map(line => line.at(-1))])];
-    if (ordered.includes(SIDING_HOST)) ordered.splice(ordered.indexOf(SIDING_HOST) + 1, 0, SIDING);
-    return ordered;
-})());
+const PEOPLE_ORDER = Object.freeze(
+    (() => {
+        const lines = Object.keys(VOCABULARY.lifecycles).map(stationsOf);
+        const open = lines.flatMap(line => (line.length > 1 ? line.slice(0, -1) : [...line]).reverse());
+        const ordered = [...new Set([...open, ...lines.filter(line => line.length > 1).map(line => line.at(-1))])];
+        if (ordered.includes(SIDING_HOST)) ordered.splice(ordered.indexOf(SIDING_HOST) + 1, 0, SIDING);
+        return ordered;
+    })()
+);
 // States whose mark is a ring, not a filled dot: a block for one of them is drawn hollow.
 const RING_STATES = Object.freeze(['draft', 'ready', 'approved']);
 const PROOF_NAMES = Object.freeze({ current: 'Proved', stale: 'Proof stale', missing: 'No proof', unknown: 'Proof unknown' });
 const MIGRATE = 'migrate --root <checkout>';
 // What each detail form says of itself. Every form lists every inspected record; only the depth differs.
-const DETAIL_NAMES = Object.freeze({ full: 'Full version: every record\'s detail is in this file', packed: 'Compact version: every record\'s detail is packed in this file and opens with scripts on',
-    none: 'Compact version without record detail: the overview and the list of records only' });
+const DETAIL_NAMES = Object.freeze({
+    full: "Full version: every record's detail is in this file",
+    packed: "Compact version: every record's detail is packed in this file and opens with scripts on",
+    none: 'Compact version without record detail: the overview and the list of records only'
+});
 const READ_ONE = 'inspect --root <checkout> --item <id>';
 const READ_FULL = 'report --root <checkout> --detail full';
 // How many rows the list of records shows at once, shortest first: the first is the page length a report opens with.
 const PAGE_LENGTHS = Object.freeze([20, 50, 100]);
 // What the snapshot says about the vocabulary its source stores. Two vocabularies at once, or a migration that stopped
 // part-way, means nothing was read as work.
-function storedVocabulary(snapshot) { return snapshot.vocabulary?.project || null; }
-function unreadableSource(snapshot) { const stored = storedVocabulary(snapshot); return !!stored?.code && stored.storedVersion === null; }
+function storedVocabulary(snapshot) {
+    return snapshot.vocabulary?.project || null;
+}
+function unreadableSource(snapshot) {
+    const stored = storedVocabulary(snapshot);
+    return !!stored?.code && stored.storedVersion === null;
+}
 const UNASSIGNED = '__unassigned__';
 const PIP_LIMIT = 8;
 const BLOCK_LIMIT = 120;
@@ -73,44 +83,79 @@ const GHOST_BLOCKS = 8;
 const WAITING_LIMIT = 12;
 const PERSON_BLOCKS = 24;
 // Inline line icons, one path each, drawn in the current text colour. Nothing is loaded.
-const ICONS = Object.freeze({ check: 'M5 12.5l4.5 4.5L19 7.5', clock: 'M12 7.5V12l3 2M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17z',
-    alert: 'M12 4l9 16H3zM12 10v4.5M12 17.5v.4', seal: 'M12 3l7 3v5.5c0 4.5-3 7.8-7 9.5-4-1.7-7-5-7-9.5V6z',
+const ICONS = Object.freeze({
+    check: 'M5 12.5l4.5 4.5L19 7.5',
+    clock: 'M12 7.5V12l3 2M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17z',
+    alert: 'M12 4l9 16H3zM12 10v4.5M12 17.5v.4',
+    seal: 'M12 3l7 3v5.5c0 4.5-3 7.8-7 9.5-4-1.7-7-5-7-9.5V6z',
     person: 'M12 11.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM5 20a7 7 0 0 1 14 0',
     lock: 'M7 11h10a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2zM8 11V8a4 4 0 0 1 8 0v3',
     print: 'M7 9V4h10v5M7 17H5.5A1.5 1.5 0 0 1 4 15.5v-5A1.5 1.5 0 0 1 5.5 9h13a1.5 1.5 0 0 1 1.5 1.5v5a1.5 1.5 0 0 1-1.5 1.5H17M7 14h10v6H7z',
-    chevron: 'M6 9l6 6 6-6', chevronLeft: 'M15 6l-6 6 6 6', chevronRight: 'M9 6l6 6-6 6', levelsOpen: 'M7 6l5 5 5-5M7 13l5 5 5-5', levelsClose: 'M7 11l5-5 5 5M7 18l5-5 5 5' });
+    chevron: 'M6 9l6 6 6-6',
+    chevronLeft: 'M15 6l-6 6 6 6',
+    chevronRight: 'M9 6l6 6-6 6',
+    levelsOpen: 'M7 6l5 5 5-5M7 13l5 5 5-5',
+    levelsClose: 'M7 11l5-5 5 5M7 18l5-5 5 5'
+});
 
 // All record content is data. Never interpret markdown, HTML or record paths here.
 function escapeHtml(value) {
-    return String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+    return String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
 }
 
 // Element content only, never an attribute value: quotes are data there and need no escape.
 function escapeText(value) {
-    return String(value ?? '').replace(/[&<>]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[character]));
+    return String(value ?? '').replace(/[&<>]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[character]);
 }
 
 function inlineJson(value) {
-    return JSON.stringify(value).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+    return JSON.stringify(value)
+        .replace(/</g, '\\u003c')
+        .replace(/\u2028/g, '\\u2028')
+        .replace(/\u2029/g, '\\u2029');
 }
 
-function array(value) { return Array.isArray(value) ? value : []; }
-function count(value) { return Number.isSafeInteger(value) && value >= 0 ? value : null; }
-function words(value) { return String(value || 'unknown').replace(/_/g, ' '); }
-function capital(value) { return value.charAt(0).toUpperCase() + value.slice(1); }
-function plural(total, one, many) { return `${total} ${total === 1 ? one : many}`; }
-function recordKey(item) { return JSON.stringify([item.id, item.ownerPath]); }
+function array(value) {
+    return Array.isArray(value) ? value : [];
+}
+function count(value) {
+    return Number.isSafeInteger(value) && value >= 0 ? value : null;
+}
+function words(value) {
+    return String(value || 'unknown').replace(/_/g, ' ');
+}
+function capital(value) {
+    return value.charAt(0).toUpperCase() + value.slice(1);
+}
+function plural(total, one, many) {
+    return `${total} ${total === 1 ? one : many}`;
+}
+function recordKey(item) {
+    return JSON.stringify([item.id, item.ownerPath]);
+}
 // A record is addressed by its identity. Records that share one identity are told apart by their owning file as well.
-function recordAnchor(item, byId) { return `record-${encodeURIComponent(byId.get(item.id) === item ? item.id : recordKey(item))}`; }
-function stateName(state) { return STATE_NAMES[state] || words(state); }
-function stateClass(state) { return STATE_NAMES[state] ? state : 'other'; }
+function recordAnchor(item, byId) {
+    return `record-${encodeURIComponent(byId.get(item.id) === item ? item.id : recordKey(item))}`;
+}
+function stateName(state) {
+    return STATE_NAMES[state] || words(state);
+}
+function stateClass(state) {
+    return STATE_NAMES[state] ? state : 'other';
+}
 // A record stands on its own kind's line, or beside it while blocked; any other state is off the line.
-function onLine(item) { return stationsOf(lifecycleOf(item.kind)).includes(item.state) || (item.state === SIDING && statesOf(lifecycleOf(item.kind)).includes(SIDING)); }
-function idTail(id) { return id.includes('-') ? id.slice(id.lastIndexOf('-') + 1) : id; }
+function onLine(item) {
+    return stationsOf(lifecycleOf(item.kind)).includes(item.state) || (item.state === SIDING && statesOf(lifecycleOf(item.kind)).includes(SIDING));
+}
+function idTail(id) {
+    return id.includes('-') ? id.slice(id.lastIndexOf('-') + 1) : id;
+}
 function instant(value) {
     return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value || '') ? `${value.slice(0, 10)} ${value.slice(11, 16)} UTC` : value || 'Date unknown';
 }
-function day(value) { return /^\d{4}-\d{2}-\d{2}/.test(value || '') ? value.slice(0, 10) : value || 'Date unknown'; }
+function day(value) {
+    return /^\d{4}-\d{2}-\d{2}/.test(value || '') ? value.slice(0, 10) : value || 'Date unknown';
+}
 function memberLabel(id, members) {
     if (!id) return 'Unassigned';
     const member = members.find(person => person.id === id);
@@ -121,32 +166,46 @@ function acceptanceLabel(item) {
     return item.state === 'done' ? 'Recorded Done; acceptance unverified' : 'Not accepted';
 }
 function verificationLabel(item) {
-    return ({ current: 'Current verification', stale: 'Stale verification', missing: 'No current proof', unknown: 'Verification unknown' })[item.verification?.status] || 'Verification unknown';
+    return (
+        { current: 'Current verification', stale: 'Stale verification', missing: 'No current proof', unknown: 'Verification unknown' }[
+            item.verification?.status
+        ] || 'Verification unknown'
+    );
 }
 // The words shown for kinds: the project's own display labels where the snapshot carries them, the tracker's otherwise.
 // A label is display text only; the kind a record stores never changes. A label is also data: every helper returns text
 // already escaped for the page, as element content or an attribute value, so no caller can let one through as markup.
 function kindWords(snapshot) {
     const shown = snapshot?.vocabulary?.labels || {};
-    const one = { ...VOCABULARY.labels.kinds, ...shown.kinds }, many = { ...VOCABULARY.labels.kindsPlural, ...shown.kindsPlural };
+    const one = { ...VOCABULARY.labels.kinds, ...shown.kinds },
+        many = { ...VOCABULARY.labels.kindsPlural, ...shown.kindsPlural };
     const word = (table, kind) => String(table[kind] || kind);
     const lower = (table, kind) => escapeHtml(word(table, kind).toLowerCase());
-    return { one: kind => escapeHtml(word(one, kind)), many: kind => escapeHtml(word(many, kind)), lowerMany: kind => lower(many, kind),
+    return {
+        one: kind => escapeHtml(word(one, kind)),
+        many: kind => escapeHtml(word(many, kind)),
+        lowerMany: kind => lower(many, kind),
         capitalMany: kind => escapeHtml(capital(word(many, kind).toLowerCase())),
-        word: (total, kind) => lower(total === 1 ? one : many, kind), count: (total, kind) => `${total} ${lower(total === 1 ? one : many, kind)}`,
+        word: (total, kind) => lower(total === 1 ? one : many, kind),
+        count: (total, kind) => `${total} ${lower(total === 1 ? one : many, kind)}`,
         // "a task", "an initiative": for a sentence that names one record of a kind.
         a: kind => `${/^[aeiou]/i.test(word(one, kind)) ? 'an' : 'a'} ${lower(one, kind)}`,
         // The same words as data, for a caller that escapes them itself.
-        plain: kind => word(one, kind), plainMany: kind => word(many, kind) };
+        plain: kind => word(one, kind),
+        plainMany: kind => word(many, kind)
+    };
 }
 function kindBreakdown(records, kinds) {
     const totals = new Map();
     for (const item of records) totals.set(item.kind, (totals.get(item.kind) || 0) + 1);
     const known = VOCABULARY.kinds;
     return [...known.filter(kind => totals.has(kind)), ...[...totals.keys()].filter(kind => !known.includes(kind))]
-        .map(kind => kinds.count(totals.get(kind), kind)).join(', ');
+        .map(kind => kinds.count(totals.get(kind), kind))
+        .join(', ');
 }
-function listWords(words) { return words.length > 1 ? `${words.slice(0, -1).join(', ')} and ${words.at(-1)}` : words.join(''); }
+function listWords(words) {
+    return words.length > 1 ? `${words.slice(0, -1).join(', ')} and ${words.at(-1)}` : words.join('');
+}
 // The area or initiative a snapshot was scoped to, when it was scoped to one.
 function scopeOf(snapshot) {
     const scope = snapshot.scope;
@@ -157,10 +216,16 @@ function scopeName(snapshot, kinds) {
     const scope = scopeOf(snapshot);
     if (!scope) return null;
     const matching = array(snapshot.items).filter(item => item.id === scope.itemId);
-    return matching.length === 1 ? `${kinds.one(scope.kind)} ${escapeHtml(`${scope.itemId}: ${matching[0].title}`)}` : `Unavailable scope ${escapeHtml(scope.itemId)}`;
+    return matching.length === 1
+        ? `${kinds.one(scope.kind)} ${escapeHtml(`${scope.itemId}: ${matching[0].title}`)}`
+        : `Unavailable scope ${escapeHtml(scope.itemId)}`;
 }
-function pathAnchor(path) { return `inspect-path-${encodeURIComponent(path)}`; }
-function linkedPath(path) { return `<a href="#${escapeHtml(pathAnchor(path))}">Inspect path ${escapeHtml(path)}</a>`; }
+function pathAnchor(path) {
+    return `inspect-path-${encodeURIComponent(path)}`;
+}
+function linkedPath(path) {
+    return `<a href="#${escapeHtml(pathAnchor(path))}">Inspect path ${escapeHtml(path)}</a>`;
+}
 // What a scoped snapshot's delivery list leaves out, named beside it: the tasks that earn no credit there and the work
 // that supports them. A project's snapshot lists every record as a row, so it names nothing here.
 function renderScopeLists(ctx) {
@@ -168,40 +233,62 @@ function renderScopeLists(ctx) {
     const scope = scopeOf(snapshot);
     const status = `<p id="inspected-context" class="note" role="status">Inspected: ${ctx.scopeLabel}</p>`;
     if (!scope) return status;
-    const choose = ids => array(ids).map(id => byId.get(id)).filter(Boolean);
+    const choose = ids =>
+        array(ids)
+            .map(id => byId.get(id))
+            .filter(Boolean);
     // `name` is page text already: a fixed phrase, with kind words that arrive escaped.
-    const list = (name, records) => `<details><summary>${name} (${records.length})</summary><ul class="reasons" aria-label="${name}">${records.map(item => `<li>${linkedRecord(item.id, ctx)}</li>`).join('')}</ul></details>`;
+    const list = (name, records) =>
+        `<details><summary>${name} (${records.length})</summary><ul class="reasons" aria-label="${name}">${records.map(item => `<li>${linkedRecord(item.id, ctx)}</li>`).join('')}</ul></details>`;
     const supporting = choose(scope.memberIds).filter(item => item.kind !== DELIVERY_KIND && inDelivery(item));
     // A scoped snapshot says how much it leaves to the project snapshot instead of listing it.
     const outside = array(snapshot.items).length - ctx.inScope.size;
-    const beyond = outside > 0
-        ? `<p class="note">${plural(outside, 'other record is', 'other records are')} outside this snapshot. Open the project snapshot, or read one record with the task tool: <span class="mono">${escapeHtml(READ_ONE)}</span>.</p>` : '';
+    const beyond =
+        outside > 0
+            ? `<p class="note">${plural(outside, 'other record is', 'other records are')} outside this snapshot. Open the project snapshot, or read one record with the task tool: <span class="mono">${escapeHtml(READ_ONE)}</span>.</p>`
+            : '';
     return `<div class="disclosures">${list(`Excluded ${kinds.lowerMany(DELIVERY_KIND)}`, choose(scope.excludedTaskIds))}${list('Supporting work', supporting)}</div>${beyond}${status}`;
 }
 function renderPathConcerns(ctx, scoped) {
     const { snapshot } = ctx;
-    const paths = [...new Set(scoped.flatMap(item => array(item.links).map(link => link.path).filter(path => typeof path === 'string')))];
+    const paths = [
+        ...new Set(
+            scoped.flatMap(item =>
+                array(item.links)
+                    .map(link => link.path)
+                    .filter(path => typeof path === 'string')
+            )
+        )
+    ];
     // One walk of the snapshot answers every panel; each entry is the exact single-path concern query for its path.
-    return projectPathConcerns(snapshot, paths).map(({ path, result, error }) => {
-        if (error) {
-            if (!['UNSAFE_PATH', 'INVALID_INPUT'].includes(error.code)) throw error;
-            return `<section class="card" id="${escapeHtml(pathAnchor(path))}" aria-label="Exact linked concerns for ${escapeHtml(path)}"><h3 tabindex="-1">Linked concerns unavailable</h3><p>${escapeHtml(error.message)}. No replacement path was inferred.</p><a class="control" href="#work">Back to Work</a></section>`;
-        }
-        return `<section class="card" id="${escapeHtml(pathAnchor(path))}" aria-label="Exact linked concerns for ${escapeHtml(path)}"><h3 tabindex="-1">Linked concerns: ${escapeHtml(path)}</h3><p class="note">Exact path selection, as of ${escapeHtml(instant(result.asOf))}. Coverage: ${escapeHtml(result.coverage)}. Path availability is unverified in this offline snapshot. Delivery scope remains ${ctx.scopeLabel}.</p><ul class="reasons">${result.relationships.map(link => `<li>${escapeHtml(link.direction)}: ${linkedRecord(link.owner.itemId, ctx)} (${escapeHtml(link.owner.ownerPath)}) declares ${escapeHtml(link.relation)}; ${escapeHtml(link.resolution)}. ${escapeHtml(link.rationale)}</li>`).join('')}</ul><a class="control" href="#work">Back to Work</a></section>`;
-    }).join('');
+    return projectPathConcerns(snapshot, paths)
+        .map(({ path, result, error }) => {
+            if (error) {
+                if (!['UNSAFE_PATH', 'INVALID_INPUT'].includes(error.code)) throw error;
+                return `<section class="card" id="${escapeHtml(pathAnchor(path))}" aria-label="Exact linked concerns for ${escapeHtml(path)}"><h3 tabindex="-1">Linked concerns unavailable</h3><p>${escapeHtml(error.message)}. No replacement path was inferred.</p><a class="control" href="#work">Back to Work</a></section>`;
+            }
+            return `<section class="card" id="${escapeHtml(pathAnchor(path))}" aria-label="Exact linked concerns for ${escapeHtml(path)}"><h3 tabindex="-1">Linked concerns: ${escapeHtml(path)}</h3><p class="note">Exact path selection, as of ${escapeHtml(instant(result.asOf))}. Coverage: ${escapeHtml(result.coverage)}. Path availability is unverified in this offline snapshot. Delivery scope remains ${ctx.scopeLabel}.</p><ul class="reasons">${result.relationships.map(link => `<li>${escapeHtml(link.direction)}: ${linkedRecord(link.owner.itemId, ctx)} (${escapeHtml(link.owner.ownerPath)}) declares ${escapeHtml(link.relation)}; ${escapeHtml(link.resolution)}. ${escapeHtml(link.rationale)}</li>`).join('')}</ul><a class="control" href="#work">Back to Work</a></section>`;
+        })
+        .join('');
 }
 function jsonDetails(label, values) {
     return `<details><summary>${escapeHtml(label)} (${values.length})</summary><ol class="evidence">${values.map(value => `<li><pre>${escapeText(JSON.stringify(value, null, 2))}</pre></li>`).join('')}</ol></details>`;
 }
 
 // Four separately recorded facts get four separate marks: state, responsible person, proof and acceptance.
-function icon(name) { return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="${ICONS[name]}"/></svg>`; }
-function dot(name, small) { return `<span class="dot is-${name}${small ? ' dot--s' : ''}" aria-hidden="true"></span>`; }
+function icon(name) {
+    return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="${ICONS[name]}"/></svg>`;
+}
+function dot(name, small) {
+    return `<span class="dot is-${name}${small ? ' dot--s' : ''}" aria-hidden="true"></span>`;
+}
 function kindMark(item, kinds) {
     return `<span class="kind${item.kind === DELIVERY_KIND && item.state !== OFF_LINE ? ' kind--delivery' : ''}">${kinds.one(item.kind)}</span>`;
 }
 // The level of an area or the type of an initiative, beside its name in a list. `text` is a display label: data.
-function labelChip(text) { return text ? `<span class="kind kind--label">${escapeHtml(text)}</span>` : ''; }
+function labelChip(text) {
+    return text ? `<span class="kind kind--label">${escapeHtml(text)}</span>` : '';
+}
 // A lifecycle with one stop has no line to stand on, so work at that stop carries its word and no dot.
 function stateMark(item) {
     const lone = stationsOf(lifecycleOf(item.kind)).length === 1 && item.state !== OFF_LINE;
@@ -220,7 +307,9 @@ function sealMark(item) {
     if (item.acceptance?.accepted === true) return `<span class="seal">${icon('check')}Accepted</span>`;
     return `<span class="seal seal--none">${item.state === 'done' ? 'Done, not accepted' : 'Not accepted'}</span>`;
 }
-function flags(item) { return `${item.retired ? '<span class="flag">Retired</span>' : ''}${item.overdue ? '<span class="flag flag--overdue">Overdue</span>' : ''}`; }
+function flags(item) {
+    return `${item.retired ? '<span class="flag">Retired</span>' : ''}${item.overdue ? '<span class="flag flag--overdue">Overdue</span>' : ''}`;
+}
 
 // A due date in the words of the page. The read says whether a record is overdue; the page only tells the day of the
 // read from another day. A closed record whose date passed keeps the date and carries no mark.
@@ -240,31 +329,43 @@ function dueMark(item, today) {
 // accepted, sized by the counts the read states. A report admits no inline style, so the parts are drawn at one fixed
 // size. Each part differs in shape as well as colour, and the counts are its name.
 const METER = Object.freeze({ width: 120, wide: 246, height: 14, gap: 2, least: 4, radius: 3 });
-const METER_PARTS = Object.freeze([['verified', 'with current proof'], ['stale', 'with proof not current'], ['open', 'not accepted yet']]);
+const METER_PARTS = Object.freeze([
+    ['verified', 'with current proof'],
+    ['stale', 'with proof not current'],
+    ['open', 'not accepted yet']
+]);
 function meter(entry, length = METER.width) {
     const counts = { verified: entry.currentlyVerified, stale: entry.accepted - entry.currentlyVerified, open: entry.remaining };
     const parts = METER_PARTS.filter(([name]) => counts[name] > 0);
     if (!parts.length) return '';
     const room = length - METER.gap * (parts.length - 1);
     const sum = parts.reduce((total, [name]) => total + counts[name], 0);
-    let widths = parts.map(([name]) => Math.max(METER.least, counts[name] / sum * room));
+    let widths = parts.map(([name]) => Math.max(METER.least, (counts[name] / sum) * room));
     // A part held at its least width takes its room from the parts that have some to give.
     const over = widths.reduce((total, width) => total + width, 0) - room;
     const spare = widths.reduce((total, width) => total + (width - METER.least), 0);
-    if (over > 0 && spare > 0) widths = widths.map(width => width - (width - METER.least) / spare * over);
+    if (over > 0 && spare > 0) widths = widths.map(width => width - ((width - METER.least) / spare) * over);
     const at = value => Math.round(value * 100) / 100;
     let x = 0;
-    const shapes = parts.map(([name], index) => {
-        const width = at(widths[index]), left = at(x), r = Math.min(METER.radius, width / 2);
-        x += width + METER.gap;
-        if (name === 'open') return `<rect class="meter-open" x="${at(left + 0.75)}" y="0.75" width="${at(width - 1.5)}" height="${METER.height - 1.5}" rx="${at(Math.max(r - 0.75, 0))}"/>`;
-        const body = `<rect class="meter-${name}" x="${left}" y="0" width="${width}" height="${METER.height}" rx="${at(r)}"/>`;
-        // The foot marks proof that is no longer current, as the delivery blocks do.
-        return name === 'stale' ? `${body}<path class="meter-foot" d="M${left} ${METER.height - 4}h${width}v${at(4 - r)}a${at(r)} ${at(r)} 0 0 1-${at(r)} ${at(r)}h-${at(width - 2 * r)}a${at(r)} ${at(r)} 0 0 1-${at(r)}-${at(r)}z"/>` : body;
-    }).join('');
+    const shapes = parts
+        .map(([name], index) => {
+            const width = at(widths[index]),
+                left = at(x),
+                r = Math.min(METER.radius, width / 2);
+            x += width + METER.gap;
+            if (name === 'open')
+                return `<rect class="meter-open" x="${at(left + 0.75)}" y="0.75" width="${at(width - 1.5)}" height="${METER.height - 1.5}" rx="${at(Math.max(r - 0.75, 0))}"/>`;
+            const body = `<rect class="meter-${name}" x="${left}" y="0" width="${width}" height="${METER.height}" rx="${at(r)}"/>`;
+            // The foot marks proof that is no longer current, as the delivery blocks do.
+            return name === 'stale'
+                ? `${body}<path class="meter-foot" d="M${left} ${METER.height - 4}h${width}v${at(4 - r)}a${at(r)} ${at(r)} 0 0 1-${at(r)} ${at(r)}h-${at(width - 2 * r)}a${at(r)} ${at(r)} 0 0 1-${at(r)}-${at(r)}z"/>`
+                : body;
+        })
+        .join('');
     return `<svg class="meter" viewBox="0 0 ${length} ${METER.height}" width="${length}" height="${METER.height}" role="img" focusable="false" aria-label="${parts.map(([name, words]) => `${counts[name]} ${words}`).join(', ')}">${shapes}</svg>`;
 }
-const METER_LEGEND = '<ul class="legend"><li><span class="block block--verified" aria-hidden="true"></span><span>accepted with current proof</span></li><li><span class="block block--accepted" aria-hidden="true"></span><span>accepted, proof not current</span></li><li><span class="block block--open" aria-hidden="true"></span><span>not accepted yet</span></li></ul>';
+const METER_LEGEND =
+    '<ul class="legend"><li><span class="block block--verified" aria-hidden="true"></span><span>accepted with current proof</span></li><li><span class="block block--accepted" aria-hidden="true"></span><span>accepted, proof not current</span></li><li><span class="block block--open" aria-hidden="true"></span><span>not accepted yet</span></li></ul>';
 
 // Type comes from the reader's own platform: the report is one file and loads nothing, so it names no bundled face.
 // Titles and figures ask for the heaviest weight the platform stack offers. An area or initiative name that leads to its
@@ -716,7 +817,9 @@ function enhanceReport() {
         const lengthChoice = document.querySelector('#work [data-page-length]');
         const lengths = lengthChoice ? Array.from(lengthChoice.options, option => Number(option.value)) : [0];
         // A length of 0 is every matching row on one page.
-        let length = lengths[0], page = 1, matching = rows;
+        let length = lengths[0],
+            page = 1,
+            matching = rows;
         // A record is named by the anchor of its detail, which its row links to.
         const keyOf = row => row.firstElementChild.getAttribute('href').slice(1);
         const searched = new Map();
@@ -732,28 +835,46 @@ function enhanceReport() {
             return { selected, inspection, search: search.value, owner: owner.value, state: state.value, remaining: remaining.checked, page, length };
         }
         // `origin` is the link a record was opened from, so that going back lands on it again.
-        function rememberContext(origin) { if (contexts.length === 64) contexts.shift(); contexts.push({ ...currentContext(), origin }); }
+        function rememberContext(origin) {
+            if (contexts.length === 64) contexts.shift();
+            contexts.push({ ...currentContext(), origin });
+        }
         function showInspection(focus) {
             const panel = inspection ? document.getElementById(inspection) : null;
-            pathPanels.forEach(node => { node.hidden = node !== panel; });
-            inspected.textContent = scopeWords
-                + (selected ? ' / ' + (details.find(node => node.id === selected)?.dataset.itemId || rows.find(row => keyOf(row) === selected)?.dataset.itemId || 'Record') : '')
-                + (panel ? ' / Exact path selection' : '');
-            if (focus && panel) { panel.scrollIntoView({ block: 'start' }); panel.querySelector('h3')?.focus({ preventScroll: true }); }
+            pathPanels.forEach(node => {
+                node.hidden = node !== panel;
+            });
+            inspected.textContent =
+                scopeWords +
+                (selected
+                    ? ' / ' +
+                      (details.find(node => node.id === selected)?.dataset.itemId || rows.find(row => keyOf(row) === selected)?.dataset.itemId || 'Record')
+                    : '') +
+                (panel ? ' / Exact path selection' : '');
+            if (focus && panel) {
+                panel.scrollIntoView({ block: 'start' });
+                panel.querySelector('h3')?.focus({ preventScroll: true });
+            }
             return !!(focus && panel);
         }
         function backContext(event) {
             if (!contexts.length) return false;
             event?.preventDefault();
             const previous = contexts.pop();
-            inspection = previous.inspection; selected = previous.selected;
-            search.value = previous.search; owner.value = previous.owner; state.value = previous.state; remaining.checked = previous.remaining;
-            page = previous.page; setLength(previous.length);
+            inspection = previous.inspection;
+            selected = previous.selected;
+            search.value = previous.search;
+            owner.value = previous.owner;
+            state.value = previous.state;
+            remaining.checked = previous.remaining;
+            page = previous.page;
+            setLength(previous.length);
             filter(true);
             // Going back always lands somewhere: the restored record, the restored inspection, the link a record was opened
             // from, or the Work heading when none of them applies.
             const inspecting = showInspection(true);
-            if (selected) reveal(true); else if (!inspecting) (previous.origin?.isConnected ? previous.origin : heading).focus();
+            if (selected) reveal(true);
+            else if (!inspecting) (previous.origin?.isConnected ? previous.origin : heading).focus();
             return true;
         }
         function remember() {
@@ -767,7 +888,11 @@ function enhanceReport() {
             if (remaining.checked) parameters.set('remaining', '1');
             if (page > 1) parameters.set('page', String(page));
             if (length !== lengths[0]) parameters.set('length', String(length));
-            try { history.replaceState(null, '', '#' + parameters.toString()); } catch (_) { /* File origins may restrict history; in-page state remains usable. */ }
+            try {
+                history.replaceState(null, '', '#' + parameters.toString());
+            } catch (_) {
+                /* File origins may restrict history; in-page state remains usable. */
+            }
         }
         // Every record card lives in the list under the table, in snapshot order. Only the selected one leaves it, to open under its own row.
         function sendHome(detail) {
@@ -780,7 +905,10 @@ function enhanceReport() {
             if (!detail) {
                 // No card in this copy: land on the record's own row, where the note about it sits.
                 const row = scroll && rows.find(candidate => keyOf(candidate) === selected && !candidate.hidden);
-                if (row) { row.scrollIntoView({ block: 'start' }); row.firstElementChild.focus({ preventScroll: true }); }
+                if (row) {
+                    row.scrollIntoView({ block: 'start' });
+                    row.firstElementChild.focus({ preventScroll: true });
+                }
                 return;
             }
             if (scroll) (detail.closest('.work-row') || detail).scrollIntoView({ block: 'start' });
@@ -788,8 +916,9 @@ function enhanceReport() {
         }
         // The note about a chosen record stands under that record's row when this copy has no card to open there.
         function placeNote(row) {
-            if (row) { if (selectedOutside.parentNode !== row) row.appendChild(selectedOutside); }
-            else if (selectedOutside.parentNode !== home) home.insertBefore(selectedOutside, emptyNote.nextSibling);
+            if (row) {
+                if (selectedOutside.parentNode !== row) row.appendChild(selectedOutside);
+            } else if (selectedOutside.parentNode !== home) home.insertBefore(selectedOutside, emptyNote.nextSibling);
         }
         function select(id, focus) {
             const detail = details.find(candidate => candidate.id === id);
@@ -801,7 +930,9 @@ function enhanceReport() {
             details.forEach(candidate => {
                 const open = candidate === detail;
                 candidate.hidden = !open;
-                if (open && shownRow) { if (candidate.parentNode !== shownRow) shownRow.appendChild(candidate); } else sendHome(candidate);
+                if (open && shownRow) {
+                    if (candidate.parentNode !== shownRow) shownRow.appendChild(candidate);
+                } else sendHome(candidate);
             });
             rows.forEach(row => {
                 const open = selected !== null && keyOf(row) === selected;
@@ -812,43 +943,76 @@ function enhanceReport() {
             selectedOutside.hidden = !selected || (!!detail && shownRow !== null);
             const named = selectedRow?.dataset.itemId || 'this record';
             placeNote(!detail && shownRow ? shownRow : null);
-            selectedOutside.textContent = !detail ? 'Detail for ' + named + (unopened ? ' could not be opened here.' : ' is not in this copy.')
-                + ' Read it in the full version of this report, in the workspace, or with the task tool: ' + selectedOutside.dataset.read.replace('<id>', selectedRow?.dataset.itemId || '<id>')
-                : selectedRow ? 'Selected item is outside the current filters. Clear filters to see its work row.'
-                    : 'Selected item is outside the fixed delivery list. Its record remains available for inspection; delivery scope is unchanged.';
-            if (focus) { locate(); if (detail) reveal(false); else if (selected) selectedOutside.scrollIntoView({ block: 'nearest' }); }
-            showInspection(false); remember();
+            selectedOutside.textContent = !detail
+                ? 'Detail for ' +
+                  named +
+                  (unopened ? ' could not be opened here.' : ' is not in this copy.') +
+                  ' Read it in the full version of this report, in the workspace, or with the task tool: ' +
+                  selectedOutside.dataset.read.replace('<id>', selectedRow?.dataset.itemId || '<id>')
+                : selectedRow
+                  ? 'Selected item is outside the current filters. Clear filters to see its work row.'
+                  : 'Selected item is outside the fixed delivery list. Its record remains available for inspection; delivery scope is unchanged.';
+            if (focus) {
+                locate();
+                if (detail) reveal(false);
+                else if (selected) selectedOutside.scrollIntoView({ block: 'nearest' });
+            }
+            showInspection(false);
+            remember();
         }
         // Search reads what the row and its record say; the text is gathered once per row, on the first search.
         function searchable(row) {
-            if (!searched.has(row)) searched.set(row, (row.dataset.itemId + ' ' + row.querySelector('.work-title').textContent + ' '
-                + (document.getElementById(keyOf(row))?.querySelector('.intent')?.textContent || '')).toLocaleLowerCase());
+            if (!searched.has(row))
+                searched.set(
+                    row,
+                    (
+                        row.dataset.itemId +
+                        ' ' +
+                        row.querySelector('.work-title').textContent +
+                        ' ' +
+                        (document.getElementById(keyOf(row))?.querySelector('.intent')?.textContent || '')
+                    ).toLocaleLowerCase()
+                );
             return searched.get(row);
         }
         // The rows the search and filters leave in the list. `keep` stays on the page shown; a changed filter starts at the first page.
         // Remaining work is what the delivery scope counts as not accepted: an eligible task without an acceptance.
         function filter(keep) {
             const term = search.value.toLocaleLowerCase();
-            matching = rows.filter(row => !((term && !searchable(row).includes(term))
-                || (owner.value && row.dataset.owner !== owner.value)
-                || (state.value && row.dataset.state !== state.value)
-                || (remaining.checked && (row.dataset.eligible !== 'true' || row.dataset.accepted === 'true'))));
+            matching = rows.filter(
+                row =>
+                    !(
+                        (term && !searchable(row).includes(term)) ||
+                        (owner.value && row.dataset.owner !== owner.value) ||
+                        (state.value && row.dataset.state !== state.value) ||
+                        (remaining.checked && (row.dataset.eligible !== 'true' || row.dataset.accepted === 'true'))
+                    )
+            );
             if (keep !== true) page = 1;
             paginate();
             empty.hidden = matching.length !== 0 || rows.length === 0;
             select(selected, false);
         }
-        const unknownTotal = () => countLabel.dataset.coverage === 'complete' ? '' : '; project total unknown';
+        const unknownTotal = () => (countLabel.dataset.coverage === 'complete' ? '' : '; project total unknown');
         // Shows the page asked for, or the nearest one that exists, and says which records it holds.
         function paginate() {
             const pages = length ? Math.max(1, Math.ceil(matching.length / length)) : 1;
             page = Math.min(Math.max(1, page), pages);
             const first = length ? (page - 1) * length : 0;
             const shown = new Set(length ? matching.slice(first, first + length) : matching);
-            rows.forEach(row => { row.hidden = !shown.has(row); });
-            countLabel.textContent = (shown.size < matching.length
-                ? (first + 1) + '–' + (first + shown.size) + ' of ' + matching.length + (matching.length < rows.length ? ' matching records shown; ' + rows.length + ' inspected' : ' inspected records shown')
-                : matching.length + ' of ' + rows.length + ' inspected records shown') + unknownTotal();
+            rows.forEach(row => {
+                row.hidden = !shown.has(row);
+            });
+            countLabel.textContent =
+                (shown.size < matching.length
+                    ? first +
+                      1 +
+                      '–' +
+                      (first + shown.size) +
+                      ' of ' +
+                      matching.length +
+                      (matching.length < rows.length ? ' matching records shown; ' + rows.length + ' inspected' : ' inspected records shown')
+                    : matching.length + ' of ' + rows.length + ' inspected records shown') + unknownTotal();
             showPagers(pagers, matching.length, lengths[0], page, pages, length === 0);
         }
         // What a pager says and offers. It appears once its rows outgrow the shortest page, names the page shown, and
@@ -859,14 +1023,23 @@ function enhanceReport() {
             navs.forEach(pager => {
                 pager.hidden = total <= least || (whole && pager.dataset.pager === 'bottom');
                 pager.querySelectorAll('[data-page-status]').forEach(status => say(status, 'Page ' + at, pages));
-                pager.querySelectorAll('[data-page-count]').forEach(status => { if (whole) status.textContent = 'All ' + total; else say(status, range, total); });
-                pager.querySelectorAll('.pager-steps, .pager-rule').forEach(part => { part.hidden = whole; });
-                pager.querySelectorAll('[data-page-step]').forEach(button => button.setAttribute('aria-disabled', String(Number(button.dataset.pageStep) < 0 ? at === 1 : at === pages)));
+                pager.querySelectorAll('[data-page-count]').forEach(status => {
+                    if (whole) status.textContent = 'All ' + total;
+                    else say(status, range, total);
+                });
+                pager.querySelectorAll('.pager-steps, .pager-rule').forEach(part => {
+                    part.hidden = whole;
+                });
+                pager
+                    .querySelectorAll('[data-page-step]')
+                    .forEach(button => button.setAttribute('aria-disabled', String(Number(button.dataset.pageStep) < 0 ? at === 1 : at === pages)));
             });
         }
         // "1–20 of 149", "Page 1 of 8": the word between the two numbers is set lighter than they are.
         function say(node, before, after) {
-            const of = document.createElement('span'); of.className = 'pager-of'; of.textContent = 'of';
+            const of = document.createElement('span');
+            of.className = 'pager-of';
+            of.textContent = 'of';
             node.replaceChildren(before + ' ', of, ' ' + after);
         }
         // A list of the page read a page at a time, with a page and a length of its own: the initiative table, and the
@@ -879,39 +1052,70 @@ function enhanceReport() {
             const choice = section.querySelector('[data-page-length]');
             const sizes = Array.from(choice.options, option => Number(option.value));
             const every = Array.from(section.querySelectorAll(rows));
-            const heads = every.filter(row => row.querySelector(':scope > .fig-sub')), lines = every.filter(row => !heads.includes(row));
+            const heads = every.filter(row => row.querySelector(':scope > .fig-sub')),
+                lines = every.filter(row => !heads.includes(row));
             title.setAttribute('tabindex', '-1');
-            let size = sizes[0], at = 1;
+            let size = sizes[0],
+                at = 1;
             function show() {
                 const pages = size ? Math.max(1, Math.ceil(lines.length / size)) : 1;
                 at = Math.min(Math.max(1, at), pages);
                 const first = size ? (at - 1) * size : 0;
                 const shown = new Set(size ? lines.slice(first, first + size) : lines);
-                lines.forEach(row => { row.hidden = !shown.has(row); });
-                heads.forEach(head => { head.hidden = !Array.from(head.parentNode.children).some(row => shown.has(row)); });
-                showPagers(navs, lines.length, sizes[0], at, pages, size === 0, (first + 1) + '–' + (first + shown.size));
+                lines.forEach(row => {
+                    row.hidden = !shown.has(row);
+                });
+                heads.forEach(head => {
+                    head.hidden = !Array.from(head.parentNode.children).some(row => shown.has(row));
+                });
+                showPagers(navs, lines.length, sizes[0], at, pages, size === 0, first + 1 + '–' + (first + shown.size));
             }
-            navs.forEach(pager => pager.querySelectorAll('[data-page-step]').forEach(button => button.addEventListener('click', () => {
-                if (button.getAttribute('aria-disabled') === 'true') return;
-                at += Number(button.dataset.pageStep); show();
-                // From under the list the reader is taken to its heading, where the new page begins.
-                if (pager.dataset.pager === 'bottom') title.focus();
-            })));
-            choice.addEventListener('change', () => { size = Number(choice.value); at = 1; show(); });
-            return { show, all() { every.forEach(row => { row.hidden = false; }); } };
+            navs.forEach(pager =>
+                pager.querySelectorAll('[data-page-step]').forEach(button =>
+                    button.addEventListener('click', () => {
+                        if (button.getAttribute('aria-disabled') === 'true') return;
+                        at += Number(button.dataset.pageStep);
+                        show();
+                        // From under the list the reader is taken to its heading, where the new page begins.
+                        if (pager.dataset.pager === 'bottom') title.focus();
+                    })
+                )
+            );
+            choice.addEventListener('change', () => {
+                size = Number(choice.value);
+                at = 1;
+                show();
+            });
+            return {
+                show,
+                all() {
+                    every.forEach(row => {
+                        row.hidden = false;
+                    });
+                }
+            };
         }
         // Open all and Close all for the area tree act on every level at once. The one that would change nothing is
         // marked unavailable; a level opened or closed by itself keeps both in step.
         function treeTools() {
             const levels = Array.from(document.querySelectorAll('#areas .fig-list details'));
             const tools = Array.from(document.querySelectorAll('[data-tree-open]'));
-            const sync = () => tools.forEach(button => button.setAttribute('aria-disabled',
-                String(button.dataset.treeOpen === 'true' ? levels.every(level => level.open) : !levels.some(level => level.open))));
-            tools.forEach(button => button.addEventListener('click', () => {
-                if (button.getAttribute('aria-disabled') === 'true') return;
-                levels.forEach(level => { level.open = button.dataset.treeOpen === 'true'; });
-                sync();
-            }));
+            const sync = () =>
+                tools.forEach(button =>
+                    button.setAttribute(
+                        'aria-disabled',
+                        String(button.dataset.treeOpen === 'true' ? levels.every(level => level.open) : !levels.some(level => level.open))
+                    )
+                );
+            tools.forEach(button =>
+                button.addEventListener('click', () => {
+                    if (button.getAttribute('aria-disabled') === 'true') return;
+                    levels.forEach(level => {
+                        level.open = button.dataset.treeOpen === 'true';
+                    });
+                    sync();
+                })
+            );
             levels.forEach(level => level.addEventListener('toggle', sync));
             sync();
         }
@@ -922,7 +1126,10 @@ function enhanceReport() {
         // The page that holds the chosen record becomes the page shown.
         function locate() {
             const at = length ? matching.findIndex(row => keyOf(row) === selected) : -1;
-            if (at >= 0 && Math.floor(at / length) + 1 !== page) { page = Math.floor(at / length) + 1; paginate(); }
+            if (at >= 0 && Math.floor(at / length) + 1 !== page) {
+                page = Math.floor(at / length) + 1;
+                paginate();
+            }
         }
         function restore() {
             restoring = true;
@@ -930,14 +1137,18 @@ function enhanceReport() {
             const parameters = new URLSearchParams(fragment);
             const nativeTarget = document.getElementById(fragment);
             if (nativeTarget && pathPanels.includes(nativeTarget)) {
-                inspection = nativeTarget.id; restoring = false; showInspection(true); return;
+                inspection = nativeTarget.id;
+                restoring = false;
+                showInspection(true);
+                return;
             }
             if (parameters.has('inspection')) inspection = pathPanels.find(node => node.id === parameters.get('inspection'))?.id || null;
             search.value = parameters.get('search') || '';
             owner.value = parameters.get('owner') || '';
             state.value = parameters.get('state') || '';
             remaining.checked = parameters.get('remaining') === '1';
-            page = Math.floor(Number(parameters.get('page'))) || 1; setLength(parameters.has('length') ? Number(parameters.get('length')) : lengths[0]);
+            page = Math.floor(Number(parameters.get('page'))) || 1;
+            setLength(parameters.has('length') ? Number(parameters.get('length')) : lengths[0]);
             // A record link elsewhere on the page lands on that record, not on wherever the page happened to be.
             const linked = fragment.startsWith('record-');
             selected = (linked ? fragment : parameters.get('item')) || null;
@@ -947,80 +1158,164 @@ function enhanceReport() {
         }
         try {
             // The levels inside an area at the top stay with it on its page, and Open all and Close all reach every page.
-            const paged = [pagedList(document.querySelector('.initiatives'), 'tbody tr', document.getElementById('initiatives-heading')),
-                pagedList(document.getElementById('areas'), ':scope > .fig-list > li', document.getElementById('areas-heading'))];
-            const initiativePages = { show() { paged.forEach(list => list.show()); }, all() { paged.forEach(list => list.all()); } };
+            const paged = [
+                pagedList(document.querySelector('.initiatives'), 'tbody tr', document.getElementById('initiatives-heading')),
+                pagedList(document.getElementById('areas'), ':scope > .fig-list > li', document.getElementById('areas-heading'))
+            ];
+            const initiativePages = {
+                show() {
+                    paged.forEach(list => list.show());
+                },
+                all() {
+                    paged.forEach(list => list.all());
+                }
+            };
             treeTools();
             [search, owner, state, remaining].forEach(control => control.addEventListener('input', () => filter()));
-            pagers.forEach(pager => pager.querySelectorAll('[data-page-step]').forEach(button => button.addEventListener('click', () => {
-                if (button.getAttribute('aria-disabled') === 'true') return;
-                page += Number(button.dataset.pageStep); paginate(); remember();
-                // From under the list the reader is taken to its top, where the new page begins.
-                if (pager.dataset.pager === 'bottom') heading.focus();
-            })));
-            lengthChoice?.addEventListener('change', () => { setLength(Number(lengthChoice.value)); page = 1; paginate(); remember(); });
+            pagers.forEach(pager =>
+                pager.querySelectorAll('[data-page-step]').forEach(button =>
+                    button.addEventListener('click', () => {
+                        if (button.getAttribute('aria-disabled') === 'true') return;
+                        page += Number(button.dataset.pageStep);
+                        paginate();
+                        remember();
+                        // From under the list the reader is taken to its top, where the new page begins.
+                        if (pager.dataset.pager === 'bottom') heading.focus();
+                    })
+                )
+            );
+            lengthChoice?.addEventListener('change', () => {
+                setLength(Number(lengthChoice.value));
+                page = 1;
+                paginate();
+                remember();
+            });
             document.getElementById('clear-filters').addEventListener('click', () => {
-                search.value = ''; owner.value = ''; state.value = ''; remaining.checked = false; filter(); search.focus();
+                search.value = '';
+                owner.value = '';
+                state.value = '';
+                remaining.checked = false;
+                filter();
+                search.focus();
             });
             document.getElementById('inspect-remaining')?.addEventListener('click', () => {
-                remaining.checked = true; filter(); heading.focus();
+                remaining.checked = true;
+                filter();
+                heading.focus();
             });
             document.getElementById('print-report')?.addEventListener('click', () => window.print());
-            rows.forEach(row => row.firstElementChild.addEventListener('click', event => {
-                event.preventDefault();
-                rememberContext();
-                if (keyOf(row) === selected) select(null, false); else select(keyOf(row), true);
-            }));
-            document.querySelectorAll('[data-owner-filter]').forEach(button => button.addEventListener('click', () => {
-                owner.value = button.dataset.ownerFilter; filter(); heading.focus();
-            }));
-            document.querySelectorAll('.return-link').forEach(link => link.addEventListener('click', event => {
-                if (!backContext(event)) { event.preventDefault(); heading.focus(); }
-            }));
+            rows.forEach(row =>
+                row.firstElementChild.addEventListener('click', event => {
+                    event.preventDefault();
+                    rememberContext();
+                    if (keyOf(row) === selected) select(null, false);
+                    else select(keyOf(row), true);
+                })
+            );
+            document.querySelectorAll('[data-owner-filter]').forEach(button =>
+                button.addEventListener('click', () => {
+                    owner.value = button.dataset.ownerFilter;
+                    filter();
+                    heading.focus();
+                })
+            );
+            document.querySelectorAll('.return-link').forEach(link =>
+                link.addEventListener('click', event => {
+                    if (!backContext(event)) {
+                        event.preventDefault();
+                        heading.focus();
+                    }
+                })
+            );
             // A record opened from a line elsewhere on the page, an area or initiative line included, is left by going back to that line.
             document.querySelectorAll('a[href^="#record-"]').forEach(link => {
                 if (link.closest('.work-row')) return;
                 link.addEventListener('click', event => {
-                    event.preventDefault(); rememberContext(link);
-                    select(link.getAttribute('href').slice(1), true); reveal(true);
+                    event.preventDefault();
+                    rememberContext(link);
+                    select(link.getAttribute('href').slice(1), true);
+                    reveal(true);
                 });
             });
-            document.querySelectorAll('a[href^="#inspect-path-"]').forEach(link => link.addEventListener('click', event => {
-                const panel = document.getElementById(link.getAttribute('href').slice(1));
-                if (!panel || !pathPanels.includes(panel)) return;
-                event.preventDefault(); rememberContext(); inspection = panel.id; showInspection(true); remember();
-            }));
+            document.querySelectorAll('a[href^="#inspect-path-"]').forEach(link =>
+                link.addEventListener('click', event => {
+                    const panel = document.getElementById(link.getAttribute('href').slice(1));
+                    if (!panel || !pathPanels.includes(panel)) return;
+                    event.preventDefault();
+                    rememberContext();
+                    inspection = panel.id;
+                    showInspection(true);
+                    remember();
+                })
+            );
             window.addEventListener('hashchange', restore);
             // Paper gets every row whatever the filters say, then every record card in order, with every disclosure open.
             window.addEventListener('beforeprint', () => {
-                details.forEach(sendHome); placeNote(null); initiativePages.all();
-                pathPanels.forEach(panel => { panel.hidden = false; });
+                details.forEach(sendHome);
+                placeNote(null);
+                initiativePages.all();
+                pathPanels.forEach(panel => {
+                    panel.hidden = false;
+                });
                 countLabel.textContent = rows.length + ' of ' + rows.length + ' inspected records shown' + unknownTotal();
-                document.querySelectorAll('details').forEach(element => { element.dataset.printOpen = element.open ? 'true' : 'false'; element.open = true; });
+                document.querySelectorAll('details').forEach(element => {
+                    element.dataset.printOpen = element.open ? 'true' : 'false';
+                    element.open = true;
+                });
             });
             window.addEventListener('afterprint', () => {
-                document.querySelectorAll('details').forEach(element => { element.open = element.dataset.printOpen === 'true'; delete element.dataset.printOpen; });
-                filter(true); initiativePages.show();
+                document.querySelectorAll('details').forEach(element => {
+                    element.open = element.dataset.printOpen === 'true';
+                    delete element.dataset.printOpen;
+                });
+                filter(true);
+                initiativePages.show();
             });
             documentRoot.classList.add('enhanced');
-            restore(); initiativePages.show();
+            restore();
+            initiativePages.show();
         } catch (_) {
             documentRoot.classList.remove('enhanced');
-            rows.forEach(row => { row.hidden = false; row.classList.remove('is-open'); });
-            document.querySelectorAll('.initiatives tbody tr, #areas > .fig-list > li').forEach(row => { row.hidden = false; });
-            details.forEach(detail => { detail.hidden = false; sendHome(detail); });
-            pathPanels.forEach(panel => { panel.hidden = false; });
+            rows.forEach(row => {
+                row.hidden = false;
+                row.classList.remove('is-open');
+            });
+            document.querySelectorAll('.initiatives tbody tr, #areas > .fig-list > li').forEach(row => {
+                row.hidden = false;
+            });
+            details.forEach(detail => {
+                detail.hidden = false;
+                sendHome(detail);
+            });
+            pathPanels.forEach(panel => {
+                panel.hidden = false;
+            });
             document.getElementById('interaction-error').hidden = false;
         }
     }
-    if (!snapshot.packed) { start(); return; }
+    if (!snapshot.packed) {
+        start();
+        return;
+    }
     let opening;
-    try { opening = unpack(); } catch (_) { opening = Promise.reject(new Error('Packed detail cannot be opened here')); }
+    try {
+        opening = unpack();
+    } catch (_) {
+        opening = Promise.reject(new Error('Packed detail cannot be opened here'));
+    }
     // Whether or not the detail opens, the list, the counts and the filters start.
-    opening.then(place).catch(() => { unopened = true; document.getElementById('packed-unavailable').hidden = false; }).then(start);
+    opening
+        .then(place)
+        .catch(() => {
+            unopened = true;
+            document.getElementById('packed-unavailable').hidden = false;
+        })
+        .then(start);
 }
 const SCRIPT = `(${enhanceReport.toString()})();`;
-function cspHash(content) { return `'sha256-${crypto.createHash('sha256').update(content).digest('base64')}'`; }
+function cspHash(content) {
+    return `'sha256-${crypto.createHash('sha256').update(content).digest('base64')}'`;
+}
 // The only inline script and stylesheet a report carries. A page that shows a report inside itself names these two and nothing else inline.
 const REPORT_INLINE_SOURCES = Object.freeze({ script: cspHash(SCRIPT), style: cspHash(STYLES) });
 
@@ -1033,15 +1328,19 @@ function factRow(label, value, sub) {
 function linkedRecord(id, ctx) {
     const target = ctx.byId.get(id);
     if (!target) return `<span class="mono">${escapeHtml(id)}</span><span class="fact-sub">Not a unique record in this snapshot</span>`;
-    return ctx.detailed.has(target) ? `<a href="#${escapeHtml(recordAnchor(target, ctx.byId))}">${escapeHtml(target.title)}</a> <span class="id">${escapeHtml(id)}</span>`
+    return ctx.detailed.has(target)
+        ? `<a href="#${escapeHtml(recordAnchor(target, ctx.byId))}">${escapeHtml(target.title)}</a> <span class="id">${escapeHtml(id)}</span>`
         : `${escapeHtml(target.title)} <span class="id">${escapeHtml(id)}</span>${ctx.inScope.has(target) ? '' : '<span class="fact-sub">Outside this snapshot</span>'}`;
 }
 
 // Why no figure is stated, in the read's own words.
-function withheldReason(figures) { return String(figures?.reason || 'The project was not inspected completely').replace(/\.$/, ''); }
+function withheldReason(figures) {
+    return String(figures?.reason || 'The project was not inspected completely').replace(/\.$/, '');
+}
 // What an area or an initiative with no eligible task says in place of a figure. Page text: kind words arrive escaped.
 function noFigure(kind, kinds) {
-    return kind === INITIATIVE_KIND ? `No linked ${kinds.lowerMany(DELIVERY_KIND)} yet, so no percentage applies. That is not the same as zero percent.`
+    return kind === INITIATIVE_KIND
+        ? `No linked ${kinds.lowerMany(DELIVERY_KIND)} yet, so no percentage applies. That is not the same as zero percent.`
         : `No eligible ${kinds.lowerMany(DELIVERY_KIND)}, so no percentage applies`;
 }
 // The delivery figures an area's or an initiative's own scope states, printed as read.
@@ -1052,8 +1351,11 @@ function deliveryFact(item, ctx) {
     const entry = ctx.numbers.get(item.id);
     if (!entry) return '';
     if (!entry.total) return factRow('Delivery', `<span class="is-none">${noFigure(item.kind, ctx.kinds)}</span>`);
-    return factRow('Delivery', `${entry.accepted} of ${ctx.kinds.count(entry.total, DELIVERY_KIND)} accepted${typeof entry.percentage === 'number' ? `, ${entry.percentage.toFixed(1)}%` : ''}`,
-        `${entry.remaining} remaining, ${entry.currentlyVerified} with current proof`);
+    return factRow(
+        'Delivery',
+        `${entry.accepted} of ${ctx.kinds.count(entry.total, DELIVERY_KIND)} accepted${typeof entry.percentage === 'number' ? `, ${entry.percentage.toFixed(1)}%` : ''}`,
+        `${entry.remaining} remaining, ${entry.currentlyVerified} with current proof`
+    );
 }
 // One area a record is tagged to, or one initiative it is linked to: the record, then what it is.
 function tagLine(id, ctx) {
@@ -1069,20 +1371,33 @@ function tagLine(id, ctx) {
 function renderFacts(item, ctx) {
     const { members, kinds } = ctx;
     const history = array(item.history);
-    const entered = [...history].reverse().find(entry => entry.afterState === item.state && entry.beforeState !== entry.afterState) || history.find(entry => entry.operation === 'create' && entry.afterState === item.state);
+    const entered =
+        [...history].reverse().find(entry => entry.afterState === item.state && entry.beforeState !== entry.afterState) ||
+        history.find(entry => entry.operation === 'create' && entry.afterState === item.state);
     const proofs = array(item.proofs).filter(proof => proof && typeof proof === 'object');
-    const latest = proofs.reduce((newest, proof) => !newest || String(proof.observedAt || '') > String(newest.observedAt || '') ? proof : newest, null);
+    const latest = proofs.reduce((newest, proof) => (!newest || String(proof.observedAt || '') > String(newest.observedAt || '') ? proof : newest), null);
     const decision = item.acceptance?.accepted === true ? array(item.acceptanceHistory).at(-1) : null;
     const attested = item.health?.status === 'attested';
-    const isArea = item.kind === AREA_KIND, isInitiative = item.kind === INITIATIVE_KIND;
+    const isArea = item.kind === AREA_KIND,
+        isInitiative = item.kind === INITIATIVE_KIND;
     // A tag is a link the record itself declares. Its areas and initiatives are read from its own links, each once.
-    const tagged = relation => [...new Set(array(item.links).filter(link => link && typeof link === 'object' && link.relation === relation && typeof link.itemId === 'string').map(link => link.itemId))];
-    const areas = tagged(AREA_TAG), initiatives = tagged(INITIATIVE_TAG);
+    const tagged = relation => [
+        ...new Set(
+            array(item.links)
+                .filter(link => link && typeof link === 'object' && link.relation === relation && typeof link.itemId === 'string')
+                .map(link => link.itemId)
+        )
+    ];
+    const areas = tagged(AREA_TAG),
+        initiatives = tagged(INITIATIVE_TAG);
     const relations = new Map();
     for (const link of array(item.links)) {
         if (!link || typeof link !== 'object' || Object.hasOwn(VOCABULARY.tagRoles, link.relation)) continue;
         const name = ctx.linkNames[link.relation] || capital(words(link.relation));
-        relations.set(name, [...(relations.get(name) || []), link.itemId ? linkedRecord(link.itemId, ctx) : (link.path ? linkedPath(link.path) : '<span class="mono">Unknown</span>')]);
+        relations.set(name, [
+            ...(relations.get(name) || []),
+            link.itemId ? linkedRecord(link.itemId, ctx) : link.path ? linkedPath(link.path) : '<span class="mono">Unknown</span>'
+        ]);
     }
     const lines = ids => ids.map(id => tagLine(id, ctx)).join('<br>');
     const none = text => `<span class="is-none">${text}</span>`;
@@ -1095,24 +1410,61 @@ function renderFacts(item, ctx) {
         isInitiative ? factRow('Priority level', label('priority', item.priorityLevel)) : '',
         isArea ? '' : factRow('Due date', dueMark(item, ctx.today)),
         // An area is tagged to the areas it sits inside; any other record to the areas it belongs to.
-        isArea ? factRow('Sits inside', areas.length ? lines(areas) : none('Top of the project'))
+        isArea
+            ? factRow('Sits inside', areas.length ? lines(areas) : none('Top of the project'))
             : factRow(kinds.plainMany(AREA_KIND), areas.length ? lines(areas) : none(`Not in any ${kinds.word(1, AREA_KIND)}`)),
         isArea && inside.length ? factRow(`${kinds.plainMany(AREA_KIND)} inside`, inside.map(id => linkedRecord(id, ctx)).join('<br>')) : '',
         // An area declares no initiative link, and an initiative names another one only when it is linked to it.
-        isArea || (isInitiative && !initiatives.length) ? '' : factRow(kinds.plainMany(INITIATIVE_KIND), initiatives.length ? lines(initiatives) : none(`Not linked to ${kinds.a(INITIATIVE_KIND)}`)),
+        isArea || (isInitiative && !initiatives.length)
+            ? ''
+            : factRow(kinds.plainMany(INITIATIVE_KIND), initiatives.length ? lines(initiatives) : none(`Not linked to ${kinds.a(INITIATIVE_KIND)}`)),
         deliveryFact(item, ctx),
         factRow('Responsible', escapeHtml(`${memberLabel(item.assigneeId, members)}${item.assigneeId ? ` (${item.assigneeId})` : ''}`)),
-        factRow('Collaborators', escapeHtml(array(item.collaboratorIds).map(id => memberLabel(id, members)).join(', ') || 'None recorded')),
-        ...(inDelivery(item) ? [
-            factRow('Proof', escapeHtml(verificationLabel(item)), [item.verification?.reason, latest ? `Latest proof: ${words(latest.kind)}, ${words(latest.result)}, ${instant(latest.observedAt)}` : null].filter(Boolean).map(escapeHtml).join('. ')),
-            factRow('Acceptance', escapeHtml(acceptanceLabel(item)), [item.acceptance?.reason, decision?.acceptedAt ? `${decision.actor ? memberLabel(decision.actor, members) : 'An unrecorded actor'}, ${instant(decision.acceptedAt)}` : null].filter(Boolean).map(escapeHtml).join('. '))
-        ] : []),
+        factRow(
+            'Collaborators',
+            escapeHtml(
+                array(item.collaboratorIds)
+                    .map(id => memberLabel(id, members))
+                    .join(', ') || 'None recorded'
+            )
+        ),
+        ...(inDelivery(item)
+            ? [
+                  factRow(
+                      'Proof',
+                      escapeHtml(verificationLabel(item)),
+                      [item.verification?.reason, latest ? `Latest proof: ${words(latest.kind)}, ${words(latest.result)}, ${instant(latest.observedAt)}` : null]
+                          .filter(Boolean)
+                          .map(escapeHtml)
+                          .join('. ')
+                  ),
+                  factRow(
+                      'Acceptance',
+                      escapeHtml(acceptanceLabel(item)),
+                      [
+                          item.acceptance?.reason,
+                          decision?.acceptedAt
+                              ? `${decision.actor ? memberLabel(decision.actor, members) : 'An unrecorded actor'}, ${instant(decision.acceptedAt)}`
+                              : null
+                      ]
+                          .filter(Boolean)
+                          .map(escapeHtml)
+                          .join('. ')
+                  )
+              ]
+            : []),
         ...[...relations].map(([name, targets]) => factRow(name, targets.join('<br>'))),
         factRow('Owning file', `<span class="mono">${escapeHtml(item.ownerPath || 'Unknown')}</span>`),
         factRow('Revision', `<span class="mono">${escapeHtml(item.revision ?? 'Unknown')}</span>`),
-        factRow('Record health', escapeHtml(attested ? item.health.assessment : 'Not attested'), escapeHtml(attested
-            ? `${item.health.displayName || item.health.ownerId} (${item.health.ownerId}), observed ${instant(item.health.observedAt)}. ${item.health.reason}`
-            : item.health?.reason || 'No dated owner attestation available'))
+        factRow(
+            'Record health',
+            escapeHtml(attested ? item.health.assessment : 'Not attested'),
+            escapeHtml(
+                attested
+                    ? `${item.health.displayName || item.health.ownerId} (${item.health.ownerId}), observed ${instant(item.health.observedAt)}. ${item.health.reason}`
+                    : item.health?.reason || 'No dated owner attestation available'
+            )
+        )
     ].join('')}</dl>`;
 }
 
@@ -1123,10 +1475,19 @@ function renderDetail(item, ctx) {
     const anchor = escapeHtml(recordAnchor(item, ctx.byId));
     const reasons = array(item.prerequisiteReasons);
     const blocker = typeof item.blocker === 'string' ? { reason: item.blocker } : item.blocker;
-    const retained = [['Proof', item.proofs], ['Acceptance history', item.acceptanceHistory], ['Recorded activity', item.activity], ['Change history', item.history]];
+    const retained = [
+        ['Proof', item.proofs],
+        ['Acceptance history', item.acceptanceHistory],
+        ['Recorded activity', item.activity],
+        ['Change history', item.history]
+    ];
     const absent = [['links', item.links], ...retained.map(([label, values]) => [label.toLowerCase(), values])]
-        .filter(([, values]) => !array(values).length).map(([label]) => label);
-    const disclosures = retained.filter(([, values]) => array(values).length).map(([label, values]) => jsonDetails(label, values)).join('');
+        .filter(([, values]) => !array(values).length)
+        .map(([label]) => label);
+    const disclosures = retained
+        .filter(([, values]) => array(values).length)
+        .map(([label, values]) => jsonDetails(label, values))
+        .join('');
     return `<article class="record-detail" id="${anchor}" data-item-id="${escapeHtml(item.id)}" aria-labelledby="heading-${anchor}">
 <header class="detail-head"><p class="badge">${kindMark(item, ctx.kinds)}<span class="id">${escapeHtml(item.id)}</span>${flags(item)}</p><h3 id="heading-${anchor}" tabindex="-1">${escapeHtml(item.title)}</h3><p class="marks">${stateMark(item)}<span class="mark${item.assigneeId ? '' : ' is-none'}">${escapeHtml(memberLabel(item.assigneeId, members))}</span>${proofMark(item)}${sealMark(item)}</p></header>
 <div class="detail-body"><div class="detail-main">${item.intent ? `<p class="intent">${escapeText(item.intent)}</p>` : '<p class="note">No outcome recorded. Inspect the owning artifact before starting work.</p>'}
@@ -1145,15 +1506,26 @@ function deliveryBlocks(snapshot, metrics, kinds) {
     if (!metrics.total || metrics.total > BLOCK_LIMIT) return '';
     const byId = new Map();
     for (const item of array(snapshot.items)) byId.set(item.id, byId.has(item.id) ? null : item);
-    const eligible = array(metrics.eligibleIds).map(id => byId.get(id)).filter(Boolean);
+    const eligible = array(metrics.eligibleIds)
+        .map(id => byId.get(id))
+        .filter(Boolean);
     const groups = { verified: [], accepted: [], awaiting: [], open: [] };
     for (const item of eligible) {
         const proved = item.verification?.status === 'current';
         groups[item.acceptance?.accepted === true ? (proved ? 'verified' : 'accepted') : item.state === 'verifying' && proved ? 'awaiting' : 'open'].push(item);
     }
-    if (eligible.length !== metrics.total || groups.verified.length !== metrics.currentlyVerified
-        || groups.verified.length + groups.accepted.length !== metrics.accepted) return '';
-    const names = { verified: 'accepted with current proof', accepted: 'accepted, proof not current', awaiting: 'proved, waiting for acceptance', open: 'not accepted yet' };
+    if (
+        eligible.length !== metrics.total ||
+        groups.verified.length !== metrics.currentlyVerified ||
+        groups.verified.length + groups.accepted.length !== metrics.accepted
+    )
+        return '';
+    const names = {
+        verified: 'accepted with current proof',
+        accepted: 'accepted, proof not current',
+        awaiting: 'proved, waiting for acceptance',
+        open: 'not accepted yet'
+    };
     const marks = { verified: 'check', accepted: 'clock', awaiting: 'seal' };
     const present = Object.keys(names).filter(name => groups[name].length);
     const labelled = metrics.total <= LABELLED_BLOCKS;
@@ -1165,12 +1537,28 @@ function renderSummary(snapshot, kinds) {
     const tasks = kinds.lowerMany(DELIVERY_KIND);
     const metrics = snapshot.metrics;
     const complete = snapshot.coverage === 'complete' && metrics?.coverage === 'complete';
-    const total = count(metrics?.total), accepted = count(metrics?.accepted), remaining = count(metrics?.remaining), verified = count(metrics?.currentlyVerified);
-    const valid = total !== null && accepted !== null && remaining !== null && verified !== null && accepted <= total && verified <= accepted && remaining === total - accepted;
+    const total = count(metrics?.total),
+        accepted = count(metrics?.accepted),
+        remaining = count(metrics?.remaining),
+        verified = count(metrics?.currentlyVerified);
+    const valid =
+        total !== null &&
+        accepted !== null &&
+        remaining !== null &&
+        verified !== null &&
+        accepted <= total &&
+        verified <= accepted &&
+        remaining === total - accepted;
     // The heading names the fact; the scope it was counted for stands beside it and never changes with the filters.
     const heading = `<div class="eyebrow-line"><h2 id="progress-heading" class="eyebrow">Delivery scope</h2><span class="scope-id">${scopeName(snapshot, kinds) || 'Whole project'}</span></div>`;
-    if (!metrics || !valid) return `<section class="summary card" aria-labelledby="progress-heading"><div class="hero-lead">${heading}<p class="hero-title">Progress unavailable</p></div><p class="hero-copy">No trustworthy delivery denominator is available. Read the inspection limits below; this does not mean the project has no work.</p></section>`;
-    const percentage = complete && total > 0 && typeof metrics.percentage === 'number' && Number.isFinite(metrics.percentage) && Math.abs(metrics.percentage - accepted / total * 100) < 0.000001;
+    if (!metrics || !valid)
+        return `<section class="summary card" aria-labelledby="progress-heading"><div class="hero-lead">${heading}<p class="hero-title">Progress unavailable</p></div><p class="hero-copy">No trustworthy delivery denominator is available. Read the inspection limits below; this does not mean the project has no work.</p></section>`;
+    const percentage =
+        complete &&
+        total > 0 &&
+        typeof metrics.percentage === 'number' &&
+        Number.isFinite(metrics.percentage) &&
+        Math.abs(metrics.percentage - (accepted / total) * 100) < 0.000001;
     const ledger = `<p class="ledger">${accepted} of ${total} eligible ${kinds.word(total, DELIVERY_KIND)} accepted, ${verified} with current proof; ${remaining} not accepted.</p>`;
     let body;
     if (percentage) {
@@ -1203,14 +1591,25 @@ function renderStanding(items, kinds, whole) {
     const inState = state => open.filter(item => item.state === state);
     const blocked = inState(SIDING).length;
     const own = statesOf(DELIVERY_LIFECYCLE);
-    const off = [[inState(OFF_LINE).length, 'canceled'], [items.length - open.length, 'retired'], [open.filter(item => !own.includes(item.state)).length, 'in another recorded state']]
-        .filter(([total]) => total).map(([total, name]) => `${total} ${name}`);
-    const counted = listWords(VOCABULARY.kinds.filter(kind => lifecycleOf(kind) === DELIVERY_LIFECYCLE && (whole || kind === DELIVERY_KIND)).map(kinds.lowerMany));
-    const apart = whole ? ` ${listWords(VOCABULARY.kinds.filter(kind => lifecycleOf(kind) !== DELIVERY_LIFECYCLE).map((kind, index) => (index ? kinds.lowerMany(kind) : kinds.capitalMany(kind))))} are not counted here.` : '';
-    return `<section class="standing card" aria-labelledby="standing-heading"><div class="card-head"><h2 id="standing-heading">Where work stands</h2><p class="aside">${plural(open.filter(onLine).length, 'open record', 'open records')} by recorded state, counting ${counted} only.${apart}${off.length ? ` Off the line: ${off.join(', ')}.` : ''}</p></div><ol class="line line--s${stations().length}">${stations().map(state => {
-        const records = inState(state);
-        return `<li${records.length ? '' : ' class="station--none"'}><span class="count">${records.length}</span><span class="dot-zone">${dot(state)}</span><span class="station-name">${STATE_NAMES[state]}</span>${records.length ? `<span class="station-kinds">${kindBreakdown(records, kinds)}</span>` : ''}${state === SIDING_HOST && blocked ? `<span class="siding"><span class="siding-hook" aria-hidden="true"></span><span class="siding-tag">${blocked} blocked</span></span>` : ''}</li>`;
-    }).join('')}</ol></section>`;
+    const off = [
+        [inState(OFF_LINE).length, 'canceled'],
+        [items.length - open.length, 'retired'],
+        [open.filter(item => !own.includes(item.state)).length, 'in another recorded state']
+    ]
+        .filter(([total]) => total)
+        .map(([total, name]) => `${total} ${name}`);
+    const counted = listWords(
+        VOCABULARY.kinds.filter(kind => lifecycleOf(kind) === DELIVERY_LIFECYCLE && (whole || kind === DELIVERY_KIND)).map(kinds.lowerMany)
+    );
+    const apart = whole
+        ? ` ${listWords(VOCABULARY.kinds.filter(kind => lifecycleOf(kind) !== DELIVERY_LIFECYCLE).map((kind, index) => (index ? kinds.lowerMany(kind) : kinds.capitalMany(kind))))} are not counted here.`
+        : '';
+    return `<section class="standing card" aria-labelledby="standing-heading"><div class="card-head"><h2 id="standing-heading">Where work stands</h2><p class="aside">${plural(open.filter(onLine).length, 'open record', 'open records')} by recorded state, counting ${counted} only.${apart}${off.length ? ` Off the line: ${off.join(', ')}.` : ''}</p></div><ol class="line line--s${stations().length}">${stations()
+        .map(state => {
+            const records = inState(state);
+            return `<li${records.length ? '' : ' class="station--none"'}><span class="count">${records.length}</span><span class="dot-zone">${dot(state)}</span><span class="station-name">${STATE_NAMES[state]}</span>${records.length ? `<span class="station-kinds">${kindBreakdown(records, kinds)}</span>` : ''}${state === SIDING_HOST && blocked ? `<span class="siding"><span class="siding-hook" aria-hidden="true"></span><span class="siding-tag">${blocked} blocked</span></span>` : ''}</li>`;
+        })
+        .join('')}</ol></section>`;
 }
 
 // Records the tracker will not move by itself: a decision, a blocker or an owner is missing.
@@ -1223,14 +1622,39 @@ function renderWaiting(ctx, records) {
         const proved = item.verification?.status === 'current';
         const accepted = item.acceptance?.accepted === true;
         const blocker = typeof item.blocker === 'string' ? { reason: item.blocker } : item.blocker;
-        if (item.state === 'verifying' && proved && !accepted) waiting.push([item, 'verifying', 'seal', 'Proved, not accepted', 'Every criterion has current passing proof. Acceptance is a separate decision.']);
-        else if (accepted && !proved) waiting.push([item, 'stale', 'clock', 'Accepted, proof not current', `${item.verification?.reason || 'Current proof is not established'}. The acceptance stands.`]);
-        else if (item.state === 'blocked') waiting.push([item, 'blocked', 'alert', 'Blocked', `${blocker?.reason || 'No blocker reason is recorded'}.${blocker?.at ? ` Blocked since ${day(blocker.at)}.` : ''}`]);
-        else if (item.state === 'ready' && !ready.has(item.id)) waiting.push([item, 'plain', 'alert', 'Ready, cannot start', array(item.prerequisiteReasons)[0] || 'Current prerequisites are unresolved.']);
-        else if (item.state === 'ready' && !item.assigneeId) waiting.push([item, 'plain', 'person', 'Ready, unassigned', 'Nobody is responsible yet, so it cannot start.']);
+        if (item.state === 'verifying' && proved && !accepted)
+            waiting.push([item, 'verifying', 'seal', 'Proved, not accepted', 'Every criterion has current passing proof. Acceptance is a separate decision.']);
+        else if (accepted && !proved)
+            waiting.push([
+                item,
+                'stale',
+                'clock',
+                'Accepted, proof not current',
+                `${item.verification?.reason || 'Current proof is not established'}. The acceptance stands.`
+            ]);
+        else if (item.state === 'blocked')
+            waiting.push([
+                item,
+                'blocked',
+                'alert',
+                'Blocked',
+                `${blocker?.reason || 'No blocker reason is recorded'}.${blocker?.at ? ` Blocked since ${day(blocker.at)}.` : ''}`
+            ]);
+        else if (item.state === 'ready' && !ready.has(item.id))
+            waiting.push([item, 'plain', 'alert', 'Ready, cannot start', array(item.prerequisiteReasons)[0] || 'Current prerequisites are unresolved.']);
+        else if (item.state === 'ready' && !item.assigneeId)
+            waiting.push([item, 'plain', 'person', 'Ready, unassigned', 'Nobody is responsible yet, so it cannot start.']);
     }
     if (!waiting.length) return '';
-    return `<section class="waiting section" aria-labelledby="waiting-heading"><div class="section-head"><h2 id="waiting-heading">Waiting on a person</h2><p class="aside">${plural(waiting.length, 'record', 'records')} the tool will not move by itself</p></div><ul class="queue">${waiting.slice(0, WAITING_LIMIT).map(([item, tone, mark, name, why]) => `<li><span class="tag${tone === 'plain' ? '' : ` tag--${tone}`}">${icon(mark)}<span>${name}</span></span><span class="queue-text"><a class="queue-title" href="#${escapeHtml(recordAnchor(item, byId))}">${escapeHtml(item.title)}</a><span class="queue-why">${escapeHtml(why)}</span></span><span class="queue-who${item.assigneeId ? '' : ' is-none'}">${escapeHtml(memberLabel(item.assigneeId, members))}</span></li>`).join('')}</ul>${waiting.length > WAITING_LIMIT ? `<p class="note">${waiting.length - WAITING_LIMIT} more waiting records are listed under Work.</p>` : ''}</section>`;
+    return `<section class="waiting section" aria-labelledby="waiting-heading"><div class="section-head"><h2 id="waiting-heading">Waiting on a person</h2><p class="aside">${plural(waiting.length, 'record', 'records')} the tool will not move by itself</p></div><ul class="queue">${waiting
+        .slice(0, WAITING_LIMIT)
+        .map(
+            ([item, tone, mark, name, why]) =>
+                `<li><span class="tag${tone === 'plain' ? '' : ` tag--${tone}`}">${icon(mark)}<span>${name}</span></span><span class="queue-text"><a class="queue-title" href="#${escapeHtml(recordAnchor(item, byId))}">${escapeHtml(item.title)}</a><span class="queue-why">${escapeHtml(why)}</span></span><span class="queue-who${item.assigneeId ? '' : ' is-none'}">${escapeHtml(memberLabel(item.assigneeId, members))}</span></li>`
+        )
+        .join(
+            ''
+        )}</ul>${waiting.length > WAITING_LIMIT ? `<p class="note">${waiting.length - WAITING_LIMIT} more waiting records are listed under Work.</p>` : ''}</section>`;
 }
 
 // One line per record. The line's link names the record's detail; what it says about the record is searched from the
@@ -1242,18 +1666,37 @@ function renderRow(item, ctx) {
 
 // Who holds what, one block per open record. Sorted by name: it is a directory, not a ranking.
 function renderPeople(items, owners) {
-    const rows = owners.map(owner => {
-        const held = items.filter(item => (item.assigneeId || UNASSIGNED) === owner.id);
-        if (owner.id === UNASSIGNED && !held.length) return '';
-        const open = held.filter(item => !item.retired && onLine(item));
-        const ordered = PEOPLE_ORDER.flatMap(state => open.filter(item => item.state === state));
-        const off = [[held.filter(item => !item.retired && item.state === 'canceled').length, 'canceled'], [held.filter(item => item.retired).length, 'retired'],
-            [held.filter(item => !item.retired && !statesOf(lifecycleOf(item.kind)).includes(item.state)).length, 'in another recorded state']].filter(([total]) => total).map(([total, name]) => `${total} ${name}`);
-        const summary = `${open.length ? `${plural(open.length, 'record', 'records')}: ${PEOPLE_ORDER.map(state => [open.filter(item => item.state === state).length, state]).filter(([total]) => total).map(([total, state]) => `${total} ${STATE_NAMES[state].toLowerCase()}`).join(', ')}` : 'No open records'}.${off.length ? ` Off the line: ${off.join(', ')}.` : ''}`;
-        const quiet = owner.active === false || owner.id === UNASSIGNED || owner.unknown ? ' is-quiet' : '';
-        const name = escapeHtml(owner.label);
-        return `<li><span class="person-name static-only${quiet}">${name}</span><button type="button" class="person-name person-pick enhancement-only${quiet}" data-owner-filter="${escapeHtml(owner.id)}" aria-label="${name}: show records in Work">${name}</button><span class="person-blocks" aria-hidden="true">${ordered.slice(0, PERSON_BLOCKS).map(item => `<span class="pb is-${item.state}${RING_STATES.includes(item.state) ? ' pb--hollow' : ''}"></span>`).join('')}${ordered.length > PERSON_BLOCKS ? `<span class="id">+${ordered.length - PERSON_BLOCKS}</span>` : ''}</span><span class="person-sum">${escapeHtml(summary)}</span></li>`;
-    }).join('');
+    const rows = owners
+        .map(owner => {
+            const held = items.filter(item => (item.assigneeId || UNASSIGNED) === owner.id);
+            if (owner.id === UNASSIGNED && !held.length) return '';
+            const open = held.filter(item => !item.retired && onLine(item));
+            const ordered = PEOPLE_ORDER.flatMap(state => open.filter(item => item.state === state));
+            const off = [
+                [held.filter(item => !item.retired && item.state === 'canceled').length, 'canceled'],
+                [held.filter(item => item.retired).length, 'retired'],
+                [held.filter(item => !item.retired && !statesOf(lifecycleOf(item.kind)).includes(item.state)).length, 'in another recorded state']
+            ]
+                .filter(([total]) => total)
+                .map(([total, name]) => `${total} ${name}`);
+            const summary = `${
+                open.length
+                    ? `${plural(open.length, 'record', 'records')}: ${PEOPLE_ORDER.map(state => [open.filter(item => item.state === state).length, state])
+                          .filter(([total]) => total)
+                          .map(([total, state]) => `${total} ${STATE_NAMES[state].toLowerCase()}`)
+                          .join(', ')}`
+                    : 'No open records'
+            }.${off.length ? ` Off the line: ${off.join(', ')}.` : ''}`;
+            const quiet = owner.active === false || owner.id === UNASSIGNED || owner.unknown ? ' is-quiet' : '';
+            const name = escapeHtml(owner.label);
+            return `<li><span class="person-name static-only${quiet}">${name}</span><button type="button" class="person-name person-pick enhancement-only${quiet}" data-owner-filter="${escapeHtml(owner.id)}" aria-label="${name}: show records in Work">${name}</button><span class="person-blocks" aria-hidden="true">${ordered
+                .slice(0, PERSON_BLOCKS)
+                .map(item => `<span class="pb is-${item.state}${RING_STATES.includes(item.state) ? ' pb--hollow' : ''}"></span>`)
+                .join(
+                    ''
+                )}${ordered.length > PERSON_BLOCKS ? `<span class="id">+${ordered.length - PERSON_BLOCKS}</span>` : ''}</span><span class="person-sum">${escapeHtml(summary)}</span></li>`;
+        })
+        .join('');
     return `<section class="people" aria-labelledby="people-heading"${items.length ? '' : ' hidden'}><div class="people-content"><div class="section-head"><h2 id="people-heading">Responsibility</h2><p class="aside">One block is one open record. Alphabetical, not a ranking</p></div><ul class="people-list">${rows}</ul><p class="note enhancement-only">Select a name to show that person's records in Work.</p></div></section>`;
 }
 
@@ -1263,27 +1706,41 @@ function renderSource(snapshot, items, unavailable) {
     const inspected = `${plural(items.length, 'record', 'records')} inspected`;
     const stored = storedVocabulary(snapshot);
     // The report is read-only either way; a checkout that stores the earlier words is told how to move on. A pinned ref is not.
-    const migration = stored?.code === 'MIGRATION_REQUIRED' && snapshot.source?.kind !== 'shared'
-        ? `<p class="notice">${icon('lock')}<span><strong>Migration required: this project is read-only.</strong> It stores the earlier vocabulary. Work is shown in the current words and every count is unchanged. Preview the migration with the task tool: <span class="mono">${escapeHtml(`${MIGRATE} --dry-run`)}</span>. Then run it without <span class="mono">--dry-run</span>.</span></p>` : '';
-    const coverage = unavailable ? 'Unavailable; no trustworthy work count' : `${capital(words(snapshot.coverage))}, ${inspected}${complete ? '' : '; project total unknown'}`;
+    const migration =
+        stored?.code === 'MIGRATION_REQUIRED' && snapshot.source?.kind !== 'shared'
+            ? `<p class="notice">${icon('lock')}<span><strong>Migration required: this project is read-only.</strong> It stores the earlier vocabulary. Work is shown in the current words and every count is unchanged. Preview the migration with the task tool: <span class="mono">${escapeHtml(`${MIGRATE} --dry-run`)}</span>. Then run it without <span class="mono">--dry-run</span>.</span></p>`
+            : '';
+    const coverage = unavailable
+        ? 'Unavailable; no trustworthy work count'
+        : `${capital(words(snapshot.coverage))}, ${inspected}${complete ? '' : '; project total unknown'}`;
     const source = snapshot.source || {};
-    return `<section class="source source-strip" aria-labelledby="source-heading"><h2 id="source-heading" class="sr-only">Snapshot source</h2><dl class="source-facts"><div><dt>As of</dt><dd><span class="mono">${escapeHtml(instant(snapshot.asOf))}</span></dd></div><div><dt>Source</dt><dd>${escapeHtml(source.label || 'Source unavailable')}${source.ref ? `<span class="fact-sub">${escapeHtml(source.ref)}${source.oid ? ` at ${escapeHtml(String(source.oid).slice(0, 12))}` : ''}</span>` : ''}</dd></div><div><dt>Coverage</dt><dd class="fact-line fact--${tone}">${icon(tone === 'good' ? 'check' : 'alert')}<span>${escapeHtml(coverage)}</span></dd></div><div><dt>Shared freshness</dt><dd>${escapeHtml(capital(words(source.remoteFreshness)))}. Regenerate to see later edits</dd></div></dl>${unreadableSource(snapshot)
-        ? `<p class="notice notice--stop">${icon('alert')}<span><strong>No work can be read from this project.</strong> ${escapeHtml(stored.reason)}. No work is counted or listed.</span></p>`
-        : unavailable
-            ? `<p class="notice notice--stop">${icon('alert')}<span><strong>Inspection unavailable.</strong> Native sources are not converted into portable records. No trustworthy work count can be supplied for this profile.</span></p>`
-            : complete ? '' : `<p class="notice">${icon('alert')}<span><strong>Inspection is incomplete.</strong> Read the limits below before treating this list as the whole project.</span></p>`}${migration}</section>`;
+    return `<section class="source source-strip" aria-labelledby="source-heading"><h2 id="source-heading" class="sr-only">Snapshot source</h2><dl class="source-facts"><div><dt>As of</dt><dd><span class="mono">${escapeHtml(instant(snapshot.asOf))}</span></dd></div><div><dt>Source</dt><dd>${escapeHtml(source.label || 'Source unavailable')}${source.ref ? `<span class="fact-sub">${escapeHtml(source.ref)}${source.oid ? ` at ${escapeHtml(String(source.oid).slice(0, 12))}` : ''}</span>` : ''}</dd></div><div><dt>Coverage</dt><dd class="fact-line fact--${tone}">${icon(tone === 'good' ? 'check' : 'alert')}<span>${escapeHtml(coverage)}</span></dd></div><div><dt>Shared freshness</dt><dd>${escapeHtml(capital(words(source.remoteFreshness)))}. Regenerate to see later edits</dd></div></dl>${
+        unreadableSource(snapshot)
+            ? `<p class="notice notice--stop">${icon('alert')}<span><strong>No work can be read from this project.</strong> ${escapeHtml(stored.reason)}. No work is counted or listed.</span></p>`
+            : unavailable
+              ? `<p class="notice notice--stop">${icon('alert')}<span><strong>Inspection unavailable.</strong> Native sources are not converted into portable records. No trustworthy work count can be supplied for this profile.</span></p>`
+              : complete
+                ? ''
+                : `<p class="notice">${icon('alert')}<span><strong>Inspection is incomplete.</strong> Read the limits below before treating this list as the whole project.</span></p>`
+    }${migration}</section>`;
 }
 
 function renderLimits(snapshot, unavailable, view) {
     const inView = id => !view.own || view.own.has(id);
-    const diagnostics = array(snapshot.diagnostics), excluded = array(snapshot.excluded).filter(entry => inView(entry?.itemId)), ready = array(snapshot.ready).filter(inView);
+    const diagnostics = array(snapshot.diagnostics),
+        excluded = array(snapshot.excluded).filter(entry => inView(entry?.itemId)),
+        ready = array(snapshot.ready).filter(inView);
     const profile = `${snapshot.profile?.identity || snapshot.profile?.kind || 'Unknown'}${snapshot.profile?.version === undefined ? '' : ` v${snapshot.profile.version}`}${unavailable ? ' / Unsupported inspection capability' : ''}`;
     const fact = (label, value) => `<div><dt>${label}</dt><dd>${escapeHtml(value)}</dd></div>`;
-    return `<section class="limits" aria-labelledby="limits-heading"><h2 id="limits-heading">Inspection limits and snapshot identity</h2>${diagnostics.length
-        ? `<ul class="reasons">${diagnostics.map(diagnostic => `<li>${escapeHtml(diagnostic.itemId || '')}${diagnostic.itemId ? ': ' : ''}${diagnostic.path ? `<span class="mono">${escapeHtml(diagnostic.path)}</span>: ` : ''}${escapeHtml(diagnostic.code || 'Unknown')}: ${escapeHtml(diagnostic.reason || 'No explanation supplied')}</li>`).join('')}</ul>`
-        : `<p>No inspection diagnostics were recorded for this snapshot${snapshot.coverage === 'complete' ? ', so the counts above cover the whole selected scope' : ''}.</p>`}<dl class="source identity">${fact('Fingerprint', snapshot.fingerprint || 'Unknown')}${fact('Profile', profile)}${fact('Checkout', snapshot.project?.root || 'Unknown')}${fact('Scope revision', snapshot.metrics?.scopeRevision || 'Unknown')}${fact('Detail form', DETAIL_NAMES[view.mode])}${fact('Size budget', view.budget?.maxBytes ? `${view.budget.maxBytes} bytes, ${view.budget.met === false ? 'not met by this smallest form' : 'met'}` : 'None stated for this copy')}${fact('Proved ready to start', ready.join(', ') || 'None in this snapshot')}</dl>${excluded.length
-        ? `<details><summary>Why other records are not ready to start (${excluded.length})</summary><ul class="reasons">${excluded.map(entry => `<li><span class="mono">${escapeHtml(entry?.itemId || 'Unknown')}</span>: ${escapeHtml(array(entry?.reasons).join('; ') || 'No reason supplied')}</li>`).join('')}</ul></details>`
-        : '<p class="note">No selection exclusions recorded.</p>'}</section>`;
+    return `<section class="limits" aria-labelledby="limits-heading"><h2 id="limits-heading">Inspection limits and snapshot identity</h2>${
+        diagnostics.length
+            ? `<ul class="reasons">${diagnostics.map(diagnostic => `<li>${escapeHtml(diagnostic.itemId || '')}${diagnostic.itemId ? ': ' : ''}${diagnostic.path ? `<span class="mono">${escapeHtml(diagnostic.path)}</span>: ` : ''}${escapeHtml(diagnostic.code || 'Unknown')}: ${escapeHtml(diagnostic.reason || 'No explanation supplied')}</li>`).join('')}</ul>`
+            : `<p>No inspection diagnostics were recorded for this snapshot${snapshot.coverage === 'complete' ? ', so the counts above cover the whole selected scope' : ''}.</p>`
+    }<dl class="source identity">${fact('Fingerprint', snapshot.fingerprint || 'Unknown')}${fact('Profile', profile)}${fact('Checkout', snapshot.project?.root || 'Unknown')}${fact('Scope revision', snapshot.metrics?.scopeRevision || 'Unknown')}${fact('Detail form', DETAIL_NAMES[view.mode])}${fact('Size budget', view.budget?.maxBytes ? `${view.budget.maxBytes} bytes, ${view.budget.met === false ? 'not met by this smallest form' : 'met'}` : 'None stated for this copy')}${fact('Proved ready to start', ready.join(', ') || 'None in this snapshot')}</dl>${
+        excluded.length
+            ? `<details><summary>Why other records are not ready to start (${excluded.length})</summary><ul class="reasons">${excluded.map(entry => `<li><span class="mono">${escapeHtml(entry?.itemId || 'Unknown')}</span>: ${escapeHtml(array(entry?.reasons).join('; ') || 'No reason supplied')}</li>`).join('')}</ul></details>`
+            : '<p class="note">No selection exclusions recorded.</p>'
+    }</section>`;
 }
 
 // What one render shares: the snapshot, who is who, which record an identity names, which records this copy lists and which
@@ -1296,32 +1753,56 @@ function renderContext(snapshot, items, scoped, mode) {
     const named = (own, declared) => value => String({ ...own, ...declared }[value] || value);
     const figures = snapshot.figures?.status === 'complete' ? snapshot.figures : null;
     const name = scopeName(snapshot, kinds);
-    return { snapshot, members: array(snapshot.members), byId, mode, kinds, linkNames: { ...VOCABULARY.labels.linkRoles, ...shown.linkRoles },
+    return {
+        snapshot,
+        members: array(snapshot.members),
+        byId,
+        mode,
+        kinds,
+        linkNames: { ...VOCABULARY.labels.linkRoles, ...shown.linkRoles },
         // Display labels for levels, types and priority levels: data, escaped where they are written.
-        names: { level: named(VOCABULARY.labels.levels, shown.levels), type: named(VOCABULARY.labels.initiativeTypes, shown.initiativeTypes), priority: named(VOCABULARY.labels.priorityLevels, shown.priorityLevels) },
-        inScope: new Set(scoped), detailed: new Set(mode === 'none' ? [] : scoped), scopeName: name, scopeLabel: name || 'Whole project',
+        names: {
+            level: named(VOCABULARY.labels.levels, shown.levels),
+            type: named(VOCABULARY.labels.initiativeTypes, shown.initiativeTypes),
+            priority: named(VOCABULARY.labels.priorityLevels, shown.priorityLevels)
+        },
+        inScope: new Set(scoped),
+        detailed: new Set(mode === 'none' ? [] : scoped),
+        scopeName: name,
+        scopeLabel: name || 'Whole project',
         // The day of the read, against which a due date is "today".
         today: String(snapshot.asOf || '').slice(0, 10),
         areas: new Map(array(snapshot.hierarchy?.areas).map(area => [area.id, area])),
         numbers: new Map([...array(figures?.areas), ...array(figures?.initiatives)].map(entry => [entry.id, entry])),
-        eligible: new Set(array(snapshot.metrics?.eligibleIds)) };
+        eligible: new Set(array(snapshot.metrics?.eligibleIds))
+    };
 }
 
 // Where every kind of work stands, each kind along its own lifecycle. A count of records, never a delivery figure: only
 // tasks earn delivery credit.
 function renderKinds(records, kinds, complete) {
-    const stated = counts => counts.filter(([total]) => total).map(([total, name]) => `${total} ${name}`).join(', ');
-    const lines = VOCABULARY.kinds.map(kind => {
-        const own = statesOf(lifecycleOf(kind));
-        const held = records.filter(item => item.kind === kind);
-        const open = held.filter(item => !item.retired);
-        const inState = state => open.filter(item => item.state === state).length;
-        const onLine = stated(own.filter(state => state !== OFF_LINE).map(state => [inState(state), STATE_NAMES[state].toLowerCase()]));
-        // Canceled, retired and unrecognised records stand apart from the lifecycle, as they do in "Where work stands".
-        const off = stated([[inState(OFF_LINE), STATE_NAMES[OFF_LINE].toLowerCase()], [held.length - open.length, 'retired'], [open.filter(item => !own.includes(item.state)).length, 'in another recorded state']]);
-        const stands = held.length ? [onLine, off && `Off the line: ${off}`].filter(Boolean).join('. ') : 'None';
-        return `<div><dt>${kinds.many(kind)} <span class="id">${held.length}</span></dt><dd>${escapeHtml(stands)}</dd></div>`;
-    }).join('');
+    const stated = counts =>
+        counts
+            .filter(([total]) => total)
+            .map(([total, name]) => `${total} ${name}`)
+            .join(', ');
+    const lines = VOCABULARY.kinds
+        .map(kind => {
+            const own = statesOf(lifecycleOf(kind));
+            const held = records.filter(item => item.kind === kind);
+            const open = held.filter(item => !item.retired);
+            const inState = state => open.filter(item => item.state === state).length;
+            const onLine = stated(own.filter(state => state !== OFF_LINE).map(state => [inState(state), STATE_NAMES[state].toLowerCase()]));
+            // Canceled, retired and unrecognised records stand apart from the lifecycle, as they do in "Where work stands".
+            const off = stated([
+                [inState(OFF_LINE), STATE_NAMES[OFF_LINE].toLowerCase()],
+                [held.length - open.length, 'retired'],
+                [open.filter(item => !own.includes(item.state)).length, 'in another recorded state']
+            ]);
+            const stands = held.length ? [onLine, off && `Off the line: ${off}`].filter(Boolean).join('. ') : 'None';
+            return `<div><dt>${kinds.many(kind)} <span class="id">${held.length}</span></dt><dd>${escapeHtml(stands)}</dd></div>`;
+        })
+        .join('');
     return `<section class="kinds card" aria-labelledby="kinds-heading"><div class="card-head"><h2 id="kinds-heading">Status by kind</h2><p class="aside">Every inspected record, counted once${complete ? '' : '; project total unknown'}. Only ${kinds.lowerMany(DELIVERY_KIND)} earn delivery credit</p></div><dl class="kind-lines">${lines}</dl></section>`;
 }
 
@@ -1344,7 +1825,9 @@ function renderAreaFigures(ctx) {
     const figures = snapshot.figures;
     if (!figures || !snapshot.hierarchy) return '';
     const scope = scopeOf(snapshot);
-    const tasks = kinds.lowerMany(DELIVERY_KIND), area = kinds.word(1, AREA_KIND), areasWord = kinds.lowerMany(AREA_KIND);
+    const tasks = kinds.lowerMany(DELIVERY_KIND),
+        area = kinds.word(1, AREA_KIND),
+        areasWord = kinds.lowerMany(AREA_KIND);
     const title = `<h2 id="areas-heading">How each ${area} stands</h2>`;
     // A scoped snapshot shows the areas of its own scope: the area and those inside it, never the areas above or beside.
     const shown = array(snapshot.hierarchy.areas).filter(entry => byId.get(entry.id) && ctx.inScope.has(byId.get(entry.id)));
@@ -1357,7 +1840,10 @@ function renderAreaFigures(ctx) {
     const known = new Map(shown.map(entry => [entry.id, entry]));
     const rank = entry => (VOCABULARY.levels.includes(entry.level) ? VOCABULARY.levels.indexOf(entry.level) : VOCABULARY.levels.length);
     // Shallowest level first, then by title.
-    const ordered = entries => [...entries].sort((a, b) => rank(a) - rank(b) || byId.get(a.id).title.localeCompare(byId.get(b.id).title, 'en', { sensitivity: 'base' }) || (a.id < b.id ? -1 : 1));
+    const ordered = entries =>
+        [...entries].sort(
+            (a, b) => rank(a) - rank(b) || byId.get(a.id).title.localeCompare(byId.get(b.id).title, 'en', { sensitivity: 'base' }) || (a.id < b.id ? -1 : 1)
+        );
     // The identity is printed beside an area at the top of the list. Further in, the line keeps it for a reader who
     // asks for it and for assistive technology, and the rows keep one height.
     const line = (entry, top) => {
@@ -1373,17 +1859,27 @@ function renderAreaFigures(ctx) {
         if (visited.has(entry.id)) return '';
         visited.add(entry.id);
         // A child reached through an earlier sibling is listed there, so only the lines written here are counted.
-        const children = ordered(array(entry.childAreaIds).map(id => known.get(id)).filter(Boolean)).map(child => branch(child, false)).filter(Boolean);
+        const children = ordered(
+            array(entry.childAreaIds)
+                .map(id => known.get(id))
+                .filter(Boolean)
+        )
+            .map(child => branch(child, false))
+            .filter(Boolean);
         return `<li>${line(entry, top)}${children.length ? `<details class="fig-more"><summary>${kinds.count(children.length, AREA_KIND)} inside ${escapeHtml(byId.get(entry.id).title)}</summary><ul class="fig-list">${children.join('')}</ul></details>` : ''}</li>`;
     };
     const roots = shown.filter(entry => !array(entry.parentAreaIds).some(parent => known.has(parent)));
     const list = [...ordered(roots), ...ordered(shown)].map(entry => branch(entry, true)).join('');
     // Work that belongs to no area belongs to the project as a whole, and is listed so that it can be found.
     const untagged = scope ? [] : array(snapshot.hierarchy.untaggedTaskIds);
-    const outside = untagged.length ? `<div class="hint"><p><strong>Not in any ${area}: ${kinds.count(untagged.length, DELIVERY_KIND)}.</strong> ${untagged.length === 1 ? 'It counts' : 'They count'} for the whole project only.</p><details class="fig-more"><summary>List ${untagged.length === 1 ? 'it' : 'them'}</summary><ul class="reasons" aria-label="Not in any ${area}">${untagged.map(id => `<li>${linkedRecord(id, ctx)}</li>`).join('')}</ul></details></div>` : '';
+    const outside = untagged.length
+        ? `<div class="hint"><p><strong>Not in any ${area}: ${kinds.count(untagged.length, DELIVERY_KIND)}.</strong> ${untagged.length === 1 ? 'It counts' : 'They count'} for the whole project only.</p><details class="fig-more"><summary>List ${untagged.length === 1 ? 'it' : 'them'}</summary><ul class="reasons" aria-label="Not in any ${area}">${untagged.map(id => `<li>${linkedRecord(id, ctx)}</li>`).join('')}</ul></details></div>`
+        : '';
     // Open all and Close all are two small links at the end of the heading line. They exist only once scripts run, and
     // only where there is a level to open; without scripts the heading line is the title and its caption, as written.
-    const links = list.includes('<details') ? `<div class="level-links enhancement-only" role="group" aria-label="${kinds.one(AREA_KIND)} list levels"><button type="button" class="level-link" data-tree-open="true" aria-label="Open all ${areasWord}">${icon('levelsOpen')}<span>Open all</span></button><span class="level-rule" aria-hidden="true"></span><button type="button" class="level-link" data-tree-open="false" aria-label="Close all ${areasWord}">${icon('levelsClose')}<span>Close all</span></button></div>` : '';
+    const links = list.includes('<details')
+        ? `<div class="level-links enhancement-only" role="group" aria-label="${kinds.one(AREA_KIND)} list levels"><button type="button" class="level-link" data-tree-open="true" aria-label="Open all ${areasWord}">${icon('levelsOpen')}<span>Open all</span></button><span class="level-rule" aria-hidden="true"></span><button type="button" class="level-link" data-tree-open="false" aria-label="Close all ${areasWord}">${icon('levelsClose')}<span>Close all</span></button></div>`
+        : '';
     // The areas at the top are read a page at a time once scripts run; every one of them is in the file.
     const pager = place => renderPager(place, { list: `${kinds.one(AREA_KIND)} list`, previous: 'Previous page', next: 'Next page', counted: true });
     const head = `<div class="card-head${links ? ' card-head--levels' : ''}">${title}${links}<p class="aside">Each line counts the ${area}'s own ${tasks} and those of the ${areasWord} inside it</p></div>`;
@@ -1396,27 +1892,38 @@ function renderInitiativeFigures(ctx) {
     const figures = snapshot.figures;
     if (!figures || !snapshot.hierarchy) return '';
     const scope = scopeOf(snapshot);
-    const one = kinds.word(1, INITIATIVE_KIND), tasks = kinds.lowerMany(DELIVERY_KIND);
+    const one = kinds.word(1, INITIATIVE_KIND),
+        tasks = kinds.lowerMany(DELIVERY_KIND);
     const title = `<h2 id="initiatives-heading">How each ${one} stands</h2>`;
     const shown = [...ctx.inScope].filter(item => item.kind === INITIATIVE_KIND && byId.get(item.id) === item);
     if (!shown.length) {
-        return scope ? '' : `<section class="initiatives card" aria-labelledby="initiatives-heading"><div class="card-head">${title}</div><p class="empty"><strong>This project has no ${kinds.lowerMany(INITIATIVE_KIND)}.</strong> Capture ${kinds.a(INITIATIVE_KIND)}, then link the ${tasks} that deliver it.</p></section>`;
+        return scope
+            ? ''
+            : `<section class="initiatives card" aria-labelledby="initiatives-heading"><div class="card-head">${title}</div><p class="empty"><strong>This project has no ${kinds.lowerMany(INITIATIVE_KIND)}.</strong> Capture ${kinds.a(INITIATIVE_KIND)}, then link the ${tasks} that deliver it.</p></section>`;
     }
     const complete = figures.status === 'complete';
-    const byDue = (a, b) => Number(!!b.overdue) - Number(!!a.overdue) || Number(!a.deadline) - Number(!b.deadline) || String(a.deadline || '').localeCompare(String(b.deadline || ''))
-        || a.title.localeCompare(b.title, 'en', { sensitivity: 'base' }) || (a.id < b.id ? -1 : 1);
+    const byDue = (a, b) =>
+        Number(!!b.overdue) - Number(!!a.overdue) ||
+        Number(!a.deadline) - Number(!b.deadline) ||
+        String(a.deadline || '').localeCompare(String(b.deadline || '')) ||
+        a.title.localeCompare(b.title, 'en', { sensitivity: 'base' }) ||
+        (a.id < b.id ? -1 : 1);
     const row = item => {
         const entry = ctx.numbers.get(item.id);
         const name = ctx.detailed.has(item) ? `<a href="#${escapeHtml(recordAnchor(item, byId))}">${escapeHtml(item.title)}</a>` : escapeHtml(item.title);
-        const delivery = !complete ? '<td colspan="2" class="is-none">Figures withheld</td>'
-            : !entry ? '<td colspan="2" class="is-none">Figures unavailable</td>'
-            : !entry.total ? `<td colspan="2" class="is-none">${noFigure(INITIATIVE_KIND, kinds)}</td>`
-            : `<td><span class="fig-delivery">${meter(entry, METER.wide)}<span>${entry.accepted} of ${kinds.count(entry.total, DELIVERY_KIND)} accepted</span><span class="fig-rest">${entry.remaining} remaining, ${entry.currentlyVerified} with current proof</span></span></td><td class="num">${typeof entry.percentage === 'number' ? `${entry.percentage.toFixed(1)}%` : ''}</td>`;
+        const delivery = !complete
+            ? '<td colspan="2" class="is-none">Figures withheld</td>'
+            : !entry
+              ? '<td colspan="2" class="is-none">Figures unavailable</td>'
+              : !entry.total
+                ? `<td colspan="2" class="is-none">${noFigure(INITIATIVE_KIND, kinds)}</td>`
+                : `<td><span class="fig-delivery">${meter(entry, METER.wide)}<span>${entry.accepted} of ${kinds.count(entry.total, DELIVERY_KIND)} accepted</span><span class="fig-rest">${entry.remaining} remaining, ${entry.currentlyVerified} with current proof</span></span></td><td class="num">${typeof entry.percentage === 'number' ? `${entry.percentage.toFixed(1)}%` : ''}</td>`;
         return `<tr><th scope="row"><span class="fig-name" title="${escapeHtml(item.id)}">${labelChip(item.type && ctx.names.type(item.type))}${name}<span class="id sr-only">${escapeHtml(item.id)}</span>${item.retired ? '<span class="flag">Retired</span>' : ''}</span></th><td>${stateMark(item)}</td><td>${item.priorityLevel ? escapeHtml(ctx.names.priority(item.priorityLevel)) : '<span class="is-none">Not set</span>'}</td><td>${dueMark(item, ctx.today)}</td>${delivery}</tr>`;
     };
     // A retired record is not open, whatever state it was retired in: it stands with the closed ones, as it does in the workspace.
     const over = item => closed(item) || !!item.retired;
-    const open = shown.filter(item => !over(item)).sort(byDue), ended = shown.filter(over).sort(byDue);
+    const open = shown.filter(item => !over(item)).sort(byDue),
+        ended = shown.filter(over).sort(byDue);
     const body = `${open.length ? `<tbody>${open.map(row).join('')}</tbody>` : ''}${ended.length ? `<tbody><tr><th colspan="6" scope="rowgroup" class="fig-sub">Closed</th></tr>${ended.map(row).join('')}</tbody>` : ''}`;
     const head = `<div class="card-head">${title}<p class="aside">Each line counts the ${tasks} linked to that ${one}. Closing is a person's decision; no line closes by itself</p></div>`;
     // The table is read a page at a time once scripts run. Every row is in the file, so without scripts and on paper they are all there.
@@ -1434,31 +1941,47 @@ function renderPager(place, { list = 'Work list', previous = 'Previous', next = 
     const status = '<p class="pager-status" data-page-status></p>';
     const choice = `<label class="pager-length"><span class="sr-only">Rows per page</span><select data-page-length>${PAGE_LENGTHS.map(length => `<option value="${length}">${length} per page</option>`).join('')}<option value="0">All</option></select>${icon('chevron')}</label>`;
     const steps = `${step(-1, previous, 'chevronLeft')}${below ? status : ''}${step(1, next, 'chevronRight')}`;
-    return `<nav class="pager enhancement-only" data-pager="${place}" aria-label="${list} pages${below ? ', below the list' : ''}" hidden>${below ? steps
-        : `${counted ? '<p class="pager-count" data-page-count role="status" aria-live="polite"></p>' : status}<div class="pager-controls">${choice}<span class="pager-rule" aria-hidden="true"></span><span class="pager-steps">${steps}</span></div>`}</nav>`;
+    return `<nav class="pager enhancement-only" data-pager="${place}" aria-label="${list} pages${below ? ', below the list' : ''}" hidden>${
+        below
+            ? steps
+            : `${counted ? '<p class="pager-count" data-page-count role="status" aria-live="polite"></p>' : status}<div class="pager-controls">${choice}<span class="pager-rule" aria-hidden="true"></span><span class="pager-steps">${steps}</span></div>`
+    }</nav>`;
 }
 
 // What a copy that is not the full form says about itself, and what a size budget did to it.
 function renderFormNotice(mode, budget, kinds) {
-    const fitted = !budget?.maxBytes ? '' : budget.met === false ? ` The size budget of ${budget.maxBytes} bytes was not met; this is the smallest form.`
-        : budget.requested && budget.requested !== mode ? ` Written in this form to fit the size budget of ${budget.maxBytes} bytes.` : '';
+    const fitted = !budget?.maxBytes
+        ? ''
+        : budget.met === false
+          ? ` The size budget of ${budget.maxBytes} bytes was not met; this is the smallest form.`
+          : budget.requested && budget.requested !== mode
+            ? ` Written in this form to fit the size budget of ${budget.maxBytes} bytes.`
+            : '';
     const read = `in the workspace, or with the task tool: <span class="mono">${escapeHtml(READ_ONE)}</span>`;
     const full = `For the full version, which reads without scripts: <span class="mono">${escapeHtml(READ_FULL)}</span>`;
-    if (mode === 'packed') return `<p class="notice">${icon('alert')}<span><strong>Compact version.</strong> The list below has one row for each record. A record's outcome, criteria, links, proof and history are packed in this file and open from its row when scripts are on. ${full}.${escapeHtml(fitted)}</span></p><p id="packed-unavailable" class="hint" role="status" hidden><strong>Record detail could not be opened in this browser.</strong> The counts and every listed record below are complete. Open this file in a current browser, or read a record in the full version, ${read}.</p>`;
-    if (mode === 'none') return `<p class="notice">${icon('alert')}<span><strong>Compact version without record detail.</strong> Detail not in this copy. Every inspected record is still listed, without its outcome, criteria, links, proof and history. Read a record in the full version (<span class="mono">${escapeHtml(READ_FULL)}</span>), in the report of its ${kinds.word(1, AREA_KIND)} or ${kinds.word(1, INITIATIVE_KIND)}, ${read}.${escapeHtml(fitted)}</span></p>`;
+    if (mode === 'packed')
+        return `<p class="notice">${icon('alert')}<span><strong>Compact version.</strong> The list below has one row for each record. A record's outcome, criteria, links, proof and history are packed in this file and open from its row when scripts are on. ${full}.${escapeHtml(fitted)}</span></p><p id="packed-unavailable" class="hint" role="status" hidden><strong>Record detail could not be opened in this browser.</strong> The counts and every listed record below are complete. Open this file in a current browser, or read a record in the full version, ${read}.</p>`;
+    if (mode === 'none')
+        return `<p class="notice">${icon('alert')}<span><strong>Compact version without record detail.</strong> Detail not in this copy. Every inspected record is still listed, without its outcome, criteria, links, proof and history. Read a record in the full version (<span class="mono">${escapeHtml(READ_FULL)}</span>), in the report of its ${kinds.word(1, AREA_KIND)} or ${kinds.word(1, INITIATIVE_KIND)}, ${read}.${escapeHtml(fitted)}</span></p>`;
     return '';
 }
 
 function renderReport(snapshot, manifest, options = {}) {
     const stated = snapshot?.vocabulary?.lifecycles;
     shownLifecycles = stated && typeof stated === 'object' && !Array.isArray(stated) ? stated : VOCABULARY.lifecycles;
-    try { return renderSnapshot(snapshot, manifest, options); } finally { shownLifecycles = VOCABULARY.lifecycles; }
+    try {
+        return renderSnapshot(snapshot, manifest, options);
+    } finally {
+        shownLifecycles = VOCABULARY.lifecycles;
+    }
 }
 
 function renderSnapshot(snapshot, manifest, options = {}) {
-    if (!snapshot || typeof snapshot !== 'object' || !manifest || typeof manifest !== 'object') throw new TypeError('Report needs a snapshot and ownership manifest');
+    if (!snapshot || typeof snapshot !== 'object' || !manifest || typeof manifest !== 'object')
+        throw new TypeError('Report needs a snapshot and ownership manifest');
     const mode = DETAIL_FORMS.includes(options.detail) ? options.detail : 'full';
-    const items = array(snapshot.items), members = array(snapshot.members);
+    const items = array(snapshot.items),
+        members = array(snapshot.members);
     const name = snapshot.project?.name || 'Selected project';
     const scope = scopeOf(snapshot);
     // A scoped snapshot carries that scope's own records: the area or initiative and what it holds. A project's carries
@@ -1476,18 +1999,25 @@ function renderSnapshot(snapshot, manifest, options = {}) {
     const unknownOwners = [...new Set(scoped.map(item => item.assigneeId).filter(id => id && !members.some(member => member.id === id)))];
     const owners = [{ id: UNASSIGNED, displayName: 'Unassigned' }, ...members, ...unknownOwners.map(id => ({ id, displayName: `Unknown member (${id})` }))];
     const byName = (a, b) => a.displayName.localeCompare(b.displayName, 'en', { sensitivity: 'base' }) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
-    const directory = [...[...members].sort(byName).map(member => ({ ...member, label: memberLabel(member.id, members) })),
-        ...unknownOwners.sort().map(id => ({ id, label: `Unknown member (${id})`, unknown: true })), { id: UNASSIGNED, label: 'Unassigned' }];
+    const directory = [
+        ...[...members].sort(byName).map(member => ({ ...member, label: memberLabel(member.id, members) })),
+        ...unknownOwners.sort().map(id => ({ id, label: `Unknown member (${id})`, unknown: true })),
+        { id: UNASSIGNED, label: 'Unassigned' }
+    ];
     const unavailable = snapshot.coverage === 'unavailable' || snapshot.profile?.available === false;
     const limited = unavailable || snapshot.coverage !== 'complete';
     const unreadable = unreadableSource(snapshot);
     // Page text already: fixed sentences, a scope name that arrives escaped and kind words that arrive escaped.
-    const standfirst = unreadable ? 'This project cannot be read. No work is counted or listed.'
-        : unavailable ? 'Inspection unavailable. No work could be read for this profile.'
-        : limited ? 'Partly inspected. Only the records that could be read are shown.'
-            // A scoped snapshot counts delivery for that area or initiative only and carries its own records.
-            : scope ? `Delivery counted for ${ctx.scopeName}. The primary list contains exactly its eligible ${tasks}; this snapshot carries this ${kinds.word(1, scope.kind)}'s own records, and other work is outside it.`
-                : 'Whole project. What was accepted, what is proved, and what waits on a person.';
+    const standfirst = unreadable
+        ? 'This project cannot be read. No work is counted or listed.'
+        : unavailable
+          ? 'Inspection unavailable. No work could be read for this profile.'
+          : limited
+            ? 'Partly inspected. Only the records that could be read are shown.'
+            : // A scoped snapshot counts delivery for that area or initiative only and carries its own records.
+              scope
+              ? `Delivery counted for ${ctx.scopeName}. The primary list contains exactly its eligible ${tasks}; this snapshot carries this ${kinds.word(1, scope.kind)}'s own records, and other work is outside it.`
+              : 'Whole project. What was accepted, what is proved, and what waits on a person.';
     const policy = `default-src 'none'; script-src ${REPORT_INLINE_SOURCES.script}; style-src ${REPORT_INLINE_SOURCES.style}; base-uri 'none'; form-action 'none'; object-src 'none'; connect-src 'none'`;
     const cards = mode === 'none' ? '' : scoped.map(item => renderDetail(item, ctx)).join('');
     const paths = mode === 'none' ? '' : renderPathConcerns(ctx, scoped);
@@ -1495,12 +2025,18 @@ function renderSnapshot(snapshot, manifest, options = {}) {
     // The page script reads the form from here; the packed form also carries its record detail here.
     const data = { detail: mode, ...(mode === 'packed' ? { packed: zlib.gzipSync(JSON.stringify({ cards, paths }), { level: 9 }).toString('base64') } : {}) };
     const emptyDetail = mode === 'none' ? 'This copy lists records without their detail.' : 'Select a row to open its outcome, criteria and proof.';
-    const scriptless = mode === 'full' ? 'Every inspected record and its detail is listed above; filtering and person selection require scripts. Use the browser Find command and native record links to inspect work.'
-        : mode === 'packed' ? 'Every inspected record is listed above. Record detail in this copy is packed and needs scripts; the full version reads without them.'
-            : 'Every inspected record is listed above. Record detail is not in this copy.';
-    const closing = mode === 'full' ? 'It is one self-contained file: it loads nothing from the network and stays readable with scripts turned off.'
-        : mode === 'packed' ? 'It is one self-contained file and loads nothing from the network. Its record detail is packed and opens with scripts turned on.'
-            : 'It is one self-contained file and loads nothing from the network. It carries the overview and the list of records, without record detail.';
+    const scriptless =
+        mode === 'full'
+            ? 'Every inspected record and its detail is listed above; filtering and person selection require scripts. Use the browser Find command and native record links to inspect work.'
+            : mode === 'packed'
+              ? 'Every inspected record is listed above. Record detail in this copy is packed and needs scripts; the full version reads without them.'
+              : 'Every inspected record is listed above. Record detail is not in this copy.';
+    const closing =
+        mode === 'full'
+            ? 'It is one self-contained file: it loads nothing from the network and stays readable with scripts turned off.'
+            : mode === 'packed'
+              ? 'It is one self-contained file and loads nothing from the network. Its record detail is packed and opens with scripts turned on.'
+              : 'It is one self-contained file and loads nothing from the network. It carries the overview and the list of records, without record detail.';
     return `<!doctype html>
 <!-- task-track-generated:v1 -->
 <html lang="en"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${escapeHtml(policy)}"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark"><title>${escapeHtml(name)}: work snapshot</title><style>${STYLES}</style></head>
@@ -1509,11 +2045,14 @@ ${renderSource(snapshot, items, unavailable)}${renderFormNotice(mode, options.bu
 <div class="split">${renderSummary(snapshot, kinds)}${renderHealth(snapshot.health, scope ? kinds.one(scope.kind) : '')}</div>
 ${standing.length ? renderStanding(standing, kinds, !scope) : ''}${renderAreaFigures(ctx)}${renderInitiativeFigures(ctx)}${scoped.length ? renderKinds(scoped, kinds, !limited) : ''}${renderWaiting(ctx, listed)}
 ${renderPeople(scoped, directory)}
-<section id="work" class="work-region section" aria-labelledby="work-heading"><div class="section-head"><h2 id="work-heading" tabindex="-1">Work</h2><div class="aside"><p id="work-count" role="status" aria-live="polite" data-coverage="${escapeHtml(snapshot.coverage || 'unknown')}">${listed.length} ${scope ? `eligible delivery ${tasks}` : 'inspected records'}${limited ? '; project total unknown' : ''}</p>${items.length ? '<p class="enhancement-only">Filters never change the delivery count above</p>' : ''}${mode === 'full' || !items.length ? '' : `<p><strong>Compact version of this list.</strong> ${mode === 'packed' ? 'A row opens its record\'s detail when scripts are on' : 'Record detail is not in this copy'}</p>`}</div></div>
+<section id="work" class="work-region section" aria-labelledby="work-heading"><div class="section-head"><h2 id="work-heading" tabindex="-1">Work</h2><div class="aside"><p id="work-count" role="status" aria-live="polite" data-coverage="${escapeHtml(snapshot.coverage || 'unknown')}">${listed.length} ${scope ? `eligible delivery ${tasks}` : 'inspected records'}${limited ? '; project total unknown' : ''}</p>${items.length ? '<p class="enhancement-only">Filters never change the delivery count above</p>' : ''}${mode === 'full' || !items.length ? '' : `<p><strong>Compact version of this list.</strong> ${mode === 'packed' ? "A row opens its record's detail when scripts are on" : 'Record detail is not in this copy'}</p>`}</div></div>
 <div class="filters enhancement-only"${items.length ? '' : ' hidden'}><label class="field field--search">Search work<input id="work-search" type="search" maxlength="2000" autocomplete="off" placeholder="${mode === 'none' ? 'Title or identity' : 'Title, identity or outcome'}"></label><label class="field">Responsible person<select id="work-owner"><option value="">All people</option>${owners.map(member => `<option value="${escapeHtml(member.id)}">${escapeHtml(member.displayName)}${member.active === false ? ' (inactive)' : ''}</option>`).join('')}</select></label><label class="field">Recorded state<select id="work-state"><option value="">All states</option>${states.map(state => `<option value="${escapeHtml(state)}">${escapeHtml(capital(stateName(state)))}</option>`).join('')}</select></label><label class="check"><input id="work-remaining" type="checkbox"><span>Remaining work</span></label><button type="button" id="clear-filters">Clear filters</button></div>
 <p id="interaction-error" class="hint" hidden>Filtering could not start. All inspected records remain available below. Reopen this report to retry.</p>
-${listed.length ? `${renderPager('top')}<div class="table"><div class="table-head" aria-hidden="true"><span>Work</span><span>State</span><span>Responsible</span><span>Proof</span><span>Acceptance</span></div><ul class="work-list" aria-label="${scope ? `Eligible delivery ${tasks}` : 'Work list'}">${listed.map(item => renderRow(item, ctx)).join('')}</ul></div>${renderPager('bottom')}`
-        : `<div class="empty"><p class="empty-heading">${limited ? 'Work inspection is limited' : scope ? `No eligible delivery ${tasks}` : 'No tracked work yet'}</p><p>${limited ? 'Work could not be fully inspected. Check the limits below and regenerate; zero inspected records is not proof of an empty project.' : scope ? `This fixed scope has no eligible delivery ${tasks}. Inspect excluded, supporting or outside records separately; no percentage applies.` : `No work records were found in the selected snapshot. Capture ${kinds.a(INITIATIVE_KIND)} or ${kinds.word(1, DELIVERY_KIND)} through the project tool or assistant, then regenerate this report.`}</p></div>`}<p id="filter-empty" class="hint" hidden>No records match these filters. Clear filters to inspect all records in this snapshot.</p>
+${
+    listed.length
+        ? `${renderPager('top')}<div class="table"><div class="table-head" aria-hidden="true"><span>Work</span><span>State</span><span>Responsible</span><span>Proof</span><span>Acceptance</span></div><ul class="work-list" aria-label="${scope ? `Eligible delivery ${tasks}` : 'Work list'}">${listed.map(item => renderRow(item, ctx)).join('')}</ul></div>${renderPager('bottom')}`
+        : `<div class="empty"><p class="empty-heading">${limited ? 'Work inspection is limited' : scope ? `No eligible delivery ${tasks}` : 'No tracked work yet'}</p><p>${limited ? 'Work could not be fully inspected. Check the limits below and regenerate; zero inspected records is not proof of an empty project.' : scope ? `This fixed scope has no eligible delivery ${tasks}. Inspect excluded, supporting or outside records separately; no percentage applies.` : `No work records were found in the selected snapshot. Capture ${kinds.a(INITIATIVE_KIND)} or ${kinds.word(1, DELIVERY_KIND)} through the project tool or assistant, then regenerate this report.`}</p></div>`
+}<p id="filter-empty" class="hint" hidden>No records match these filters. Clear filters to inspect all records in this snapshot.</p>
 <div class="record-details" aria-label="Inspected records, separate from fixed delivery scope"${items.length ? '' : ' hidden'}><p id="detail-empty" class="note enhancement-only">${emptyDetail}</p><p id="selected-outside" class="hint" role="status" data-read="${escapeHtml(READ_ONE)}" hidden>Selected item is outside the current filters. Clear filters to see its work row.</p>${inline ? cards : ''}</div>
 ${renderScopeLists(ctx)}<div class="path-panels">${inline ? paths : ''}</div>
 ${items.length ? `<p class="note"><span class="enhancement-only">Remaining work means unaccepted eligible ${tasks}: the ${tasks} the delivery scope above counts as not accepted. </span>This snapshot cannot save changes; use the project tool or the managed workspace.</p>` : ''}</section>

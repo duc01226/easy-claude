@@ -111,9 +111,7 @@ function generateTestFixtures() {
     // Paths starting with '.' or '/' indicate hidden/root-relative dirs (e.g. .claude/hooks/lib/) that
     // won't match the FRONTEND_REGEX fallback — use the hardcoded default instead.
     const rawDomainLibBase = domainLib ? regexToSamplePath(domainLib.pathRegex) : null;
-    const domainLibBase = (rawDomainLibBase && /^(?:src|libs)\//i.test(rawDomainLibBase))
-        ? rawDomainLibBase
-        : 'libs/domain';
+    const domainLibBase = rawDomainLibBase && /^(?:src|libs)\//i.test(rawDomainLibBase) ? rawDomainLibBase : 'libs/domain';
     const coreLibBase = coreLib ? regexToSamplePath(coreLib.pathRegex) : 'libs/platform-core';
     const frameworkBase = framework ? ensureSrcPrefix(regexToSamplePath(framework.pathRegex), srcPrefixes) : 'src/Framework';
     const exampleBase = example ? ensureSrcPrefix(regexToSamplePath(example.pathRegex), srcPrefixes) : 'src/ExampleApp';

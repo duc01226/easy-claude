@@ -44,7 +44,7 @@ const { liveSourceFiles } = require('../lib/live-source-files.cjs');
 const { resolveAllWorkflowManifests, resolveWorkflowManifest } = require('../../../scripts/lib/workflow-manifest.cjs');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
-const SKIP = isFrameworkRepo(REPO_ROOT) ? false : 'asserts the framework repo\'s own integration-test skill and workflow registry (framework-repo signal)';
+const SKIP = isFrameworkRepo(REPO_ROOT) ? false : "asserts the framework repo's own integration-test skill and workflow registry (framework-repo signal)";
 
 const SKILLS = path.join(REPO_ROOT, '.claude', 'skills');
 const read = (...parts) => fs.readFileSync(path.join(...parts), 'utf8').replace(/\r\n/g, '\n');
@@ -68,16 +68,12 @@ function guideTags(text) {
     return tags;
 }
 
-const fixtureDocument = (entry) => ({ version: '1', workflows: { fixture: entry } });
-const resolveFixture = (entry) => resolveWorkflowManifest(fixtureDocument(entry), 'fixture', { availableSkills: ['integration-test', 'spec'] });
+const fixtureDocument = entry => ({ version: '1', workflows: { fixture: entry } });
+const resolveFixture = entry => resolveWorkflowManifest(fixtureDocument(entry), 'fixture', { availableSkills: ['integration-test', 'spec'] });
 
 const LIVE_SOURCE_ROOTS = ['.claude', 'docs/specs', 'docs/project-reference', 'README.md'];
 // Generated catalogs are rebuilt from the skill folders; history stays in ADRs and release notes.
-const SCAN_EXCLUDED = new Set([
-    '.claude/SKILLS.yaml',
-    '.claude/scripts/skills_data.yaml',
-    '.claude/hooks/tests/suites/integration-test-modes-merge.test.cjs'
-]);
+const SCAN_EXCLUDED = new Set(['.claude/SKILLS.yaml', '.claude/scripts/skills_data.yaml', '.claude/hooks/tests/suites/integration-test-modes-merge.test.cjs']);
 const SCAN_EXCLUDED_DIRS = new Set(['node_modules', '.git', '.code-graph', 'tmp', 'temp', 'plans']);
 const SCAN_EXTENSIONS = new Set(['.md', '.cjs', '.mjs', '.js', '.py', '.json', '.yaml', '.yml', '.html', '.toml']);
 
@@ -88,7 +84,8 @@ const walk = rel => liveSourceFiles(REPO_ROOT, rel, { extensions: SCAN_EXTENSION
 /** A line that names a removed skill but is an allowed mention. */
 function allowedMention(rel, line) {
     if (rel === '.claude/skills/integration-test/SKILL.md' && /former/i.test(line)) return true;
-    if (rel === '.claude/skills/integration-test/SKILL.md' && /do not resolve\.$/.test(line) && REMOVED.every(name => line.includes('`/' + name + '`'))) return true;
+    if (rel === '.claude/skills/integration-test/SKILL.md' && /do not resolve\.$/.test(line) && REMOVED.every(name => line.includes('`/' + name + '`')))
+        return true;
     if (rel === '.claude/skills/integration-test/references/mode-review.md' && line.includes('tmp/reports/' + REMOVED[0] + '-{YYMMDD}')) return true;
     return false;
 }
@@ -117,7 +114,10 @@ const tests = [
             assert.match(text, /## Mode Dispatch/);
             // Each merged mode has a mandatory full-read line naming an existing reference
             for (const mode of ['review', 'verify']) {
-                assert.ok(text.split('\n').some(line => line.startsWith('| `--mode=' + mode + ' ') && line.includes('`references/mode-' + mode + '.md`')), `full-read dispatch for ${mode}`);
+                assert.ok(
+                    text.split('\n').some(line => line.startsWith('| `--mode=' + mode + ' ') && line.includes('`references/mode-' + mode + '.md`')),
+                    `full-read dispatch for ${mode}`
+                );
                 assert.ok(fs.existsSync(path.join(SKILLS, 'integration-test', 'references', `mode-${mode}.md`)), `references/mode-${mode}.md exists`);
             }
             assert.ok(fs.existsSync(path.join(SKILLS, 'integration-test', 'references', 'fix-loop.md')), 'references/fix-loop.md exists');
@@ -134,10 +134,23 @@ const tests = [
         skip: SKIP,
         fn: () => {
             const text = skill();
-            const reviewOnly = ['## Modes and Round Ownership', '## Single Review Pass — Eight Gates', '### 1. Assertion value', 'Finding Validation and Verdict'];
-            const verifyOnly = ['## Step 1: Read Project Config + Reference Docs', '### Step 1b: Harvest the Environment Precondition Checklist', '## Fallback Mode (No Project Config)', '## On Test Failure Protocol', 'Intermittent (flaky) failure adjudication', '### Step 3b: Test Architecture Contract Scope'];
+            const reviewOnly = [
+                '## Modes and Round Ownership',
+                '## Single Review Pass — Eight Gates',
+                '### 1. Assertion value',
+                'Finding Validation and Verdict'
+            ];
+            const verifyOnly = [
+                '## Step 1: Read Project Config + Reference Docs',
+                '### Step 1b: Harvest the Environment Precondition Checklist',
+                '## Fallback Mode (No Project Config)',
+                '## On Test Failure Protocol',
+                'Intermittent (flaky) failure adjudication',
+                '### Step 3b: Test Architecture Contract Scope'
+            ];
             const loopOnly = ['FL-0 — Resolve Verification Scope + Goal Contract', 'FL-1 — Round Loop'];
-            for (const marker of [...reviewOnly, ...verifyOnly, ...loopOnly]) assert.ok(!text.includes(marker), `integration-test/SKILL.md must not inline mode text: ${marker}`);
+            for (const marker of [...reviewOnly, ...verifyOnly, ...loopOnly])
+                assert.ok(!text.includes(marker), `integration-test/SKILL.md must not inline mode text: ${marker}`);
             for (const marker of reviewOnly) assert.ok(modeReview().includes(marker), `mode-review.md holds ${marker}`);
             for (const marker of verifyOnly) assert.ok(modeVerify().includes(marker), `mode-verify.md holds ${marker}`);
             for (const marker of loopOnly) assert.ok(fixLoop().includes(marker), `fix-loop.md holds ${marker}`);
@@ -146,7 +159,7 @@ const tests = [
             assert.match(text, /## Step 3: Generate Test File/);
             assert.match(text, /Verify-last exception/);
             // Every bullet starts its own line: a closing-reminder bullet never trails on the previous bullet's line (merged-bullet rendering glitch)
-            const merged = text.split('\n').filter((line) => /\S.*[^\s`]- \*\*MANDATORY IMPORTANT MUST ATTENTION\*\*/.test(line));
+            const merged = text.split('\n').filter(line => /\S.*[^\s`]- \*\*MANDATORY IMPORTANT MUST ATTENTION\*\*/.test(line));
             assert.deepEqual(merged, [], 'a "- **MANDATORY IMPORTANT MUST ATTENTION**" bullet is glued to the previous bullet');
         }
     },
@@ -162,7 +175,16 @@ const tests = [
             assert.match(text, /validate findings, repair at the owner, then freshly review the settled target/);
             assert.match(text, /Never weaken assertions, add skips, widen timeouts, or rewrite source\/tests to force green/);
             // Eight gates
-            for (const gate of ['1. Assertion value', '2. Owned outcome', '3. Repeatability and isolation', '4. Behavior ownership', '5. Spec/case traceability', '6. Spec ↔ tests ↔ code consistency', '7. Change coverage', '8. Real-world fidelity']) {
+            for (const gate of [
+                '1. Assertion value',
+                '2. Owned outcome',
+                '3. Repeatability and isolation',
+                '4. Behavior ownership',
+                '5. Spec/case traceability',
+                '6. Spec ↔ tests ↔ code consistency',
+                '7. Change coverage',
+                '8. Real-world fidelity'
+            ]) {
                 assert.ok(text.includes(`### ${gate}`), `gate ${gate}`);
             }
             // Flags and execution evidence
@@ -173,7 +195,10 @@ const tests = [
             assert.match(text, /\/why-review --validate-findings <report-path>/);
             assert.match(text, /terminal validation is part of round 1 and never opens another review round/);
             // No retired prohibition can silently disable the opted-in loop.
-            assert.doesNotMatch(text, /ONE ROUND MAXIMUM per invocation|Never fix tests\/source or re-review inside this skill|another pass requires a new explicit invocation/i);
+            assert.doesNotMatch(
+                text,
+                /ONE ROUND MAXIMUM per invocation|Never fix tests\/source or re-review inside this skill|another pass requires a new explicit invocation/i
+            );
             assert.match(text, /Review-only stops; fix-loop repairs validated findings and performs a fresh complete review/);
             // The AI-surface lens stays inside the single pass
             assert.match(text, /### Conditional AI-surface lens/);
@@ -196,18 +221,32 @@ const tests = [
             assert.match(text, /Always report exact failure counts and names/);
             assert.match(text, /RECOMMEND `\/workflow-integration-test --mode=green` whenever this run ends with ANY failure/);
             // Flake adjudication points at the shared owner
-            assert.match(text, /MUST ATTENTION READ `\.claude\/skills\/shared\/verify-convergence-loop\.md` § 1 whenever a required test is red in one run and green in another/);
+            assert.match(
+                text,
+                /MUST ATTENTION READ `\.claude\/skills\/shared\/verify-convergence-loop\.md` § 1 whenever a required test is red in one run and green in another/
+            );
             // --fix-loop is optional and loads its reference first
             assert.match(text, /## Mode: `--fix-loop` — Read `references\/fix-loop\.md` First \(BLOCKING\)/);
             assert.match(text, /When the flag is present, read `references\/fix-loop\.md` in full FIRST \(BLOCKING\)/);
             assert.match(text, /a sub-agent that receives `--fix-loop` refuses the flag and runs the default pass/);
             // Next Steps: skipped only for THIS run's own nested phase tasks, never an ambient [Workflow] row
-            for (const [label, body] of [['mode-verify', text], ['SKILL', skill()]]) {
+            for (const [label, body] of [
+                ['mode-verify', text],
+                ['SKILL', skill()]
+            ]) {
                 const line = body.split('\n').find(l => l.includes('**Inside a workflow**'));
                 assert.ok(line, `${label} keeps its Inside-a-workflow line`);
-                assert.match(line, /THIS run is a step of a `\[Workflow\]` row: its own phase tasks are linked to that parent row, `nested=true`/, `${label} conditions the skip on nested=true`);
+                assert.match(
+                    line,
+                    /THIS run is a step of a `\[Workflow\]` row: its own phase tasks are linked to that parent row, `nested=true`/,
+                    `${label} conditions the skip on nested=true`
+                );
                 assert.match(line, /abandoned one, does not count/, `${label} says an abandoned row does not count`);
-                assert.match(line, /\*\*Otherwise \(standalone, or only an unrelated `\[Workflow\]` row exists\):\*\*/, `${label} asks when only an unrelated row exists`);
+                assert.match(
+                    line,
+                    /\*\*Otherwise \(standalone, or only an unrelated `\[Workflow\]` row exists\):\*\*/,
+                    `${label} asks when only an unrelated row exists`
+                );
             }
             // The loop reference keeps its own gates
             const loop = fixLoop();
@@ -258,7 +297,8 @@ const tests = [
                 const gates = [...(workflow.outcomeGates || []), ...Object.values(workflow.variants || {}).flatMap(variant => variant.outcomeGates || [])];
                 for (const gate of gates) {
                     for (const satisfier of gate.satisfiedBy) {
-                        if (satisfier === 'integration-test') assert.fail(`${id}/${gate.id}: a bare "integration-test" satisfier is satisfied by test generation`);
+                        if (satisfier === 'integration-test')
+                            assert.fail(`${id}/${gate.id}: a bare "integration-test" satisfier is satisfied by test generation`);
                     }
                 }
             }
@@ -266,12 +306,16 @@ const tests = [
             assert.ok(gateOf('workflow-bugfix', 'tests-pass').satisfiedBy.includes('integration-test --mode=verify'));
             for (const manifest of resolveAllWorkflowManifests(document, 'workflow-review-changes', { rootDir: REPO_ROOT })) {
                 const gate = manifest.outcomeGates.find(gate => gate.id === 'tests-pass');
-                assert.deepEqual(gate?.satisfiedBy, [manifest.mode === 'fix-loop'
-                    ? 'integration-test --mode=verify'
-                    : 'integration-test --mode=review --prove-tests']);
+                assert.deepEqual(gate?.satisfiedBy, [
+                    manifest.mode === 'fix-loop' ? 'integration-test --mode=verify' : 'integration-test --mode=review --prove-tests'
+                ]);
             }
             const integrationTestWorkflow = document.workflows['workflow-integration-test'];
-            assert.ok(integrationTestWorkflow.variants.write.outcomeGates.find(gate => gate.id === 'review-converged').satisfiedBy.includes('integration-test --mode=review'));
+            assert.ok(
+                integrationTestWorkflow.variants.write.outcomeGates
+                    .find(gate => gate.id === 'review-converged')
+                    .satisfiedBy.includes('integration-test --mode=review')
+            );
             assert.ok(gateOf('workflow-integration-test', 'tests-pass').satisfiedBy.includes('integration-test --mode=verify'));
         }
     },
@@ -285,9 +329,19 @@ const tests = [
             const ok = resolveFixture({ sequence: [generate, verify], outcomeGates: gate('integration-test --mode=verify') });
             assert.deepEqual(ok.outcomeGates[0].satisfiedBy, ['integration-test --mode=verify']);
             // And a workflow with only generation steps cannot prove the gate
-            assert.throws(() => resolveFixture({ sequence: [generate], outcomeGates: gate('integration-test --mode=verify') }), /names a skill not in the sequence/);
+            assert.throws(
+                () => resolveFixture({ sequence: [generate], outcomeGates: gate('integration-test --mode=verify') }),
+                /names a skill not in the sequence/
+            );
             // And the review mode does not satisfy the verify gate
-            assert.throws(() => resolveFixture({ sequence: [generate, { id: 'r', skill: 'integration-test', args: '--mode=review' }], outcomeGates: gate('integration-test --mode=verify') }), /names a skill not in the sequence/);
+            assert.throws(
+                () =>
+                    resolveFixture({
+                        sequence: [generate, { id: 'r', skill: 'integration-test', args: '--mode=review' }],
+                        outcomeGates: gate('integration-test --mode=verify')
+                    }),
+                /names a skill not in the sequence/
+            );
         }
     },
     {
@@ -299,7 +353,10 @@ const tests = [
             const bodyOf = (text, tag) => text.includes(`<!-- SYNC:${tag} -->`) && text.includes(`<!-- /SYNC:${tag} -->`);
             const reviewOnly = ['category-review-thinking', 'severity-rubric', 'evidence-based-reasoning'];
             const verifyOnly = ['environment-fault-hypothesis', 'goal-contract-satisfaction-loop', 'trade-off-interrogation-gate'];
-            for (const [label, text, tags] of [['mode-review', modeReview(), reviewOnly], ['mode-verify', modeVerify(), verifyOnly]]) {
+            for (const [label, text, tags] of [
+                ['mode-review', modeReview(), reviewOnly],
+                ['mode-verify', modeVerify(), verifyOnly]
+            ]) {
                 for (const tag of tags) {
                     assert.ok(bodyOf(text, tag), `${label} carries the full ${tag} body`);
                     assert.ok(!skillTags.includes(tag), `integration-test/SKILL.md must not carry a guide for ${tag}`);
@@ -313,10 +370,23 @@ const tests = [
                 assert.equal(opens.length, closes.length, `${label} fences balanced`);
             }
             // The AI floor is one conditional pointer in the review reference, never a guide line or body
-            assert.match(modeReview(), /If the tested path calls a model[^\n]*\.claude\/skills\/shared\/protocols\/ai-engineering-gate\.md[^\n]*otherwise record N\/A/);
-            assert.ok(!modeReview().includes('SYNC:ai-engineering-gate') && !skillTags.includes('ai-engineering-gate'), 'default generation pays nothing for the AI floor guide');
+            assert.match(
+                modeReview(),
+                /If the tested path calls a model[^\n]*\.claude\/skills\/shared\/protocols\/ai-engineering-gate\.md[^\n]*otherwise record N\/A/
+            );
+            assert.ok(
+                !modeReview().includes('SYNC:ai-engineering-gate') && !skillTags.includes('ai-engineering-gate'),
+                'default generation pays nothing for the AI floor guide'
+            );
             // And the skill keeps the protocols test generation shares with the modes
-            for (const tag of ['integration-test-execution-discipline', 'test-failure-fault-adjudication', 'test-architecture-execution-contract', 'verify-last-order', 'real-world-fidelity-testing', 'repeatable-test-principle']) {
+            for (const tag of [
+                'integration-test-execution-discipline',
+                'test-failure-fault-adjudication',
+                'test-architecture-execution-contract',
+                'verify-last-order',
+                'real-world-fidelity-testing',
+                'repeatable-test-principle'
+            ]) {
                 assert.ok(skillTags.includes(tag), `integration-test/SKILL.md carries ${tag}`);
             }
             for (const tag of skillTags) assert.ok(fs.existsSync(path.join(SKILLS, 'shared', 'protocols', `${tag}.md`)), `projection file for ${tag}`);
@@ -342,8 +412,13 @@ const tests = [
             }
             assert.ok(scanned > 500, `tripwire: the scan covers the framework sources (${scanned} files)`);
             assert.deepEqual(offenders, [], 'replace each with `integration-test --mode=review` / `integration-test --mode=verify`');
-            const formerly = skill().split('\n').filter(line => REMOVED.some(name => line.includes(name)));
-            assert.ok(formerly.length >= 1 && formerly.every(line => allowedMention('.claude/skills/integration-test/SKILL.md', line)), 'integration-test/SKILL.md names the removed commands only as "formerly"');
+            const formerly = skill()
+                .split('\n')
+                .filter(line => REMOVED.some(name => line.includes(name)));
+            assert.ok(
+                formerly.length >= 1 && formerly.every(line => allowedMention('.claude/skills/integration-test/SKILL.md', line)),
+                'integration-test/SKILL.md names the removed commands only as "formerly"'
+            );
         }
     },
     {
@@ -376,12 +451,12 @@ const tests = [
             for (const manifest of resolveAllWorkflowManifests(document, 'workflow-review-changes', { rootDir: REPO_ROOT })) {
                 const leaf = manifest.occurrences.find(step => step.id === testReview.id);
                 assert.ok(leaf && leaf.skill === 'integration-test', 'static review gate survives every variant');
-                assert.equal(leaf.args, manifest.mode === 'fix-loop'
-                    ? '--mode=review --fix-loop --loop-owner=caller'
-                    : '--mode=review --prove-tests --review-only');
+                assert.equal(
+                    leaf.args,
+                    manifest.mode === 'fix-loop' ? '--mode=review --fix-loop --loop-owner=caller' : '--mode=review --prove-tests --review-only'
+                );
                 assert.equal(leaf.role, 'gate');
-                const proofSteps = manifest.occurrences.filter(step => step.skill === 'integration-test' &&
-                    /(?:--mode=verify|--prove-tests)/.test(step.args));
+                const proofSteps = manifest.occurrences.filter(step => step.skill === 'integration-test' && /(?:--mode=verify|--prove-tests)/.test(step.args));
                 assert.equal(proofSteps.length, 1, 'each mode has one test execution owner');
                 if (manifest.mode === 'fix-loop') {
                     assert.equal(proofSteps[0].id, 'verify-settled-tests');
@@ -399,14 +474,24 @@ const tests = [
             assert.match(linkage, /^## Integration-Test-Review Linkage \(CONDITIONAL — advisory, guarded\)$/m);
             // The always-read full-mode core still routes the integration/E2E concern to the linkage and makes its owner a BLOCKING read
             const fullMode = read(SKILLS, 'why-review', 'references', 'full-mode.md');
-            assert.match(fullMode, /^\| Integration\/E2E tests in the target, OR a behavior change whose code has covering integration tests \| Apply the \*\*Integration-Test-Review Linkage\*\* below/m);
-            assert.match(fullMode, /^- \*\*\[BLOCKING\]\*\* When the review path is code-change review, the integration\/E2E row above fires for any target, or the target is mixed or unresolved, read `references\/code-change-path\.md` in full FIRST/m);
+            assert.match(
+                fullMode,
+                /^\| Integration\/E2E tests in the target, OR a behavior change whose code has covering integration tests \| Apply the \*\*Integration-Test-Review Linkage\*\* below/m
+            );
+            assert.match(
+                fullMode,
+                /^- \*\*\[BLOCKING\]\*\* When the review path is code-change review, the integration\/E2E row above fires for any target, or the target is mixed or unresolved, read `references\/code-change-path\.md` in full FIRST/m
+            );
             assert.doesNotMatch(fullMode, /^#{1,6} Integration-Test-Review Linkage/m, 'the linkage has one owner');
             assert.match(linkage, /\| Invoked by `\/integration-test --mode=review` finding validation \|/);
             assert.match(linkage, /Read `\.claude\/skills\/integration-test\/references\/mode-review\.md` §"Single Review Pass — Eight Gates"/);
             assert.ok(fs.existsSync(path.join(SKILLS, 'integration-test', 'references', 'mode-review.md')));
             assert.match(modeReview(), /## Finding Validation and Verdict/);
-            for (const rowStart of ['| Mode is `validate-findings` |', '| Invoked by `changes-review` in ANY phase', "| Invoked by `/investigate --mode=debug`'s Root Cause Validation gate |"]) {
+            for (const rowStart of [
+                '| Mode is `validate-findings` |',
+                '| Invoked by `changes-review` in ANY phase',
+                "| Invoked by `/investigate --mode=debug`'s Root Cause Validation gate |"
+            ]) {
                 assert.ok(linkage.includes(rowStart), `the recursion guard keeps the row ${rowStart}`);
             }
             // changes-review Phase 3.7 routes the coverage gate to the review mode
@@ -424,7 +509,10 @@ const tests = [
             // Both verify tiers still read it where their MUST ATTENTION READ line says to
             // — as a MANDATORY read line (a plain mention would let a reader skip the three-way flake verdict and the round-integrity rules)
             assert.match(modeVerify(), /MUST ATTENTION READ `\.claude\/skills\/shared\/verify-convergence-loop\.md`/);
-            assert.match(read(SKILLS, 'e2e-test', 'references', 'mode-verify.md'), /MUST ATTENTION READ `\.claude\/skills\/shared\/verify-convergence-loop\.md`/);
+            assert.match(
+                read(SKILLS, 'e2e-test', 'references', 'mode-verify.md'),
+                /MUST ATTENTION READ `\.claude\/skills\/shared\/verify-convergence-loop\.md`/
+            );
             assert.match(read(SKILLS, 'integration-test', 'references', 'fix-loop.md'), /shared\/verify-convergence-loop\.md` — read it before round 1/);
             assert.ok(fs.existsSync(path.join(SKILLS, 'shared', 'verify-convergence-loop.md')), 'the shared contract the read lines name exists');
         }

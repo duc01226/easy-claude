@@ -69,20 +69,20 @@ const canonical = fs.readFileSync(CANONICAL_PATH, 'utf8').replace(/\r\n?/g, '\n'
 // Lenient-but-proven normalizer (mirrors protocol-text-parity P5): CRLF→LF, strip
 // trailing per-line ws, collapse blank-line runs, trim. Catches wording/stance drift
 // while absorbing whitespace variance introduced at marker-insertion time.
-const norm = (s) =>
+const norm = s =>
     String(s)
         .replace(/\r\n?/g, '\n')
         .split('\n')
-        .map((l) => l.replace(/\s+$/, ''))
+        .map(l => l.replace(/\s+$/, ''))
         .join('\n')
         .replace(/\n{2,}/g, '\n')
         .trim();
 
-const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const escapeRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // Every canonical `## SYNC:<tag>` base+variant header, INCLUDING `:reminder` variants.
 function canonicalTags() {
-    const tags = [...canonical.matchAll(/^## SYNC:([A-Za-z0-9:_-]+)\s*$/gm)].map((m) => m[1]);
+    const tags = [...canonical.matchAll(/^## SYNC:([A-Za-z0-9:_-]+)\s*$/gm)].map(m => m[1]);
     return [...new Set(tags)];
 }
 
@@ -169,11 +169,11 @@ function carrierFiles() {
 }
 
 const TAGS = canonicalTags();
-const CARRIERS = carrierFiles().map((p) => ({
+const CARRIERS = carrierFiles().map(p => ({
     rel: path.relative(REPO, p).split(path.sep).join('/'),
-    text: fs.readFileSync(p, 'utf8'),
+    text: fs.readFileSync(p, 'utf8')
 }));
-const CANON_BODY = new Map(TAGS.map((t) => [t, readCanonicalBody(t)]));
+const CANON_BODY = new Map(TAGS.map(t => [t, readCanonicalBody(t)]));
 
 // Full (tag × carrier) domain: every carrier that embeds a tag.
 const PAIRS = [];
@@ -254,10 +254,10 @@ const projectionTextFor = (skillsDir, tag) => {
 };
 
 // Every carrier's OVERRIDE:review-protocol-injection body (null = no such block in that file).
-const OVERRIDE_CARRIERS = CARRIERS.map((c) => ({
+const OVERRIDE_CARRIERS = CARRIERS.map(c => ({
     carrier: c.rel,
-    body: extractHtmlOverrideBody(c.text, RPI),
-})).filter((o) => o.body != null);
+    body: extractHtmlOverrideBody(c.text, RPI)
+})).filter(o => o.body != null);
 
 // --- Hybrid duplication policy (TC-PDL-034, TC-PDL-082) ------------------------------
 // The policy moved from "never reference a protocol by path" to the hybrid: skills keep guide
@@ -271,7 +271,7 @@ const OLD_PROHIBITIONS = [
     /Placeholder markers would force file-read indirection/i,
     /never extract to file references/i,
     /compliance drops[^.\n]*indirection/i,
-    /inline-not-reference/i,
+    /inline-not-reference/i
 ];
 // Framework docs that describe the policy. They ship inside `.claude/`, so they travel with the bundle;
 // one that is absent is skipped, one that is present must not restate the old prohibition.
@@ -279,15 +279,13 @@ const POLICY_DOCS = [
     ['.claude', 'docs', 'skills', 'README.md'],
     ['.claude', 'docs', 'skill-naming-conventions.md'],
     ['.claude', 'docs', 'claude-ai-agent-framework-guide.md'],
-    ['.claude', 'docs', 'development-rules.md'],
-].map((parts) => path.join(REPO, ...parts));
+    ['.claude', 'docs', 'development-rules.md']
+].map(parts => path.join(REPO, ...parts));
 const GROUPS_PATH = path.join(REPO, '.claude', 'skills', 'shared', 'protocol-groups.json');
 // The policy copy outside sync-update-blocks.py's carrier glob, hand-synced on every canonical edit.
 const DEV_RULES_PATH = path.join(REPO, '.claude', 'docs', 'development-rules.md');
 const { isFrameworkRepo } = require('../lib/framework-repo-guard.cjs');
-const DEV_RULES_SKIP = isFrameworkRepo(REPO)
-    ? false
-    : 'framework-repo self-check: compares the upstream development rules copy with the canonical policy';
+const DEV_RULES_SKIP = isFrameworkRepo(REPO) ? false : 'framework-repo self-check: compares the upstream development rules copy with the canonical policy';
 
 /** The policy sections as the assistant reads them: policy + reminder and the
  * review-protocol-injection intro (the text before its template; the template is OVERRIDE-pinned). */
@@ -297,7 +295,7 @@ function policySections() {
     return {
         policy: readCanonicalBody(POLICY),
         reminder: readCanonicalBody(`${POLICY}:reminder`),
-        injectionIntro: introEnd === -1 ? null : rpi.slice(0, introEnd),
+        injectionIntro: introEnd === -1 ? null : rpi.slice(0, introEnd)
     };
 }
 
@@ -320,7 +318,7 @@ function universalContext() {
     const fileOrder = Object.keys(universal.tags || {});
     const tags = [...fileOrder].sort();
     const index = JSON.parse(fs.readFileSync(PROJECTION_INDEX_PATH, 'utf8'));
-    const rows = new Map((Array.isArray(index.tags) ? index.tags : []).filter((r) => tags.includes(r.tag)).map((r) => [r.tag, r]));
+    const rows = new Map((Array.isArray(index.tags) ? index.tags : []).filter(r => tags.includes(r.tag)).map(r => [r.tag, r]));
     return { tags, fileOrder, rows, bins: universal.bins };
 }
 
@@ -340,9 +338,12 @@ module.exports = {
                 // The skill template is a carrier: every new skill is cloned from it, so a divergent block there would ship to each of them.
                 // Non-vacuous: the template is in the swept set and contributes at least one (tag × carrier) pair, so a block that drifts
                 // inside it fails the loop below instead of staying invisible.
-                const templateCarriers = CARRIERS.filter((c) => /^\.claude\/skills\/_templates\/[^/]+\/SKILL\.md$/.test(c.rel));
+                const templateCarriers = CARRIERS.filter(c => /^\.claude\/skills\/_templates\/[^/]+\/SKILL\.md$/.test(c.rel));
                 assertTrue(templateCarriers.length > 0, 'the skill template (_templates/*/SKILL.md) is missing from the carrier sweep (fail-closed)');
-                assertTrue(PAIRS.some((p) => /^\.claude\/skills\/_templates\//.test(p.carrier)), 'the skill template carries no SYNC block the sweep checks (vacuous template coverage)');
+                assertTrue(
+                    PAIRS.some(p => /^\.claude\/skills\/_templates\//.test(p.carrier)),
+                    'the skill template carries no SYNC block the sweep checks (vacuous template coverage)'
+                );
                 const drift = [];
                 for (const p of PAIRS) {
                     const canon = CANON_BODY.get(p.tag);
@@ -357,10 +358,9 @@ module.exports = {
                 assertEqual(
                     drift.length,
                     0,
-                    `carrier↔canonical drift in ${drift.length} pair(s):\n  ${drift.join('\n  ')}\n` +
-                        `Fix: py -3 .claude/scripts/sync-update-blocks.py <tag>`
+                    `carrier↔canonical drift in ${drift.length} pair(s):\n  ${drift.join('\n  ')}\n` + `Fix: py -3 .claude/scripts/sync-update-blocks.py <tag>`
                 );
-            },
+            }
         },
         {
             // Pin required identities so both lost and unexpected carriers fail.
@@ -380,10 +380,10 @@ module.exports = {
                     '.claude/skills/workflow-review-changes/SKILL.md',
                     '.claude/skills/architecture/references/mode-full.md',
                     '.claude/skills/work-item/references/mode-review.md',
-                    '.claude/skills/spec/references/mode-clarify.md',
+                    '.claude/skills/spec/references/mode-clarify.md'
                 ];
                 assertEqual(
-                    JSON.stringify(carriers.map((c) => c.carrier).sort()),
+                    JSON.stringify(carriers.map(c => c.carrier).sort()),
                     JSON.stringify(expected.sort()),
                     'required review-protocol-injection carrier membership'
                 );
@@ -391,11 +391,9 @@ module.exports = {
                     canon != null && /Spec ↔ Tests ↔ Code Triangulation/.test(canon),
                     'canonical review-protocol-injection is missing the Triangulation protocol'
                 );
-                const missing = carriers
-                    .filter((c) => !/Spec ↔ Tests ↔ Code Triangulation/.test(c.body))
-                    .map((c) => c.carrier);
+                const missing = carriers.filter(c => !/Spec ↔ Tests ↔ Code Triangulation/.test(c.body)).map(c => c.carrier);
                 assertEqual(missing.length, 0, `carriers missing Triangulation protocol after propagation: ${missing.join(', ')}`);
-            },
+            }
         },
         {
             // Sensor row N5 (P26 scratch run): the COVERAGE count must accept a guide carrier and still
@@ -404,7 +402,12 @@ module.exports = {
             fn() {
                 // Given a canonical body, one body carrier, one guide carrier and a projection equal to canonical
                 const canon = '> **Review Protocol Injection** — fixture body.\n\n### Spec ↔ Tests ↔ Code Triangulation\n\nCheck all three.';
-                const row = { tag: RPI, summary: 'Verbatim template for review prompts', when: 'spawning a reviewer', path: `.claude/skills/shared/protocols/${RPI}.md` };
+                const row = {
+                    tag: RPI,
+                    summary: 'Verbatim template for review prompts',
+                    when: 'spawning a reviewer',
+                    path: `.claude/skills/shared/protocols/${RPI}.md`
+                };
                 const guideBlock = `${guideCarrier.GUIDE_BLOCK_START}\n\n${guideCarrier.formatGuideLine(row)}\n\n${guideCarrier.GUIDE_BLOCK_END}\n`;
                 const bodyCarrier = { rel: '.claude/skills/fx-inline/SKILL.md', text: `<!-- SYNC:${RPI} -->\n\n${canon}\n\n<!-- /SYNC:${RPI} -->\n` };
                 const guided = { rel: '.claude/skills/fx-converted/SKILL.md', text: `# fx\n\n${guideBlock}` };
@@ -427,7 +430,7 @@ module.exports = {
                 const agent = coverageCarriers([{ rel: '.claude/agents/fx-agent.md', text: guideBlock }], RPI, canon, canon);
                 assertEqual(agent.guided.length, 0, 'an agent guide entry must not count as a carrier');
                 assertEqual(agent.problems.length, 1, 'an agent guide entry must be reported');
-            },
+            }
         },
         {
             name: 'GUARD: OVERRIDE:review-protocol-injection blocks track canonical substance (count + every protocol header AND body verbatim), customizing only routing',
@@ -446,7 +449,7 @@ module.exports = {
                     OVERRIDE_CARRIERS.length,
                     2,
                     `expected 2 OVERRIDE:${RPI} carriers (architecture/references/mode-review.md, ui-design/references/mode-review.md), found ${OVERRIDE_CARRIERS.length}: ` +
-                        `${OVERRIDE_CARRIERS.map((o) => o.carrier).join(', ') || '(none)'}`
+                        `${OVERRIDE_CARRIERS.map(o => o.carrier).join(', ') || '(none)'}`
                 );
                 const drift = [];
                 for (const o of OVERRIDE_CARRIERS) {
@@ -474,7 +477,7 @@ module.exports = {
                         `Fix: hand-merge the missing/changed protocol(s)/count into each <!-- OVERRIDE:${RPI} --> block, ` +
                         `PRESERVING its subagent_type customization (OVERRIDE blocks are intentional divergences — sync-update-blocks.py does NOT touch them).`
                 );
-            },
+            }
         },
         {
             name: 'MUTATION PROBE: a carrier-body mutation is KILLED by the parity comparator (non-vacuous)',
@@ -485,10 +488,7 @@ module.exports = {
                 // Baseline: the live pair matches — the property holds before mutation.
                 assertEqual(norm(sample.body), norm(canon), 'baseline parity broken — reconcile drift before trusting the probe');
                 // Mutation 1 — append a drift line: MUST be detected (killed).
-                assertTrue(
-                    norm(sample.body + '\n- injected drift line') !== norm(canon),
-                    'append-drift mutant SURVIVED — comparator is vacuous'
-                );
+                assertTrue(norm(sample.body + '\n- injected drift line') !== norm(canon), 'append-drift mutant SURVIVED — comparator is vacuous');
                 // Mutation 2 — stance flip (the exact class of last cycle's bug): MUST be detected.
                 const flipped = canon.replace('NEVER', 'ALWAYS');
                 if (flipped !== canon) {
@@ -504,19 +504,28 @@ module.exports = {
                     const [header, body] = contract.protocols.entries().next().value;
                     // 3a — drop a whole protocol: the copy no longer has the header.
                     const dropMutant = parseProtocolContract(live.body.split(header).join('### Renamed Away'));
-                    assertTrue(dropMutant != null && !dropMutant.protocols.has(header), 'dropped-protocol mutant SURVIVED — OVERRIDE substance check is vacuous');
+                    assertTrue(
+                        dropMutant != null && !dropMutant.protocols.has(header),
+                        'dropped-protocol mutant SURVIVED — OVERRIDE substance check is vacuous'
+                    );
                     // 3b — drift a protocol body: header stays, normalized body differs from canonical.
                     const driftMutant = parseProtocolContract(live.body.replace(body.split('\n')[0], 'SILENTLY ALTERED FIRST LINE'));
                     if (driftMutant != null && driftMutant.protocols.has(header)) {
-                        assertTrue(driftMutant.protocols.get(header) !== contract.protocols.get(header), 'body-drift mutant SURVIVED — OVERRIDE body check is vacuous');
+                        assertTrue(
+                            driftMutant.protocols.get(header) !== contract.protocols.get(header),
+                            'body-drift mutant SURVIVED — OVERRIDE body check is vacuous'
+                        );
                     }
                     // 3c — stale count.
                     if (contract.count != null) {
                         const countMutant = parseProtocolContract(live.body.split(`embed ${contract.count} protocol blocks`).join('embed 99 protocol blocks'));
-                        assertTrue(countMutant != null && countMutant.count !== contract.count, 'stale-count mutant SURVIVED — OVERRIDE count check is vacuous');
+                        assertTrue(
+                            countMutant != null && countMutant.count !== contract.count,
+                            'stale-count mutant SURVIVED — OVERRIDE count check is vacuous'
+                        );
                     }
                 }
-            },
+            }
         },
         {
             name: 'TC-PDL-034: the duplication policy states the hybrid rule and no section keeps the old never-by-path prohibition',
@@ -529,18 +538,27 @@ module.exports = {
                 // When they are read
                 const all = Object.values(sections).join('\n');
                 // Then no rule says never to reference a protocol by path
-                const stale = OLD_PROHIBITIONS.filter((re) => re.test(all)).map(String);
+                const stale = OLD_PROHIBITIONS.filter(re => re.test(all)).map(String);
                 assertEqual(stale.length, 0, `old prohibition still present: ${stale.join(', ')}`);
                 // And the hybrid rule is present in the policy body
                 const required = [
                     [/skill entrypoints[^\n]+carry one `PROTOCOL-GUIDES` line per applicable protocol/, 'skills keep guides'],
                     [/Hooks deliver applicable full text/, 'hooks deliver applicable full text'],
-                    [/when an applicable rule is absent from the current context, read its published file before acting/, 'the applicable guide path is the fallback'],
+                    [
+                        /when an applicable rule is absent from the current context, read its published file before acting/,
+                        'the applicable guide path is the fallback'
+                    ],
                     [/Keep role-protocol `:reminder` digests in every carrier/, 'reminder digests stay'],
                     [/agents retain full role protocols by default/, 'agents keep their role protocols in full by default'],
-                    [/Only the opt-in agent-guide policy \(`agentGuides\.enabled` in `protocol-groups\.json`, off by default\) turns a trigger-gated protocol that an agent does not list in `agentGuides\.keepInline` into a guide line plus its reminder; the group hooks then deliver its full text at the agent's start when the trigger applies, and disabling the policy restores the bodies/, 'agent guides: opt-in, only trigger-gated protocols convert, delivery carries the text, off restores'],
-                    [/Copy the complete `SYNC:review-protocol-injection` template, with all 11 full protocol bodies, VERBATIM into every fresh reviewer prompt; never substitute guide lines, tags or a read pointer/, 'reviewer prompts carry bodies inline'],
-                    [/Mode-only `references\/\*\.md` load first on mode entry and retain their SYNC bodies/, 'SYNC bodies in references/*.md stay inline'],
+                    [
+                        /Only the opt-in agent-guide policy \(`agentGuides\.enabled` in `protocol-groups\.json`, off by default\) turns a trigger-gated protocol that an agent does not list in `agentGuides\.keepInline` into a guide line plus its reminder; the group hooks then deliver its full text at the agent's start when the trigger applies, and disabling the policy restores the bodies/,
+                        'agent guides: opt-in, only trigger-gated protocols convert, delivery carries the text, off restores'
+                    ],
+                    [
+                        /Copy the complete `SYNC:review-protocol-injection` template, with all 11 full protocol bodies, VERBATIM into every fresh reviewer prompt; never substitute guide lines, tags or a read pointer/,
+                        'reviewer prompts carry bodies inline'
+                    ],
+                    [/Mode-only `references\/\*\.md` load first on mode entry and retain their SYNC bodies/, 'SYNC bodies in references/*.md stay inline']
                 ];
                 const missing = required.filter(([re]) => !re.test(sections.policy)).map(([, label]) => label);
                 assertEqual(missing.length, 0, `hybrid policy is missing: ${missing.join('; ')}`);
@@ -555,18 +573,25 @@ module.exports = {
                 for (const skill of ['changes-review', 'code-quality-review', 'why-review', 'workflow-review-changes']) {
                     assertTrue(sections.policy.includes(`\`${skill}\``), `policy does not name guide-backed ${skill}`);
                 }
-                assertTrue(/Delivery overflow names the unread full sources; it never permits omission/.test(sections.policy), 'policy loses fail-closed full-source fallback');
-                assertTrue(/A guide entrypoint changes discovery, not review gates or dispatch obligations/.test(sections.policy), 'policy loses complete review obligation');
+                assertTrue(
+                    /Delivery overflow names the unread full sources; it never permits omission/.test(sections.policy),
+                    'policy loses fail-closed full-source fallback'
+                );
+                assertTrue(
+                    /A guide entrypoint changes discovery, not review gates or dispatch obligations/.test(sections.policy),
+                    'policy loses complete review obligation'
+                );
                 // And no carrier (skill, references/*.md, agent — OVERRIDE copies and prose digests included)
                 // nor a framework doc describing the policy restates the old prohibition (P27 carry-over)
-                const docs = POLICY_DOCS.filter((f) => fs.existsSync(f)).map((f) => ({ rel: path.relative(REPO, f).split(path.sep).join('/'), text: fs.readFileSync(f, 'utf8') }));
-                const restated = [...CARRIERS, ...docs].flatMap((c) =>
-                    OLD_PROHIBITIONS.filter((re) => re.test(c.text)).map((re) => `${c.rel}: ${re}`)
-                );
+                const docs = POLICY_DOCS.filter(f => fs.existsSync(f)).map(f => ({
+                    rel: path.relative(REPO, f).split(path.sep).join('/'),
+                    text: fs.readFileSync(f, 'utf8')
+                }));
+                const restated = [...CARRIERS, ...docs].flatMap(c => OLD_PROHIBITIONS.filter(re => re.test(c.text)).map(re => `${c.rel}: ${re}`));
                 assertEqual(restated.length, 0, `old never-by-path prohibition still stated:\n  ${restated.join('\n  ')}`);
                 // Non-vacuous: the scan reaches the OVERRIDE copies it guards
                 assertTrue(OVERRIDE_CARRIERS.length > 0 && CARRIERS.length > OVERRIDE_CARRIERS.length, 'the carrier scan found no OVERRIDE copy (vacuous)');
-            },
+            }
         },
         {
             name: 'TC-PDL-082: the policy copy in .claude/docs/development-rules.md equals the canonical body of the same variant',
@@ -575,11 +600,9 @@ module.exports = {
                 // Given the development rules in the framework repository
                 const text = fs.readFileSync(DEV_RULES_PATH, 'utf8');
                 // When each policy variant they carry is compared with its canonical body
-                const carried = [POLICY, `${POLICY}:reminder`]
-                    .map((tag) => ({ tag, body: extractHtmlSyncBody(text, tag) }))
-                    .filter((c) => c.body != null);
+                const carried = [POLICY, `${POLICY}:reminder`].map(tag => ({ tag, body: extractHtmlSyncBody(text, tag) })).filter(c => c.body != null);
                 assertTrue(
-                    carried.some((c) => c.tag === POLICY),
+                    carried.some(c => c.tag === POLICY),
                     `${path.relative(REPO, DEV_RULES_PATH)} lost its <!-- SYNC:${POLICY} --> block (fail-closed)`
                 );
                 // Then they are byte-equal (no whitespace normalization beyond line endings)
@@ -591,7 +614,7 @@ module.exports = {
                             'carrier glob: copy the canonical body into it by hand after every canonical edit'
                     );
                 }
-            },
+            }
         },
         {
             name: 'TC-PDL-035: the universal bundle is published and delivered by bins; no carrier holds a body, reminder, guide line or pointer line of it',
@@ -607,9 +630,9 @@ module.exports = {
                     assertTrue(fs.existsSync(path.join(REPO, ...row.file.split('/'))), `${tag}: the published file ${row.file} does not exist`);
                     assertEqual(row.group, 'universal', `${tag}: published in the universal group`);
                 }
-                const skillMd = (rel) => SKILL_MD_REL_RE.test(rel);
-                const agentMd = (rel) => rel.startsWith('.claude/agents/');
-                assertTrue(CARRIERS.some((c) => skillMd(c.rel)) && CARRIERS.some((c) => agentMd(c.rel)), 'no skill or agent carrier found (vacuous scan)');
+                const skillMd = rel => SKILL_MD_REL_RE.test(rel);
+                const agentMd = rel => rel.startsWith('.claude/agents/');
+                assertTrue(CARRIERS.some(c => skillMd(c.rel)) && CARRIERS.some(c => agentMd(c.rel)), 'no skill or agent carrier found (vacuous scan)');
                 // When every carrier (skills, references and agents) is scanned
                 const problems = [];
                 for (const c of CARRIERS) {
@@ -623,8 +646,12 @@ module.exports = {
                     const lines = guideCarrier.rootPointerLines(c.text);
                     if (lines.length) problems.push(`${c.rel}: ${lines.length} retired pointer line(s)`);
                 }
-                assertEqual(problems.length, 0, `universal-bundle contract violations:\n  ${problems.join('\n  ')}\nFix: py -3 .claude/scripts/sync-update-blocks.py --mode=strip-root-pointer (python3 on macOS/Linux)`);
-            },
+                assertEqual(
+                    problems.length,
+                    0,
+                    `universal-bundle contract violations:\n  ${problems.join('\n  ')}\nFix: py -3 .claude/scripts/sync-update-blocks.py --mode=strip-root-pointer (python3 on macOS/Linux)`
+                );
+            }
         },
         {
             name: 'TC-PDL-039: converted skills hold no full protocol body; inline skills and references keep canonical full bodies and no guide; agents guide only trigger-gated protocols outside keepInline',
@@ -632,20 +659,26 @@ module.exports = {
                 // Given the canonical base tags, the inline skills, the agent-guide policy and every carrier
                 const groupsData = JSON.parse(fs.readFileSync(GROUPS_PATH, 'utf8'));
                 const inline = new Set(groupsData.inlineSkills || []);
-                const triggerGated = new Set(Object.values(groupsData.groups || {}).flatMap((g) => Object.entries(g.tags || {}).filter(([, row]) => row && row.trigger).map(([tag]) => tag)));
+                const triggerGated = new Set(
+                    Object.values(groupsData.groups || {}).flatMap(g =>
+                        Object.entries(g.tags || {})
+                            .filter(([, row]) => row && row.trigger)
+                            .map(([tag]) => tag)
+                    )
+                );
                 const agentPolicy = groupsData.agentGuides && groupsData.agentGuides.enabled === true ? groupsData.agentGuides : null;
-                const keepInline = (agent) => new Set((agentPolicy && agentPolicy.keepInline && agentPolicy.keepInline[agent]) || []);
-                const baseTags = TAGS.filter((t) => !t.includes(':'));
-                const skillOf = (rel) => (/^\.claude\/skills\/(?:_templates\/)?([^/]+)\/SKILL\.md$/.exec(rel) || [])[1] || null;
+                const keepInline = agent => new Set((agentPolicy && agentPolicy.keepInline && agentPolicy.keepInline[agent]) || []);
+                const baseTags = TAGS.filter(t => !t.includes(':'));
+                const skillOf = rel => (/^\.claude\/skills\/(?:_templates\/)?([^/]+)\/SKILL\.md$/.exec(rel) || [])[1] || null;
                 const leaked = [];
                 const fullCarrierProblems = [];
                 let fullCarriers = 0;
                 for (const c of CARRIERS) {
                     const skill = skillOf(c.rel);
-                    const bodies = baseTags.filter((t) => extractHtmlSyncBody(c.text, t) != null);
+                    const bodies = baseTags.filter(t => extractHtmlSyncBody(c.text, t) != null);
                     // When a converted skill is scanned, Then it holds no base-tag body (its :reminder digests stay)
                     if (skill && !inline.has(skill)) {
-                        leaked.push(...bodies.map((t) => `${c.rel}: ${t}`));
+                        leaked.push(...bodies.map(t => `${c.rel}: ${t}`));
                         continue;
                     }
                     // When an inline skill, a references/*.md file or an agent is scanned, Then it keeps full
@@ -653,15 +686,16 @@ module.exports = {
                     const guides = guideTags(c.text);
                     const agent = (/^\.claude\/agents\/([^/]+)\.md$/.exec(c.rel) || [])[1] || null;
                     // An agent may guide a protocol only under agent guides: trigger-gated and not kept inline for it
-                    const allowed = (t) => agent && agentPolicy && triggerGated.has(t) && !keepInline(agent).has(t);
-                    const badGuides = guides.filter((t) => !allowed(t));
+                    const allowed = t => agent && agentPolicy && triggerGated.has(t) && !keepInline(agent).has(t);
+                    const badGuides = guides.filter(t => !allowed(t));
                     if (badGuides.length) fullCarrierProblems.push(`${c.rel}: guide entry for ${badGuides.join(', ')}`);
                     if (agent) for (const t of keepInline(agent)) if (guides.includes(t)) fullCarrierProblems.push(`${c.rel}: keepInline ${t} converted`);
                     if (skill || c.rel.startsWith('.claude/agents/')) {
                         if (bodies.length === 0) fullCarrierProblems.push(`${c.rel}: no full protocol body left`);
                         else fullCarriers++;
                     }
-                    for (const t of bodies) if (norm(extractHtmlSyncBody(c.text, t)) !== norm(CANON_BODY.get(t))) fullCarrierProblems.push(`${c.rel}: ${t} differs from canonical`);
+                    for (const t of bodies)
+                        if (norm(extractHtmlSyncBody(c.text, t)) !== norm(CANON_BODY.get(t))) fullCarrierProblems.push(`${c.rel}: ${t} differs from canonical`);
                 }
                 assertEqual(
                     leaked.length,
@@ -671,17 +705,17 @@ module.exports = {
                 );
                 assertEqual(fullCarrierProblems.length, 0, `full-body carriers lost their contract:\n  ${fullCarrierProblems.join('\n  ')}`);
                 // Non-vacuous: every inline skill and every agent was checked as a full-body carrier
-                const agentCount = CARRIERS.filter((c) => c.rel.startsWith('.claude/agents/')).length;
-                const inlinePresent = [...inline].filter((s) => CARRIERS.some((c) => c.rel === `.claude/skills/${s}/SKILL.md`)).length;
+                const agentCount = CARRIERS.filter(c => c.rel.startsWith('.claude/agents/')).length;
+                const inlinePresent = [...inline].filter(s => CARRIERS.some(c => c.rel === `.claude/skills/${s}/SKILL.md`)).length;
                 assertEqual(fullCarriers, agentCount + inlinePresent, 'every inline skill and agent must be a full-body carrier');
-            },
+            }
         },
         {
             name: 'TC-PDL-040: every guide line is the published line for its tag and its projection file exists',
             fn() {
                 // Given the projection index and every carrier's guide entries
                 const index = JSON.parse(fs.readFileSync(PROJECTION_INDEX_PATH, 'utf8'));
-                const rows = new Map((Array.isArray(index.tags) ? index.tags : []).map((r) => [r.tag, r]));
+                const rows = new Map((Array.isArray(index.tags) ? index.tags : []).map(r => [r.tag, r]));
                 const problems = [];
                 const guidedTags = new Set();
                 for (const c of CARRIERS) {
@@ -694,12 +728,17 @@ module.exports = {
                             continue;
                         }
                         if (line !== expectedGuideLine(row)) problems.push(`${c.rel}: stale ${tag} guide line`);
-                        if (!fs.existsSync(path.join(REPO, ...String(row.file).split('/')))) problems.push(`${c.rel}: ${tag} projection ${row.file} is missing`);
+                        if (!fs.existsSync(path.join(REPO, ...String(row.file).split('/'))))
+                            problems.push(`${c.rel}: ${tag} projection ${row.file} is missing`);
                     }
                 }
                 assertTrue(guidedTags.size > 0, 'no guide entry found in any carrier (conversion not run?)');
-                assertEqual(problems.length, 0, `guide-line problems:\n  ${problems.join('\n  ')}\nFix: node .claude/scripts/build-protocol-projection.cjs, then re-run guide mode for the tag`);
-            },
+                assertEqual(
+                    problems.length,
+                    0,
+                    `guide-line problems:\n  ${problems.join('\n  ')}\nFix: node .claude/scripts/build-protocol-projection.cjs, then re-run guide mode for the tag`
+                );
+            }
         },
         {
             name: 'GUARD: extractors fail-closed (null on miss; no fail-open)',
@@ -709,7 +748,7 @@ module.exports = {
                     'carrier extractor must return null on a missing marker'
                 );
                 assertTrue(readCanonicalBody('definitely-not-a-real-tag-xyz') === null, 'canonical extractor must return null on a missing tag');
-            },
+            }
         },
         {
             // The parity property above can only guard carriers `carrierFiles()` returns, and
@@ -740,20 +779,25 @@ module.exports = {
                     'print(json.dumps(m.find_target_files()))';
 
                 const result = spawnSync(python.command, [...python.baseArgs, '-c', script], {
-                    cwd: REPO, encoding: 'utf8', timeout: 10000, windowsHide: true
+                    cwd: REPO,
+                    encoding: 'utf8',
+                    timeout: 10000,
+                    windowsHide: true
                 });
                 // Fail LOUD, never skip silently: an unavailable interpreter must not read as
                 // "scopes agree" — that is the same silent-pass this test exists to prevent.
-                assertTrue(!result.error && result.status === 0 && Boolean(result.stdout),
-                    `could not run sync-update-blocks.py find_target_files(): ${result.error?.message || result.stderr || result.signal || result.status}`);
+                assertTrue(
+                    !result.error && result.status === 0 && Boolean(result.stdout),
+                    `could not run sync-update-blocks.py find_target_files(): ${result.error?.message || result.stderr || result.signal || result.status}`
+                );
                 const out = result.stdout;
 
-                const rel = (p) => path.relative(REPO, p).split(path.sep).join('/');
+                const rel = p => path.relative(REPO, p).split(path.sep).join('/');
                 const writerSet = new Set(JSON.parse(out).map(rel));
                 const testSet = new Set(carrierFiles().map(rel));
 
-                const missingFromTest = [...writerSet].filter((f) => !testSet.has(f)).sort();
-                const missingFromWriter = [...testSet].filter((f) => !writerSet.has(f)).sort();
+                const missingFromTest = [...writerSet].filter(f => !testSet.has(f)).sort();
+                const missingFromWriter = [...testSet].filter(f => !writerSet.has(f)).sort();
 
                 assertEqual(
                     missingFromTest.length,
@@ -766,7 +810,7 @@ module.exports = {
                     `this suite guards ${missingFromWriter.length} carrier(s) the writer cannot repair (its suggested fix would not work): ${missingFromWriter.join(', ')}`
                 );
                 assertTrue(writerSet.size > 0, 'writer scope resolved to an EMPTY set — a vacuous comparison, not a passing one');
-            },
-        },
-    ],
+            }
+        }
+    ]
 };

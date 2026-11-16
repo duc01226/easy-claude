@@ -35,7 +35,7 @@ const path = require('node:path');
 const { isFrameworkRepo } = require('../lib/framework-repo-guard.cjs');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
-const SKIP = isFrameworkRepo(REPO_ROOT) ? false : 'asserts the framework repo\'s own dependency guidance (framework-repo signal)';
+const SKIP = isFrameworkRepo(REPO_ROOT) ? false : "asserts the framework repo's own dependency guidance (framework-repo signal)";
 
 const CLAUDE = path.join(REPO_ROOT, '.claude');
 const SKILLS = path.join(CLAUDE, 'skills');
@@ -63,7 +63,8 @@ function guidanceMarkdown() {
         for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
             const full = path.join(dir, entry.name);
             if (entry.isDirectory()) walk(full);
-            else if (entry.name.endsWith('.md')) out.push([path.relative(REPO_ROOT, full).split(path.sep).join('/'), fs.readFileSync(full, 'utf8').replace(/\r\n/g, '\n')]);
+            else if (entry.name.endsWith('.md'))
+                out.push([path.relative(REPO_ROOT, full).split(path.sep).join('/'), fs.readFileSync(full, 'utf8').replace(/\r\n/g, '\n')]);
         }
     };
     walk(SKILLS);
@@ -78,10 +79,12 @@ function withoutSyncBlocks(text) {
 
 /** True when the text restates all four fix routes. */
 function namesAllRoutes(text) {
-    return /refresh(?:es)?[^.\n]{0,40}within[^.\n]{0,20}range/i.test(text)
-        && /(?:parent upgrade|upgrade[^.\n]{0,20}owning parent)/i.test(text)
-        && /temporary force/i.test(text)
-        && /accepted entr/i.test(text);
+    return (
+        /refresh(?:es)?[^.\n]{0,40}within[^.\n]{0,20}range/i.test(text) &&
+        /(?:parent upgrade|upgrade[^.\n]{0,20}owning parent)/i.test(text) &&
+        /temporary force/i.test(text) &&
+        /accepted entr/i.test(text)
+    );
 }
 
 const tests = [
@@ -91,12 +94,23 @@ const tests = [
         fn: () => {
             // Given the canonical owner, Then it states all six parts of the rule
             const body = canonical(TAG);
-            for (const part of ['Trace the owner chain', 'Try the routes in order', 'Forces are temporary; accepted entries expire', 'Reachability lowers priority only', 'Research every moved package', 'Done means a clean re-scan']) {
+            for (const part of [
+                'Trace the owner chain',
+                'Try the routes in order',
+                'Forces are temporary; accepted entries expire',
+                'Reachability lowers priority only',
+                'Research every moved package',
+                'Done means a clean re-scan'
+            ]) {
                 assert.ok(body.includes(`**${part}**`), `the owner states "${part}"`);
             }
             // The published projection exists, and both carriers reach it
             assert.ok(fs.existsSync(path.join(SKILLS, 'shared', 'protocols', `${TAG}.md`)), 'the projection is published');
-            assert.match(skill(), new RegExp(`- \`${TAG}\` — [^\\n]*→ \\.claude/skills/shared/protocols/${TAG}\\.md`), 'the dependency-change skill carries a guide line');
+            assert.match(
+                skill(),
+                new RegExp(`- \`${TAG}\` — [^\\n]*→ \\.claude/skills/shared/protocols/${TAG}\\.md`),
+                'the dependency-change skill carries a guide line'
+            );
             assert.match(supplyChain(), new RegExp(`\\.claude/skills/shared/protocols/${TAG}\\.md`), 'the audit dimension points to the published rule');
             // Boundary: outside the owner, its projection and the procedure that applies it, no guidance restates the four routes
             const exempt = new Set([
@@ -104,7 +118,9 @@ const tests = [
                 `.claude/skills/shared/protocols/${TAG}.md`,
                 '.claude/skills/package-upgrade/references/mode-remediate.md'
             ]);
-            const copies = guidanceMarkdown().filter(([rel, text]) => !exempt.has(rel) && namesAllRoutes(withoutSyncBlocks(text))).map(([rel]) => rel);
+            const copies = guidanceMarkdown()
+                .filter(([rel, text]) => !exempt.has(rel) && namesAllRoutes(withoutSyncBlocks(text)))
+                .map(([rel]) => rel);
             assert.deepEqual(copies, [], 'no second copy of the route order');
         }
     },
@@ -113,10 +129,19 @@ const tests = [
         skip: SKIP,
         fn: () => {
             const body = canonical(TAG);
-            const order = ['(a) refresh the lock within the ranges already declared', '(b) upgrade the owning parent', '(c) force the indirect version temporarily', '(d) only when no route delivers the fixed version, accept the advisory'];
+            const order = [
+                '(a) refresh the lock within the ranges already declared',
+                '(b) upgrade the owning parent',
+                '(c) force the indirect version temporarily',
+                '(d) only when no route delivers the fixed version, accept the advisory'
+            ];
             const at = order.map(step => body.indexOf(step));
             at.forEach((index, i) => assert.ok(index >= 0, `the owner names route ${order[i]}`));
-            assert.deepEqual([...at].sort((x, y) => x - y), at, 'routes appear in the stated order');
+            assert.deepEqual(
+                [...at].sort((x, y) => x - y),
+                at,
+                'routes appear in the stated order'
+            );
             assert.match(body, /Record why each earlier route could not\./);
             // The procedure stops at the first route that works and keeps the reason
             assert.match(remediate(), /Check routes in order and stop at the first that delivers the fixed version/);
@@ -130,7 +155,10 @@ const tests = [
         skip: SKIP,
         fn: () => {
             const body = canonical(TAG);
-            assert.match(body, /gets a reason, an owner and an expiry in the scanner's own suppression file, or beside it in the project's own record when the scanner has no such field\. An entry missing any of the three is not accepted\./);
+            assert.match(
+                body,
+                /gets a reason, an owner and an expiry in the scanner's own suppression file, or beside it in the project's own record when the scanner has no such field\. An entry missing any of the three is not accepted\./
+            );
             const text = remediate();
             assert.match(text, /Remove every temporary force the lock no longer needs, and confirm the lock still holds the fixed version\./);
             assert.match(text, /If the lock cannot keep the fixed version without it, it becomes an accepted entry with reason, owner and expiry\./);
@@ -143,7 +171,10 @@ const tests = [
         name: 'TC-DPR-004 reachability lowers priority only',
         skip: SKIP,
         fn: () => {
-            assert.match(canonical(TAG), /\*\*Reachability lowers priority only\*\* — evidence that vulnerable code is not reached changes the ranking; it never closes or accepts an advisory by itself\./);
+            assert.match(
+                canonical(TAG),
+                /\*\*Reachability lowers priority only\*\* — evidence that vulnerable code is not reached changes the ranking; it never closes or accepts an advisory by itself\./
+            );
             assert.match(remediate(), /\*\*lowers priority only\*\*/);
             assert.match(supplyChain(), /Reachability lowers priority only: it never closes or accepts an advisory by itself/);
         }
@@ -161,7 +192,10 @@ const tests = [
             assert.match(canonical(TAG), /search the repository, lock files excluded, for each moved package's old exact version/);
             assert.match(skill(), /the repository is searched for its old exact version/);
             // A mover the research missed is researched and shown before approval again (PR review F6)
-            assert.match(text, /Research any package that moved and was not on that list, and, unless the user already asked for the fix, show those packages with their verdicts and wait for approval again/);
+            assert.match(
+                text,
+                /Research any package that moved and was not on that list, and, unless the user already asked for the fix, show those packages with their verdicts and wait for approval again/
+            );
             // A breaking change gets a code fix and a test that fails without it
             assert.match(text, /add or update a test that fails without the fix/);
             // Planning keeps its target and adds the movers (BR-DPR-11)
@@ -197,7 +231,10 @@ const tests = [
             assert.match(text, /Produce the candidate lock in a throwaway copy, never in the working tree before approval/);
             assert.doesNotMatch(text, /resolve in the working tree/);
             // A decline at the second approval, after edits began, restores the files saved before the first edit
-            assert.match(text, /Before the first edit, copy every manifest, lock and suppression file this step will change to a folder under `tmp\/`\. If the user declines at the second approval below, restore those files from that copy/);
+            assert.match(
+                text,
+                /Before the first edit, copy every manifest, lock and suppression file this step will change to a folder under `tmp\/`\. If the user declines at the second approval below, restore those files from that copy/
+            );
             // Dismissing a remote alert needs its own authority
             assert.match(text, /- dismissing a remote alert \(for example a Dependabot alert\) as an accepted entry;/);
             // Boundary: plan mode never edits
@@ -222,9 +259,15 @@ const tests = [
             assert.doesNotMatch(text, /from a standalone `fix` handoff, this mode runs steps 1–8/);
             const fixSkill = read(SKILLS, 'fix', 'SKILL.md');
             const fixCi = read(SKILLS, 'fix', 'references', 'target-ci.md');
-            assert.match(fixSkill, /\*\*Vulnerable-dependency issue handoff:\*\* [^\n]*runs its steps 1–7[^\n]*this branch's inherited gates still follow, and its single verify runs that selection first and then the full lane once/);
+            assert.match(
+                fixSkill,
+                /\*\*Vulnerable-dependency issue handoff:\*\* [^\n]*runs its steps 1–7[^\n]*this branch's inherited gates still follow, and its single verify runs that selection first and then the full lane once/
+            );
             assert.match(fixCi, /\*\*Dependency vulnerability scan handoff:\*\* [^\n]*the inherited gates and the single verify then follow/);
-            for (const [label, body] of [['fix SKILL.md', fixSkill], ['fix target-ci.md', fixCi]]) {
+            for (const [label, body] of [
+                ['fix SKILL.md', fixSkill],
+                ['fix target-ci.md', fixCi]
+            ]) {
                 assert.doesNotMatch(body, /stop this branch/, `${label} hands off without dropping the inherited gates`);
             }
         }
@@ -247,12 +290,15 @@ const tests = [
             assert.match(remediate(), /lock-only where the manager supports it \(ecosystem table, "Lock-only resolution"\), so the research installs nothing/);
             // Boundary: no other guidance holds a fenced block listing two or more scanner commands
             const scanners = /\b(?:npm audit|pnpm audit|yarn npm audit|pip-audit|dotnet list package --vulnerable|govulncheck|cargo audit|osv-scanner)\b/g;
-            const second = guidanceMarkdown().filter(([rel]) => !rel.endsWith('package-upgrade/references/ecosystems.md')).filter(([, body]) => {
-                for (const block of body.match(/```[\s\S]*?```/g) || []) {
-                    if (new Set(block.match(scanners) || []).size >= 2) return true;
-                }
-                return false;
-            }).map(([rel]) => rel);
+            const second = guidanceMarkdown()
+                .filter(([rel]) => !rel.endsWith('package-upgrade/references/ecosystems.md'))
+                .filter(([, body]) => {
+                    for (const block of body.match(/```[\s\S]*?```/g) || []) {
+                        if (new Set(block.match(scanners) || []).size >= 2) return true;
+                    }
+                    return false;
+                })
+                .map(([rel]) => rel);
             assert.deepEqual(second, [], 'no second per-manager scanner command block');
         }
     },
@@ -260,7 +306,10 @@ const tests = [
         name: 'TC-DPR-010 evidence carries identifiers only',
         skip: SKIP,
         fn: () => {
-            assert.match(remediate(), /\*\*Identifiers only:\*\* reports and comments name packages, versions and advisory identifiers\. Never paste scanner logs, URLs carrying tokens, or credentials\./);
+            assert.match(
+                remediate(),
+                /\*\*Identifiers only:\*\* reports and comments name packages, versions and advisory identifiers\. Never paste scanner logs, URLs carrying tokens, or credentials\./
+            );
         }
     },
     {
@@ -273,7 +322,10 @@ const tests = [
             }
             assert.match(text, /Never invent advisories or scan results\./);
             // The skill sends remediation through this reference first
-            assert.match(skill(), /\| `--mode=remediate` \|[^\n]*\| \[references\/mode-remediate\.md\]\(references\/mode-remediate\.md\) — in full, before any step \|/);
+            assert.match(
+                skill(),
+                /\| `--mode=remediate` \|[^\n]*\| \[references\/mode-remediate\.md\]\(references\/mode-remediate\.md\) — in full, before any step \|/
+            );
         }
     },
     {
@@ -282,19 +334,40 @@ const tests = [
         fn: () => {
             const description = skill().match(/^description: '([^'\n]+)'$/m);
             assert.ok(description, 'the skill has a description');
-            assert.match(description[1], /^\[Code Quality\] Use when planning dependency upgrades or researching breaking changes in any package ecosystem\. --mode=remediate fixes a red dependency scan, alert or vulnerable-package issue/);
+            assert.match(
+                description[1],
+                /^\[Code Quality\] Use when planning dependency upgrades or researching breaking changes in any package ecosystem\. --mode=remediate fixes a red dependency scan, alert or vulnerable-package issue/
+            );
             assert.ok(description[1].length <= 250, 'description stays within 250 characters');
-            assert.match(read(SKILLS, 'fix', 'references', 'target-ci.md'), /\*\*Dependency vulnerability scan handoff:\*\* [^\n]*`\/package-upgrade --mode=remediate`/);
+            assert.match(
+                read(SKILLS, 'fix', 'references', 'target-ci.md'),
+                /\*\*Dependency vulnerability scan handoff:\*\* [^\n]*`\/package-upgrade --mode=remediate`/
+            );
             assert.match(read(SKILLS, 'fix', 'SKILL.md'), /\*\*Vulnerable-dependency issue handoff:\*\* [^\n]*`\/package-upgrade --mode=remediate`/);
             const bugfix = read(SKILLS, 'workflow-bugfix', 'SKILL.md');
             assert.match(bugfix, /· dependency advisory \(a vulnerable package version reported by a dependency scan, alert or issue\)\./);
-            assert.match(bugfix, /\| Dependency advisory \|[^\n]*`\/package-upgrade --mode=remediate` is the fix step[^\n]*RED proof = the project's scanner reports the advisory on the old lock and not on the new one/);
-            assert.match(read(CLAUDE, 'workflows.json'), /DEPENDENCY ADVISORY kind: \/package-upgrade --mode=remediate is the fix; RED = the scanner reports the advisory on the old lock, GREEN = not on the new one/);
-            assert.match(supplyChain(), /\*\*Remediation:\*\* this audit reports\. When the user asks for the vulnerable packages to be fixed, hand the findings to `\/package-upgrade --mode=remediate`/);
-            assert.match(read(SKILLS, 'security-audit', 'references', 'security-audit-skill-fix-loop.md'), /Validated D3 dependency advisories \(vulnerable package versions\) go to `\/package-upgrade --mode=remediate` instead/);
+            assert.match(
+                bugfix,
+                /\| Dependency advisory \|[^\n]*`\/package-upgrade --mode=remediate` is the fix step[^\n]*RED proof = the project's scanner reports the advisory on the old lock and not on the new one/
+            );
+            assert.match(
+                read(CLAUDE, 'workflows.json'),
+                /DEPENDENCY ADVISORY kind: \/package-upgrade --mode=remediate is the fix; RED = the scanner reports the advisory on the old lock, GREEN = not on the new one/
+            );
+            assert.match(
+                supplyChain(),
+                /\*\*Remediation:\*\* this audit reports\. When the user asks for the vulnerable packages to be fixed, hand the findings to `\/package-upgrade --mode=remediate`/
+            );
+            assert.match(
+                read(SKILLS, 'security-audit', 'references', 'security-audit-skill-fix-loop.md'),
+                /Validated D3 dependency advisories \(vulnerable package versions\) go to `\/package-upgrade --mode=remediate` instead/
+            );
             assert.match(read(CLAUDE, 'agents', 'security-auditor.md'), /fixes go to `\/package-upgrade --mode=remediate`/);
             // Boundary: planning stays the default mode and edits nothing
-            assert.match(skill(), /\| _\(none\)_ — plan \| Planning upgrades, checking outdated dependencies, researching breaking changes before a version change \| this file \|/);
+            assert.match(
+                skill(),
+                /\| _\(none\)_ — plan \| Planning upgrades, checking outdated dependencies, researching breaking changes before a version change \| this file \|/
+            );
         }
     },
     {
@@ -306,7 +379,10 @@ const tests = [
             assert.match(text, /automated security-update setting: on, off, or "could not read" \(never assumed\)/);
             assert.match(text, /the alert owner \(`alertOwner` when declared/);
             assert.match(text, /every force and accepted entry in the project with reason, owner and expiry, naming expired or reason-less ones/);
-            assert.match(read(SKILLS, 'linter-setup', 'SKILL.md'), /Runs dependency vulnerability scanner \(fail on HIGH\/CRITICAL CVEs\)\. Name who responds when it fails and by when/);
+            assert.match(
+                read(SKILLS, 'linter-setup', 'SKILL.md'),
+                /Runs dependency vulnerability scanner \(fail on HIGH\/CRITICAL CVEs\)\. Name who responds when it fails and by when/
+            );
         }
     }
 ];

@@ -21,7 +21,7 @@ const DEFAULT_TIMEOUT = 10000;
  * the host repository instead of the fixture under test.
  */
 function fixtureProjectRoot(cwd) {
-  return path.resolve(cwd);
+    return path.resolve(cwd);
 }
 
 /**
@@ -35,78 +35,78 @@ function fixtureProjectRoot(cwd) {
  * @returns {Promise<{code: number, stdout: string, stderr: string, timedOut: boolean}>}
  */
 async function runHook(hookPath, input, options = {}) {
-  const timeout = options.timeout || DEFAULT_TIMEOUT;
+    const timeout = options.timeout || DEFAULT_TIMEOUT;
 
-  return new Promise((resolve) => {
-    // A suite may execute a copied hook with `cwd` set to an isolated fixture
-    // while the runner process itself has a framework-level CLAUDE_PROJECT_DIR.
-    // The explicit fixture boundary wins; never inherit or discover a user-level
-    // `.claude` ancestor, otherwise cleanup tests mutate the host repository.
-    const cwd = options.cwd || process.cwd();
-    const fixtureRoot = fixtureProjectRoot(cwd);
-    const env = {
-      ...process.env,
-      ...(options.cwd ? { CLAUDE_PROJECT_DIR: fixtureRoot } : {}),
-      ...options.env
-    };
-    const proc = spawn('node', [hookPath], {
-      cwd,
-      env,
-      stdio: ['pipe', 'pipe', 'pipe']
-    });
-
-    let stdout = '';
-    let stderr = '';
-    let timedOut = false;
-    let resolved = false;
-
-    const timeoutId = setTimeout(() => {
-      if (!resolved) {
-        timedOut = true;
-        proc.kill('SIGKILL');
-      }
-    }, timeout);
-
-    proc.stdout.on('data', (data) => {
-      stdout += data.toString();
-    });
-
-    proc.stderr.on('data', (data) => {
-      stderr += data.toString();
-    });
-
-    proc.on('close', (code) => {
-      if (!resolved) {
-        resolved = true;
-        clearTimeout(timeoutId);
-        resolve({
-          code: code ?? (timedOut ? -1 : 1),
-          stdout,
-          stderr,
-          timedOut
+    return new Promise(resolve => {
+        // A suite may execute a copied hook with `cwd` set to an isolated fixture
+        // while the runner process itself has a framework-level CLAUDE_PROJECT_DIR.
+        // The explicit fixture boundary wins; never inherit or discover a user-level
+        // `.claude` ancestor, otherwise cleanup tests mutate the host repository.
+        const cwd = options.cwd || process.cwd();
+        const fixtureRoot = fixtureProjectRoot(cwd);
+        const env = {
+            ...process.env,
+            ...(options.cwd ? { CLAUDE_PROJECT_DIR: fixtureRoot } : {}),
+            ...options.env
+        };
+        const proc = spawn('node', [hookPath], {
+            cwd,
+            env,
+            stdio: ['pipe', 'pipe', 'pipe']
         });
-      }
-    });
 
-    proc.on('error', (err) => {
-      if (!resolved) {
-        resolved = true;
-        clearTimeout(timeoutId);
-        resolve({
-          code: -1,
-          stdout,
-          stderr: stderr + '\n' + err.message,
-          timedOut: false
+        let stdout = '';
+        let stderr = '';
+        let timedOut = false;
+        let resolved = false;
+
+        const timeoutId = setTimeout(() => {
+            if (!resolved) {
+                timedOut = true;
+                proc.kill('SIGKILL');
+            }
+        }, timeout);
+
+        proc.stdout.on('data', data => {
+            stdout += data.toString();
         });
-      }
-    });
 
-    // Write input to stdin and close
-    if (input !== undefined) {
-      proc.stdin.write(JSON.stringify(input));
-    }
-    proc.stdin.end();
-  });
+        proc.stderr.on('data', data => {
+            stderr += data.toString();
+        });
+
+        proc.on('close', code => {
+            if (!resolved) {
+                resolved = true;
+                clearTimeout(timeoutId);
+                resolve({
+                    code: code ?? (timedOut ? -1 : 1),
+                    stdout,
+                    stderr,
+                    timedOut
+                });
+            }
+        });
+
+        proc.on('error', err => {
+            if (!resolved) {
+                resolved = true;
+                clearTimeout(timeoutId);
+                resolve({
+                    code: -1,
+                    stdout,
+                    stderr: stderr + '\n' + err.message,
+                    timedOut: false
+                });
+            }
+        });
+
+        // Write input to stdin and close
+        if (input !== undefined) {
+            proc.stdin.write(JSON.stringify(input));
+        }
+        proc.stdin.end();
+    });
 }
 
 /**
@@ -120,35 +120,35 @@ async function runHook(hookPath, input, options = {}) {
  * @returns {{code: number, stdout: string, stderr: string}}
  */
 function runHookSync(hookPath, input, options = {}) {
-  const timeout = options.timeout || DEFAULT_TIMEOUT;
-  const inputJson = input !== undefined ? JSON.stringify(input) : '';
+    const timeout = options.timeout || DEFAULT_TIMEOUT;
+    const inputJson = input !== undefined ? JSON.stringify(input) : '';
 
-  try {
-    const stdout = execSync(`node "${hookPath}"`, {
-      cwd: options.cwd || process.cwd(),
-      env: {
-        ...process.env,
-        ...(options.cwd ? { CLAUDE_PROJECT_DIR: fixtureProjectRoot(options.cwd) } : {}),
-        ...options.env
-      },
-      input: inputJson,
-      timeout,
-      encoding: 'utf8',
-      stdio: ['pipe', 'pipe', 'pipe']
-    });
+    try {
+        const stdout = execSync(`node "${hookPath}"`, {
+            cwd: options.cwd || process.cwd(),
+            env: {
+                ...process.env,
+                ...(options.cwd ? { CLAUDE_PROJECT_DIR: fixtureProjectRoot(options.cwd) } : {}),
+                ...options.env
+            },
+            input: inputJson,
+            timeout,
+            encoding: 'utf8',
+            stdio: ['pipe', 'pipe', 'pipe']
+        });
 
-    return {
-      code: 0,
-      stdout: stdout || '',
-      stderr: ''
-    };
-  } catch (error) {
-    return {
-      code: error.status ?? 1,
-      stdout: error.stdout?.toString() || '',
-      stderr: error.stderr?.toString() || error.message
-    };
-  }
+        return {
+            code: 0,
+            stdout: stdout || '',
+            stderr: ''
+        };
+    } catch (error) {
+        return {
+            code: error.status ?? 1,
+            stdout: error.stdout?.toString() || '',
+            stderr: error.stderr?.toString() || error.message
+        };
+    }
 }
 
 /**
@@ -160,14 +160,14 @@ function runHookSync(hookPath, input, options = {}) {
  * @returns {Promise<Array<{hookPath: string, result: object}>>}
  */
 async function runHookSequence(hookPaths, input, options = {}) {
-  const results = [];
-  for (const hookPath of hookPaths) {
-    const result = await runHook(hookPath, input, options);
-    results.push({ hookPath, result });
-    // Stop if hook blocks (exit code 2)
-    if (result.code === 2) break;
-  }
-  return results;
+    const results = [];
+    for (const hookPath of hookPaths) {
+        const result = await runHook(hookPath, input, options);
+        results.push({ hookPath, result });
+        // Stop if hook blocks (exit code 2)
+        if (result.code === 2) break;
+    }
+    return results;
 }
 
 /**
@@ -177,10 +177,8 @@ async function runHookSequence(hookPaths, input, options = {}) {
  * @returns {Promise<Array<{hookPath: string, result: object}>>}
  */
 async function runHooksParallel(hooks, options = {}) {
-  const promises = hooks.map(({ hookPath, input }) =>
-    runHook(hookPath, input, options).then(result => ({ hookPath, result }))
-  );
-  return Promise.all(promises);
+    const promises = hooks.map(({ hookPath, input }) => runHook(hookPath, input, options).then(result => ({ hookPath, result })));
+    return Promise.all(promises);
 }
 
 /**
@@ -189,7 +187,7 @@ async function runHooksParallel(hooks, options = {}) {
  * @returns {string} Absolute path to the hook
  */
 function getHookPath(hookName) {
-  return path.resolve(__dirname, '..', '..', hookName);
+    return path.resolve(__dirname, '..', '..', hookName);
 }
 
 /**
@@ -199,11 +197,11 @@ function getHookPath(hookName) {
  * @returns {object} Complete hook input object
  */
 function createPreToolUseInput(toolName, toolInput) {
-  return {
-    event: 'PreToolUse',
-    tool_name: toolName,
-    tool_input: toolInput
-  };
+    return {
+        event: 'PreToolUse',
+        tool_name: toolName,
+        tool_input: toolInput
+    };
 }
 
 /**
@@ -214,12 +212,12 @@ function createPreToolUseInput(toolName, toolInput) {
  * @returns {object} Complete hook input object
  */
 function createPostToolUseInput(toolName, toolInput, toolResult = {}) {
-  return {
-    event: 'PostToolUse',
-    tool_name: toolName,
-    tool_input: toolInput,
-    tool_result: toolResult
-  };
+    return {
+        event: 'PostToolUse',
+        tool_name: toolName,
+        tool_input: toolInput,
+        tool_result: toolResult
+    };
 }
 
 /**
@@ -228,10 +226,10 @@ function createPostToolUseInput(toolName, toolInput, toolResult = {}) {
  * @returns {object} Complete hook input object
  */
 function createUserPromptInput(prompt) {
-  return {
-    event: 'UserPromptSubmit',
-    prompt
-  };
+    return {
+        event: 'UserPromptSubmit',
+        prompt
+    };
 }
 
 /**
@@ -241,11 +239,11 @@ function createUserPromptInput(prompt) {
  * @returns {object} Complete hook input object
  */
 function createSessionStartInput(source, sessionId = null) {
-  return {
-    event: 'SessionStart',
-    source,
-    ...(sessionId && { session_id: sessionId })
-  };
+    return {
+        event: 'SessionStart',
+        source,
+        ...(sessionId && { session_id: sessionId })
+    };
 }
 
 /**
@@ -257,13 +255,13 @@ function createSessionStartInput(source, sessionId = null) {
  * @returns {object} Complete hook input object
  */
 function createSubagentStartInput(agentType, prompt = '', sessionId = null, agentId = null) {
-  return {
-    event: 'SubagentStart',
-    agent_type: agentType,
-    prompt,
-    ...(sessionId && { session_id: sessionId }),
-    ...(agentId && { agent_id: agentId })
-  };
+    return {
+        event: 'SubagentStart',
+        agent_type: agentType,
+        prompt,
+        ...(sessionId && { session_id: sessionId }),
+        ...(agentId && { agent_id: agentId })
+    };
 }
 
 /**
@@ -272,10 +270,10 @@ function createSubagentStartInput(agentType, prompt = '', sessionId = null, agen
  * @returns {object} Complete hook input object
  */
 function createPreCompactInput(context = {}) {
-  return {
-    event: 'PreCompact',
-    ...context
-  };
+    return {
+        event: 'PreCompact',
+        ...context
+    };
 }
 
 /**
@@ -284,10 +282,10 @@ function createPreCompactInput(context = {}) {
  * @returns {object} Complete hook input object
  */
 function createSessionEndInput(source) {
-  return {
-    event: 'SessionEnd',
-    source
-  };
+    return {
+        event: 'SessionEnd',
+        source
+    };
 }
 
 /**
@@ -300,12 +298,12 @@ function createSessionEndInput(source) {
  * @returns {string|null} The first mirrored command wiring that hook, or null when none does
  */
 function codexLauncherCommand(hookFile, platform = process.platform) {
-  const codexHooks = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, '.codex', 'hooks.json'), 'utf8'));
-  const field = platform === 'win32' ? 'commandWindows' : 'command';
-  const commands = Object.values(codexHooks.hooks || {})
-    .flat()
-    .flatMap(group => (group.hooks || []).map(h => h[field] || ''));
-  return commands.find(c => c.includes(`.claude/hooks/${hookFile}`)) || null;
+    const codexHooks = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, '.codex', 'hooks.json'), 'utf8'));
+    const field = platform === 'win32' ? 'commandWindows' : 'command';
+    const commands = Object.values(codexHooks.hooks || {})
+        .flat()
+        .flatMap(group => (group.hooks || []).map(h => h[field] || ''));
+    return commands.find(c => c.includes(`.claude/hooks/${hookFile}`)) || null;
 }
 
 /**
@@ -318,19 +316,19 @@ function codexLauncherCommand(hookFile, platform = process.platform) {
  * @returns {{code: number|null, stdout: string, stderr: string, command: string}}
  */
 function runCodexLauncher(hookFile, stdin, options = {}) {
-  const command = codexLauncherCommand(hookFile);
-  if (!command) throw new Error(`.codex/hooks.json must wire ${hookFile}`);
-  if (!command.includes('node -e')) throw new Error(`Codex command for ${hookFile} is not the node -e launcher: ${command}`);
-  const result = spawnSync(command, {
-    cwd: options.cwd || REPO_ROOT,
-    env: childEnv(options.env),
-    input: stdin,
-    encoding: 'utf8',
-    shell: true,
-    windowsHide: true,
-    timeout: options.timeout || 30000
-  });
-  return { code: result.status, stdout: result.stdout || '', stderr: result.stderr || '', command };
+    const command = codexLauncherCommand(hookFile);
+    if (!command) throw new Error(`.codex/hooks.json must wire ${hookFile}`);
+    if (!command.includes('node -e')) throw new Error(`Codex command for ${hookFile} is not the node -e launcher: ${command}`);
+    const result = spawnSync(command, {
+        cwd: options.cwd || REPO_ROOT,
+        env: childEnv(options.env),
+        input: stdin,
+        encoding: 'utf8',
+        shell: true,
+        windowsHide: true,
+        timeout: options.timeout || 30000
+    });
+    return { code: result.status, stdout: result.stdout || '', stderr: result.stderr || '', command };
 }
 
 /**
@@ -342,15 +340,15 @@ function runCodexLauncher(hookFile, stdin, options = {}) {
  * @returns {object} A fresh environment object
  */
 function childEnv(overrides = {}, base = process.env) {
-  const env = { ...base };
-  const sameName = (a, b) => (process.platform === 'win32' ? a.toUpperCase() === b.toUpperCase() : a === b);
-  for (const [key, value] of Object.entries(overrides || {})) {
-    for (const existing of Object.keys(env)) {
-      if (sameName(existing, key)) delete env[existing];
+    const env = { ...base };
+    const sameName = (a, b) => (process.platform === 'win32' ? a.toUpperCase() === b.toUpperCase() : a === b);
+    for (const [key, value] of Object.entries(overrides || {})) {
+        for (const existing of Object.keys(env)) {
+            if (sameName(existing, key)) delete env[existing];
+        }
+        if (value !== undefined) env[key] = value;
     }
-    if (value !== undefined) env[key] = value;
-  }
-  return env;
+    return env;
 }
 
 /**
@@ -361,27 +359,31 @@ function childEnv(overrides = {}, base = process.env) {
  * @returns {string} The fixture root; remove it with `removeTempDir`
  */
 function makeHookTreeProject(prefix) {
-  const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), `codex-launcher-${prefix}-`)));
-  const skip = new Set(['tests', 'notifications', 'node_modules']);
-  fs.cpSync(HOOKS_DIR, path.join(root, '.claude', 'hooks'), {
-    recursive: true,
-    filter: source => !skip.has(path.basename(source)) || path.dirname(source) !== HOOKS_DIR
-  });
-  // Prompt routers share the runtime preference resolver with the script surfaces.
-  fs.cpSync(path.join(REPO_ROOT, '.claude', 'scripts', 'lib'), path.join(root, '.claude', 'scripts', 'lib'), { recursive: true });
-  return root;
+    const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), `codex-launcher-${prefix}-`)));
+    const skip = new Set(['tests', 'notifications', 'node_modules']);
+    fs.cpSync(HOOKS_DIR, path.join(root, '.claude', 'hooks'), {
+        recursive: true,
+        filter: source => !skip.has(path.basename(source)) || path.dirname(source) !== HOOKS_DIR
+    });
+    // Prompt routers share the runtime preference resolver with the script surfaces.
+    fs.cpSync(path.join(REPO_ROOT, '.claude', 'scripts', 'lib'), path.join(root, '.claude', 'scripts', 'lib'), { recursive: true });
+    return root;
 }
 
 /** Remove a directory created under the OS temp root; anything outside it is left untouched. */
 function removeTempDir(dir) {
-  if (!dir) return;
-  let resolvedDir;
-  try { resolvedDir = fs.realpathSync.native(dir); } catch { return; }
-  const tempRoot = fs.realpathSync.native(os.tmpdir());
-  const relative = path.relative(tempRoot, resolvedDir);
-  if (relative && relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative)) {
-    fs.rmSync(resolvedDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
-  }
+    if (!dir) return;
+    let resolvedDir;
+    try {
+        resolvedDir = fs.realpathSync.native(dir);
+    } catch {
+        return;
+    }
+    const tempRoot = fs.realpathSync.native(os.tmpdir());
+    const relative = path.relative(tempRoot, resolvedDir);
+    if (relative && relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative)) {
+        fs.rmSync(resolvedDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+    }
 }
 
 /**
@@ -389,30 +391,30 @@ function removeTempDir(dir) {
  * store the prompt routers read at sub-agent start and after a compaction.
  */
 function recordUserPrompts(projectDir, sessionId, prompts) {
-  const store = require('../../lib/prompt-ledger-store.cjs');
-  let ledger = null;
-  for (const prompt of prompts) ledger = store.appendPrompt(ledger, prompt, { sessionId }).ledger;
-  store.writeLedger(store.sessionDir(store.storeRoot({}, projectDir), sessionId), ledger);
+    const store = require('../../lib/prompt-ledger-store.cjs');
+    let ledger = null;
+    for (const prompt of prompts) ledger = store.appendPrompt(ledger, prompt, { sessionId }).ledger;
+    store.writeLedger(store.sessionDir(store.storeRoot({}, projectDir), sessionId), ledger);
 }
 
 module.exports = {
-  runHook,
-  runHookSync,
-  runHookSequence,
-  runHooksParallel,
-  getHookPath,
-  createPreToolUseInput,
-  createPostToolUseInput,
-  createUserPromptInput,
-  createSessionStartInput,
-  createSubagentStartInput,
-  createPreCompactInput,
-  createSessionEndInput,
-  codexLauncherCommand,
-  runCodexLauncher,
-  childEnv,
-  makeHookTreeProject,
-  removeTempDir,
-  recordUserPrompts,
-  DEFAULT_TIMEOUT
+    runHook,
+    runHookSync,
+    runHookSequence,
+    runHooksParallel,
+    getHookPath,
+    createPreToolUseInput,
+    createPostToolUseInput,
+    createUserPromptInput,
+    createSessionStartInput,
+    createSubagentStartInput,
+    createPreCompactInput,
+    createSessionEndInput,
+    codexLauncherCommand,
+    runCodexLauncher,
+    childEnv,
+    makeHookTreeProject,
+    removeTempDir,
+    recordUserPrompts,
+    DEFAULT_TIMEOUT
 };

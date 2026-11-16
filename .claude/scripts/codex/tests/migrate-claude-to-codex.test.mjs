@@ -47,10 +47,7 @@ async function copyPortableCodexTooling(tempRoot) {
 
     const sharedTarget = path.join(tempRoot, '.claude', 'skills', 'shared');
     await fs.mkdir(sharedTarget, { recursive: true });
-    await fs.copyFile(
-        path.join(repoRoot, '.claude', 'skills', 'shared', 'workflow-first-gate.md'),
-        path.join(sharedTarget, 'workflow-first-gate.md')
-    );
+    await fs.copyFile(path.join(repoRoot, '.claude', 'skills', 'shared', 'workflow-first-gate.md'), path.join(sharedTarget, 'workflow-first-gate.md'));
 }
 
 test('migrate-claude-to-codex mirrors skills without injecting any protocol block', async () => {
@@ -99,11 +96,7 @@ test('migrate-claude-to-codex mirrors skills without injecting any protocol bloc
         await fs.writeFile(path.join(skillDir, 'config.yaml'), 'name: sample\r\nsteps:\r\n  - plan\r\n', 'utf8');
         await fs.writeFile(path.join(skillDir, 'settings.yml'), 'enabled: true\r\n', 'utf8');
 
-        await fs.writeFile(
-            path.join(planSkillDir, 'SKILL.md'),
-            ['---', 'name: plan', 'description: Plan', '---', '', '# Plan', ''].join('\n'),
-            'utf8'
-        );
+        await fs.writeFile(path.join(planSkillDir, 'SKILL.md'), ['---', 'name: plan', 'description: Plan', '---', '', '# Plan', ''].join('\n'), 'utf8');
 
         await fs.writeFile(
             path.join(codeSimplifierSkillDir, 'SKILL.md'),
@@ -239,8 +232,14 @@ test('migrate-claude-to-codex mirrors skills without injecting any protocol bloc
         assert.equal([...codexConfig.matchAll(/^\[\[servers\]\]/gm)].length, 1);
         assert.equal([...codexConfig.matchAll(/^status_line\s*=/gm)].length, 1);
         assert.doesNotMatch(codexConfig, /"model-name"/);
-        assert.ok(codexConfig.indexOf('status_line = ["model-with-reasoning", "current-dir", "project-root", "context-used", "five-hour-limit", "weekly-limit"]') > codexConfig.indexOf('[tui] # existing UI settings'));
-        assert.ok(codexConfig.indexOf('status_line = ["model-with-reasoning", "current-dir", "project-root", "context-used", "five-hour-limit", "weekly-limit"]') < codexConfig.indexOf('[[servers]] # existing server'));
+        assert.ok(
+            codexConfig.indexOf('status_line = ["model-with-reasoning", "current-dir", "project-root", "context-used", "five-hour-limit", "weekly-limit"]') >
+                codexConfig.indexOf('[tui] # existing UI settings')
+        );
+        assert.ok(
+            codexConfig.indexOf('status_line = ["model-with-reasoning", "current-dir", "project-root", "context-used", "five-hour-limit", "weekly-limit"]') <
+                codexConfig.indexOf('[[servers]] # existing server')
+        );
         assert.ok(codexConfig.indexOf('notifications = true') > codexConfig.indexOf('[tui] # existing UI settings'));
         assert.ok(codexConfig.indexOf('notifications = true') < codexConfig.indexOf('[[servers]] # existing server'));
         // And the generated copy of the retired helper is deleted with its now-empty directories
@@ -267,15 +266,12 @@ test('migrate rejects unknown and duplicate flags before creating output', async
         );
 
         for (const args of [['--unknown-option'], ['--copy-skills', '--copy-skills']]) {
-            await assert.rejects(
-                execFileAsync(process.execPath, [migrateScript, ...args], { cwd: tempRoot }),
-                error => {
-                    assert.equal(error.code, 1);
-                    assert.match(error.stderr, /unknown option|duplicate option/);
-                    assert.match(error.stderr, /Usage: node/);
-                    return true;
-                }
-            );
+            await assert.rejects(execFileAsync(process.execPath, [migrateScript, ...args], { cwd: tempRoot }), error => {
+                assert.equal(error.code, 1);
+                assert.match(error.stderr, /unknown option|duplicate option/);
+                assert.match(error.stderr, /Usage: node/);
+                return true;
+            });
             assert.equal(await pathExists(path.join(tempRoot, '.agents')), false);
             assert.equal(await pathExists(path.join(tempRoot, '.codex')), false);
         }
@@ -308,21 +304,9 @@ test('sync-codex runner works from copied .claude without a root scripts folder'
             ['---', 'name: sample-skill', 'description: Sample skill', '---', '', '# Sample Skill', 'Use /sample-skill.', ''].join('\n'),
             'utf8'
         );
-        await fs.writeFile(
-            path.join(tempRoot, '.claude', 'settings.json'),
-            `${JSON.stringify({ hooks: {} }, null, 2)}\n`,
-            'utf8'
-        );
-        await fs.writeFile(
-            path.join(tempRoot, '.claude', 'workflows.json'),
-            `${JSON.stringify({ workflows: {} }, null, 2)}\n`,
-            'utf8'
-        );
-        await fs.writeFile(
-            path.join(tempRoot, '.claude', '.ck.json'),
-            `${JSON.stringify({}, null, 2)}\n`,
-            'utf8'
-        );
+        await fs.writeFile(path.join(tempRoot, '.claude', 'settings.json'), `${JSON.stringify({ hooks: {} }, null, 2)}\n`, 'utf8');
+        await fs.writeFile(path.join(tempRoot, '.claude', 'workflows.json'), `${JSON.stringify({ workflows: {} }, null, 2)}\n`, 'utf8');
+        await fs.writeFile(path.join(tempRoot, '.claude', '.ck.json'), `${JSON.stringify({}, null, 2)}\n`, 'utf8');
         await execFileAsync(process.execPath, [runnerTarget, '--only=migrate,hooks,context'], { cwd: tempRoot });
 
         const codexConfig = await fs.readFile(path.join(tempRoot, '.codex', 'config.toml'), 'utf8');
@@ -357,16 +341,8 @@ test('sync-codex runner forwards copy-skills to migrate stage', async () => {
             'utf8'
         );
 
-        const { stdout } = await execFileAsync(
-            process.execPath,
-            [runnerTarget, '--only=migrate', '--copy-skills', '--verbose'],
-            { cwd: tempRoot }
-        );
-        const rerun = await execFileAsync(
-            process.execPath,
-            [runnerTarget, '--only=migrate', '--copy-skills', '--verbose'],
-            { cwd: tempRoot }
-        );
+        const { stdout } = await execFileAsync(process.execPath, [runnerTarget, '--only=migrate', '--copy-skills', '--verbose'], { cwd: tempRoot });
+        const rerun = await execFileAsync(process.execPath, [runnerTarget, '--only=migrate', '--copy-skills', '--verbose'], { cwd: tempRoot });
 
         const mirroredSkillExists = await pathExists(path.join(tempRoot, '.agents', 'skills', 'sample-skill', 'SKILL.md'));
         const sentinelExists = await pathExists(path.join(tempRoot, '.agents', 'skills', '.codex-mirror.json'));
@@ -391,30 +367,43 @@ async function withWorkflowRunnerFixture(body) {
         for (const name of ['sample-skill', 'start-workflow', 'sync-codex']) {
             const dir = path.join(tempRoot, '.claude', 'skills', name);
             await fs.mkdir(dir, { recursive: true });
-            await fs.writeFile(path.join(dir, 'SKILL.md'),
-                ['---', `name: ${name}`, 'description: Fixture skill', '---', '', `# ${name}`, ''].join('\n'), 'utf8');
+            await fs.writeFile(
+                path.join(dir, 'SKILL.md'),
+                ['---', `name: ${name}`, 'description: Fixture skill', '---', '', `# ${name}`, ''].join('\n'),
+                'utf8'
+            );
         }
         const workflowId = 'workflow-fixture';
         const sourceFile = path.join(tempRoot, '.claude', 'skills', workflowId, 'SKILL.md');
         const mirrorFile = path.join(tempRoot, '.agents', 'skills', workflowId, 'SKILL.md');
         const registryFile = path.join(tempRoot, '.claude', 'workflows.json');
         const authored = '\n## Quality\nPreserve authored review evidence.\n';
-        const stale = [
-            '---', `name: ${workflowId}`, 'description: Fixture workflow', '---', '',
-            '<!-- WORKFLOW-CALLS:START -->',
-            'Stale workflow call: /sample-skill --mode=old',
-            '<!-- WORKFLOW-CALLS:END -->',
-        ].join('\n') + authored;
+        const stale =
+            [
+                '---',
+                `name: ${workflowId}`,
+                'description: Fixture workflow',
+                '---',
+                '',
+                '<!-- WORKFLOW-CALLS:START -->',
+                'Stale workflow call: /sample-skill --mode=old',
+                '<!-- WORKFLOW-CALLS:END -->'
+            ].join('\n') + authored;
         await fs.mkdir(path.dirname(sourceFile), { recursive: true });
         await fs.writeFile(sourceFile, stale, 'utf8');
-        const document = { version: '1', workflows: { [workflowId]: {
-            preActions: { injectContext: 'Fixture quality context', readFiles: [`.claude/skills/${workflowId}/SKILL.md`] },
-            defaultMode: 'build',
-            variants: {
-                build: { sequence: [{ id: 'build-sample', skill: 'sample-skill', args: '--mode=build' }] },
-                audit: { sequence: [{ id: 'audit-sample', skill: 'sample-skill', args: '--mode=fresh' }] },
-            },
-        } } };
+        const document = {
+            version: '1',
+            workflows: {
+                [workflowId]: {
+                    preActions: { injectContext: 'Fixture quality context', readFiles: [`.claude/skills/${workflowId}/SKILL.md`] },
+                    defaultMode: 'build',
+                    variants: {
+                        build: { sequence: [{ id: 'build-sample', skill: 'sample-skill', args: '--mode=build' }] },
+                        audit: { sequence: [{ id: 'audit-sample', skill: 'sample-skill', args: '--mode=fresh' }] }
+                    }
+                }
+            }
+        };
         const saveRegistry = () => fs.writeFile(registryFile, JSON.stringify(document), 'utf8');
         await saveRegistry();
         const env = cleanMachineEnv(tempRoot);
@@ -487,7 +476,6 @@ test('invalid later workflow aborts migration without publishing earlier valid c
     });
 });
 
-
 // Business intent: `.agents/skills/` also holds skills the project wrote for Codex only, or that another
 // tool installed there. The sync owns only the entries it generates, so it must leave every other entry
 // exactly as its owner wrote it, and say so once per entry, on every run.
@@ -533,10 +521,11 @@ test('the sync keeps a skill it did not generate in .agents/skills byte for byte
             assert.equal(await fs.readFile(mirror('codex-only', 'SKILL.md'), 'utf8'), codexOnly, `${run} sync: the Codex-only manifest is not rewritten`);
             assert.equal(await fs.readFile(mirror('codex-only', 'references', 'guide.md'), 'utf8'), reference, `${run} sync: its references are not rewritten`);
             assert.equal(await fs.readFile(mirror('installed-by-tool.md'), 'utf8'), 'tool record\n', `${run} sync: a tool's file stays`);
-            assert.deepEqual(keptLines(stdout).map(line => line.split(':')[0]), [
-                '[codex-migrate] kept .agents/skills/codex-only',
-                '[codex-migrate] kept .agents/skills/installed-by-tool.md'
-            ], `${run} sync: one line per kept entry, and none for OS metadata`);
+            assert.deepEqual(
+                keptLines(stdout).map(line => line.split(':')[0]),
+                ['[codex-migrate] kept .agents/skills/codex-only', '[codex-migrate] kept .agents/skills/installed-by-tool.md'],
+                `${run} sync: one line per kept entry, and none for OS metadata`
+            );
             assert.match(stdout, /skills setup: mirrored \+ sanitized \+ rewritten 1 skill manifest\(s\); kept 2 entries it did not generate/);
             assert.deepEqual(await recorded(), ['sample-skill'], `${run} sync: the marker records only what the sync generated`);
             assert.equal(await pathExists(mirror('sample-skill', 'SKILL.md')), true, `${run} sync: the project skill is mirrored`);
@@ -561,8 +550,11 @@ test('a skill removed from .claude/skills has its mirror removed by the next syn
         assert.equal(await pathExists(mirror('kept-skill', 'SKILL.md')), true);
         assert.equal(await fs.readFile(mirror('codex-only', 'SKILL.md'), 'utf8'), '# Codex only\n');
         assert.deepEqual(await recorded(), ['kept-skill']);
-        assert.deepEqual(keptLines(stdout).map(line => line.split(':')[0]), ['[codex-migrate] kept .agents/skills/codex-only'],
-            'the removed skill is not reported as kept');
+        assert.deepEqual(
+            keptLines(stdout).map(line => line.split(':')[0]),
+            ['[codex-migrate] kept .agents/skills/codex-only'],
+            'the removed skill is not reported as kept'
+        );
     });
 });
 
@@ -580,7 +572,10 @@ test('a marker from before names were recorded: entries with a source are replac
         assert.doesNotMatch(await fs.readFile(mirror('sample-skill', 'SKILL.md'), 'utf8'), /stale mirror/);
         assert.equal(await pathExists(mirror('sample-skill', 'retired-reference.md')), false, 'a generated entry is replaced, not merged');
         assert.equal(await fs.readFile(mirror('unknown-entry', 'SKILL.md'), 'utf8'), '# who wrote this?\n');
-        assert.deepEqual(keptLines(stdout).map(line => line.split(':')[0]), ['[codex-migrate] kept .agents/skills/unknown-entry']);
+        assert.deepEqual(
+            keptLines(stdout).map(line => line.split(':')[0]),
+            ['[codex-migrate] kept .agents/skills/unknown-entry']
+        );
         assert.deepEqual(await recorded(), ['sample-skill'], 'the marker is upgraded to record names');
         // Such a marker cannot tell its own stale mirror from someone else's skill, so nothing is copied aside
         assert.deepEqual(replacedLines(stdout), []);
@@ -629,22 +624,32 @@ test('a skill the sync did not write is copied to tmp/ before a source of the sa
 // Business intent: a skills-only project (no .claude/agents) may already have a `.agents/skills/` folder
 // another tool made. The sync adopts it instead of refusing: it adds its mirror and deletes nothing.
 test('a skills-only project adopts an existing .agents/skills folder and keeps every skill in it', async () => {
-    await withSkillMirrorFixture('codex-sync-adopt-folder-', async ({ mirror, write, addSkill, sync, keptLines, replacedLines, recorded, savedCopy }) => {
-        // Given a skills-only project and a folder with no sync marker: one unrelated skill and one whose
-        // name a source skill uses (its text even carries the Codex note a generated mirror has)
-        await addSkill('sample-skill');
-        await write(mirror('foreign-skill', 'SKILL.md'), '---\nname: foreign-skill\ndescription: Foreign skill\n---\n\n# Foreign Skill\n');
-        await write(mirror('sample-skill', 'SKILL.md'), '> Codex compatibility note:\n\n# Installed by another tool\n');
-        // When the sync runs
-        const stdout = await sync();
-        // Then the unrelated skill stays, the same-named one is copied aside before the mirror replaces it
-        assert.equal(await fs.readFile(mirror('foreign-skill', 'SKILL.md'), 'utf8'), '---\nname: foreign-skill\ndescription: Foreign skill\n---\n\n# Foreign Skill\n');
-        assert.deepEqual(keptLines(stdout).map(line => line.split(':')[0]), ['[codex-migrate] kept .agents/skills/foreign-skill']);
-        assert.equal(replacedLines(stdout).length, 1);
-        assert.equal(await fs.readFile(savedCopy('sample-skill', 'SKILL.md'), 'utf8'), '> Codex compatibility note:\n\n# Installed by another tool\n');
-        assert.match(await fs.readFile(mirror('sample-skill', 'SKILL.md'), 'utf8'), /^# sample-skill$/m);
-        assert.deepEqual(await recorded(), ['sample-skill']);
-    }, { skillsOnly: true });
+    await withSkillMirrorFixture(
+        'codex-sync-adopt-folder-',
+        async ({ mirror, write, addSkill, sync, keptLines, replacedLines, recorded, savedCopy }) => {
+            // Given a skills-only project and a folder with no sync marker: one unrelated skill and one whose
+            // name a source skill uses (its text even carries the Codex note a generated mirror has)
+            await addSkill('sample-skill');
+            await write(mirror('foreign-skill', 'SKILL.md'), '---\nname: foreign-skill\ndescription: Foreign skill\n---\n\n# Foreign Skill\n');
+            await write(mirror('sample-skill', 'SKILL.md'), '> Codex compatibility note:\n\n# Installed by another tool\n');
+            // When the sync runs
+            const stdout = await sync();
+            // Then the unrelated skill stays, the same-named one is copied aside before the mirror replaces it
+            assert.equal(
+                await fs.readFile(mirror('foreign-skill', 'SKILL.md'), 'utf8'),
+                '---\nname: foreign-skill\ndescription: Foreign skill\n---\n\n# Foreign Skill\n'
+            );
+            assert.deepEqual(
+                keptLines(stdout).map(line => line.split(':')[0]),
+                ['[codex-migrate] kept .agents/skills/foreign-skill']
+            );
+            assert.equal(replacedLines(stdout).length, 1);
+            assert.equal(await fs.readFile(savedCopy('sample-skill', 'SKILL.md'), 'utf8'), '> Codex compatibility note:\n\n# Installed by another tool\n');
+            assert.match(await fs.readFile(mirror('sample-skill', 'SKILL.md'), 'utf8'), /^# sample-skill$/m);
+            assert.deepEqual(await recorded(), ['sample-skill']);
+        },
+        { skillsOnly: true }
+    );
 });
 
 test('a hand-edited marker can never make the sync remove anything outside .agents/skills', async () => {
@@ -653,11 +658,14 @@ test('a hand-edited marker can never make the sync remove anything outside .agen
         await addSkill('sample-skill');
         await write(path.join(tempRoot, '.agents', 'outside', 'keep.txt'), 'outside the mirror\n');
         await write(mirror('nested', 'inner', 'keep.txt'), 'nested entry\n');
-        await write(mirror('.codex-mirror.json'), `${JSON.stringify({
-            managedBy: 'codex-sync',
-            source: '.claude/skills',
-            generatedEntries: ['../outside', '..', '.', '', 'nested/inner', 'nested\\inner', 42, null, '.codex-mirror.json']
-        })}\n`);
+        await write(
+            mirror('.codex-mirror.json'),
+            `${JSON.stringify({
+                managedBy: 'codex-sync',
+                source: '.claude/skills',
+                generatedEntries: ['../outside', '..', '.', '', 'nested/inner', 'nested\\inner', 42, null, '.codex-mirror.json']
+            })}\n`
+        );
         // When the sync runs
         await sync();
         // Then nothing those names point at is removed, and the marker itself is rewritten
@@ -707,7 +715,12 @@ test('skill mirror excludes local package-manager lockfiles but keeps real skill
 // generated mirror, and the divergence gate ignores such files, so nothing would ever report it.
 test('skill mirror leaves OS metadata files in the source tree behind but keeps real skill files', async () => {
     const { isMirroredSkillSource } = await import(pathToFileURL(migrateScript).href);
-    for (const rel of ['.DS_Store', path.join('sample-skill', '.DS_Store'), path.join('sample-skill', 'references', 'Thumbs.db'), path.join('sample-skill', 'Desktop.ini')]) {
+    for (const rel of [
+        '.DS_Store',
+        path.join('sample-skill', '.DS_Store'),
+        path.join('sample-skill', 'references', 'Thumbs.db'),
+        path.join('sample-skill', 'Desktop.ini')
+    ]) {
         assert.equal(isMirroredSkillSource(rel), false, `${rel} must not be mirrored`);
     }
     assert.equal(isMirroredSkillSource(path.join('sample-skill', 'notes.DS_Store.md')), true, 'a name that merely contains a metadata name is real content');
@@ -718,7 +731,11 @@ test('skill mirror leaves OS metadata files in the source tree behind but keeps 
     try {
         // Given a skill whose source folders a file browser has had open
         await fs.mkdir(source('sample-skill', 'references'), { recursive: true });
-        await fs.writeFile(source('sample-skill', 'SKILL.md'), ['---', 'name: sample-skill', 'description: Sample skill', '---', '', '# Sample Skill', ''].join('\n'), 'utf8');
+        await fs.writeFile(
+            source('sample-skill', 'SKILL.md'),
+            ['---', 'name: sample-skill', 'description: Sample skill', '---', '', '# Sample Skill', ''].join('\n'),
+            'utf8'
+        );
         await fs.writeFile(source('sample-skill', 'references', 'guide.md'), 'guide\n', 'utf8');
         await fs.writeFile(source('sample-skill', 'notes.DS_Store.md'), 'notes\n', 'utf8');
         await fs.writeFile(source('.DS_Store'), Buffer.from([0, 0, 0, 1, 0x42, 0x75, 0x64, 0x31]));
@@ -792,7 +809,7 @@ test('Codex config upsert removes only the retired framework notify command and 
     for (const legacy of [
         'notify = ["node", ".codex/scripts/codex/codex-notify.mjs"]',
         'notify=["node",".codex/scripts/codex/codex-notify.mjs",] # old helper',
-        'notify = [\n  "node",\n  ".codex/scripts/codex/codex-notify.mjs",\n]',
+        'notify = [\n  "node",\n  ".codex/scripts/codex/codex-notify.mjs",\n]'
     ]) {
         // Then that command is removed: Codex runs it after every turn of every thread, subagents included
         const updated = upsertCodexNotificationConfig(`model = "m"\n\n${legacy}\n\n[tui]\ntheme = "dark"\n`);
@@ -801,7 +818,9 @@ test('Codex config upsert removes only the retired framework notify command and 
         assert.doesNotMatch(updated, /codex-notify\.mjs/);
     }
     // When the project wrote its own comment directly above the retired line
-    const withOwnComment = upsertCodexNotificationConfig('# notify = ["python3", "mine.py"] kept for later\nnotify = ["node", ".codex/scripts/codex/codex-notify.mjs"]\n');
+    const withOwnComment = upsertCodexNotificationConfig(
+        '# notify = ["python3", "mine.py"] kept for later\nnotify = ["node", ".codex/scripts/codex/codex-notify.mjs"]\n'
+    );
     // Then only the retired command goes; the project's comment stays
     assert.deepEqual(notifyLines(withOwnComment), []);
     assert.match(withOwnComment, /^# notify = \["python3", "mine\.py"\] kept for later$/m);
@@ -831,9 +850,25 @@ test('Codex config sync inherits native instruction limits and retires only the 
 
     // A smaller custom allowance matters as much as a larger one. Alternate spellings of the
     // former value were never written by this generator and therefore remain user-owned too.
-    for (const value of ['16384', '32768', '262144', '262_144', '0x40000', '0x4_0000', '0o1000000',
-        '0b1000000000000000000', '+262_144', '0x8000', '0o100000', '0b1000000000000000', '32_768',
-        '98_304', '0x18000', '"262144"', '0x_40000']) {
+    for (const value of [
+        '16384',
+        '32768',
+        '262144',
+        '262_144',
+        '0x40000',
+        '0x4_0000',
+        '0o1000000',
+        '0b1000000000000000000',
+        '+262_144',
+        '0x8000',
+        '0o100000',
+        '0b1000000000000000',
+        '32_768',
+        '98_304',
+        '0x18000',
+        '"262144"',
+        '0x_40000'
+    ]) {
         const own = `project_doc_max_bytes = ${value}`;
         const notices = [];
         const updated = upsertCodexNotificationConfig(`${own}\n`, { onNotice: text => notices.push(text) });
@@ -851,8 +886,7 @@ test('Codex config sync inherits native instruction limits and retires only the 
 
 test('the generated instruction budget fits native Codex limits without a framework override', async () => {
     const { AGENTS_ROOT_LIMIT_BYTES } = await import(pathToFileURL(path.join(sourceScriptsDir, 'sync-context-workflows.mjs')).href);
-    assert.ok(AGENTS_ROOT_LIMIT_BYTES <= 32768,
-        `generated instructions must fit the native 32 KiB limit, not raise it: ${AGENTS_ROOT_LIMIT_BYTES}`);
+    assert.ok(AGENTS_ROOT_LIMIT_BYTES <= 32768, `generated instructions must fit the native 32 KiB limit, not raise it: ${AGENTS_ROOT_LIMIT_BYTES}`);
 });
 
 test('instruction budget retirement preserves TOML strings and complex nested configuration', async () => {
@@ -863,7 +897,7 @@ test('instruction budget retirement preserves TOML strings and complex nested co
         '[profiles."a]b"]\nproject_doc_max_bytes = 98304\n',
         '[["a]b"]]\nproject_doc_max_bytes = 98304\n',
         'developer_instructions = """custom\ninstructions"""\nproject_doc_max_bytes = 98304\n',
-        'custom = [\n  "item"\n]\nproject_doc_max_bytes = 98304\n',
+        'custom = [\n  "item"\n]\nproject_doc_max_bytes = 98304\n'
     ]) {
         const updated = upsertCodexNotificationConfig(own);
         assert.ok(updated.startsWith(own), 'complex user configuration is preserved conservatively');
@@ -881,12 +915,16 @@ test('manual-only skills get a Codex implicit-invocation policy; other skills ge
     // The mutation root honours CLAUDE_PROJECT_DIR over cwd, so drop it to keep the run inside the fixture.
     const env = { ...process.env };
     delete env.CLAUDE_PROJECT_DIR;
-    const writeSkill = (name, extraFrontmatter = []) => fs.mkdir(path.join(tempRoot, '.claude', 'skills', name), { recursive: true })
-        .then(() => fs.writeFile(
-            path.join(tempRoot, '.claude', 'skills', name, 'SKILL.md'),
-            ['---', `name: ${name}`, `description: ${name} skill`, ...extraFrontmatter, '---', '', `# ${name}`, ''].join('\n'),
-            'utf8'
-        ));
+    const writeSkill = (name, extraFrontmatter = []) =>
+        fs
+            .mkdir(path.join(tempRoot, '.claude', 'skills', name), { recursive: true })
+            .then(() =>
+                fs.writeFile(
+                    path.join(tempRoot, '.claude', 'skills', name, 'SKILL.md'),
+                    ['---', `name: ${name}`, `description: ${name} skill`, ...extraFrontmatter, '---', '', `# ${name}`, ''].join('\n'),
+                    'utf8'
+                )
+            );
     try {
         // Given a manual-only skill, a model-invocable skill, and a manual-only skill shipping its own openai.yaml
         await writeSkill('manual-skill', ['disable-model-invocation: true']);
@@ -917,15 +955,15 @@ test('a manual-only skill whose own openai.yaml allows implicit invocation fails
         // Given a manual-only skill whose shipped openai.yaml leaves implicit invocation on
         const skillDir = path.join(tempRoot, '.claude', 'skills', 'conflict-skill');
         await fs.mkdir(path.join(skillDir, 'agents'), { recursive: true });
-        await fs.writeFile(path.join(skillDir, 'SKILL.md'),
-            ['---', 'name: conflict-skill', 'description: Conflict', 'disable-model-invocation: true', '---', '', '# Conflict', ''].join('\n'), 'utf8');
+        await fs.writeFile(
+            path.join(skillDir, 'SKILL.md'),
+            ['---', 'name: conflict-skill', 'description: Conflict', 'disable-model-invocation: true', '---', '', '# Conflict', ''].join('\n'),
+            'utf8'
+        );
         await fs.writeFile(path.join(skillDir, 'agents', 'openai.yaml'), 'interface:\n  display_name: "Conflict"\n', 'utf8');
 
         // When / Then the sync refuses rather than silently publishing an implicitly invocable mirror
-        await assert.rejects(
-            execFileAsync(process.execPath, [migrateScript], { cwd: tempRoot, env }),
-            /does not set policy\.allow_implicit_invocation: false/
-        );
+        await assert.rejects(execFileAsync(process.execPath, [migrateScript], { cwd: tempRoot, env }), /does not set policy\.allow_implicit_invocation: false/);
     } finally {
         await fs.rm(tempRoot, { recursive: true, force: true });
     }
@@ -936,72 +974,102 @@ test('a manual-only skill whose own openai.yaml allows implicit invocation fails
 // so `$name` runs them but the model never picks them implicitly. Framework-repo guarded: it reads this
 // repo's own skill defaults, which an adopting project may change (PORT-011 is the guard's tripwire).
 const COMMAND_ONLY_UTILITIES = [
-    'custom-agent', 'docx-convert', 'pdf-convert', 'playwright-cli',
-    'presentation-builder', 'remotion', 'sync-skills-shared-protocols', 'release-doc',
-    'git-developer-performance', 'skill-creator', 'scan-codebase-health',
-    'project-help', 'custom-prompt',
+    'custom-agent',
+    'docx-convert',
+    'pdf-convert',
+    'playwright-cli',
+    'presentation-builder',
+    'remotion',
+    'sync-skills-shared-protocols',
+    'release-doc',
+    'git-developer-performance',
+    'skill-creator',
+    'scan-codebase-health',
+    'project-help',
+    'custom-prompt'
 ];
 
-test('TC-ADS-009 command-only utility skills mirror to Codex with implicit invocation off', {
-    skip: isFrameworkRepo(repoRoot) ? false : "asserts the framework repo's own skill defaults (framework-repo signal)",
-}, async () => {
-    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-sync-command-only-'));
-    // A clean machine: the mutation root must not follow CLAUDE_PROJECT_DIR, no inherited CK_* switch or
-    // Codex home reaches the child, and home plus temp point at the fixture.
-    const env = { ...process.env, HOME: tempRoot, USERPROFILE: tempRoot, TMPDIR: tempRoot, TEMP: tempRoot, TMP: tempRoot };
-    for (const key of Object.keys(env)) {
-        if (/^(CK_|CLAUDE_PROJECT_DIR$|CODEX_HOME$|NODE_TEST_CONTEXT$)/i.test(key)) delete env[key];
-    }
-    try {
-        // Given a fixture project whose utility skills carry their real source frontmatter, plus one invocable control
-        for (const name of COMMAND_ONLY_UTILITIES) {
-            const source = await fs.readFile(path.join(repoRoot, '.claude', 'skills', name, 'SKILL.md'), 'utf8');
-            const frontmatter = /^---\r?\n[\s\S]*?\r?\n---(?=\r?\n|$)/.exec(source);
-            assert.ok(frontmatter, `${name}: source SKILL.md has YAML frontmatter`);
-            await fs.mkdir(path.join(tempRoot, '.claude', 'skills', name), { recursive: true });
-            await fs.writeFile(path.join(tempRoot, '.claude', 'skills', name, 'SKILL.md'), `${frontmatter[0]}\n\n# ${name}\n`, 'utf8');
+test(
+    'TC-ADS-009 command-only utility skills mirror to Codex with implicit invocation off',
+    {
+        skip: isFrameworkRepo(repoRoot) ? false : "asserts the framework repo's own skill defaults (framework-repo signal)"
+    },
+    async () => {
+        const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-sync-command-only-'));
+        // A clean machine: the mutation root must not follow CLAUDE_PROJECT_DIR, no inherited CK_* switch or
+        // Codex home reaches the child, and home plus temp point at the fixture.
+        const env = { ...process.env, HOME: tempRoot, USERPROFILE: tempRoot, TMPDIR: tempRoot, TEMP: tempRoot, TMP: tempRoot };
+        for (const key of Object.keys(env)) {
+            if (/^(CK_|CLAUDE_PROJECT_DIR$|CODEX_HOME$|NODE_TEST_CONTEXT$)/i.test(key)) delete env[key];
         }
-        await fs.mkdir(path.join(tempRoot, '.claude', 'skills', 'invocable-control'), { recursive: true });
-        await fs.writeFile(path.join(tempRoot, '.claude', 'skills', 'invocable-control', 'SKILL.md'),
-            ['---', 'name: invocable-control', 'description: Control skill', '---', '', '# Control', ''].join('\n'), 'utf8');
-        // The graph export utility now lives in the model-selectable graph-code owner (TC-GCM-008).
-        const graphSource = await fs.readFile(path.join(repoRoot, '.claude', 'skills', 'graph-code', 'SKILL.md'), 'utf8');
-        const graphFrontmatter = /^---\r?\n[\s\S]*?\r?\n---(?=\r?\n|$)/.exec(graphSource);
-        assert.ok(graphFrontmatter, 'graph-code: source SKILL.md has YAML frontmatter');
-        await fs.mkdir(path.join(tempRoot, '.claude', 'skills', 'graph-code'), { recursive: true });
-        await fs.writeFile(path.join(tempRoot, '.claude', 'skills', 'graph-code', 'SKILL.md'), `${graphFrontmatter[0]}\n\n# Graph code\n`, 'utf8');
-        // A previous generated mirror is a real upgrade state: the retired alias it recorded must be pruned.
-        const retiredMirror = path.join(tempRoot, '.agents', 'skills', 'graph' + '-export');
-        await fs.mkdir(retiredMirror, { recursive: true });
-        await fs.writeFile(path.join(retiredMirror, 'SKILL.md'), '# Previous export alias\n', 'utf8');
-        await fs.writeFile(path.join(tempRoot, '.agents', 'skills', '.codex-mirror.json'),
-            `${JSON.stringify({ managedBy: 'codex-sync', source: '.claude/skills', generatedEntries: ['graph' + '-export'] })}\n`, 'utf8');
+        try {
+            // Given a fixture project whose utility skills carry their real source frontmatter, plus one invocable control
+            for (const name of COMMAND_ONLY_UTILITIES) {
+                const source = await fs.readFile(path.join(repoRoot, '.claude', 'skills', name, 'SKILL.md'), 'utf8');
+                const frontmatter = /^---\r?\n[\s\S]*?\r?\n---(?=\r?\n|$)/.exec(source);
+                assert.ok(frontmatter, `${name}: source SKILL.md has YAML frontmatter`);
+                await fs.mkdir(path.join(tempRoot, '.claude', 'skills', name), { recursive: true });
+                await fs.writeFile(path.join(tempRoot, '.claude', 'skills', name, 'SKILL.md'), `${frontmatter[0]}\n\n# ${name}\n`, 'utf8');
+            }
+            await fs.mkdir(path.join(tempRoot, '.claude', 'skills', 'invocable-control'), { recursive: true });
+            await fs.writeFile(
+                path.join(tempRoot, '.claude', 'skills', 'invocable-control', 'SKILL.md'),
+                ['---', 'name: invocable-control', 'description: Control skill', '---', '', '# Control', ''].join('\n'),
+                'utf8'
+            );
+            // The graph export utility now lives in the model-selectable graph-code owner (TC-GCM-008).
+            const graphSource = await fs.readFile(path.join(repoRoot, '.claude', 'skills', 'graph-code', 'SKILL.md'), 'utf8');
+            const graphFrontmatter = /^---\r?\n[\s\S]*?\r?\n---(?=\r?\n|$)/.exec(graphSource);
+            assert.ok(graphFrontmatter, 'graph-code: source SKILL.md has YAML frontmatter');
+            await fs.mkdir(path.join(tempRoot, '.claude', 'skills', 'graph-code'), { recursive: true });
+            await fs.writeFile(path.join(tempRoot, '.claude', 'skills', 'graph-code', 'SKILL.md'), `${graphFrontmatter[0]}\n\n# Graph code\n`, 'utf8');
+            // A previous generated mirror is a real upgrade state: the retired alias it recorded must be pruned.
+            const retiredMirror = path.join(tempRoot, '.agents', 'skills', 'graph' + '-export');
+            await fs.mkdir(retiredMirror, { recursive: true });
+            await fs.writeFile(path.join(retiredMirror, 'SKILL.md'), '# Previous export alias\n', 'utf8');
+            await fs.writeFile(
+                path.join(tempRoot, '.agents', 'skills', '.codex-mirror.json'),
+                `${JSON.stringify({ managedBy: 'codex-sync', source: '.claude/skills', generatedEntries: ['graph' + '-export'] })}\n`,
+                'utf8'
+            );
 
-        // When the Codex mirror is generated
-        await execFileAsync(process.execPath, [migrateScript], { cwd: tempRoot, env });
+            // When the Codex mirror is generated
+            await execFileAsync(process.execPath, [migrateScript], { cwd: tempRoot, env });
 
-        // Then every utility's mirror turns implicit invocation off and keeps the manual-only flag
-        const defects = [];
-        for (const name of COMMAND_ONLY_UTILITIES) {
-            const mirrorDir = path.join(tempRoot, '.agents', 'skills', name);
-            const policy = await fs.readFile(path.join(mirrorDir, 'agents', 'openai.yaml'), 'utf8').catch(() => null);
-            if (policy === null) defects.push(`${name}: agents/openai.yaml missing`);
-            else if (!/^policy:\r?\n {2}allow_implicit_invocation: false\r?$/m.test(policy)) defects.push(`${name}: openai.yaml leaves implicit invocation on`);
-            const mirroredSkill = await fs.readFile(path.join(mirrorDir, 'SKILL.md'), 'utf8');
-            if (!/^disable-model-invocation:\s*true\s*$/m.test(mirroredSkill)) defects.push(`${name}: mirrored SKILL.md lost disable-model-invocation: true`);
+            // Then every utility's mirror turns implicit invocation off and keeps the manual-only flag
+            const defects = [];
+            for (const name of COMMAND_ONLY_UTILITIES) {
+                const mirrorDir = path.join(tempRoot, '.agents', 'skills', name);
+                const policy = await fs.readFile(path.join(mirrorDir, 'agents', 'openai.yaml'), 'utf8').catch(() => null);
+                if (policy === null) defects.push(`${name}: agents/openai.yaml missing`);
+                else if (!/^policy:\r?\n {2}allow_implicit_invocation: false\r?$/m.test(policy))
+                    defects.push(`${name}: openai.yaml leaves implicit invocation on`);
+                const mirroredSkill = await fs.readFile(path.join(mirrorDir, 'SKILL.md'), 'utf8');
+                if (!/^disable-model-invocation:\s*true\s*$/m.test(mirroredSkill))
+                    defects.push(`${name}: mirrored SKILL.md lost disable-model-invocation: true`);
+            }
+            assert.deepEqual(defects, [], `command-only utilities must stay manual-only on Codex:\n  ${defects.join('\n  ')}`);
+            // And the invocable control proves the policy is flag-driven, not blanket
+            assert.equal(
+                await pathExists(path.join(tempRoot, '.agents', 'skills', 'invocable-control', 'agents', 'openai.yaml')),
+                false,
+                'a model-invocable skill must keep Codex implicit invocation'
+            );
+            assert.equal(
+                await pathExists(path.join(tempRoot, '.agents', 'skills', 'graph-code', 'agents', 'openai.yaml')),
+                false,
+                'consolidating the export utility must not hide graph-code from Codex implicit invocation'
+            );
+            assert.equal(
+                await pathExists(path.join(tempRoot, '.agents', 'skills', 'graph' + '-export')),
+                false,
+                'the retired standalone export command must not return in the Codex catalog'
+            );
+        } finally {
+            await fs.rm(tempRoot, { recursive: true, force: true });
         }
-        assert.deepEqual(defects, [], `command-only utilities must stay manual-only on Codex:\n  ${defects.join('\n  ')}`);
-        // And the invocable control proves the policy is flag-driven, not blanket
-        assert.equal(await pathExists(path.join(tempRoot, '.agents', 'skills', 'invocable-control', 'agents', 'openai.yaml')), false,
-            'a model-invocable skill must keep Codex implicit invocation');
-        assert.equal(await pathExists(path.join(tempRoot, '.agents', 'skills', 'graph-code', 'agents', 'openai.yaml')), false,
-            'consolidating the export utility must not hide graph-code from Codex implicit invocation');
-        assert.equal(await pathExists(path.join(tempRoot, '.agents', 'skills', 'graph' + '-export')), false,
-            'the retired standalone export command must not return in the Codex catalog');
-    } finally {
-        await fs.rm(tempRoot, { recursive: true, force: true });
     }
-});
+);
 
 // Intent (BR-ADS-20, BR-ADS-21; TC-ADS-035…037): the bundle pins no auto-compaction budget on Codex, so
 // the host default applies. A budget an earlier bundle wrote is retired only while it still equals the
@@ -1010,7 +1078,7 @@ const BUNDLED_COMPACTION_COMMENT = [
     '# Auto-compaction budget — 500K tokens, matching the Claude Code',
     '# CLAUDE_CODE_AUTO_COMPACT_WINDOW and the opencode model limit.context so all three',
     '# surfaces of the portable framework compact at the same point.',
-    '# Scope defaults to "total" (full active context).',
+    '# Scope defaults to "total" (full active context).'
 ];
 
 // A clean machine: the mutation root must not follow CLAUDE_PROJECT_DIR, no inherited CK_* switch or
@@ -1027,8 +1095,11 @@ async function withCodexConfigFixture(prefix, configText, body) {
     const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), prefix));
     try {
         await fs.mkdir(path.join(tempRoot, '.claude', 'skills', 'sample-skill'), { recursive: true });
-        await fs.writeFile(path.join(tempRoot, '.claude', 'skills', 'sample-skill', 'SKILL.md'),
-            ['---', 'name: sample-skill', 'description: Sample skill', '---', '', '# Sample Skill', ''].join('\n'), 'utf8');
+        await fs.writeFile(
+            path.join(tempRoot, '.claude', 'skills', 'sample-skill', 'SKILL.md'),
+            ['---', 'name: sample-skill', 'description: Sample skill', '---', '', '# Sample Skill', ''].join('\n'),
+            'utf8'
+        );
         if (configText !== undefined) {
             await fs.mkdir(path.join(tempRoot, '.codex'), { recursive: true });
             await fs.writeFile(path.join(tempRoot, '.codex', 'config.toml'), configText, 'utf8');
@@ -1074,7 +1145,7 @@ test('TC-ADS-036 the bundled Codex compaction budget and its comment are retired
         '',
         '[tui]',
         'theme = "dark"',
-        '',
+        ''
     ].join('\n');
     await withCodexConfigFixture('codex-compaction-retire-', earlier, async sync => {
         // When the Codex sync runs twice
@@ -1122,16 +1193,29 @@ async function withProfileFixture(prefix, { skills, workflows = {}, skillProfile
     };
     try {
         for (const [name, extra] of Object.entries(skills)) {
-            await write(path.join('.claude', 'skills', name, 'SKILL.md'), ['---', `name: ${name}`, `description: ${name} skill`, ...extra, '---', '', `# ${name}`, ''].join('\n'));
+            await write(
+                path.join('.claude', 'skills', name, 'SKILL.md'),
+                ['---', `name: ${name}`, `description: ${name} skill`, ...extra, '---', '', `# ${name}`, ''].join('\n')
+            );
         }
         await write(path.join('.claude', 'workflows.json'), `${JSON.stringify({ workflows }, null, 2)}\n`);
-        await write(path.join('.claude', 'config', 'skill-profiles.json'), `${JSON.stringify({
-            calledByOthers: { skills: calledByOthers },
-            entrySkills: { skills: [] },
-            presets: { full: { nameOnly: [] }, standard: { nameOnly: 'calledByOthers' }, minimal: { nameOnly: 'allExceptEntry' } }
-        }, null, 2)}\n`);
+        await write(
+            path.join('.claude', 'config', 'skill-profiles.json'),
+            `${JSON.stringify(
+                {
+                    calledByOthers: { skills: calledByOthers },
+                    entrySkills: { skills: [] },
+                    presets: { full: { nameOnly: [] }, standard: { nameOnly: 'calledByOthers' }, minimal: { nameOnly: 'allExceptEntry' } }
+                },
+                null,
+                2
+            )}\n`
+        );
         if (projectConfig) {
-            await write(path.join('docs', 'project-config.json'), JSON.stringify({ project: { name: 'fixture' }, ...(skillProfile === undefined ? {} : { skillProfile }) }));
+            await write(
+                path.join('docs', 'project-config.json'),
+                JSON.stringify({ project: { name: 'fixture' }, ...(skillProfile === undefined ? {} : { skillProfile }) })
+            );
         }
         const sync = () => execFileAsync(process.execPath, [migrateScript], { cwd: tempRoot, env: cleanMachineEnv(tempRoot) });
         const policy = name => fs.readFile(path.join(tempRoot, '.agents', 'skills', name, 'agents', 'openai.yaml'), 'utf8').catch(() => null);
@@ -1164,7 +1248,10 @@ test('TC-ADS-024 without a skill profile the Codex policy files are exactly the 
     const { buildCodexSkillPolicy } = await import(pathToFileURL(migrateScript).href);
     const skills = { 'manual-skill': ['disable-model-invocation: true'], plain: [], w: [] };
     // Given the same skills with no project config, and with a project config (and presets) but no skillProfile
-    for (const [label, options] of [['no project config', { skills, projectConfig: false }], ['config without skillProfile', { skills, calledByOthers: ['w'] }]]) {
+    for (const [label, options] of [
+        ['no project config', { skills, projectConfig: false }],
+        ['config without skillProfile', { skills, calledByOthers: ['w'] }]
+    ]) {
         await withProfileFixture('codex-profile-none-', options, async ({ sync, policy }) => {
             // When the Codex mirror is generated
             const { stdout } = await sync();
@@ -1178,7 +1265,8 @@ test('TC-ADS-024 without a skill profile the Codex policy files are exactly the 
 });
 
 test('TC-ADS-045 hiding a called skill is refused before any mirror file is written unless allowHidingCalledSkills is set', async () => {
-    const refusal = /skill-profile: refusing to hide security-audit \(commandOnly\): started by workflow workflow-review-changes; set skillProfile\.allowHidingCalledSkills: true to allow/;
+    const refusal =
+        /skill-profile: refusing to hide security-audit \(commandOnly\): started by workflow workflow-review-changes; set skillProfile\.allowHidingCalledSkills: true to allow/;
     const fixture = allow => ({
         skills: { 'security-audit': [], 'workflow-review-changes': [] },
         workflows: { 'workflow-review-changes': { sequence: ['security-audit'] } },
@@ -1200,12 +1288,15 @@ test('TC-ADS-045 hiding a called skill is refused before any mirror file is writ
         // When the sync-divergence oracle materializes the mirror (the --check path), Then it refuses before writing too
         const staging = path.join(tempRoot, 'staging');
         const probe = path.join(tempRoot, 'oracle-probe.mjs');
-        await write('oracle-probe.mjs', [
-            `const m = await import(${JSON.stringify(pathToFileURL(migrateScript).href)});`,
-            `try { await m.materializeSkillMirror(${JSON.stringify(staging)}, new Map()); console.log('materialized'); }`,
-            'catch (error) { console.error(error.message); process.exitCode = 3; }',
-            ''
-        ].join('\n'));
+        await write(
+            'oracle-probe.mjs',
+            [
+                `const m = await import(${JSON.stringify(pathToFileURL(migrateScript).href)});`,
+                `try { await m.materializeSkillMirror(${JSON.stringify(staging)}, new Map()); console.log('materialized'); }`,
+                'catch (error) { console.error(error.message); process.exitCode = 3; }',
+                ''
+            ].join('\n')
+        );
         await assert.rejects(execFileAsync(process.execPath, [probe], { cwd: tempRoot, env: cleanMachineEnv(tempRoot) }), error => {
             assert.equal(error.code, 3);
             assert.match(error.stderr, refusal);
@@ -1231,15 +1322,22 @@ test('TC-ADS-047 a called nameOnly skill follows the recorded Q-E branch (FAIL: 
     assert.equal(CODEX_STEP_REACHES_HIDDEN_SKILL, false, 'the P33 Q-E row recorded FAIL; flip only on new PASS evidence');
 
     // Given preset standard, which puts the curated called skill w in nameOnly
-    await withProfileFixture('codex-profile-standard-', { skills: { w: [], other: [] }, calledByOthers: ['w'], skillProfile: { preset: 'standard' } }, async ({ sync, policy }) => {
-        // When the Codex mirror is generated
-        const { stdout } = await sync();
-        // Then w gets no policy, and exactly one note line names it and its caller
-        assert.equal(await policy('w'), null, 'a called nameOnly skill keeps implicit invocation on Codex');
-        assert.deepEqual(profileLines(stdout).map(line => line.trim()), [
-            '[codex-migrate] skill-profile: kept implicit invocation for w (nameOnly) on Codex: started by the calledByOthers list, and a workflow step does not reach a Codex skill with implicit invocation off'
-        ]);
-    });
+    await withProfileFixture(
+        'codex-profile-standard-',
+        { skills: { w: [], other: [] }, calledByOthers: ['w'], skillProfile: { preset: 'standard' } },
+        async ({ sync, policy }) => {
+            // When the Codex mirror is generated
+            const { stdout } = await sync();
+            // Then w gets no policy, and exactly one note line names it and its caller
+            assert.equal(await policy('w'), null, 'a called nameOnly skill keeps implicit invocation on Codex');
+            assert.deepEqual(
+                profileLines(stdout).map(line => line.trim()),
+                [
+                    '[codex-migrate] skill-profile: kept implicit invocation for w (nameOnly) on Codex: started by the calledByOthers list, and a workflow step does not reach a Codex skill with implicit invocation off'
+                ]
+            );
+        }
+    );
 
     // When the same resolved profile is mapped under the PASS branch, Then w would be hidden (the branch is the only switch)
     const resolved = { overrides: { w: 'nameOnly' }, called: new Map([['w', ['the calledByOthers list']]]) };
@@ -1258,7 +1356,10 @@ test('a profile entry for a skill that ships its own openai.yaml without the pol
         assert.equal(await policy('owned'), owned, 'a skill-owned openai.yaml is never overwritten');
         const lines = profileLines(stdout);
         assert.equal(lines.length, 1, lines.join('\n'));
-        assert.match(lines[0], /conflict: owned[\\/]SKILL\.md ships its own agents\/openai\.yaml without policy\.allow_implicit_invocation: false; kept that file, skillProfile\.nameOnly is not applied on Codex/);
+        assert.match(
+            lines[0],
+            /conflict: owned[\\/]SKILL\.md ships its own agents\/openai\.yaml without policy\.allow_implicit_invocation: false; kept that file, skillProfile\.nameOnly is not applied on Codex/
+        );
         assert.doesNotMatch(lines[0], /disable-model-invocation/);
     });
 });
@@ -1279,7 +1380,10 @@ test('a refused manual-only skill policy stops the sync before any mirror file i
         await assert.rejects(sync(), error => {
             // Then it exits non-zero naming the skill and the missing policy, and says nothing was written
             assert.equal(error.code, 1);
-            assert.match(error.stderr, /conflict-skill[\\/]SKILL\.md sets disable-model-invocation: true but its own agents[\\/]openai\.yaml does not set policy\.allow_implicit_invocation: false/);
+            assert.match(
+                error.stderr,
+                /conflict-skill[\\/]SKILL\.md sets disable-model-invocation: true but its own agents[\\/]openai\.yaml does not set policy\.allow_implicit_invocation: false/
+            );
             assert.match(error.stderr, /nothing was written/);
             return true;
         });
@@ -1290,17 +1394,23 @@ test('a refused manual-only skill policy stops the sync before any mirror file i
 
         // When the sync-divergence oracle materializes the mirror, Then it refuses before writing too
         const staging = path.join(tempRoot, 'staging');
-        await write('oracle-probe.mjs', [
-            `const m = await import(${JSON.stringify(pathToFileURL(migrateScript).href)});`,
-            `try { await m.materializeSkillMirror(${JSON.stringify(staging)}, new Map()); console.log('materialized'); }`,
-            'catch (error) { console.error(error.message); process.exitCode = 3; }',
-            ''
-        ].join('\n'));
-        await assert.rejects(execFileAsync(process.execPath, [path.join(tempRoot, 'oracle-probe.mjs')], { cwd: tempRoot, env: cleanMachineEnv(tempRoot) }), error => {
-            assert.equal(error.code, 3);
-            assert.match(error.stderr, /does not set policy\.allow_implicit_invocation: false/);
-            return true;
-        });
+        await write(
+            'oracle-probe.mjs',
+            [
+                `const m = await import(${JSON.stringify(pathToFileURL(migrateScript).href)});`,
+                `try { await m.materializeSkillMirror(${JSON.stringify(staging)}, new Map()); console.log('materialized'); }`,
+                'catch (error) { console.error(error.message); process.exitCode = 3; }',
+                ''
+            ].join('\n')
+        );
+        await assert.rejects(
+            execFileAsync(process.execPath, [path.join(tempRoot, 'oracle-probe.mjs')], { cwd: tempRoot, env: cleanMachineEnv(tempRoot) }),
+            error => {
+                assert.equal(error.code, 3);
+                assert.match(error.stderr, /does not set policy\.allow_implicit_invocation: false/);
+                return true;
+            }
+        );
         assert.equal(await pathExists(staging), false, 'the oracle writes nothing for a refused policy');
 
         // Control: once the source policy turns implicit invocation off, the same project syncs
@@ -1317,8 +1427,14 @@ test('TC-ADS-037 a user-set Codex compaction budget survives the sync and is rep
         // When the Codex sync runs
         const { config, stdout } = await sync();
         // Then the line is kept exactly as written and one "kept user-set" line is printed
-        assert.deepEqual(config.split('\n').filter(line => line.includes('model_auto_compact_token_limit')), ['model_auto_compact_token_limit = 300000']);
-        assert.deepEqual(keptNotices(stdout).map(line => line.trim()), ['[codex-migrate] kept user-set model_auto_compact_token_limit=300000']);
+        assert.deepEqual(
+            config.split('\n').filter(line => line.includes('model_auto_compact_token_limit')),
+            ['model_auto_compact_token_limit = 300000']
+        );
+        assert.deepEqual(
+            keptNotices(stdout).map(line => line.trim()),
+            ['[codex-migrate] kept user-set model_auto_compact_token_limit=300000']
+        );
     });
 
     // Given any value that is not exactly the bundled one, including 500K spelled differently

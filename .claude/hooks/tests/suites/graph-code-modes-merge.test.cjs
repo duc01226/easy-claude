@@ -48,7 +48,7 @@ const { liveSourceFiles } = require('../lib/live-source-files.cjs');
 const { resolveAllWorkflowManifests } = require('../../../scripts/lib/workflow-manifest.cjs');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
-const SKIP = isFrameworkRepo(REPO_ROOT) ? false : 'asserts the framework repo\'s own graph-code skill, registry and hooks (framework-repo signal)';
+const SKIP = isFrameworkRepo(REPO_ROOT) ? false : "asserts the framework repo's own graph-code skill, registry and hooks (framework-repo signal)";
 
 const SKILLS = path.join(REPO_ROOT, '.claude', 'skills');
 const read = (...parts) => fs.readFileSync(path.join(...parts), 'utf8').replace(/\r\n/g, '\n');
@@ -61,11 +61,7 @@ const REMOVED = MODES.map(suffix => 'graph' + '-' + suffix);
 
 const LIVE_SOURCE_ROOTS = ['.claude', 'docs/specs', 'docs/project-reference', 'README.md'];
 // Generated catalogs are rebuilt from the skill folders.
-const SCAN_EXCLUDED = new Set([
-    '.claude/SKILLS.yaml',
-    '.claude/scripts/skills_data.yaml',
-    '.claude/hooks/tests/suites/graph-code-modes-merge.test.cjs'
-]);
+const SCAN_EXCLUDED = new Set(['.claude/SKILLS.yaml', '.claude/scripts/skills_data.yaml', '.claude/hooks/tests/suites/graph-code-modes-merge.test.cjs']);
 const SCAN_EXCLUDED_DIRS = new Set(['node_modules', '.git', '.code-graph', 'tmp', 'temp', 'plans']);
 const SCAN_EXTENSIONS = new Set(['.md', '.cjs', '.mjs', '.js', '.py', '.json', '.yaml', '.yml', '.toml']);
 
@@ -107,7 +103,11 @@ const tests = [
             assert.ok(routing > 0 && routing < text.indexOf('## Quick Summary'), 'mode detection sits at the top, before the Quick Summary');
             for (const name of MODES) {
                 assert.match(text, new RegExp(`--mode=${name}`), `--mode=${name} is documented`);
-                assert.match(text, new RegExp(`\\*\\*\\[BLOCKING\\]\\*\\* When \`--mode=${name}\`, read \`references/mode-${name}\\.md\` in full FIRST`), `mandatory read line for ${name}`);
+                assert.match(
+                    text,
+                    new RegExp(`\\*\\*\\[BLOCKING\\]\\*\\* When \`--mode=${name}\`, read \`references/mode-${name}\\.md\` in full FIRST`),
+                    `mandatory read line for ${name}`
+                );
                 assert.ok(fs.existsSync(path.join(SKILLS, 'graph-code', 'references', `mode-${name}.md`)), `references/mode-${name}.md exists`);
             }
             assert.match(text, /Each of the six modes works called directly with no workflow/);
@@ -116,13 +116,15 @@ const tests = [
             assert.match(text, /never a guess/);
             // The Intent column holds ACTION phrases only: a prompt that merely names the graph ("show the code graph status") must not select
             // --mode=build, so the bare nouns are never a build trigger and the rule says a noun-only prompt gets the table
-            const buildRow = text.split('\n').find((line) => line.startsWith('| `--mode=build'));
+            const buildRow = text.split('\n').find(line => line.startsWith('| `--mode=build'));
             assert.ok(buildRow, 'the dispatch table has a build row');
             // (the mode cell holds escaped pipes, so slice by the purpose/reference cells instead of splitting on `|`)
             const intents = buildRow.slice(buildRow.indexOf('Formerly `/graph-build`'), buildRow.indexOf('`references/mode-build.md`'));
             assert.ok(intents.length > 0 && buildRow.includes('`references/mode-build.md`'), 'the build row Intent cell was located');
-            for (const action of ['"build graph"', '"sync graph"', '"update graph"', '"refresh graph after pull"']) assert.ok(intents.includes(action), `build intent keeps the action phrase ${action}`);
-            for (const noun of ['"code graph"', '"knowledge graph"', '"uncommitted changes"']) assert.ok(!intents.includes(noun), `build intent must not list the bare noun ${noun}`);
+            for (const action of ['"build graph"', '"sync graph"', '"update graph"', '"refresh graph after pull"'])
+                assert.ok(intents.includes(action), `build intent keeps the action phrase ${action}`);
+            for (const noun of ['"code graph"', '"knowledge graph"', '"uncommitted changes"'])
+                assert.ok(!intents.includes(noun), `build intent must not list the bare noun ${noun}`);
             assert.match(text, /a prompt that merely names "code graph", "knowledge graph" or "uncommitted changes" carries no action and gets the table/);
         }
     },
@@ -156,7 +158,11 @@ const tests = [
             const installAt = steps.indexOf('ensurePythonDeps');
             const firstGraphCallAt = steps.indexOf('python .claude/scripts/code_graph');
             assert.ok(installAt !== -1 && installAt < firstGraphCallAt, 'the tooling install precedes every graph CLI call');
-            assert.match(steps.slice(steps.indexOf('### Step 0'), steps.indexOf('### Default')), /Non-zero exit:\*\*\s*stop\./, 'a failed install stops the build');
+            assert.match(
+                steps.slice(steps.indexOf('### Step 0'), steps.indexOf('### Default')),
+                /Non-zero exit:\*\*\s*stop\./,
+                'a failed install stops the build'
+            );
             assert.match(text, /code graph is off for this project \(hooks\.codeGraph\)/, 'the off message is kept');
             for (const scope of ['full', 'update', 'sync']) assert.match(text, new RegExp(`### \`--scope=${scope}\``), `--scope=${scope} branch`);
             assert.match(text, /Default \(no `--scope`\) auto-detects from `status`/);
@@ -202,7 +208,8 @@ const tests = [
             assert.match(blast, /Flag untested changed functions/);
             assert.match(blast, /run the CLI yourself/);
             const api = mode('connect-api');
-            for (const strategy of ['Exact match', 'Prefix-augmented', 'Suffix match', 'Deep strip', 'Deep strip both']) assert.ok(api.includes(strategy), `strategy ${strategy}`);
+            for (const strategy of ['Exact match', 'Prefix-augmented', 'Suffix match', 'Deep strip', 'Deep strip both'])
+                assert.ok(api.includes(strategy), `strategy ${strategy}`);
             assert.match(api, /python \.claude\/scripts\/code_graph connect-api --json/);
             assert.match(api, /"graphConnectors"/);
             assert.match(api, /Custom patterns \*\*extend\*\*/);
@@ -213,13 +220,19 @@ const tests = [
         skip: SKIP,
         fn: () => {
             const text = skill();
-            const advisory = 'Optional: when grep and reading files alone may not reveal a high-risk blast radius (shared contract, many callers, cross-module or cross-service flow, public API), the code graph (`.code-graph/graph.db`) can add callers, dependents and impacted tests. Treat it as a hint, NOT proof: the graph can be stale or incomplete (it lags uncommitted edits and unindexed paths) — verify anything that matters by reading the files/grep. Skip it for low-risk or local changes.';
+            const advisory =
+                'Optional: when grep and reading files alone may not reveal a high-risk blast radius (shared contract, many callers, cross-module or cross-service flow, public API), the code graph (`.code-graph/graph.db`) can add callers, dependents and impacted tests. Treat it as a hint, NOT proof: the graph can be stale or incomplete (it lags uncommitted edits and unindexed paths) — verify anything that matters by reading the files/grep. Skip it for low-risk or local changes.';
             assert.equal(text.split(advisory).length - 1, 1, 'the advisory block appears exactly once in SKILL.md');
             assert.match(text, /Nothing in this skill is mandatory for other skills or workflows/);
             const absent = 'graph not built — run /graph-code --mode=build, or continue with grep';
             assert.ok(text.includes(absent), 'SKILL.md names the absent-graph message');
             for (const name of ['query', 'trace', 'blast-radius']) assert.ok(mode(name).includes(absent), `mode-${name}.md reports a missing graph plainly`);
-            for (const name of MODES) assert.doesNotMatch(mode(name), /HARD-GATE|BLOCKED until|before concluding|MUST run at least one graph/i, `mode-${name}.md imposes no graph gate on other work`);
+            for (const name of MODES)
+                assert.doesNotMatch(
+                    mode(name),
+                    /HARD-GATE|BLOCKED until|before concluding|MUST run at least one graph/i,
+                    `mode-${name}.md imposes no graph gate on other work`
+                );
         }
     },
     {
@@ -256,7 +269,10 @@ const tests = [
             const guides = [...text.matchAll(/<!-- PROTOCOL-GUIDES:START -->([\s\S]*?)<!-- PROTOCOL-GUIDES:END -->/g)].map(match => match[1]).join('\n');
             assert.match(guides, /^- `end-to-start-debugger-trace` — /m, 'SKILL.md carries the guide line');
             assert.ok(text.includes('<!-- SYNC:end-to-start-debugger-trace:reminder -->'), 'SKILL.md carries the reminder');
-            assert.ok(fs.existsSync(path.join(SKILLS, 'shared', 'protocols', 'end-to-start-debugger-trace.md')), 'the guide points at a published protocol file');
+            assert.ok(
+                fs.existsSync(path.join(SKILLS, 'shared', 'protocols', 'end-to-start-debugger-trace.md')),
+                'the guide points at a published protocol file'
+            );
             for (const name of MODES) {
                 assert.doesNotMatch(mode(name), /PROTOCOL-GUIDES|<!-- SYNC:/, `mode-${name}.md carries no protocol guide or SYNC fence`);
             }
@@ -272,7 +288,8 @@ const tests = [
             assert.match(description, /^\[Code Intelligence\] Use when /);
             assert.ok(description.length <= 250, `description is ${description.length} chars, over 250`);
             assert.match(description, /--mode=\{build\|query\|trace\|blast-radius\|connect-api\|export\}/);
-            for (const keyword of [/build/i, /callers/i, /trac/i, /blast radius/i, /API/, /export/i, /JSON/, /Mermaid/]) assert.match(description, keyword, `description routes ${keyword}`);
+            for (const keyword of [/build/i, /callers/i, /trac/i, /blast radius/i, /API/, /export/i, /JSON/, /Mermaid/])
+                assert.match(description, keyword, `description routes ${keyword}`);
         }
     },
     {
@@ -293,7 +310,10 @@ const tests = [
             // Deliberate negative controls model a stale caller added by a later edit.
             for (const name of REMOVED) {
                 for (const line of [`/${name}`, `/${name} --json`, `skills/${name}/SKILL.md`, `\`${name}\``, `'${name}'`, `"${name}"`]) {
-                    assert.ok(SKILL_NAME_PATTERNS.some(pattern => pattern.test(line)), `retirement scanner must detect ${line}`);
+                    assert.ok(
+                        SKILL_NAME_PATTERNS.some(pattern => pattern.test(line)),
+                        `retirement scanner must detect ${line}`
+                    );
                     assert.equal(allowedMention('.claude/docs/skills/README.md', line), false, 'active references have no historical exemption');
                     assert.equal(allowedMention('.claude/scripts/code_graph/cli.py', line), false, 'Python sources retain retired skill detection');
                 }
@@ -304,12 +324,22 @@ const tests = [
             }
             for (const suffix of ['blast-radius', 'connect-api']) {
                 const name = 'graph' + '-' + suffix;
-                for (const line of [`    cmd = sub.add_parser("${name}", aliases=["${suffix}"], help="CLI verb")`, `    elif args.command in ("${name}", "${suffix}"):`]) {
-                    assert.ok(SKILL_NAME_PATTERNS.some(pattern => pattern.test(line)), 'the quoted CLI token exercises the exception');
+                for (const line of [
+                    `    cmd = sub.add_parser("${name}", aliases=["${suffix}"], help="CLI verb")`,
+                    `    elif args.command in ("${name}", "${suffix}"):`
+                ]) {
+                    assert.ok(
+                        SKILL_NAME_PATTERNS.some(pattern => pattern.test(line)),
+                        'the quoted CLI token exercises the exception'
+                    );
                     assert.equal(allowedMention('.claude/scripts/code_graph/cli.py', line), true, 'the documented parser/dispatcher CLI verb remains valid');
                     assert.equal(allowedMention('.claude/docs/skills/README.md', line), false, 'CLI exemption belongs only to its implementation owner');
                     for (const stale of [`/${name}`, `skills/${name}/SKILL.md`, `"${retiredExport}"`]) {
-                        assert.equal(allowedMention('.claude/scripts/code_graph/cli.py', `${line} # ${stale}`), false, 'a preserved CLI token cannot conceal a retired skill reference');
+                        assert.equal(
+                            allowedMention('.claude/scripts/code_graph/cli.py', `${line} # ${stale}`),
+                            false,
+                            'a preserved CLI token cannot conceal a retired skill reference'
+                        );
                     }
                 }
             }
@@ -348,13 +378,17 @@ const tests = [
                 'code_graph export-mermaid <relative-path> --json',
                 'code_graph export-mermaid --file <relative-path> --json',
                 'code_graph export-mermaid <relative-path> -o'
-            ]) assert.ok(text.includes(command), `export keeps ${command}`);
+            ])
+                assert.ok(text.includes(command), `export keeps ${command}`);
             assert.match(text, /If missing, ask for it via `ask user question tool` before running/);
             for (const field of ['output_path', 'nodes_count', 'edges_count', 'file size', 'status: "ok"']) assert.ok(text.includes(field), `reports ${field}`);
             assert.match(text, /graph-export\.json/);
             assert.match(text, /path-based-unique-name/);
-            for (const kind of ['MESSAGE_BUS', 'TRIGGERS_EVENT', 'PRODUCES_EVENT', 'TRIGGERS_COMMAND_EVENT', 'API_ENDPOINT']) assert.ok(text.includes(kind), `exports ${kind}`);
-            const row = skill().split('\n').find(line => line.startsWith('| `--mode=export'));
+            for (const kind of ['MESSAGE_BUS', 'TRIGGERS_EVENT', 'PRODUCES_EVENT', 'TRIGGERS_COMMAND_EVENT', 'API_ENDPOINT'])
+                assert.ok(text.includes(kind), `exports ${kind}`);
+            const row = skill()
+                .split('\n')
+                .find(line => line.startsWith('| `--mode=export'));
             assert.ok(row && row.includes('"export graph"') && row.includes('"export Mermaid"'), 'export intents route to the new mode');
         }
     }

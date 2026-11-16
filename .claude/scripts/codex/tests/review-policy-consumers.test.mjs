@@ -21,10 +21,7 @@ const canonicalPath = path.join(root, '.claude', 'skills', 'shared', 'sync-inlin
 // Consumers carry canonical multi-round review-policy inline, or an official guide backed by
 // the exact published full body (BR-PDL-11). Both forms retain the consumer-specific anchors.
 // Plan and integration reviews default to read-only and join the shared loop when opted in.
-const consumers = [
-    '.claude/skills/changes-review/SKILL.md',
-    '.claude/skills/workflow-review-changes/SKILL.md'
-];
+const consumers = ['.claude/skills/changes-review/SKILL.md', '.claude/skills/workflow-review-changes/SKILL.md'];
 const planModeReviewPath = '.claude/skills/plan/references/mode-review.md';
 // These are the canonical carriers that embed the shared severity-rubric
 // block. Keep this inventory explicit: adding a review-family consumer without
@@ -68,10 +65,9 @@ function carriesSeverityRubric(text, projectionText, expected) {
 function carriesCanonicalProtocol(text, tag, projectionText, expected) {
     const inline = body(text, tag);
     if (inline !== null) return inline === expected;
-    return projectionText != null && guideCarrier.hasGuideEntry(text, tag) &&
-        normalizeEol(projectionText).trim() === expected;
+    return projectionText != null && guideCarrier.hasGuideEntry(text, tag) && normalizeEol(projectionText).trim() === expected;
 }
-const projectionTextOf = (tag) => {
+const projectionTextOf = tag => {
     const file = path.join(root, '.claude', 'skills', 'shared', 'protocols', `${tag}.md`);
     return fsSync.existsSync(file) ? fsSync.readFileSync(file, 'utf8') : null;
 };
@@ -90,8 +86,7 @@ function body(text, tag) {
 // extract-sync-block and the Python readers now share (sync-reader-parity.test.cjs guards it).
 function canonicalBody(text, tag) {
     const escaped = tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const match = normalizeEol(text)
-        .match(new RegExp(`^## SYNC:${escaped}\\s*\\n([\\s\\S]*?)(?=\\n---\\s*\\n|\\n## SYNC:)`, 'm'));
+    const match = normalizeEol(text).match(new RegExp(`^## SYNC:${escaped}\\s*\\n([\\s\\S]*?)(?=\\n---\\s*\\n|\\n## SYNC:)`, 'm'));
     return match ? match[1].trim() : null;
 }
 
@@ -107,7 +102,10 @@ function readSkillContract(skillFile) {
     const refs = path.join(path.dirname(file), 'references');
     const texts = [fsSync.readFileSync(file, 'utf8')];
     if (fsSync.existsSync(refs)) {
-        for (const name of fsSync.readdirSync(refs).filter(entry => entry.endsWith('.md')).sort()) {
+        for (const name of fsSync
+            .readdirSync(refs)
+            .filter(entry => entry.endsWith('.md'))
+            .sort()) {
             texts.push(fsSync.readFileSync(path.join(refs, name), 'utf8'));
         }
     }
@@ -170,9 +168,18 @@ test('TC-HARNESS-006: all canonical review consumers use exact inline or guide-b
     const tag = 'review-policy';
     const projection = projectionTextOf(tag);
     // Reuse the existing canonical-carrier seam: discovery never replaces exact full-text parity.
-    const guided = [guideCarrier.GUIDE_BLOCK_START, '',
-        guideCarrier.formatGuideLine({ tag, summary: 'Review policy', when: 'deciding review round eligibility', path: '.claude/skills/shared/protocols/review-policy.md' }),
-        '', guideCarrier.GUIDE_BLOCK_END].join('\n');
+    const guided = [
+        guideCarrier.GUIDE_BLOCK_START,
+        '',
+        guideCarrier.formatGuideLine({
+            tag,
+            summary: 'Review policy',
+            when: 'deciding review round eligibility',
+            path: '.claude/skills/shared/protocols/review-policy.md'
+        }),
+        '',
+        guideCarrier.GUIDE_BLOCK_END
+    ].join('\n');
     const inline = `<!-- SYNC:${tag} -->\n\n${expected}\n\n<!-- /SYNC:${tag} -->`;
     assert.equal(carriesCanonicalProtocol(guided, tag, `${expected}\r\n`, expected), true);
     assert.equal(carriesCanonicalProtocol(inline, tag, null, expected), true);
@@ -180,11 +187,16 @@ test('TC-HARNESS-006: all canonical review consumers use exact inline or guide-b
     assert.equal(carriesCanonicalProtocol(guided, tag, null, expected), false);
     assert.equal(carriesCanonicalProtocol(guided, tag, '> Drifted policy.\n', expected), false);
     // A correct guide cannot mask an edited inline body on the same consumer.
-    assert.equal(carriesCanonicalProtocol(`${guided}\n<!-- SYNC:${tag} -->\n\n> Edited policy.\n\n<!-- /SYNC:${tag} -->`, tag, `${expected}\n`, expected), false);
+    assert.equal(
+        carriesCanonicalProtocol(`${guided}\n<!-- SYNC:${tag} -->\n\n> Edited policy.\n\n<!-- /SYNC:${tag} -->`, tag, `${expected}\n`, expected),
+        false
+    );
     for (const relative of consumers) {
         const text = await fs.readFile(path.join(root, relative), 'utf8');
-        assert.ok(carriesCanonicalProtocol(text, tag, projection, expected),
-            `${relative} must carry exact canonical review-policy inline, or an official guide whose published full body equals canonical`);
+        assert.ok(
+            carriesCanonicalProtocol(text, tag, projection, expected),
+            `${relative} must carry exact canonical review-policy inline, or an official guide whose published full body equals canonical`
+        );
         // Policy anchors belong to the full body, delivered inline or through its verified guide.
         const effectivePolicy = body(text, tag) ?? normalizeEol(projection).trim();
         assert.match(effectivePolicy, /review-policy\.cjs/);
@@ -218,17 +230,28 @@ test('TC-HARNESS-006: shared severity rubric normalizes domain vocabularies', as
     const projection = await fs.readFile(severityProjectionPath, 'utf8').catch(() => null);
     for (const relative of severityConsumers) {
         const text = await fs.readFile(path.join(root, relative), 'utf8');
-        assert.ok(carriesSeverityRubric(text, projection, expected),
-            `${relative} must carry the canonical severity rubric inline, or a severity-rubric guide entry whose projection file equals canonical`);
+        assert.ok(
+            carriesSeverityRubric(text, projection, expected),
+            `${relative} must carry the canonical severity rubric inline, or a severity-rubric guide entry whose projection file equals canonical`
+        );
     }
 });
 
 test('TC-PDL-065: a severity consumer passes with a guide entry backed by a canonical projection and fails when both forms are missing', () => {
     const expected = '> Fixture rubric.';
     // Given a consumer that holds a guide entry instead of the rubric body, and a projection equal to canonical
-    const guided = [guideCarrier.GUIDE_BLOCK_START, '',
-        guideCarrier.formatGuideLine({ tag: 'severity-rubric', summary: 'Rubric', when: 'classifying a finding', path: '.claude/skills/shared/protocols/severity-rubric.md' }),
-        '', guideCarrier.GUIDE_BLOCK_END].join('\n');
+    const guided = [
+        guideCarrier.GUIDE_BLOCK_START,
+        '',
+        guideCarrier.formatGuideLine({
+            tag: 'severity-rubric',
+            summary: 'Rubric',
+            when: 'classifying a finding',
+            path: '.claude/skills/shared/protocols/severity-rubric.md'
+        }),
+        '',
+        guideCarrier.GUIDE_BLOCK_END
+    ].join('\n');
     // When it is checked, Then it passes
     assert.equal(carriesSeverityRubric(guided, `${expected}\r\n`, expected), true);
     // When the guide is removed too (both forms missing), Then it fails
@@ -321,7 +344,17 @@ test('TC-HARNESS-006: integration review supports both modes without weakening i
     assert.match(review, /caller-owned leaves.*read-only/i);
     assert.match(review, /three-round/);
     assert.doesNotMatch(review, /ONE ROUND MAXIMUM|maxRounds = 1/);
-    for (const gate of ['Assertion value','Owned outcome','Repeatability and isolation','Behavior ownership','Spec/case traceability','Spec ↔ tests ↔ code consistency','Change coverage','Real-world fidelity']) assert.ok(review.includes(gate));
+    for (const gate of [
+        'Assertion value',
+        'Owned outcome',
+        'Repeatability and isolation',
+        'Behavior ownership',
+        'Spec/case traceability',
+        'Spec ↔ tests ↔ code consistency',
+        'Change coverage',
+        'Real-world fidelity'
+    ])
+        assert.ok(review.includes(gate));
 });
 
 test('TC-HARNESS-006: the write variant of the integration-test workflow invokes one review pass without an internal review loop', async () => {
@@ -337,9 +370,7 @@ test('TC-HARNESS-006: the write variant of the integration-test workflow invokes
 
 test('TC-HARNESS-006: implementation surfaces use normalized severity terms', async () => {
     const feature = await fs.readFile(path.join(root, '.claude', 'skills', 'feature-implement', 'SKILL.md'), 'utf8');
-    for (const [relative, text] of [
-        ['.claude/skills/feature-implement/SKILL.md', feature]
-    ]) {
+    for (const [relative, text] of [['.claude/skills/feature-implement/SKILL.md', feature]]) {
         assert.match(text, /SYNC:severity-rubric/);
         assert.match(text, /CRITICAL.*HIGH.*MEDIUM.*LOW/s, `${relative} must expose the canonical four-tier vocabulary`);
         assert.match(text, /failed binary gate|binary gates.*blocking/i, `${relative} must preserve hard-gate precedence`);
@@ -369,12 +400,15 @@ test('R3-PROMPT-023/030: every existing carrier has exact updated body and balan
     const skillsRoot = path.join(root, '.claude', 'skills');
     const agentsRoot = path.join(root, '.claude', 'agents');
     const candidates = (await fs.readdir(skillsRoot, { withFileTypes: true }))
-        .filter(entry => entry.isDirectory()).map(entry => path.join(skillsRoot, entry.name, 'SKILL.md'));
+        .filter(entry => entry.isDirectory())
+        .map(entry => path.join(skillsRoot, entry.name, 'SKILL.md'));
     candidates.push(...(await fs.readdir(agentsRoot)).filter(name => name.endsWith('.md')).map(name => path.join(agentsRoot, name)));
     const seen = new Map(tags.map(tag => [tag, 0]));
     for (const file of candidates) {
         let source;
-        try { source = await fs.readFile(file, 'utf8'); } catch (error) {
+        try {
+            source = await fs.readFile(file, 'utf8');
+        } catch (error) {
             if (error.code === 'ENOENT') continue; // shared/support directories are not skills
             throw error;
         }
@@ -404,13 +438,15 @@ test('R3-PROMPT-031: visual review consumers persist one artifact result before 
     const visualConsumers = [
         '.claude/skills/experience-review/SKILL.md',
         '.claude/skills/e2e-test/references/mode-verify.md',
-        '.claude/skills/workflow-e2e/SKILL.md',
+        '.claude/skills/workflow-e2e/SKILL.md'
     ];
     const projection = projectionTextOf('incremental-persistence');
     for (const relative of visualConsumers) {
         const text = await fs.readFile(path.join(root, relative), 'utf8');
-        assert.ok(carriesCanonicalProtocol(text, 'incremental-persistence', projection, expected),
-            `${relative} must carry the canonical per-artifact persistence contract (inline, or a guide entry whose projection equals canonical)`);
+        assert.ok(
+            carriesCanonicalProtocol(text, 'incremental-persistence', projection, expected),
+            `${relative} must carry the canonical per-artifact persistence contract (inline, or a guide entry whose projection equals canonical)`
+        );
     }
 });
 
@@ -418,9 +454,18 @@ test('TC-PDL-065 visual-consumer check (R3-PROMPT-031) accepts a guide entry bac
     // Given a canonical body, a guide carrier (guide line, no body) and a projection equal to canonical
     const tag = 'incremental-persistence';
     const expected = '> **Incremental Persistence** — fixture body.';
-    const guided = [guideCarrier.GUIDE_BLOCK_START, '',
-        guideCarrier.formatGuideLine({ tag, summary: 'Persist results per file', when: 'processing many files', path: `.claude/skills/shared/protocols/${tag}.md` }),
-        '', guideCarrier.GUIDE_BLOCK_END].join('\n');
+    const guided = [
+        guideCarrier.GUIDE_BLOCK_START,
+        '',
+        guideCarrier.formatGuideLine({
+            tag,
+            summary: 'Persist results per file',
+            when: 'processing many files',
+            path: `.claude/skills/shared/protocols/${tag}.md`
+        }),
+        '',
+        guideCarrier.GUIDE_BLOCK_END
+    ].join('\n');
     // When the carrier check runs, Then the guide carrier and an equal inline body pass
     assert.equal(carriesCanonicalProtocol(guided, tag, `${expected}\r\n`, expected), true);
     assert.equal(carriesCanonicalProtocol(`<!-- SYNC:${tag} -->\n\n${expected}\n\n<!-- /SYNC:${tag} -->`, tag, null, expected), true);
@@ -434,7 +479,10 @@ test('TC-PDL-065 visual-consumer check (R3-PROMPT-031) accepts a guide entry bac
 });
 
 test('retired fresh-context overrides do not return in specialist review modes', async () => {
-    for (const file of [['architecture', 'references', 'mode-review.md'], ['ui-design', 'references', 'mode-review.md']]) {
+    for (const file of [
+        ['architecture', 'references', 'mode-review.md'],
+        ['ui-design', 'references', 'mode-review.md']
+    ]) {
         const source = await fs.readFile(path.join(root, '.claude', 'skills', ...file), 'utf8');
         assert.doesNotMatch(source, /(?:SYNC|OVERRIDE):fresh-context-review/);
         assert.match(source, /OVERRIDE:review-protocol-injection/);
@@ -443,16 +491,16 @@ test('retired fresh-context overrides do not return in specialist review modes',
 
 test('R3-PROMPT-023: local clean-pass summaries cannot override an explicit minimum', async () => {
     const files = [
-        ...['code-quality-review', 'knowledge-review', 'production-readiness-review', 'security-audit', 'seed-test-data']
-            .map(name => `.claude/skills/${name}/SKILL.md`),
-        '.claude/skills/domain-analysis/references/mode-review.md',
+        ...['code-quality-review', 'knowledge-review', 'production-readiness-review', 'security-audit', 'seed-test-data'].map(
+            name => `.claude/skills/${name}/SKILL.md`
+        ),
+        '.claude/skills/domain-analysis/references/mode-review.md'
         // Leaf reviewer agents (code-reviewer) are not listed: they no longer carry the round loop,
         // so they state no clean-pass termination of their own; the orchestrating skills above own it.
     ];
     const assertMinimum = line => assert.match(line, /persisted `minRounds` is met/, 'clean-pass termination retains explicit minimum');
     for (const relative of files) {
-        const source = (await fs.readFile(path.join(root, relative), 'utf8'))
-            .replace(/<!-- SYNC:([^\s>]+) -->[\s\S]*?<!-- \/SYNC:\1 -->/g, '');
+        const source = (await fs.readFile(path.join(root, relative), 'utf8')).replace(/<!-- SYNC:([^\s>]+) -->[\s\S]*?<!-- \/SYNC:\1 -->/g, '');
         const lines = source.split(/\r?\n/).filter(line => /clean.{0,60}(?:ENDS|ends)/.test(line));
         assert.ok(lines.length > 0, `${relative}: non-vacuous local termination carriers`);
         for (const line of lines) {
@@ -489,12 +537,17 @@ const receiptIssuers = [
 ];
 
 test('TC-FIT-012: every review receipt issuer binds the pre-review full candidate and excludes subsets', async () => {
-    assert.deepEqual(receiptIssuers.map(issuer => issuer.kind).sort(), [...reviewReceipt.REVIEW_KINDS].sort(),
-        'every accepted receipt kind has a declared full-candidate review owner');
+    assert.deepEqual(
+        receiptIssuers.map(issuer => issuer.kind).sort(),
+        [...reviewReceipt.REVIEW_KINDS].sort(),
+        'every accepted receipt kind has a declared full-candidate review owner'
+    );
     const discoveredIssuers = new Set();
     for (const file of listSkillMarkdownFiles(path.join(root, '.claude', 'skills'))) {
         let contract;
-        try { contract = readSkillContract(file); } catch (error) {
+        try {
+            contract = readSkillContract(file);
+        } catch (error) {
             // Same race as listSkillMarkdownFiles: a scratch skill directory can vanish mid-scan.
             if (error.code === 'ENOENT') continue;
             throw error;
@@ -505,9 +558,11 @@ test('TC-FIT-012: every review receipt issuer binds the pre-review full candidat
             discoveredIssuers.add(`${path.relative(root, file).split(path.sep).join('/')}#${match[1]}`);
         }
     }
-    assert.deepEqual([...discoveredIssuers].sort(),
+    assert.deepEqual(
+        [...discoveredIssuers].sort(),
         receiptIssuers.map(issuer => `${issuer.file}#${issuer.kind}`).sort(),
-        'every in-scope receipt issuer is in the reviewed consumer inventory');
+        'every in-scope receipt issuer is in the reviewed consumer inventory'
+    );
     for (const issuer of receiptIssuers) {
         const source = stripSyncBlocks(readSkillContract(issuer.file));
         const ref = fsSync.readFileSync(path.join(root, path.dirname(issuer.file), 'references/fix-loop.md'), 'utf8');
@@ -521,8 +576,11 @@ test('TC-FIT-012: every review receipt issuer binds the pre-review full candidat
         assert.equal(issueLines.length, 1, `${issuer.file}: exactly one terminal issuer command`);
         assert.match(issueLines[0], /--scope=full-changeset --snapshot-json=/);
         assert.match(issueLines[0], /exact saved JSON/);
-        assert.doesNotMatch(source, new RegExp(`review-receipt\\.cjs issue --kind=${issuer.kind}(?![^\\r\\n]*--snapshot-json=)`),
-            `${issuer.file}: no bare or terminally recaptured receipt is allowed`);
+        assert.doesNotMatch(
+            source,
+            new RegExp(`review-receipt\\.cjs issue --kind=${issuer.kind}(?![^\\r\\n]*--snapshot-json=)`),
+            `${issuer.file}: no bare or terminally recaptured receipt is allowed`
+        );
     }
 });
 
@@ -533,11 +591,11 @@ test('TC-FIT-012: review and commit prompts preserve the configured semantic pro
         assert.match(source, /profile-declared (?:canonical )?scenario\/case/i, `${relative}: retain native scenario identity`);
         assert.match(source, /(?:assertion\/result|executing test)/i, `${relative}: require executable test evidence`);
 
-        const specRepresentationLines = source.split(/\r?\n/).filter(line =>
-            /\bTCs?\b/i.test(line) || /§(?:3|4|5|8)\s+(?:BR|AC|TC|invariant)|§(?:3|4|5|8)(?:\/§?(?:3|4|5|8))+/i.test(line));
+        const specRepresentationLines = source
+            .split(/\r?\n/)
+            .filter(line => /\bTCs?\b/i.test(line) || /§(?:3|4|5|8)\s+(?:BR|AC|TC|invariant)|§(?:3|4|5|8)(?:\/§?(?:3|4|5|8))+/i.test(line));
         for (const line of specRepresentationLines) {
-            assert.match(line, /strict[- ]default|default profile/i,
-                `${relative}: default §/TC representation must remain conditional: ${line}`);
+            assert.match(line, /strict[- ]default|default profile/i, `${relative}: default §/TC representation must remain conditional: ${line}`);
         }
     }
 
@@ -554,7 +612,6 @@ test('TC-FIT-012: review and commit prompts preserve the configured semantic pro
     assert.match(prPolicy, /An error is a blocker/);
     assert.match(prPolicy, /Neither review evidence nor a skip waives CI, spec\/test reconciliation/);
     assert.doesNotMatch(commit + prPolicy, /review-receipt\.cjs skip --reason=/);
-
 });
 
 test('TC-FIT-012: receipt issuance rejects a changed candidate and identical staging preserves identity', { skip: !gitAvailable() }, () => {
@@ -565,9 +622,17 @@ test('TC-FIT-012: receipt issuance rejects a changed candidate and identical sta
         assert.equal(reviewed.status, 'CHANGED');
 
         fsSync.writeFileSync(file, 'changed after review\n');
-        assert.throws(() => reviewReceipt.issueReceipt({
-            repository, storeDir, snapshot: reviewed, scope: 'full-changeset', kind: 'changes-review'
-        }), /reviewed target changed/);
+        assert.throws(
+            () =>
+                reviewReceipt.issueReceipt({
+                    repository,
+                    storeDir,
+                    snapshot: reviewed,
+                    scope: 'full-changeset',
+                    kind: 'changes-review'
+                }),
+            /reviewed target changed/
+        );
         assert.equal(fsSync.readdirSync(storeDir).length, 0, 'stale review cannot mint a receipt');
 
         fsSync.writeFileSync(file, 'same content before staging\n');
@@ -580,11 +645,13 @@ test('TC-FIT-012: receipt issuance rejects a changed candidate and identical sta
         assert.equal(staged.status, 'CHANGED');
         assert.equal(staged.candidateTree, finalReviewed.candidateTree, 'staging identical content preserves tree identity');
         assert.equal(staged.fingerprint, finalReviewed.fingerprint, 'target mode does not change candidate fingerprint');
-        assert.equal(reviewReceipt.matchReviewReceipt({ repository, storeDir, snapshot: staged }), 'changes-review',
-            'a commit candidate with the identical tree can use the reviewed worktree candidate');
+        assert.equal(
+            reviewReceipt.matchReviewReceipt({ repository, storeDir, snapshot: staged }),
+            'changes-review',
+            'a commit candidate with the identical tree can use the reviewed worktree candidate'
+        );
     });
 });
-
 
 test('review mode authority stays consistent at repair branches and closing reminders', async () => {
     const policy = await read('.claude/skills/shared/protocols/review-policy.md');
@@ -633,11 +700,13 @@ test('every applied LOW repair requires fresh review across local consumers', as
     ];
     for (const file of files) {
         const source = await read(file);
-        assert.doesNotMatch(source, /except a round-1 LOW-only fix set|none for a round-1 LOW-only fix set|LOW closes by[^\n]*scoped check|LOW closed by scoped check/);
+        assert.doesNotMatch(
+            source,
+            /except a round-1 LOW-only fix set|none for a round-1 LOW-only fix set|LOW closes by[^\n]*scoped check|LOW closed by scoped check/
+        );
         assert.match(source, /(?:every applied fix|every applied.*repair)[^\n]*(?:fresh|review)/i, file);
     }
 });
-
 
 test('local closing rules preserve bounded review and complete adaptive dispatch', async () => {
     const plan = await read('.claude/skills/plan/references/mode-review.md');
@@ -647,10 +716,7 @@ test('local closing rules preserve bounded review and complete adaptive dispatch
     assert.doesNotMatch(workItem, /omit code-specific protocols|10\+ artifacts|using a fresh `general-purpose` artifact reviewer/);
     assert.match(workItem, /all 11 complete protocol bodies VERBATIM/);
     assert.match(workItem, /no artifact-count threshold or forced delegation/);
-    for (const file of [
-        '.claude/skills/workflow-spec-sync/SKILL.md',
-        '.claude/skills/workflow-integration-test/references/variant-write.md'
-    ]) {
+    for (const file of ['.claude/skills/workflow-spec-sync/SKILL.md', '.claude/skills/workflow-integration-test/references/variant-write.md']) {
         const source = await read(file);
         assert.doesNotMatch(source, /Failing tests are not capped|loop until green/i, file);
         assert.match(source, /at exhaustion ask and wait before a bounded extension/i, file);

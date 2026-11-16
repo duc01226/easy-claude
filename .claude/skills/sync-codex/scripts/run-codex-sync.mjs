@@ -433,6 +433,21 @@ async function main() {
         process.exit(1);
     }
 
+    // Test stages share the live tree with the hook suite: hold the checkout's test-run lock so the two
+    // never run at once (false ENOENT). A run with no test stage (a single verifier) needs no lock;
+    // children of a lock holder inherit CK_TEST_RUN_LOCK_HELD and skip it. A runner copied without
+    // .claude/scripts/lib (a fixture) runs unlocked.
+    const lockFile = path.join(rootDir, ".claude", "scripts", "lib", "test-run-lock.cjs");
+    if (active.some(stage => stage.test) && require("node:fs").existsSync(lockFile)) {
+        const { acquireTestRunLock, conflictMessage } = require(lockFile);
+        const lock = acquireTestRunLock({ rootDir, command: "run-codex-sync" });
+        if (!lock.acquired && !lock.nested) {
+            console.error(conflictMessage(lock));
+            process.exit(2);
+        }
+        process.on("exit", lock.release);
+    }
+
     console.log(`[codex-sync] running ${active.length} stage(s) from ${rootDir}`);
     const startedAt = Date.now();
 

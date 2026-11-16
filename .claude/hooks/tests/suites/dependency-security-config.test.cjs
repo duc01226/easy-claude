@@ -70,7 +70,10 @@ const tests = [
             for (const [policy, expected] of cases) {
                 const result = validateConfig({ ...BASE, dependencySecurity: policy });
                 assert.equal(result.valid, false, `refused: ${JSON.stringify(policy)}`);
-                assert.ok(result.errors.some(e => e.startsWith(expected)), `names the setting: ${expected} — got ${JSON.stringify(result.errors)}`);
+                assert.ok(
+                    result.errors.some(e => e.startsWith(expected)),
+                    `names the setting: ${expected} — got ${JSON.stringify(result.errors)}`
+                );
             }
         }
     },

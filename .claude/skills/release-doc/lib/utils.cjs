@@ -15,34 +15,34 @@ const path = require('path');
  * @returns {string} The resolved safe path
  */
 function validateOutputPath(filepath, allowedDir = process.cwd()) {
-  const resolved = path.resolve(filepath);
-  const allowed = path.resolve(allowedDir);
+    const resolved = path.resolve(filepath);
+    const allowed = path.resolve(allowedDir);
 
-  // Resolve symlinks for security (defense in depth)
-  let realResolved, realAllowed;
-  try {
-    realAllowed = fs.realpathSync(allowed);
-    // For new files, check parent directory exists
-    const parentDir = path.dirname(resolved);
-    if (fs.existsSync(parentDir)) {
-      realResolved = path.join(fs.realpathSync(parentDir), path.basename(resolved));
-    } else {
-      // Parent doesn't exist yet, use resolved path
-      realResolved = resolved;
+    // Resolve symlinks for security (defense in depth)
+    let realResolved, realAllowed;
+    try {
+        realAllowed = fs.realpathSync(allowed);
+        // For new files, check parent directory exists
+        const parentDir = path.dirname(resolved);
+        if (fs.existsSync(parentDir)) {
+            realResolved = path.join(fs.realpathSync(parentDir), path.basename(resolved));
+        } else {
+            // Parent doesn't exist yet, use resolved path
+            realResolved = resolved;
+        }
+    } catch (err) {
+        console.error(`Error: Cannot resolve path: ${err.message}`);
+        process.exit(1);
     }
-  } catch (err) {
-    console.error(`Error: Cannot resolve path: ${err.message}`);
-    process.exit(1);
-  }
 
-  // Validate path is within allowed directory
-  if (!realResolved.startsWith(realAllowed + path.sep) && realResolved !== realAllowed) {
-    console.error(`Error: Output path must be within project directory`);
-    console.error(`  Allowed: ${realAllowed}`);
-    console.error(`  Attempted: ${realResolved}`);
-    process.exit(1);
-  }
-  return realResolved;
+    // Validate path is within allowed directory
+    if (!realResolved.startsWith(realAllowed + path.sep) && realResolved !== realAllowed) {
+        console.error(`Error: Output path must be within project directory`);
+        console.error(`  Allowed: ${realAllowed}`);
+        console.error(`  Attempted: ${realResolved}`);
+        process.exit(1);
+    }
+    return realResolved;
 }
 
 /**
@@ -52,12 +52,12 @@ function validateOutputPath(filepath, allowedDir = process.cwd()) {
  * @returns {string} The validated content
  */
 function validateInputNotEmpty(content, scriptName = 'script') {
-  if (!content || !content.trim()) {
-    console.error(`Error: No input provided to ${scriptName}`);
-    console.error('Pipe content via stdin or provide input file');
-    process.exit(1);
-  }
-  return content;
+    if (!content || !content.trim()) {
+        console.error(`Error: No input provided to ${scriptName}`);
+        console.error('Pipe content via stdin or provide input file');
+        process.exit(1);
+    }
+    return content;
 }
 
 /**
@@ -67,8 +67,8 @@ function validateInputNotEmpty(content, scriptName = 'script') {
  * @returns {string} The escaped text
  */
 function escapeMarkdown(text) {
-  if (!text) return '';
-  return text.replace(/([*_`[\]()#])/g, '\\$1');
+    if (!text) return '';
+    return text.replace(/([*_`[\]()#])/g, '\\$1');
 }
 
 /**
@@ -80,13 +80,13 @@ function escapeMarkdown(text) {
  * @returns {number} The bounded value
  */
 function boundsCheck(value, min, max, defaultValue) {
-  if (isNaN(value)) return defaultValue;
-  return Math.max(min, Math.min(max, value));
+    if (isNaN(value)) return defaultValue;
+    return Math.max(min, Math.min(max, value));
 }
 
 module.exports = {
-  validateOutputPath,
-  validateInputNotEmpty,
-  escapeMarkdown,
-  boundsCheck,
+    validateOutputPath,
+    validateInputNotEmpty,
+    escapeMarkdown,
+    boundsCheck
 };

@@ -25,7 +25,15 @@ const { OS_ESSENTIAL_ENV_KEYS, osEssentialsEnv } = require('../lib/os-essentials
 
 const CLAUDE_DIR = path.resolve(__dirname, '..', '..', '..');
 const WINDOWS_FOLDER_KEYS = ['SYSTEMDRIVE', 'PROGRAMDATA', 'ALLUSERSPROFILE'];
-const NOISE = { CK_COMMIT_SKILL_ROUTE: '0', TELEGRAM_BOT_TOKEN: 'x', CLAUDE_PROJECT_DIR: '/elsewhere', NODE_OPTIONS: '--inspect', HOME: '/home/dev', USERPROFILE: 'C:\\Users\\dev', TEMP: 'C:\\Temp' };
+const NOISE = {
+    CK_COMMIT_SKILL_ROUTE: '0',
+    TELEGRAM_BOT_TOKEN: 'x',
+    CLAUDE_PROJECT_DIR: '/elsewhere',
+    NODE_OPTIONS: '--inspect',
+    HOME: '/home/dev',
+    USERPROFILE: 'C:\\Users\\dev',
+    TEMP: 'C:\\Temp'
+};
 
 const tests = [
     {
@@ -33,8 +41,16 @@ const tests = [
         fn: () => {
             // Given a Windows-shaped environment with mixed-case names and developer-machine noise
             const base = {
-                Path: 'C:\\bin', PATHEXT: '.EXE', SystemRoot: 'C:\\Windows', windir: 'C:\\Windows', ComSpec: 'C:\\Windows\\System32\\cmd.exe',
-                SystemDrive: 'C:', ProgramData: 'C:\\ProgramData', ALLUSERSPROFILE: 'C:\\ProgramData', 'ProgramFiles(x86)': 'C:\\PF86', ...NOISE
+                Path: 'C:\\bin',
+                PATHEXT: '.EXE',
+                SystemRoot: 'C:\\Windows',
+                windir: 'C:\\Windows',
+                ComSpec: 'C:\\Windows\\System32\\cmd.exe',
+                SystemDrive: 'C:',
+                ProgramData: 'C:\\ProgramData',
+                ALLUSERSPROFILE: 'C:\\ProgramData',
+                'ProgramFiles(x86)': 'C:\\PF86',
+                ...NOISE
             };
             // When the scrubbed environment is built
             const env = osEssentialsEnv({}, base, 'win32');
@@ -51,12 +67,23 @@ const tests = [
         fn: () => {
             const base = { Path: 'C:\\bin', SystemDrive: 'C:', ProgramData: 'C:\\ProgramData' };
             // When overrides name a key in another case, redirect home and temp, and delete a key
-            const env = osEssentialsEnv({ PATH: 'C:\\fixture', HOME: 'C:\\fx', USERPROFILE: 'C:\\fx', TMPDIR: 'C:\\fx', TEMP: 'C:\\fx', TMP: 'C:\\fx', PROGRAMDATA: undefined }, base, 'win32');
+            const env = osEssentialsEnv(
+                { PATH: 'C:\\fixture', HOME: 'C:\\fx', USERPROFILE: 'C:\\fx', TMPDIR: 'C:\\fx', TEMP: 'C:\\fx', TMP: 'C:\\fx', PROGRAMDATA: undefined },
+                base,
+                'win32'
+            );
             // Then there is one PATH (the override), the redirects are present, and the deleted key is gone while the rest stay
-            assert.deepEqual(Object.keys(env).filter(key => key.toUpperCase() === 'PATH'), ['PATH']);
+            assert.deepEqual(
+                Object.keys(env).filter(key => key.toUpperCase() === 'PATH'),
+                ['PATH']
+            );
             assert.equal(env.PATH, 'C:\\fixture');
             for (const key of ['HOME', 'USERPROFILE', 'TMPDIR', 'TEMP', 'TMP']) assert.equal(env[key], 'C:\\fx', key);
-            assert.equal(Object.keys(env).some(key => key.toUpperCase() === 'PROGRAMDATA'), false, 'an undefined override deletes the key');
+            assert.equal(
+                Object.keys(env).some(key => key.toUpperCase() === 'PROGRAMDATA'),
+                false,
+                'an undefined override deletes the key'
+            );
             assert.equal(env.SystemDrive, 'C:');
         }
     },
@@ -80,7 +107,13 @@ const tests = [
                 const base = { ...process.env, CK_OSE_PROBE: '1' };
                 const env = osEssentialsEnv({ HOME: cwd, USERPROFILE: cwd, TMPDIR: cwd, TEMP: cwd, TMP: cwd }, base);
                 // When a real node child lists its environment names
-                const run = spawnSync(process.execPath, ['-e', 'process.stdout.write(JSON.stringify(Object.keys(process.env)))'], { cwd, env, encoding: 'utf8', windowsHide: true, timeout: 20000 });
+                const run = spawnSync(process.execPath, ['-e', 'process.stdout.write(JSON.stringify(Object.keys(process.env)))'], {
+                    cwd,
+                    env,
+                    encoding: 'utf8',
+                    windowsHide: true,
+                    timeout: 20000
+                });
                 assert.equal(run.status, 0, run.stderr);
                 const seen = JSON.parse(run.stdout).map(key => key.toUpperCase());
                 // Then every Windows well-known folder key the host defines reached the child, and the switch did not

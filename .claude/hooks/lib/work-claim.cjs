@@ -100,8 +100,24 @@ function resolveWorkTracking(options = {}) {
     apply(cleanLayer(readLayer(routing.resolveLocalOverridePath(rootDir)), PERSONAL_KEYS), 'local-override');
     const fromEnv = { mode: env.CK_WORK_TRACKING_MODE, autoMerge: env.CK_WORK_TRACKING_AUTO_MERGE };
     // Values are de-quoted as the sibling settings are (cmd.exe `set NAME="off"` keeps the quotes).
-    const clean = value => value.trim().replace(/^(["'])(.*)\1$/, '$2').trim().toLowerCase().replace(/^when_green$/, 'when-green');
-    apply(cleanLayer(Object.fromEntries(Object.entries(fromEnv).filter(([, v]) => nonBlank(v)).map(([k, v]) => [k, clean(v)])), PERSONAL_KEYS), 'environment');
+    const clean = value =>
+        value
+            .trim()
+            .replace(/^(["'])(.*)\1$/, '$2')
+            .trim()
+            .toLowerCase()
+            .replace(/^when_green$/, 'when-green');
+    apply(
+        cleanLayer(
+            Object.fromEntries(
+                Object.entries(fromEnv)
+                    .filter(([, v]) => nonBlank(v))
+                    .map(([k, v]) => [k, clean(v)])
+            ),
+            PERSONAL_KEYS
+        ),
+        'environment'
+    );
     return { settings, sources, team: { mode: team.mode || DEFAULTS.mode } };
 }
 
@@ -151,7 +167,9 @@ function claimRoot(input, projectRoot, git = runGit) {
         // Keep the host's path spelling for absolute edit targets, including macOS path aliases.
         const visible = path.resolve(cwd, path.relative(canonical(cwd), active));
         return path.relative(canonical(visible), active) === '' ? visible : active;
-    } catch { /* Keep the selected project when a checkout or its storage cannot be verified. */ }
+    } catch {
+        /* Keep the selected project when a checkout or its storage cannot be verified. */
+    }
     return projectRoot;
 }
 
@@ -164,9 +182,7 @@ function branchState(root, git = runGit) {
     if (current === null) return null;
     const branch = current.trim();
     if (!branch) {
-        return git(root, ['rev-parse', '--is-inside-work-tree'])?.trim() === 'true'
-            ? { branch: null, claim: null, pr: null, declined: null }
-            : null;
+        return git(root, ['rev-parse', '--is-inside-work-tree'])?.trim() === 'true' ? { branch: null, claim: null, pr: null, declined: null } : null;
     }
     const escaped = branch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const lines = (git(root, ['config', '--get-regexp', `^branch\\.${escaped}\\.workclaim`]) || '').split('\n');
@@ -192,11 +208,9 @@ const declineHow = (settings, state, what = 'that') => {
     return record;
 };
 
-const detachedRecovery = state => state.branch === null
-    ? ' If the claim command requires a branch, create one at the current commit and retry.'
-    : '';
+const detachedRecovery = state => (state.branch === null ? ' If the claim command requires a branch, create one at the current commit and retry.' : '');
 
-const checkoutLabel = state => state.branch === null ? 'detached HEAD' : `\`${state.branch}\``;
+const checkoutLabel = state => (state.branch === null ? 'detached HEAD' : `\`${state.branch}\``);
 
 /** The prompt notice for a branch state, or null (silent). */
 function promptNotice(settings, raw) {
@@ -253,14 +267,28 @@ async function deliverPromptNotice(input, deps = {}) {
             root: records,
             input,
             group: GROUP,
-            hash: crypto.createHash('sha256').update(JSON.stringify([text, generation])).digest('hex'),
+            hash: crypto
+                .createHash('sha256')
+                .update(JSON.stringify([text, generation]))
+                .digest('hex'),
             payload: `${text}\n`,
-            settings: { reinjectAfterBytes: 150000 * BYTES_PER_TOKEN, reinjectAfterMinutes: null, blindReinjectAfterMinutes: null, compactionMarkers: [ledger.CODEX_COMPACTION_MARKER] },
+            settings: {
+                reinjectAfterBytes: 150000 * BYTES_PER_TOKEN,
+                reinjectAfterMinutes: null,
+                blindReinjectAfterMinutes: null,
+                compactionMarkers: [ledger.CODEX_COMPACTION_MARKER]
+            },
             now: deps.now ?? Date.now(),
             failOpen: true,
-            write: deps.write || ((payload, done) => {
-                try { process.stdout.write(payload, error => done(!error)); } catch { done(false); }
-            })
+            write:
+                deps.write ||
+                ((payload, done) => {
+                    try {
+                        process.stdout.write(payload, error => done(!error));
+                    } catch {
+                        done(false);
+                    }
+                })
         });
     } catch {
         return ''; // Advisory: never blocks a prompt or reports an error.
@@ -280,7 +308,11 @@ function observeEdit(event, root, paths, deps = {}) {
         const state = branchState(root, git);
         // A file Git ignores (personal settings, plans, scratch output) changes nothing the team tracks.
         const ignored = new Set((git(root, ['check-ignore', '-z', '--stdin'], paths.join('\0')) || '').split('\0').filter(Boolean));
-        const text = editNudge(settings, state, paths.filter(file => !ignored.has(file)));
+        const text = editNudge(
+            settings,
+            state,
+            paths.filter(file => !ignored.has(file))
+        );
         if (!text) return null;
         const records = store(root);
         const seen = ledger.readSessionState(records, event.session_id, NUDGE_STATE)?.branches || [];
@@ -293,6 +325,18 @@ function observeEdit(event, root, paths, deps = {}) {
 }
 
 module.exports = {
-    MODES, AUTO_MERGE, CLAIM_CONFIG, DEFAULTS, PERSONAL_KEYS, MARKER,
-    resolveWorkTracking, pathMatcher, claimRoot, branchState, promptNotice, editNudge, deliverPromptNotice, observeEdit
+    MODES,
+    AUTO_MERGE,
+    CLAIM_CONFIG,
+    DEFAULTS,
+    PERSONAL_KEYS,
+    MARKER,
+    resolveWorkTracking,
+    pathMatcher,
+    claimRoot,
+    branchState,
+    promptNotice,
+    editNudge,
+    deliverPromptNotice,
+    observeEdit
 };

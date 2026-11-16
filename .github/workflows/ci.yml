@@ -52,6 +52,7 @@ jobs:
     outputs:
       sha: ${{ steps.target.outputs.sha }}
       scope: ${{ steps.plan.outputs.scope }}
+      run_static: ${{ steps.plan.outputs.run_static }}
       run_sync: ${{ steps.plan.outputs.run_sync }}
       run_hook_unit: ${{ steps.plan.outputs.run_hook_unit }}
       run_hook_suites: ${{ steps.plan.outputs.run_hook_suites }}
@@ -97,6 +98,9 @@ jobs:
         with:
           node-version: "24"
       - run: npm ci --ignore-scripts
+      - name: Static checks (ESLint frozen baseline, prettier)
+        if: ${{ needs.gate.outputs.run_static == 'true' }}
+        run: node .claude/scripts/static-checks.cjs
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: "3.12"
@@ -104,6 +108,24 @@ jobs:
         run: python -m pip install -r .claude/scripts/requirements.txt
       - name: Codex mirror and tooling gates
         run: node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --verify-only
+
+  # Network-bound, so it is not a framework-ci lane; it runs once and never hides lane results.
+  dependency-audit:
+    name: dependency-audit
+    needs: gate
+    if: ${{ needs.gate.outputs.run_sync == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.gate.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "24"
+      - name: Dependency audit (HIGH and CRITICAL fail)
+        run: npm audit --audit-level=high
 
   unit-tests:
     name: unit-tests (${{ matrix.os }})

@@ -38,7 +38,9 @@ test('TC-SLT-005: migrator transforms indented input → canonical (round-trip)'
 
     const python = resolvePythonCommand({ cwd: repoRoot });
     await execFileAsync(python.command, [...python.baseArgs, migratorScript, '--only=__golden__'], {
-        cwd: repoRoot, timeout: 10000, windowsHide: true
+        cwd: repoRoot,
+        timeout: 10000,
+        windowsHide: true
     });
 
     const migrated = normalizeEol(await fs.readFile(goldenSkillFile, 'utf8'));

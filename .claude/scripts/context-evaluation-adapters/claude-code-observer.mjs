@@ -25,7 +25,8 @@ export function snapshot(root) {
             if (Object.keys(out).length >= MAX_FILES) return;
             const full = path.join(dir, entry.name);
             if (entry.isDirectory()) walk(full);
-            else if (entry.isFile()) out[path.relative(root, full).split(path.sep).join('/')] = crypto.createHash('sha1').update(fs.readFileSync(full)).digest('hex');
+            else if (entry.isFile())
+                out[path.relative(root, full).split(path.sep).join('/')] = crypto.createHash('sha1').update(fs.readFileSync(full)).digest('hex');
         }
     };
     walk(root);
@@ -46,14 +47,28 @@ function main() {
     const snapFile = path.join(stateDir, 'snapshot.json');
     const now = snapshot(worldDir);
     // Replace the snapshot by rename, so a concurrently running observer never reads a torn file.
-    const save = () => { const temp = `${snapFile}.${process.pid}`; fs.writeFileSync(temp, JSON.stringify(now)); fs.renameSync(temp, snapFile); };
-    if (flag === '--init') { save(); return; }
+    const save = () => {
+        const temp = `${snapFile}.${process.pid}`;
+        fs.writeFileSync(temp, JSON.stringify(now));
+        fs.renameSync(temp, snapFile);
+    };
+    if (flag === '--init') {
+        save();
+        return;
+    }
     let payload = {};
-    try { payload = JSON.parse(fs.readFileSync(0, 'utf8') || '{}'); } catch { payload = {}; }
+    try {
+        payload = JSON.parse(fs.readFileSync(0, 'utf8') || '{}');
+    } catch {
+        payload = {};
+    }
     const before = fs.existsSync(snapFile) ? JSON.parse(fs.readFileSync(snapFile, 'utf8')) : {};
     const row = {
-        hook_event_name: payload.hook_event_name, tool_name: payload.tool_name, tool_input: payload.tool_input,
-        tool_response: payload.tool_response ?? payload.error ?? null, changedPaths: changed(before, now)
+        hook_event_name: payload.hook_event_name,
+        tool_name: payload.tool_name,
+        tool_input: payload.tool_input,
+        tool_response: payload.tool_response ?? payload.error ?? null,
+        changedPaths: changed(before, now)
     };
     fs.appendFileSync(path.join(stateDir, 'events.jsonl'), `${JSON.stringify(row)}\n`);
     save();
@@ -61,5 +76,9 @@ function main() {
 
 if (isInvokedAsScript(process.argv[1], fileURLToPath(import.meta.url))) {
     // An observer failure must never alter the run; the adapter reports a missing event log instead.
-    try { main(); } catch { /* recorded as an absent event */ }
+    try {
+        main();
+    } catch {
+        /* recorded as an absent event */
+    }
 }

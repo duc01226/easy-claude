@@ -13,7 +13,7 @@ const path = require('path');
  * @returns {string} Path to the created temp directory
  */
 function createTempDir(prefix = 'hook-test-') {
-  return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+    return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
 }
 
 /**
@@ -21,9 +21,9 @@ function createTempDir(prefix = 'hook-test-') {
  * @param {string} dir - Path to the directory to remove
  */
 function cleanupTempDir(dir) {
-  if (dir && dir.startsWith(os.tmpdir())) {
-    fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
-  }
+    if (dir && dir.startsWith(os.tmpdir())) {
+        fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+    }
 }
 
 /**
@@ -33,13 +33,10 @@ function cleanupTempDir(dir) {
  * @returns {string} Path to the .claude directory
  */
 function setupMockConfig(tmpDir, config) {
-  const claudeDir = path.join(tmpDir, '.claude');
-  fs.mkdirSync(claudeDir, { recursive: true });
-  fs.writeFileSync(
-    path.join(claudeDir, '.ck.json'),
-    JSON.stringify(config, null, 2)
-  );
-  return claudeDir;
+    const claudeDir = path.join(tmpDir, '.claude');
+    fs.mkdirSync(claudeDir, { recursive: true });
+    fs.writeFileSync(path.join(claudeDir, '.ck.json'), JSON.stringify(config, null, 2));
+    return claudeDir;
 }
 
 /**
@@ -49,14 +46,21 @@ function setupMockConfig(tmpDir, config) {
  * @returns {string} Path to the checkpoint file
  */
 function setupCheckpoint(tmpDir, data) {
-  const checkpointDir = path.join(tmpDir, '.claude', 'checkpoints');
-  fs.mkdirSync(checkpointDir, { recursive: true });
-  const checkpointFile = path.join(checkpointDir, 'latest.json');
-  fs.writeFileSync(checkpointFile, JSON.stringify({
-    timestamp: new Date().toISOString(),
-    ...data
-  }, null, 2));
-  return checkpointFile;
+    const checkpointDir = path.join(tmpDir, '.claude', 'checkpoints');
+    fs.mkdirSync(checkpointDir, { recursive: true });
+    const checkpointFile = path.join(checkpointDir, 'latest.json');
+    fs.writeFileSync(
+        checkpointFile,
+        JSON.stringify(
+            {
+                timestamp: new Date().toISOString(),
+                ...data
+            },
+            null,
+            2
+        )
+    );
+    return checkpointFile;
 }
 
 /**
@@ -66,11 +70,11 @@ function setupCheckpoint(tmpDir, data) {
  * @returns {string} Path to the lessons file
  */
 function setupAceLessons(tmpDir, lessons) {
-  const memoryDir = path.join(tmpDir, '.claude', 'memory');
-  fs.mkdirSync(memoryDir, { recursive: true });
-  const lessonsFile = path.join(memoryDir, 'lessons.json');
-  fs.writeFileSync(lessonsFile, JSON.stringify(lessons, null, 2));
-  return lessonsFile;
+    const memoryDir = path.join(tmpDir, '.claude', 'memory');
+    fs.mkdirSync(memoryDir, { recursive: true });
+    const lessonsFile = path.join(memoryDir, 'lessons.json');
+    fs.writeFileSync(lessonsFile, JSON.stringify(lessons, null, 2));
+    return lessonsFile;
 }
 
 /**
@@ -80,9 +84,9 @@ function setupAceLessons(tmpDir, lessons) {
  * @returns {string} Path to the .ckignore file
  */
 function setupCkIgnore(tmpDir, patterns) {
-  const ignoreFile = path.join(tmpDir, '.ckignore');
-  fs.writeFileSync(ignoreFile, patterns.join('\n'));
-  return ignoreFile;
+    const ignoreFile = path.join(tmpDir, '.ckignore');
+    fs.writeFileSync(ignoreFile, patterns.join('\n'));
+    return ignoreFile;
 }
 
 /**
@@ -93,11 +97,11 @@ function setupCkIgnore(tmpDir, patterns) {
  * @returns {string} Absolute path to the created file
  */
 function createMockFile(tmpDir, relativePath, content = '') {
-  const filePath = path.join(tmpDir, relativePath);
-  const dir = path.dirname(filePath);
-  fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(filePath, content);
-  return filePath;
+    const filePath = path.join(tmpDir, relativePath);
+    const dir = path.dirname(filePath);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(filePath, content);
+    return filePath;
 }
 
 /**
@@ -107,7 +111,7 @@ function createMockFile(tmpDir, relativePath, content = '') {
  * @returns {boolean}
  */
 function fileExists(tmpDir, relativePath) {
-  return fs.existsSync(path.join(tmpDir, relativePath));
+    return fs.existsSync(path.join(tmpDir, relativePath));
 }
 
 /**
@@ -115,34 +119,34 @@ function fileExists(tmpDir, relativePath) {
  * @returns {{save: function, restore: function}}
  */
 function createEnvSaver() {
-  let savedEnv = {};
+    let savedEnv = {};
 
-  return {
-    /**
-     * Save specific environment variables
-     * @param {string[]} keys - Keys to save
-     */
-    save(keys) {
-      savedEnv = {};
-      for (const key of keys) {
-        savedEnv[key] = process.env[key];
-      }
-    },
+    return {
+        /**
+         * Save specific environment variables
+         * @param {string[]} keys - Keys to save
+         */
+        save(keys) {
+            savedEnv = {};
+            for (const key of keys) {
+                savedEnv[key] = process.env[key];
+            }
+        },
 
-    /**
-     * Restore saved environment variables
-     */
-    restore() {
-      for (const [key, value] of Object.entries(savedEnv)) {
-        if (value === undefined) {
-          delete process.env[key];
-        } else {
-          process.env[key] = value;
+        /**
+         * Restore saved environment variables
+         */
+        restore() {
+            for (const [key, value] of Object.entries(savedEnv)) {
+                if (value === undefined) {
+                    delete process.env[key];
+                } else {
+                    process.env[key] = value;
+                }
+            }
+            savedEnv = {};
         }
-      }
-      savedEnv = {};
-    }
-  };
+    };
 }
 
 /**
@@ -151,20 +155,20 @@ function createEnvSaver() {
  * @returns {{envFile: string, cleanup: function}}
  */
 function setupClaudeEnvFile(tmpDir) {
-  const envFile = path.join(tmpDir, '.claude-env');
-  const originalEnvFile = process.env.CLAUDE_ENV_FILE;
-  process.env.CLAUDE_ENV_FILE = envFile;
+    const envFile = path.join(tmpDir, '.claude-env');
+    const originalEnvFile = process.env.CLAUDE_ENV_FILE;
+    process.env.CLAUDE_ENV_FILE = envFile;
 
-  return {
-    envFile,
-    cleanup() {
-      if (originalEnvFile !== undefined) {
-        process.env.CLAUDE_ENV_FILE = originalEnvFile;
-      } else {
-        delete process.env.CLAUDE_ENV_FILE;
-      }
-    }
-  };
+    return {
+        envFile,
+        cleanup() {
+            if (originalEnvFile !== undefined) {
+                process.env.CLAUDE_ENV_FILE = originalEnvFile;
+            } else {
+                delete process.env.CLAUDE_ENV_FILE;
+            }
+        }
+    };
 }
 
 /**
@@ -173,20 +177,19 @@ function setupClaudeEnvFile(tmpDir) {
  * @returns {object} Parsed environment variables
  */
 function parseEnvFile(content) {
-  const env = {};
-  for (const line of content.split('\n')) {
-    const match = line.match(/^export\s+(\w+)=(.*)$/);
-    if (match) {
-      let value = match[2];
-      // Remove quotes if present
-      if ((value.startsWith('"') && value.endsWith('"')) ||
-          (value.startsWith("'") && value.endsWith("'"))) {
-        value = value.slice(1, -1);
-      }
-      env[match[1]] = value;
+    const env = {};
+    for (const line of content.split('\n')) {
+        const match = line.match(/^export\s+(\w+)=(.*)$/);
+        if (match) {
+            let value = match[2];
+            // Remove quotes if present
+            if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+                value = value.slice(1, -1);
+            }
+            env[match[1]] = value;
+        }
     }
-  }
-  return env;
+    return env;
 }
 
 /**
@@ -197,12 +200,12 @@ function parseEnvFile(content) {
  * @returns {Promise<boolean>}
  */
 async function waitFor(condition, timeout = 5000, interval = 100) {
-  const start = Date.now();
-  while (Date.now() - start < timeout) {
-    if (await condition()) return true;
-    await new Promise(r => setTimeout(r, interval));
-  }
-  return false;
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+        if (await condition()) return true;
+        await new Promise(r => setTimeout(r, interval));
+    }
+    return false;
 }
 
 /**
@@ -210,7 +213,7 @@ async function waitFor(condition, timeout = 5000, interval = 100) {
  * @returns {string}
  */
 function getHooksDir() {
-  return path.resolve(__dirname, '..', '..');
+    return path.resolve(__dirname, '..', '..');
 }
 
 /**
@@ -218,7 +221,7 @@ function getHooksDir() {
  * @returns {string}
  */
 function getTestsDir() {
-  return path.resolve(__dirname, '..');
+    return path.resolve(__dirname, '..');
 }
 
 /**
@@ -227,9 +230,9 @@ function getTestsDir() {
  * @returns {string} ISO timestamp
  */
 function createTimestamp(hoursAgo = 0) {
-  const date = new Date();
-  date.setHours(date.getHours() - hoursAgo);
-  return date.toISOString();
+    const date = new Date();
+    date.setHours(date.getHours() - hoursAgo);
+    return date.toISOString();
 }
 
 /**
@@ -239,11 +242,11 @@ function createTimestamp(hoursAgo = 0) {
  * @returns {string} Path to the config file
  */
 function setupWorkflowConfig(tmpDir, config) {
-  const workflowDir = path.join(tmpDir, '.claude', 'workflows');
-  fs.mkdirSync(workflowDir, { recursive: true });
-  const configFile = path.join(workflowDir, 'config.json');
-  fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
-  return configFile;
+    const workflowDir = path.join(tmpDir, '.claude', 'workflows');
+    fs.mkdirSync(workflowDir, { recursive: true });
+    const configFile = path.join(workflowDir, 'config.json');
+    fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
+    return configFile;
 }
 
 /**
@@ -253,11 +256,11 @@ function setupWorkflowConfig(tmpDir, config) {
  * @returns {string} Path to the metrics file
  */
 function setupMetrics(tmpDir, metrics) {
-  const tmpClaudeDir = path.join(tmpDir, '.claude', 'tmp');
-  fs.mkdirSync(tmpClaudeDir, { recursive: true });
-  const metricsFile = path.join(tmpClaudeDir, 'hook-metrics.json');
-  fs.writeFileSync(metricsFile, JSON.stringify(metrics, null, 2));
-  return metricsFile;
+    const tmpClaudeDir = path.join(tmpDir, '.claude', 'tmp');
+    fs.mkdirSync(tmpClaudeDir, { recursive: true });
+    const metricsFile = path.join(tmpClaudeDir, 'hook-metrics.json');
+    fs.writeFileSync(metricsFile, JSON.stringify(metrics, null, 2));
+    return metricsFile;
 }
 
 /**
@@ -266,11 +269,11 @@ function setupMetrics(tmpDir, metrics) {
  * @returns {object|null} Parsed metrics or null
  */
 function readMetrics(tmpDir) {
-  const metricsFile = path.join(tmpDir, '.claude', 'tmp', 'hook-metrics.json');
-  if (fs.existsSync(metricsFile)) {
-    return JSON.parse(fs.readFileSync(metricsFile, 'utf8'));
-  }
-  return null;
+    const metricsFile = path.join(tmpDir, '.claude', 'tmp', 'hook-metrics.json');
+    if (fs.existsSync(metricsFile)) {
+        return JSON.parse(fs.readFileSync(metricsFile, 'utf8'));
+    }
+    return null;
 }
 
 /**
@@ -279,9 +282,9 @@ function readMetrics(tmpDir) {
  * @returns {string} ISO timestamp
  */
 function createDaysAgoTimestamp(daysAgo = 0) {
-  const date = new Date();
-  date.setDate(date.getDate() - daysAgo);
-  return date.toISOString();
+    const date = new Date();
+    date.setDate(date.getDate() - daysAgo);
+    return date.toISOString();
 }
 
 /**
@@ -290,29 +293,29 @@ function createDaysAgoTimestamp(daysAgo = 0) {
  * to `ino` and the simulated swap silently disappears. Works for Number and BigInt stats.
  */
 function otherInode(ino) {
-  if (typeof ino === 'bigint') return ino === 1n ? 2n : 1n;
-  return ino === 1 ? 2 : 1;
+    if (typeof ino === 'bigint') return ino === 1n ? 2n : 1n;
+    return ino === 1 ? 2 : 1;
 }
 
 module.exports = {
-  otherInode,
-  createTempDir,
-  cleanupTempDir,
-  setupMockConfig,
-  setupCheckpoint,
-  setupAceLessons,
-  setupCkIgnore,
-  createMockFile,
-  fileExists,
-  createEnvSaver,
-  setupClaudeEnvFile,
-  parseEnvFile,
-  waitFor,
-  getHooksDir,
-  getTestsDir,
-  createTimestamp,
-  setupWorkflowConfig,
-  setupMetrics,
-  readMetrics,
-  createDaysAgoTimestamp
+    otherInode,
+    createTempDir,
+    cleanupTempDir,
+    setupMockConfig,
+    setupCheckpoint,
+    setupAceLessons,
+    setupCkIgnore,
+    createMockFile,
+    fileExists,
+    createEnvSaver,
+    setupClaudeEnvFile,
+    parseEnvFile,
+    waitFor,
+    getHooksDir,
+    getTestsDir,
+    createTimestamp,
+    setupWorkflowConfig,
+    setupMetrics,
+    readMetrics,
+    createDaysAgoTimestamp
 };

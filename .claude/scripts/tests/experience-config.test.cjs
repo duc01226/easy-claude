@@ -7,10 +7,7 @@ const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const { createRequire } = require('node:module');
 const { SCHEMA, validateConfig } = require('../../hooks/lib/project-config-schema.cjs');
-const {
-    getConfiguredProjectConfigPath,
-    getDocsRoot
-} = require('../../hooks/lib/project-config-loader.cjs');
+const { getConfiguredProjectConfigPath, getDocsRoot } = require('../../hooks/lib/project-config-loader.cjs');
 
 const repoRoot = path.resolve(__dirname, '..', '..', '..');
 const SCHEMA_REQUIRE = createRequire(path.resolve(__dirname, '../../hooks/lib/project-config-schema.cjs'));
@@ -22,7 +19,10 @@ const realConfig = readProjectConfig();
 
 test('TC-EXP-CONFIG-000: missing required project config is not replaced with a framework skeleton', () => {
     const absentPath = path.join(repoRoot, 'tmp', `experience-config-missing-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}.json`);
-    assert.throws(() => readProjectConfig(absentPath), error => error?.code === 'ENOENT');
+    assert.throws(
+        () => readProjectConfig(absentPath),
+        error => error?.code === 'ENOENT'
+    );
 });
 
 test('TC-EXP-CONFIG-001: the optional experienceVerification contract is declared and minimal and real configs validate', () => {
@@ -48,14 +48,16 @@ test('TC-EXP-CONFIG-002: a configured surface carries project facts without a fr
             evidenceRoot: 'tmp/experience',
             baselineRoot: 'tests/baselines',
             acceptancePolicy: 'manual-acceptance-required',
-            surfaces: [{
-                id: 'operator-transcript',
-                kind: 'terminal',
-                runner: 'existing-cli-harness',
-                entryPoints: ['bin/tool'],
-                changeTriggers: ['bin/**'],
-                states: ['default', 'error']
-            }]
+            surfaces: [
+                {
+                    id: 'operator-transcript',
+                    kind: 'terminal',
+                    runner: 'existing-cli-harness',
+                    entryPoints: ['bin/tool'],
+                    changeTriggers: ['bin/**'],
+                    states: ['default', 'error']
+                }
+            ]
         }
     };
     const result = validateConfig(config);
@@ -156,15 +158,14 @@ test('TC-EXP-CONFIG-007: each surface identity and entry-point field is independ
             const surface = config.experienceVerification.surfaces[0];
             if (state === 'missing') delete surface[field];
             else surface[field] = state === 'null' ? null : 42;
-            const detail = state === 'wrong-type'
-                ? `expected ${field === 'entryPoints' ? 'array' : 'string'}, got number`
-                : 'required field is missing';
+            const detail = state === 'wrong-type' ? `expected ${field === 'entryPoints' ? 'array' : 'string'}, got number` : 'required field is missing';
             expectSurfaceError(validateConfig(config), field, detail);
         }
     }
 });
 
-const disabledWarning = 'experienceVerification: surfaces are configured while the contract is disabled; conditional experience review routing is off until enabled';
+const disabledWarning =
+    'experienceVerification: surfaces are configured while the contract is disabled; conditional experience review routing is off until enabled';
 function expectDisabledWarning(result) {
     assert.equal(result.valid, true, result.errors.join('; '));
     assert.ok(result.warnings.includes(disabledWarning), result.warnings.join('; '));
@@ -182,9 +183,7 @@ test('TC-EXP-CONFIG-008: disabled configured surfaces warn without rejecting val
 // multi-line anchor matching the same text the repository stores, so an oracle reports a real
 // mutation-site change instead of the checkout's line-ending policy.
 function readSchemaSource() {
-    return fs
-        .readFileSync(path.resolve(__dirname, '../../hooks/lib/project-config-schema.cjs'), 'utf8')
-        .replace(/\r\n/g, '\n');
+    return fs.readFileSync(path.resolve(__dirname, '../../hooks/lib/project-config-schema.cjs'), 'utf8').replace(/\r\n/g, '\n');
 }
 
 function loadSchemaSource(source) {
@@ -193,10 +192,7 @@ function loadSchemaSource(source) {
     // (project-config-schema.cjs:15-18). Bind it to the schema's own directory so its relative ids
     // resolve exactly as in production, and pin `.main = null` so the `require.main === module` CLI
     // guard at the file's tail stays inert inside the sandbox (a non-null main would run the CLI).
-    const schemaRequire = Object.assign(
-        id => SCHEMA_REQUIRE(id),
-        { main: null, resolve: SCHEMA_REQUIRE.resolve }
-    );
+    const schemaRequire = Object.assign(id => SCHEMA_REQUIRE(id), { main: null, resolve: SCHEMA_REQUIRE.resolve });
     vm.runInNewContext(source, { module, exports: module.exports, require: schemaRequire }, { filename: 'project-config-schema.cjs', timeout: 5000 });
     return module.exports.validateConfig;
 }
@@ -212,9 +208,7 @@ test('TC-EXP-CONFIG-009: actual required-field and type weakenings are killed by
         const anchor = `${field}: { type: '${type}', required: true }`;
         assert.equal(block.split(anchor).length, 2, `one ${field} mutation site`);
         for (const change of ['required', 'type']) {
-            const replacement = change === 'required'
-                ? `${field}: { type: '${type}', required: false }`
-                : `${field}: { type: 'unchecked', required: true }`;
+            const replacement = change === 'required' ? `${field}: { type: '${type}', required: false }` : `${field}: { type: 'unchecked', required: true }`;
             const mutant = loadSchemaSource(source.slice(0, start) + block.replace(anchor, replacement) + source.slice(end));
             assert.equal(mutant(surfaceConfig()).valid, true, 'mutant must still execute valid configuration');
             const config = surfaceConfig();
@@ -230,8 +224,10 @@ test('TC-EXP-CONFIG-009: actual required-field and type weakenings are killed by
 
 test('TC-EXP-CONFIG-010: actual disabled-warning deletion is killed by its diagnostic oracle', () => {
     const source = readSchemaSource();
-    const anchor = `warnings.push('${disabledWarning}');`;
-    assert.equal(source.split(anchor).length, 2, 'one warning mutation site');
+    // The call may wrap across lines; the mutant removes the whole push.
+    const escaped = disabledWarning.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const anchor = new RegExp(`warnings\\.push\\(\\s*'${escaped}'\\s*\\);`, 'g');
+    assert.equal(source.match(anchor)?.length, 1, 'one warning mutation site');
     const mutant = loadSchemaSource(source.replace(anchor, '/* warning removed */'));
     const result = mutant(surfaceConfig(false));
     assert.equal(result.valid, true, 'warning removal must not prevent schema execution');
@@ -262,7 +258,11 @@ test('TC-EXP-CONFIG-011: the optional local bring-up recipe is accepted whole an
     assert.equal(validateConfig(surfaceConfig()).valid, true, 'absent localRun must stay valid');
     const result = validateConfig(localRunConfig(validLocalRun));
     assert.equal(result.valid, true, result.errors.join('; '));
-    assert.deepEqual(result.warnings.filter(warning => warning.includes('localRun')), [], 'declared fields must not warn as unknown');
+    assert.deepEqual(
+        result.warnings.filter(warning => warning.includes('localRun')),
+        [],
+        'declared fields must not warn as unknown'
+    );
 });
 
 test('TC-EXP-CONFIG-012: each local bring-up field is type-checked at its own path', () => {
@@ -274,10 +274,7 @@ test('TC-EXP-CONFIG-012: each local bring-up field is type-checked at its own pa
         const got = expected === 'number' ? 'string' : 'number';
         const result = validateConfig(localRunConfig({ ...validLocalRun, [field]: wrongValue }));
         assert.equal(result.valid, false, `${field} must be type-checked`);
-        assert.deepEqual(
-            Array.from(result.errors),
-            [`experienceVerification.surfaces[0].localRun.${field}: expected ${expected}, got ${got}`]
-        );
+        assert.deepEqual(Array.from(result.errors), [`experienceVerification.surfaces[0].localRun.${field}: expected ${expected}, got ${got}`]);
     }
     const unknown = validateConfig(localRunConfig({ ...validLocalRun, startCmd: 'npm start' }));
     assert.equal(unknown.valid, true, 'an unknown recipe field warns, never rejects');
@@ -308,13 +305,15 @@ function e2eConfig(execution, surface = {}) {
             evidenceRoot: 'tmp/experience',
             baselineRoot: 'tests/baselines',
             acceptancePolicy: 'manual-acceptance-required',
-            surfaces: [{
-                id: 'web',
-                kind: 'web',
-                runner: 'playwright-cli',
-                entryPoints: ['apps/web'],
-                ...surface
-            }]
+            surfaces: [
+                {
+                    id: 'web',
+                    kind: 'web',
+                    runner: 'playwright-cli',
+                    entryPoints: ['apps/web'],
+                    ...surface
+                }
+            ]
         }
     };
 }
@@ -414,20 +413,28 @@ test('TC-E2E-CONFIG-017: unsafe paths, unsupported modes, invalid pacing, and un
         'convergence.maxAttempts: expected an integer from 1 through 10',
         'convergence.settleTimeoutSeconds: expected an integer from 1 through 600'
     ]) {
-        assert.ok(result.errors.some(error => error.includes(fragment)), `${fragment}: ${result.errors.join('; ')}`);
+        assert.ok(
+            result.errors.some(error => error.includes(fragment)),
+            `${fragment}: ${result.errors.join('; ')}`
+        );
     }
 });
 
 test('TC-E2E-CONFIG-018: credential-looking literals in references and commands are warned', () => {
-    const result = validateConfig(e2eConfig({
-        auth: {
-            mode: 'fixture',
-            credentialsRef: 'password=not-a-reference',
-            registrationCommand: 'npm run register -- --password hunter2'
-        },
-        data: { seedCommand: 'npm run seed -- --token abc123' },
-        evidence: { capture: ['requests'] }
-    }, { localRun: { credentialsRef: 'password=inline' } }));
+    const result = validateConfig(
+        e2eConfig(
+            {
+                auth: {
+                    mode: 'fixture',
+                    credentialsRef: 'password=not-a-reference',
+                    registrationCommand: 'npm run register -- --password hunter2'
+                },
+                data: { seedCommand: 'npm run seed -- --token abc123' },
+                evidence: { capture: ['requests'] }
+            },
+            { localRun: { credentialsRef: 'password=inline' } }
+        )
+    );
     assert.equal(result.valid, true, result.errors.join('; '));
     assert.ok(result.warnings.some(warning => warning.includes('credentialsRef') && warning.includes('credential/token literal')));
     assert.ok(result.warnings.some(warning => warning.includes('registrationCommand') && warning.includes('credential/token literal')));
@@ -448,7 +455,10 @@ test('TC-E2E-CONFIG-019: blank conditional capabilities remain unresolved', () =
     for (const [execution, fragment] of cases) {
         const result = validateConfig(e2eConfig(execution));
         assert.equal(result.valid, true, result.errors.join('; '));
-        assert.ok(result.warnings.some(warning => warning.includes(fragment)), `${fragment}: ${result.warnings.join('; ')}`);
+        assert.ok(
+            result.warnings.some(warning => warning.includes(fragment)),
+            `${fragment}: ${result.warnings.join('; ')}`
+        );
     }
 });
 
@@ -495,7 +505,10 @@ function uiStateCaptureErrors(result) {
 test('TC-E2E-CONFIG-021: uiStateCapture rejects unknown modes, unbounded caps, and inverted caps', () => {
     const valid = validateConfig(uiStateCaptureConfig({}));
     assert.equal(valid.valid, true, valid.errors.join('; '));
-    assert.deepEqual(valid.warnings.filter(warning => warning.includes('uiStateCapture')), []);
+    assert.deepEqual(
+        valid.warnings.filter(warning => warning.includes('uiStateCapture')),
+        []
+    );
 
     const cases = [
         [{ mode: 'on-failure' }, 'uiStateCapture.mode: unsupported mode "on-failure"'],
@@ -517,7 +530,10 @@ test('TC-E2E-CONFIG-021: uiStateCapture rejects unknown modes, unbounded caps, a
     for (const [overrides, fragment] of cases) {
         const result = validateConfig(uiStateCaptureConfig(overrides));
         assert.equal(result.valid, false, `${JSON.stringify(overrides)} must fail`);
-        assert.ok(uiStateCaptureErrors(result).some(error => error.includes(fragment)), `${fragment}: ${result.errors.join('; ')}`);
+        assert.ok(
+            uiStateCaptureErrors(result).some(error => error.includes(fragment)),
+            `${fragment}: ${result.errors.join('; ')}`
+        );
     }
 
     // Boundaries stay accepted so the range check cannot drift into an off-by-one rejection.
@@ -529,21 +545,38 @@ test('TC-E2E-CONFIG-022: a missing manifest is warned in every mode; a capture b
     for (const mode of ['declared-only', undefined, 'off']) {
         const result = validateConfig(uiStateCaptureConfig({ mode, helper: undefined, manifestPath: ' ' }));
         assert.equal(result.valid, true, result.errors.join('; '));
-        assert.ok(result.warnings.some(warning => warning.includes('uiStateCapture.manifestPath')), `${mode}: ${result.warnings.join('; ')}`);
-        assert.equal(result.warnings.some(warning => warning.includes('uiStateCapture.helper')), false, `${mode}: ${result.warnings.join('; ')}`);
+        assert.ok(
+            result.warnings.some(warning => warning.includes('uiStateCapture.manifestPath')),
+            `${mode}: ${result.warnings.join('; ')}`
+        );
+        assert.equal(
+            result.warnings.some(warning => warning.includes('uiStateCapture.helper')),
+            false,
+            `${mode}: ${result.warnings.join('; ')}`
+        );
     }
 
     const everyAction = validateConfig(uiStateCaptureConfig({ mode: 'every-action', helper: undefined, manifestPath: 'tmp/e2e/capture-manifest.json' }));
     assert.equal(everyAction.valid, true, everyAction.errors.join('; '));
-    assert.ok(everyAction.warnings.some(warning => warning.includes('uiStateCapture.helper')), everyAction.warnings.join('; '));
+    assert.ok(
+        everyAction.warnings.some(warning => warning.includes('uiStateCapture.helper')),
+        everyAction.warnings.join('; ')
+    );
 
     // `off` drops the action-layer helper but still captures and indexes the declared matrix,
     // so an unindexed matrix would read as UNVERIFIED and weaken the visual gate.
     const off = validateConfig(uiStateCaptureConfig({ mode: 'off', helper: undefined, manifestPath: undefined }));
     assert.equal(off.valid, true, off.errors.join('; '));
     const offWarnings = off.warnings.filter(warning => warning.includes('uiStateCapture'));
-    assert.ok(offWarnings.some(warning => warning.includes('uiStateCapture.manifestPath')), offWarnings.join('; '));
-    assert.equal(offWarnings.some(warning => warning.includes('uiStateCapture.helper')), false, offWarnings.join('; '));
+    assert.ok(
+        offWarnings.some(warning => warning.includes('uiStateCapture.manifestPath')),
+        offWarnings.join('; ')
+    );
+    assert.equal(
+        offWarnings.some(warning => warning.includes('uiStateCapture.helper')),
+        false,
+        offWarnings.join('; ')
+    );
 });
 
 test('TC-E2E-CONFIG-023: every schema-accepted uiStateCapture mode and field has a defined meaning in the protocol', () => {
@@ -578,11 +611,14 @@ test('TC-E2E-CONFIG-023: every schema-accepted uiStateCapture mode and field has
 // single table rows, so one qualified row cannot vouch for an unqualified sibling row.
 function captureContractUnits(text) {
     const tableRow = line => /^\s*\|/.test(line);
-    return text.replace(/\r\n/g, '\n').split(/\n\s*\n(?!\d+\. )/).flatMap(paragraph => {
-        const lines = paragraph.split('\n');
-        const prose = lines.filter(line => !tableRow(line)).join('\n');
-        return [...lines.filter(tableRow), ...(prose.trim() ? [prose] : [])];
-    });
+    return text
+        .replace(/\r\n/g, '\n')
+        .split(/\n\s*\n(?!\d+\. )/)
+        .flatMap(paragraph => {
+            const lines = paragraph.split('\n');
+            const prose = lines.filter(line => !tableRow(line)).join('\n');
+            return [...lines.filter(tableRow), ...(prose.trim() ? [prose] : [])];
+        });
 }
 
 // Any quantifier over the transition inventory, including "each relevant state, viewport, and
@@ -600,8 +636,11 @@ const MODE_TABLE_ROW = /^[ \t]*\|[ \t]*`(every-action|declared-only|off)`[ \t]*\
 const MODE_DISMISSED = /\b(regardless of|irrespective of|whatever)\b[^.|\n]{0,20}`?uiStateCapture\.mode/i;
 
 function unqualifiedCaptureImperatives(text) {
-    return captureContractUnits(text).filter(unit => (QUANTIFIED_TRANSITIONS.test(unit) || TRANSITION_CAPTURE_PHRASES.some(phrase => phrase.test(unit)))
-        && (MODE_DISMISSED.test(unit) || !(unit.includes('uiStateCapture.mode') || MODE_TABLE_ROW.test(unit))));
+    return captureContractUnits(text).filter(
+        unit =>
+            (QUANTIFIED_TRANSITIONS.test(unit) || TRANSITION_CAPTURE_PHRASES.some(phrase => phrase.test(unit))) &&
+            (MODE_DISMISSED.test(unit) || !(unit.includes('uiStateCapture.mode') || MODE_TABLE_ROW.test(unit)))
+    );
 }
 
 // Wording that makes `off` drop the matrix, which would leave the default visual gate with
@@ -647,14 +686,16 @@ function markdownFiles(dir) {
 
 function captureCarriers(config = realConfig) {
     const projectReferenceRoot = getDocsRoot('projectReference', config);
-    const discovered = ['.claude/skills', '.claude/agents', projectReferenceRoot].flatMap(markdownFiles)
-        .filter(carrier => /state-changing (action|transition|trigger)/.test(fs.readFileSync(path.join(repoRoot, carrier), 'utf8')))
+    const discovered = ['.claude/skills', '.claude/agents', projectReferenceRoot]
+        .flatMap(markdownFiles)
+        .filter(carrier => /state-changing (action|transition|trigger)/.test(fs.readFileSync(path.join(repoRoot, carrier), 'utf8')));
     // The project-reference E2E doc is a declared floor exactly like CAPTURE_CARRIER_FLOOR: it stays a
     // consumer after it delegates the contract to the shared protocol and its wording turns conditional,
     // so it must be audited even once it no longer matches the discovery phrase. Resolved from config so
     // a relocated root still works, and included only when present since project docs are optional.
-    const floors = [...CAPTURE_CARRIER_FLOOR, path.posix.join(projectReferenceRoot, "e2e-test-reference.md")]
-        .filter(carrier => fs.existsSync(path.join(repoRoot, carrier)));
+    const floors = [...CAPTURE_CARRIER_FLOOR, path.posix.join(projectReferenceRoot, 'e2e-test-reference.md')].filter(carrier =>
+        fs.existsSync(path.join(repoRoot, carrier))
+    );
     return [...new Set([...discovered, ...floors])].sort();
 }
 
@@ -679,9 +720,23 @@ test('TC-PDL-065 the e2e-test non-vacuity mutant reads a guide carrier through i
         const projection = path.join(tmp, '.claude', 'skills', 'shared', 'protocols', `${tag}.md`);
         fs.mkdirSync(path.dirname(skill), { recursive: true });
         fs.mkdirSync(path.dirname(projection), { recursive: true });
-        fs.writeFileSync(skill, ['# fx', guideCarrier.GUIDE_BLOCK_START, '',
-            guideCarrier.formatGuideLine({ tag, summary: 'Visual evidence rules', when: 'handling visual review', path: `.claude/skills/shared/protocols/${tag}.md` }),
-            '', guideCarrier.GUIDE_BLOCK_END, ''].join('\n'));
+        fs.writeFileSync(
+            skill,
+            [
+                '# fx',
+                guideCarrier.GUIDE_BLOCK_START,
+                '',
+                guideCarrier.formatGuideLine({
+                    tag,
+                    summary: 'Visual evidence rules',
+                    when: 'handling visual review',
+                    path: `.claude/skills/shared/protocols/${tag}.md`
+                }),
+                '',
+                guideCarrier.GUIDE_BLOCK_END,
+                ''
+            ].join('\n')
+        );
         fs.writeFileSync(projection, '> 5. Capture each state-changing transition under the configured `uiStateCapture.mode`.\n');
         const rel = '.claude/skills/fx-e2e/SKILL.md';
         const mutate = text => unqualifiedCaptureImperatives(text.replaceAll('uiStateCapture.mode', 'capture setting')).length;
@@ -709,13 +764,20 @@ test('TC-E2E-CONFIG-024: every capture-every-action imperative is qualified by u
     }
     for (const carrier of carriers) {
         const text = fs.readFileSync(path.join(repoRoot, carrier), 'utf8');
-        assert.deepEqual(unqualifiedCaptureImperatives(text).map(unit => unit.slice(0, 160)), [], carrier);
+        assert.deepEqual(
+            unqualifiedCaptureImperatives(text).map(unit => unit.slice(0, 160)),
+            [],
+            carrier
+        );
         for (const wording of OFF_DROPS_MATRIX) assert.doesNotMatch(text, wording, carrier);
     }
     // The consumer that grades the contract must say what the non-default modes record.
     const verify = fs.readFileSync(path.join(repoRoot, '.claude/skills/e2e-test/references/mode-verify.md'), 'utf8');
     assert.match(verify, /Under `declared-only`[^.]*blind spot — never a FAIL/);
-    assert.match(verify, /Under `off`, verify the matrix rows, manifest, and reads exactly as under `declared-only`, and record transition coverage once as `N\/A — uiStateCapture off: \{reason\}`/);
+    assert.match(
+        verify,
+        /Under `off`, verify the matrix rows, manifest, and reads exactly as under `declared-only`, and record transition coverage once as `N\/A — uiStateCapture off: \{reason\}`/
+    );
     assert.match(verify, /a missing (?:required )?matrix capture still fails it/);
 
     // Mutants: an unqualified imperative in any wording, a real carrier with its qualifier
@@ -746,37 +808,56 @@ test('TC-E2E-CONFIG-024: every capture-every-action imperative is qualified by u
     ].join('\n');
     assert.deepEqual(unqualifiedCaptureImperatives(table), ['| Evidence | Capture every state-changing action |']);
     assert.deepEqual(
-        unqualifiedCaptureImperatives('| `declared-only`       | State × viewport matrix only; no transition captures. Record every state-changing action as an uncaptured-transition blind spot.'),
+        unqualifiedCaptureImperatives(
+            '| `declared-only`       | State × viewport matrix only; no transition captures. Record every state-changing action as an uncaptured-transition blind spot.'
+        ),
         [],
         'a padded Markdown mode row keeps its own transition qualification'
     );
     // The real carrier is the text a model reads for e2e-test: the skill, plus the projection of its
     // visual contract once that contract is carried as a guide line (sensor row N4).
     const e2eTest = deliveredSkillText('.claude/skills/e2e-test/SKILL.md', 'e2e-visual-design-contract');
-    assert.ok(unqualifiedCaptureImperatives(e2eTest.replaceAll('uiStateCapture.mode', 'capture setting')).length > 0,
-        'deleting the mode qualifier from a real carrier must be caught');
+    assert.ok(
+        unqualifiedCaptureImperatives(e2eTest.replaceAll('uiStateCapture.mode', 'capture setting')).length > 0,
+        'deleting the mode qualifier from a real carrier must be caught'
+    );
     // Restoring the pre-fix shared quality-gate row inside the real table must be caught in place.
     const qualityGate = fs.readFileSync(path.join(repoRoot, '.claude/skills/shared/e2e-quality-protocol.md'), 'utf8');
     const visualRow = qualityGate.split(/\r?\n/).find(line => line.startsWith('| Accessibility/responsive/visual (when relevant) |'));
     assert.ok(visualRow, 'the shared quality gate keeps its visual row');
-    assert.ok(unqualifiedCaptureImperatives(qualityGate.replace(visualRow,
-        '| Accessibility/responsive/visual (when relevant) | Applicable states, viewports/devices, design authority, and the UI-state-changing action inventory are declared | Each relevant state, viewport, and state-changing transition is observed | Controls remain usable/readable/responsive; captures are emitted from the shared action layer and indexed in a manifest |')).length > 0,
-        'the pre-fix quality-gate row must be caught inside the real table');
+    assert.ok(
+        unqualifiedCaptureImperatives(
+            qualityGate.replace(
+                visualRow,
+                '| Accessibility/responsive/visual (when relevant) | Applicable states, viewports/devices, design authority, and the UI-state-changing action inventory are declared | Each relevant state, viewport, and state-changing transition is observed | Controls remain usable/readable/responsive; captures are emitted from the shared action layer and indexed in a manifest |'
+            )
+        ).length > 0,
+        'the pre-fix quality-gate row must be caught inside the real table'
+    );
     // Deleting the `off` qualifier from the protocol's own gap-listing pass must be caught in place.
     const captureProtocol = fs.readFileSync(path.join(repoRoot, '.claude/skills/shared/ui-state-capture-protocol.md'), 'utf8');
-    const gapQualifier = ' — under `uiStateCapture.mode: off`, record transition coverage once as `N/A — uiStateCapture off: {reason}` instead of listing each action, and still list capped/sampled-out matrix captures';
+    const gapQualifier =
+        ' — under `uiStateCapture.mode: off`, record transition coverage once as `N/A — uiStateCapture off: {reason}` instead of listing each action, and still list capped/sampled-out matrix captures';
     assert.ok(captureProtocol.includes(gapQualifier), 'the protocol gap-listing pass carries its off qualifier');
-    assert.ok(unqualifiedCaptureImperatives(captureProtocol.replace(gapQualifier, '')).length > 0,
-        'an unqualified per-action gap listing must be caught inside the real protocol');
+    assert.ok(
+        unqualifiedCaptureImperatives(captureProtocol.replace(gapQualifier, '')).length > 0,
+        'an unqualified per-action gap listing must be caught inside the real protocol'
+    );
     for (const wording of [
         '`declared-only` records blind spots; `off` records `N/A`)',
         'Under `off` the suite captures nothing.',
         '`off` also drops the §1.4 matrix and its manifest.'
     ]) {
-        assert.ok(OFF_DROPS_MATRIX.some(pattern => pattern.test(wording)), `the pre-decision off wording must be caught: ${wording}`);
+        assert.ok(
+            OFF_DROPS_MATRIX.some(pattern => pattern.test(wording)),
+            `the pre-decision off wording must be caught: ${wording}`
+        );
     }
     // The decided `off` meaning itself must never read as a matrix drop.
-    assert.equal(OFF_DROPS_MATRIX.some(pattern => pattern.test('`off` records transition coverage once as `N/A — uiStateCapture off: {reason}`')), false);
+    assert.equal(
+        OFF_DROPS_MATRIX.some(pattern => pattern.test('`off` records transition coverage once as `N/A — uiStateCapture off: {reason}`')),
+        false
+    );
 });
 
 test('TC-E2E-CONFIG-025: carrier discovery follows a relocated project-reference root', () => {
@@ -804,8 +885,11 @@ test('TC-E2E-CONFIG-025: carrier discovery follows a relocated project-reference
         assert.equal(getDocsRoot('projectReference', config), relativeRoot);
         assert.ok(carriers.includes(carrier), 'the configured project-reference tree must be scanned');
         assert.equal(unqualifiedCaptureImperatives(fs.readFileSync(path.join(repoRoot, carrier), 'utf8')).length, 1);
-        assert.equal(carriers.includes('docs/project-reference/e2e-test-reference.md'), false,
-            'a configured relocation must not silently fall back to the default root');
+        assert.equal(
+            carriers.includes('docs/project-reference/e2e-test-reference.md'),
+            false,
+            'a configured relocation must not silently fall back to the default root'
+        );
     } finally {
         fs.rmSync(fixtureRoot, { recursive: true, force: true });
     }

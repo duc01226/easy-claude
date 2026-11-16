@@ -14,23 +14,23 @@ const DEFAULT_THEME_PATH = path.join(ASSETS_DIR, 'default-theme.json');
  * @returns {{content: string, frontmatter: object}}
  */
 function loadMarkdown(filePath) {
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`Markdown file not found: ${filePath}`);
-  }
+    if (!fs.existsSync(filePath)) {
+        throw new Error(`Markdown file not found: ${filePath}`);
+    }
 
-  const raw = fs.readFileSync(filePath, 'utf8');
+    const raw = fs.readFileSync(filePath, 'utf8');
 
-  // Lazy load gray-matter
-  let matter;
-  try {
-    matter = require('gray-matter');
-  } catch {
-    // gray-matter not installed, return raw content
-    return { content: raw, frontmatter: {} };
-  }
+    // Lazy load gray-matter
+    let matter;
+    try {
+        matter = require('gray-matter');
+    } catch {
+        // gray-matter not installed, return raw content
+        return { content: raw, frontmatter: {} };
+    }
 
-  const { content, data } = matter(raw);
-  return { content, frontmatter: data || {} };
+    const { content, data } = matter(raw);
+    return { content, frontmatter: data || {} };
 }
 
 /**
@@ -39,23 +39,23 @@ function loadMarkdown(filePath) {
  * @returns {object}
  */
 function loadTheme(customThemePath) {
-  // Load default theme
-  let theme = {};
-  if (fs.existsSync(DEFAULT_THEME_PATH)) {
-    theme = JSON.parse(fs.readFileSync(DEFAULT_THEME_PATH, 'utf8'));
-  }
-
-  // Merge custom theme if provided
-  if (customThemePath) {
-    const customPath = path.resolve(customThemePath);
-    if (!fs.existsSync(customPath)) {
-      throw new Error(`Theme file not found: ${customThemePath}`);
+    // Load default theme
+    let theme = {};
+    if (fs.existsSync(DEFAULT_THEME_PATH)) {
+        theme = JSON.parse(fs.readFileSync(DEFAULT_THEME_PATH, 'utf8'));
     }
-    const custom = JSON.parse(fs.readFileSync(customPath, 'utf8'));
-    theme = { ...theme, ...custom };
-  }
 
-  return theme;
+    // Merge custom theme if provided
+    if (customThemePath) {
+        const customPath = path.resolve(customThemePath);
+        if (!fs.existsSync(customPath)) {
+            throw new Error(`Theme file not found: ${customThemePath}`);
+        }
+        const custom = JSON.parse(fs.readFileSync(customPath, 'utf8'));
+        theme = { ...theme, ...custom };
+    }
+
+    return theme;
 }
 
 /**
@@ -64,14 +64,14 @@ function loadTheme(customThemePath) {
  * @returns {string}
  */
 function getThemePath(customThemePath) {
-  if (customThemePath) {
-    const resolved = path.resolve(customThemePath);
-    if (!fs.existsSync(resolved)) {
-      throw new Error(`Theme file not found: ${customThemePath}`);
+    if (customThemePath) {
+        const resolved = path.resolve(customThemePath);
+        if (!fs.existsSync(resolved)) {
+            throw new Error(`Theme file not found: ${customThemePath}`);
+        }
+        return resolved;
     }
-    return resolved;
-  }
-  return DEFAULT_THEME_PATH;
+    return DEFAULT_THEME_PATH;
 }
 
 /**
@@ -81,26 +81,26 @@ function getThemePath(customThemePath) {
  * @returns {object}
  */
 function buildConfig(options) {
-  const { theme, title } = options;
+    const { theme, title } = options;
 
-  const config = {
-    theme: theme || {},
-    title: title,
-    creator: 'docx-convert',
-    // Math enabled by default (validated decision)
-    math: {
-      engine: 'katex',
-      libreOfficeCompat: true
-    }
-  };
+    const config = {
+        theme: theme || {},
+        title: title,
+        creator: 'docx-convert',
+        // Math enabled by default (validated decision)
+        math: {
+            engine: 'katex',
+            libreOfficeCompat: true
+        }
+    };
 
-  return config;
+    return config;
 }
 
 module.exports = {
-  loadMarkdown,
-  loadTheme,
-  getThemePath,
-  buildConfig,
-  DEFAULT_THEME_PATH
+    loadMarkdown,
+    loadTheme,
+    getThemePath,
+    buildConfig,
+    DEFAULT_THEME_PATH
 };

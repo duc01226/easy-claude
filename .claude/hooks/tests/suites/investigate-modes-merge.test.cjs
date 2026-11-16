@@ -45,7 +45,7 @@ const { resolveAllWorkflowManifests, resolveWorkflowManifest } = require('../../
 const { extractSyncBody, normalizeEol } = require('../../../scripts/lib/extract-sync-block.cjs');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
-const SKIP = isFrameworkRepo(REPO_ROOT) ? false : 'asserts the framework repo\'s own investigate skill and workflow registry (framework-repo signal)';
+const SKIP = isFrameworkRepo(REPO_ROOT) ? false : "asserts the framework repo's own investigate skill and workflow registry (framework-repo signal)";
 
 const SKILLS = path.join(REPO_ROOT, '.claude', 'skills');
 const read = (...parts) => fs.readFileSync(path.join(...parts), 'utf8').replace(/\r\n/g, '\n');
@@ -78,18 +78,15 @@ function carrierBody(text, tag) {
     if (from < 0 || to < from) return null;
     return text.slice(from + open.length, to);
 }
-const norm = (text) => normalizeEol(text).trim();
+const norm = text => normalizeEol(text).trim();
 
-const fixtureDocument = (entry) => ({ version: '1', workflows: { fixture: entry } });
-const resolveFixture = (entry, mode) => resolveWorkflowManifest(fixtureDocument(entry), 'fixture', { availableSkills: ['investigate', 'fix'], ...(mode ? { mode } : {}) });
+const fixtureDocument = entry => ({ version: '1', workflows: { fixture: entry } });
+const resolveFixture = (entry, mode) =>
+    resolveWorkflowManifest(fixtureDocument(entry), 'fixture', { availableSkills: ['investigate', 'fix'], ...(mode ? { mode } : {}) });
 
 const LIVE_SOURCE_ROOTS = ['.claude', 'docs/specs', 'docs/project-reference', 'README.md'];
 // Generated catalogs are rebuilt from the skill folders; history stays in ADRs and release notes.
-const SCAN_EXCLUDED = new Set([
-    '.claude/SKILLS.yaml',
-    '.claude/scripts/skills_data.yaml',
-    '.claude/hooks/tests/suites/investigate-modes-merge.test.cjs'
-]);
+const SCAN_EXCLUDED = new Set(['.claude/SKILLS.yaml', '.claude/scripts/skills_data.yaml', '.claude/hooks/tests/suites/investigate-modes-merge.test.cjs']);
 const SCAN_EXCLUDED_DIRS = new Set(['node_modules', '.git', '.code-graph', 'tmp', 'temp', 'plans', '__pycache__']);
 const SCAN_EXTENSIONS = new Set(['.md', '.cjs', '.mjs', '.js', '.py', '.json', '.yaml', '.yml', '.html', '.toml']);
 
@@ -162,8 +159,12 @@ const tests = [
             assert.match(text, /## Phase 0: Classify and Route \(BLOCKING\)/);
             for (const agent of ['debugger', 'performance-optimizer', 'security-auditor']) assert.ok(text.includes(`\`${agent}\``), `routes ${agent}`);
             // Failing/flaky integration test: read the protocol, never invoke it, emit ONE of five verdicts before any trace
-            assert.match(text, /Read `\.claude\/skills\/integration-test\/references\/mode-review\.md`[^\n]*apply it; NEVER invoke `\/integration-test --mode=review` here/);
-            for (const verdict of ['TEST-WRONG', 'TEST-NOT-OPTIMAL', 'SOURCE-WRONG', 'ENVIRONMENT-BLOCKED', 'AMBIGUOUS']) assert.ok(text.includes(`**${verdict}**`), `verdict ${verdict}`);
+            assert.match(
+                text,
+                /Read `\.claude\/skills\/integration-test\/references\/mode-review\.md`[^\n]*apply it; NEVER invoke `\/integration-test --mode=review` here/
+            );
+            for (const verdict of ['TEST-WRONG', 'TEST-NOT-OPTIMAL', 'SOURCE-WRONG', 'ENVIRONMENT-BLOCKED', 'AMBIGUOUS'])
+                assert.ok(text.includes(`**${verdict}**`), `verdict ${verdict}`);
             assert.match(text, /STOP and ask the user or canonical owner/);
             // End-to-start trace with the hypothesis matrix
             assert.match(text, /## Phase 3: Trace End-to-Start/);
@@ -173,7 +174,10 @@ const tests = [
             assert.match(text, /SAME session and SAME main agent; do NOT delegate this gate/);
             assert.match(text, /Two rounds without PASS:\*\* STOP and escalate through `ask user question tool`/);
             // Confidence thresholds survive
-            assert.match(text, /\| <60%\s+\| Insufficient evidence\s+\| Gather evidence; report only the unconfirmed hypothesis and named gaps, never a root-cause verdict \|/);
+            assert.match(
+                text,
+                /\| <60%\s+\| Insufficient evidence\s+\| Gather evidence; report only the unconfirmed hypothesis and named gaps, never a root-cause verdict \|/
+            );
             // Standalone completion asks for the next step; never auto-decides
             assert.match(text, /\*\*Standalone next steps:\*\* Use `ask user question tool`; never auto-continue/);
             assert.match(text, /Skip this choice ONLY for `nested=true`[^\n]*an abandoned\/existing row alone does not qualify/);
@@ -195,7 +199,13 @@ const tests = [
             const skillTags = guideTags(skillText);
             const refText = modeDebug();
             const canonical = normalizeEol(fs.readFileSync(path.join(SKILLS, 'shared', 'sync-inline-versions.md'), 'utf8'));
-            const debugOnly = ['evidence-based-reasoning', 'incremental-persistence', 'red-flag-stop-conditions', 'subagent-return-contract', 'test-failure-fault-adjudication'];
+            const debugOnly = [
+                'evidence-based-reasoning',
+                'incremental-persistence',
+                'red-flag-stop-conditions',
+                'subagent-return-contract',
+                'test-failure-fault-adjudication'
+            ];
             for (const tag of debugOnly) {
                 const body = carrierBody(refText, tag);
                 assert.ok(body, `mode-debug carries the full ${tag} body`);
@@ -210,7 +220,17 @@ const tests = [
             assert.deepEqual(guideTags(refText), [], 'mode-debug carries no guide entry');
             assert.ok(!refText.includes('Root-carried protocols'), 'mode-debug carries no retired pointer line');
             // And investigate keeps the protocols the debug mode shares with the default flow
-            for (const tag of ['cross-service-check', 'end-to-start-debugger-trace', 'environment-fault-hypothesis', 'fix-layer-accountability', 'root-cause-debugging', 'sequential-thinking-protocol', 'source-test-drift-check', 'task-tracking-external-report', 'understand-code-first']) {
+            for (const tag of [
+                'cross-service-check',
+                'end-to-start-debugger-trace',
+                'environment-fault-hypothesis',
+                'fix-layer-accountability',
+                'root-cause-debugging',
+                'sequential-thinking-protocol',
+                'source-test-drift-check',
+                'task-tracking-external-report',
+                'understand-code-first'
+            ]) {
                 assert.ok(skillTags.includes(tag), `investigate/SKILL.md carries ${tag}`);
             }
             for (const tag of skillTags) assert.ok(fs.existsSync(path.join(SKILLS, 'shared', 'protocols', `${tag}.md`)), `projection file for ${tag}`);
@@ -233,7 +253,8 @@ const tests = [
             for (const id of Object.keys(document.workflows)) {
                 for (const manifest of resolveAllWorkflowManifests(document, id, { rootDir: REPO_ROOT })) {
                     for (const { skill } of manifest.occurrences) skills.add(skill);
-                    for (const gate of manifest.outcomeGates) assert.ok(!gate.satisfiedBy.some(satisfier => satisfier.startsWith(REMOVED)), `${id}: gate ${gate.id} names ${REMOVED}`);
+                    for (const gate of manifest.outcomeGates)
+                        assert.ok(!gate.satisfiedBy.some(satisfier => satisfier.startsWith(REMOVED)), `${id}: gate ${gate.id} names ${REMOVED}`);
                 }
             }
             assert.ok(!skills.has(REMOVED), `no resolved workflow step runs ${REMOVED}`);
@@ -280,9 +301,19 @@ const tests = [
             const ok = resolveFixture({ sequence: [plain, debug, 'fix'], outcomeGates: gate('investigate --mode=debug') });
             assert.deepEqual(ok.outcomeGates[0].satisfiedBy, ['investigate --mode=debug']);
             // And a workflow with only plain investigate steps cannot prove the gate
-            assert.throws(() => resolveFixture({ sequence: [plain, 'fix'], outcomeGates: gate('investigate --mode=debug') }), /names a skill not in the sequence/);
+            assert.throws(
+                () => resolveFixture({ sequence: [plain, 'fix'], outcomeGates: gate('investigate --mode=debug') }),
+                /names a skill not in the sequence/
+            );
             // And a different mode does not satisfy it
-            assert.throws(() => resolveFixture({ sequence: [plain, { id: 'e', skill: 'investigate', args: '--mode=explain' }], outcomeGates: gate('investigate --mode=debug') }), /names a skill not in the sequence/);
+            assert.throws(
+                () =>
+                    resolveFixture({
+                        sequence: [plain, { id: 'e', skill: 'investigate', args: '--mode=explain' }],
+                        outcomeGates: gate('investigate --mode=debug')
+                    }),
+                /names a skill not in the sequence/
+            );
             // And a mode variant that drops the debug step fails for that mode
             const variants = {
                 defaultMode: 'full',
@@ -314,8 +345,13 @@ const tests = [
             assert.ok(scanned > 500, `tripwire: the scan covers the framework sources (${scanned} files)`);
             assert.deepEqual(offenders, [], 'replace each with `investigate --mode=debug`');
             // The allow-list is live: the skill names the removed command only as "formerly"
-            const formerly = investigateSkill().split('\n').filter(line => line.includes(REMOVED));
-            assert.ok(formerly.length >= 1 && formerly.every(line => /former/i.test(line)), 'investigate/SKILL.md names the removed command only as "formerly"');
+            const formerly = investigateSkill()
+                .split('\n')
+                .filter(line => line.includes(REMOVED));
+            assert.ok(
+                formerly.length >= 1 && formerly.every(line => /former/i.test(line)),
+                'investigate/SKILL.md names the removed command only as "formerly"'
+            );
             // And the report prefix stays recognized by /fix's evidence gate
             assert.ok(read(SKILLS, 'fix', 'SKILL.md').includes(REPORT_PREFIX + '*.md'), 'fix accepts the debug report prefix as same-session evidence');
         }
@@ -326,7 +362,7 @@ const tests = [
         fn: () => {
             const match = /^description: '((?:[^']|'')*)'$/m.exec(investigateSkill());
             assert.ok(match, 'single-quoted frontmatter description');
-            const description = match[1].replace(/''/g, '\'');
+            const description = match[1].replace(/''/g, "'");
             assert.match(description, /^\[Fix & Debug\] Use when a workflow step or the user asks for \S/);
             assert.ok(description.length <= 250, `description is ${description.length} chars, over 250`);
             // Both routing intents: code-flow trace and the bug root cause
@@ -341,14 +377,23 @@ const tests = [
         skip: SKIP,
         fn: () => {
             const fix = read(SKILLS, 'fix', 'SKILL.md');
-            assert.match(fix, /Root-Cause Prerequisite Gate \(BLOCKING\):\*\* no code edit until `\/investigate --mode=debug` traced THIS problem in THIS session/);
+            assert.match(
+                fix,
+                /Root-Cause Prerequisite Gate \(BLOCKING\):\*\* no code edit until `\/investigate --mode=debug` traced THIS problem in THIS session/
+            );
             assert.match(fix, /not satisfied → run `\/investigate --mode=debug` first/);
             const debuggerAgent = read(REPO_ROOT, '.claude', 'agents', 'debugger.md');
             const connections = /<!-- AGENT-SKILL-CONNECTIONS:START -->([\s\S]*?)<!-- AGENT-SKILL-CONNECTIONS:END -->/.exec(debuggerAgent);
             assert.ok(connections, 'debugger agent carries its skill connections block');
-            assert.deepEqual([...connections[1].matchAll(/^- `([a-z-]+)`$/gm)].map(entry => entry[1]), ['investigate']);
+            assert.deepEqual(
+                [...connections[1].matchAll(/^- `([a-z-]+)`$/gm)].map(entry => entry[1]),
+                ['investigate']
+            );
             // The shared fault-adjudication protocol sends the reader to the merged invocation
-            assert.match(read(SKILLS, 'shared', 'protocols', 'test-failure-fault-adjudication.md'), /then `\/investigate --mode=debug` and trace end-to-start before editing/);
+            assert.match(
+                read(SKILLS, 'shared', 'protocols', 'test-failure-fault-adjudication.md'),
+                /then `\/investigate --mode=debug` and trace end-to-start before editing/
+            );
         }
     }
 ];

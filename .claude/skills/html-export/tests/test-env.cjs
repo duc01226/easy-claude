@@ -72,11 +72,28 @@ const PROJECT_ROOT_HELPER = path.resolve(SKILL_ROOT, '..', '..', 'scripts', 'lib
 // OS essentials only. The Windows well-known folder keys (SYSTEMDRIVE, PROGRAMDATA, ...) stay: without them a
 // child that touches the shell writes its cache files under its working directory.
 const CHILD_ENV_ALLOWLIST = new Set([
-  'PATH', 'PATHEXT', 'SYSTEMROOT', 'WINDIR', 'COMSPEC',
-  'SYSTEMDRIVE', 'PROGRAMDATA', 'ALLUSERSPROFILE', 'PUBLIC',
-  'PROGRAMFILES', 'PROGRAMFILES(X86)', 'PROGRAMW6432',
-  'COMMONPROGRAMFILES', 'COMMONPROGRAMFILES(X86)', 'COMMONPROGRAMW6432',
-  'PROCESSOR_ARCHITECTURE', 'PROCESSOR_ARCHITEW6432', 'NUMBER_OF_PROCESSORS', 'OS', 'LANG', 'LC_ALL', 'TZ',
+    'PATH',
+    'PATHEXT',
+    'SYSTEMROOT',
+    'WINDIR',
+    'COMSPEC',
+    'SYSTEMDRIVE',
+    'PROGRAMDATA',
+    'ALLUSERSPROFILE',
+    'PUBLIC',
+    'PROGRAMFILES',
+    'PROGRAMFILES(X86)',
+    'PROGRAMW6432',
+    'COMMONPROGRAMFILES',
+    'COMMONPROGRAMFILES(X86)',
+    'COMMONPROGRAMW6432',
+    'PROCESSOR_ARCHITECTURE',
+    'PROCESSOR_ARCHITEW6432',
+    'NUMBER_OF_PROCESSORS',
+    'OS',
+    'LANG',
+    'LC_ALL',
+    'TZ'
 ]);
 const REDIRECTED_KEYS = Object.freeze(['HOME', 'USERPROFILE', 'TMPDIR', 'TEMP', 'TMP']);
 // Notification providers and framework feature switches a developer machine may have set.
@@ -85,241 +102,238 @@ const REMOVED_KEYS = Object.freeze(['CLAUDE_PROJECT_DIR']);
 const BROWSER_PROBE_TIMEOUT_MS = 30_000;
 
 function sameKey(left, right, platform) {
-  return platform === 'win32' ? left.toUpperCase() === right.toUpperCase() : left === right;
+    return platform === 'win32' ? left.toUpperCase() === right.toUpperCase() : left === right;
 }
 
 function setKey(env, name, value, platform) {
-  for (const key of Object.keys(env)) {
-    if (sameKey(key, name, platform)) delete env[key];
-  }
-  if (value !== undefined) env[name] = value;
+    for (const key of Object.keys(env)) {
+        if (sameKey(key, name, platform)) delete env[key];
+    }
+    if (value !== undefined) env[name] = value;
 }
 
 function makeTestEnv(options = {}) {
-  const {
-    prefix = 'html-export-test-',
-    baseEnv = process.env,
-    platform = process.platform,
-    cwd = process.cwd(),
-  } = options;
+    const { prefix = 'html-export-test-', baseEnv = process.env, platform = process.platform, cwd = process.cwd() } = options;
 
-  // Resolve the browser cache from the ORIGINAL env before HOME/USERPROFILE are redirected.
-  const browsersPath = resolveBrowsersPath(baseEnv, platform, cwd);
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+    // Resolve the browser cache from the ORIGINAL env before HOME/USERPROFILE are redirected.
+    const browsersPath = resolveBrowsersPath(baseEnv, platform, cwd);
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
 
-  const env = { ...baseEnv };
-  for (const key of Object.keys(env)) {
-    if (PROVIDER_ENV_PATTERN.test(key)) env[key] = '';
-  }
-  for (const key of REMOVED_KEYS) setKey(env, key, undefined, platform);
-  for (const key of REDIRECTED_KEYS) setKey(env, key, root, platform);
-  setKey(env, 'PLAYWRIGHT_BROWSERS_PATH', browsersPath, platform);
-
-  let saved = null;
-  function apply() {
-    if (saved) return;
-    saved = { ...process.env };
-    for (const key of Object.keys(process.env)) {
-      if (!Object.prototype.hasOwnProperty.call(env, key)) delete process.env[key];
+    const env = { ...baseEnv };
+    for (const key of Object.keys(env)) {
+        if (PROVIDER_ENV_PATTERN.test(key)) env[key] = '';
     }
-    for (const [key, value] of Object.entries(env)) process.env[key] = value;
-  }
-  function restore() {
-    if (!saved) return;
-    for (const key of Object.keys(process.env)) {
-      if (!Object.prototype.hasOwnProperty.call(saved, key)) delete process.env[key];
-    }
-    for (const [key, value] of Object.entries(saved)) process.env[key] = value;
-    saved = null;
-  }
-  let removed = false;
-  function cleanup() {
-    restore();
-    if (removed) return;
-    removed = true;
-    removeTree(root);
-  }
+    for (const key of REMOVED_KEYS) setKey(env, key, undefined, platform);
+    for (const key of REDIRECTED_KEYS) setKey(env, key, root, platform);
+    setKey(env, 'PLAYWRIGHT_BROWSERS_PATH', browsersPath, platform);
 
-  return { root, env, browsersPath, apply, restore, cleanup };
+    let saved = null;
+    function apply() {
+        if (saved) return;
+        saved = { ...process.env };
+        for (const key of Object.keys(process.env)) {
+            if (!Object.prototype.hasOwnProperty.call(env, key)) delete process.env[key];
+        }
+        for (const [key, value] of Object.entries(env)) process.env[key] = value;
+    }
+    function restore() {
+        if (!saved) return;
+        for (const key of Object.keys(process.env)) {
+            if (!Object.prototype.hasOwnProperty.call(saved, key)) delete process.env[key];
+        }
+        for (const [key, value] of Object.entries(saved)) process.env[key] = value;
+        saved = null;
+    }
+    let removed = false;
+    function cleanup() {
+        restore();
+        if (removed) return;
+        removed = true;
+        removeTree(root);
+    }
+
+    return { root, env, browsersPath, apply, restore, cleanup };
 }
 
 function removeTree(dir) {
-  try {
-    // Chromium may hold profile files briefly after close on Windows; retry before giving up.
-    fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
-  } catch (error) {
-    console.log(`cleanup warning: could not remove ${dir}: ${error.code || error.message}`);
-  }
+    try {
+        // Chromium may hold profile files briefly after close on Windows; retry before giving up.
+        fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+    } catch (error) {
+        console.log(`cleanup warning: could not remove ${dir}: ${error.code || error.message}`);
+    }
 }
 
 function copyTree(source, target) {
-  fs.mkdirSync(target, { recursive: true });
-  for (const entry of fs.readdirSync(source, { withFileTypes: true })) {
-    if (entry.name === 'node_modules') continue;
-    const from = path.join(source, entry.name);
-    const to = path.join(target, entry.name);
-    if (entry.isDirectory()) copyTree(from, to);
-    else if (entry.isFile()) fs.copyFileSync(from, to);
-  }
+    fs.mkdirSync(target, { recursive: true });
+    for (const entry of fs.readdirSync(source, { withFileTypes: true })) {
+        if (entry.name === 'node_modules') continue;
+        const from = path.join(source, entry.name);
+        const to = path.join(target, entry.name);
+        if (entry.isDirectory()) copyTree(from, to);
+        else if (entry.isFile()) fs.copyFileSync(from, to);
+    }
 }
 
 function copySkillScripts(destRoot) {
-  const skillRoot = path.join(destRoot, '.claude', 'skills', 'html-export');
-  copyTree(path.join(SKILL_ROOT, 'scripts'), path.join(skillRoot, 'scripts'));
-  const helper = path.join(destRoot, '.claude', 'scripts', 'lib', 'project-root.cjs');
-  fs.mkdirSync(path.dirname(helper), { recursive: true });
-  fs.copyFileSync(PROJECT_ROOT_HELPER, helper);
-  return {
-    root: destRoot,
-    skillRoot,
-    libDir: path.join(skillRoot, 'scripts', 'lib'),
-    exportScript: path.join(skillRoot, 'scripts', 'export.cjs'),
-  };
+    const skillRoot = path.join(destRoot, '.claude', 'skills', 'html-export');
+    copyTree(path.join(SKILL_ROOT, 'scripts'), path.join(skillRoot, 'scripts'));
+    const helper = path.join(destRoot, '.claude', 'scripts', 'lib', 'project-root.cjs');
+    fs.mkdirSync(path.dirname(helper), { recursive: true });
+    fs.copyFileSync(PROJECT_ROOT_HELPER, helper);
+    return {
+        root: destRoot,
+        skillRoot,
+        libDir: path.join(skillRoot, 'scripts', 'lib'),
+        exportScript: path.join(skillRoot, 'scripts', 'export.cjs')
+    };
 }
 
 function allowlistEnv(root, { projectRoot } = {}) {
-  const env = {};
-  for (const [name, value] of Object.entries(process.env)) {
-    if (CHILD_ENV_ALLOWLIST.has(name.toUpperCase())) env[name] = value;
-  }
-  for (const name of REDIRECTED_KEYS) env[name] = root;
-  if (projectRoot !== undefined) env.CLAUDE_PROJECT_DIR = projectRoot;
-  return env;
+    const env = {};
+    for (const [name, value] of Object.entries(process.env)) {
+        if (CHILD_ENV_ALLOWLIST.has(name.toUpperCase())) env[name] = value;
+    }
+    for (const name of REDIRECTED_KEYS) env[name] = root;
+    if (projectRoot !== undefined) env.CLAUDE_PROJECT_DIR = projectRoot;
+    return env;
 }
 
-function writeFakePlaywright(skillRoot, {
-  version = '1.63.0', launchError = null, launchErrorName = null, recordLaunchesTo = null, failOnly = null,
-  chromiumRevision = null,
-} = {}) {
-  const packageRoot = path.join(skillRoot, 'node_modules', 'playwright');
-  fs.mkdirSync(packageRoot, { recursive: true });
-  if (chromiumRevision) {
-    // The manifest the real playwright-core ships, so the exit-3 text can name the wanted revision.
-    const corePackage = path.join(skillRoot, 'node_modules', 'playwright-core');
-    fs.mkdirSync(corePackage, { recursive: true });
-    fs.writeFileSync(path.join(corePackage, 'browsers.json'), JSON.stringify({
-      browsers: [{ name: 'chromium-headless-shell', revision: String(chromiumRevision) }],
-    }), 'utf8');
-  }
-  fs.writeFileSync(path.join(packageRoot, 'package.json'), JSON.stringify({ name: 'playwright', version }), 'utf8');
-  const record = recordLaunchesTo
-    ? `require('node:fs').appendFileSync(${JSON.stringify(recordLaunchesTo)}, JSON.stringify(options || {}) + '\\n');`
-    : '';
-  const errorName = launchErrorName ? ` error.name = ${JSON.stringify(launchErrorName)};` : '';
-  // failOnly: 'default' fails only the launch with no executablePath and no channel (Playwright's own
-  // revision is missing, an installed browser still starts); any other value fails every launch.
-  const failing = failOnly === 'default' ? 'options && !options.executablePath && !options.channel' : 'true';
-  const launchBody = launchError
-    ? `if (${failing}) { const error = new Error(${JSON.stringify(launchError)});${errorName} throw error; } return { close: async function close() {} };`
-    : 'return { close: async function close() {} };';
-  fs.writeFileSync(
-    path.join(packageRoot, 'index.js'),
-    `module.exports = { chromium: { launch: async function launch(options) { ${record} ${launchBody} } } };`,
-    'utf8',
-  );
-  return packageRoot;
+function writeFakePlaywright(
+    skillRoot,
+    { version = '1.63.0', launchError = null, launchErrorName = null, recordLaunchesTo = null, failOnly = null, chromiumRevision = null } = {}
+) {
+    const packageRoot = path.join(skillRoot, 'node_modules', 'playwright');
+    fs.mkdirSync(packageRoot, { recursive: true });
+    if (chromiumRevision) {
+        // The manifest the real playwright-core ships, so the exit-3 text can name the wanted revision.
+        const corePackage = path.join(skillRoot, 'node_modules', 'playwright-core');
+        fs.mkdirSync(corePackage, { recursive: true });
+        fs.writeFileSync(
+            path.join(corePackage, 'browsers.json'),
+            JSON.stringify({
+                browsers: [{ name: 'chromium-headless-shell', revision: String(chromiumRevision) }]
+            }),
+            'utf8'
+        );
+    }
+    fs.writeFileSync(path.join(packageRoot, 'package.json'), JSON.stringify({ name: 'playwright', version }), 'utf8');
+    const record = recordLaunchesTo ? `require('node:fs').appendFileSync(${JSON.stringify(recordLaunchesTo)}, JSON.stringify(options || {}) + '\\n');` : '';
+    const errorName = launchErrorName ? ` error.name = ${JSON.stringify(launchErrorName)};` : '';
+    // failOnly: 'default' fails only the launch with no executablePath and no channel (Playwright's own
+    // revision is missing, an installed browser still starts); any other value fails every launch.
+    const failing = failOnly === 'default' ? 'options && !options.executablePath && !options.channel' : 'true';
+    const launchBody = launchError
+        ? `if (${failing}) { const error = new Error(${JSON.stringify(launchError)});${errorName} throw error; } return { close: async function close() {} };`
+        : 'return { close: async function close() {} };';
+    fs.writeFileSync(
+        path.join(packageRoot, 'index.js'),
+        `module.exports = { chromium: { launch: async function launch(options) { ${record} ${launchBody} } } };`,
+        'utf8'
+    );
+    return packageRoot;
 }
 
 // The exact exit-3 setup block. Every command runs npm/npx from INSIDE the skill folder; the hint
 // must never use `--prefix`, which makes npm 10 add the host root package as a `file:../../..`
 // dependency of the skill.
 const SETUP_HINT_LINES = Object.freeze([
-  'Setup commands (the exporter never runs these; run them from the project root):',
-  '  macOS/Linux shell:  (cd .claude/skills/html-export && npm install && npx playwright install chromium)',
-  '  Linux system libs:  (cd .claude/skills/html-export && npx playwright install --with-deps chromium)',
-  '  Windows PowerShell: Push-Location .claude/skills/html-export; npm install; npx playwright install chromium; Pop-Location',
-  '  Windows cmd:        pushd .claude\\skills\\html-export && npm install && npx playwright install chromium && popd',
+    'Setup commands (the exporter never runs these; run them from the project root):',
+    '  macOS/Linux shell:  (cd .claude/skills/html-export && npm install && npx playwright install chromium)',
+    '  Linux system libs:  (cd .claude/skills/html-export && npx playwright install --with-deps chromium)',
+    '  Windows PowerShell: Push-Location .claude/skills/html-export; npm install; npx playwright install chromium; Pop-Location',
+    '  Windows cmd:        pushd .claude\\skills\\html-export && npm install && npx playwright install chromium && popd'
 ]);
 
 function assertSetupHints(stderr) {
-  const text = String(stderr).replace(/\r\n/g, '\n');
-  assert.ok(text.includes(SETUP_HINT_LINES.join('\n')), `stderr must carry the exact setup block, got:\n${text}`);
-  assert.doesNotMatch(text, /--prefix/, 'the setup hint must never use npm/npx --prefix');
+    const text = String(stderr).replace(/\r\n/g, '\n');
+    assert.ok(text.includes(SETUP_HINT_LINES.join('\n')), `stderr must carry the exact setup block, got:\n${text}`);
+    assert.doesNotMatch(text, /--prefix/, 'the setup hint must never use npm/npx --prefix');
 }
 
 // A real Chromium launched through the product's one engine owner (chromium-engine.cjs), so a test
 // that needs its own browser uses the same engine the exporter would (an override, Playwright's
 // revision or the reported fallback), never a bare chromium.launch that only works on one cache.
 function launchRealChromium(options = {}) {
-  const playwright = require(PLAYWRIGHT_ROOT);
-  return launchChromium(playwright, (engineOptions) => playwright.chromium.launch({ headless: true, ...options, ...engineOptions }));
+    const playwright = require(PLAYWRIGHT_ROOT);
+    return launchChromium(playwright, engineOptions => playwright.chromium.launch({ headless: true, ...options, ...engineOptions }));
 }
 
 let browserProbe = null;
 
 async function probeBrowser() {
-  if (!fs.existsSync(path.join(PLAYWRIGHT_ROOT, 'package.json'))) {
-    return { available: false, reason: 'skill-local playwright is not installed' };
-  }
-  let playwright;
-  try {
-    playwright = require(PLAYWRIGHT_ROOT);
-  } catch (error) {
-    return { available: false, reason: `skill-local playwright failed to load: ${error.message}` };
-  }
-  try {
-    // The product's own probe: a bounded launch whose late browser is still closed, and a close
-    // that only warns, so the probe can never hang a test file or leak a live Chromium.
-    await probeChromium({ playwright, budgetMs: BROWSER_PROBE_TIMEOUT_MS });
-  } catch (error) {
-    return { available: false, reason: `Chromium launch failed: ${firstLine(error)}` };
-  }
-  return { available: true, reason: null };
+    if (!fs.existsSync(path.join(PLAYWRIGHT_ROOT, 'package.json'))) {
+        return { available: false, reason: 'skill-local playwright is not installed' };
+    }
+    let playwright;
+    try {
+        playwright = require(PLAYWRIGHT_ROOT);
+    } catch (error) {
+        return { available: false, reason: `skill-local playwright failed to load: ${error.message}` };
+    }
+    try {
+        // The product's own probe: a bounded launch whose late browser is still closed, and a close
+        // that only warns, so the probe can never hang a test file or leak a live Chromium.
+        await probeChromium({ playwright, budgetMs: BROWSER_PROBE_TIMEOUT_MS });
+    } catch (error) {
+        return { available: false, reason: `Chromium launch failed: ${firstLine(error)}` };
+    }
+    return { available: true, reason: null };
 }
 
 function browserStatus() {
-  if (!browserProbe) browserProbe = probeBrowser();
-  return browserProbe;
+    if (!browserProbe) browserProbe = probeBrowser();
+    return browserProbe;
 }
 
 async function hasBrowser() {
-  return (await browserStatus()).available;
+    return (await browserStatus()).available;
 }
 
 async function skipWithoutBrowser(t) {
-  const status = await browserStatus();
-  if (status.available) return false;
-  console.log(`ENVIRONMENT-BLOCKED: chromium (${status.reason})`);
-  t.skip(`ENVIRONMENT-BLOCKED: chromium (${status.reason})`);
-  return true;
+    const status = await browserStatus();
+    if (status.available) return false;
+    console.log(`ENVIRONMENT-BLOCKED: chromium (${status.reason})`);
+    t.skip(`ENVIRONMENT-BLOCKED: chromium (${status.reason})`);
+    return true;
 }
 
 // The Portable Test Contract's isolation step for every browser case, in one place: a new env key
 // to scrub or a new skip rule is one edit here, not one per test file.
 async function withBrowserEnv(t, run, { prefix, apply = true, gate = null } = {}) {
-  const testEnv = makeTestEnv({ prefix });
-  if (apply) testEnv.apply();
-  try {
-    if (await skipWithoutBrowser(t)) return;
-    const blocked = gate ? await gate() : null;
-    if (blocked) {
-      console.log(`ENVIRONMENT-BLOCKED: ${blocked}`);
-      t.skip(`ENVIRONMENT-BLOCKED: ${blocked}`);
-      return;
+    const testEnv = makeTestEnv({ prefix });
+    if (apply) testEnv.apply();
+    try {
+        if (await skipWithoutBrowser(t)) return;
+        const blocked = gate ? await gate() : null;
+        if (blocked) {
+            console.log(`ENVIRONMENT-BLOCKED: ${blocked}`);
+            t.skip(`ENVIRONMENT-BLOCKED: ${blocked}`);
+            return;
+        }
+        await run(testEnv);
+    } finally {
+        testEnv.cleanup();
     }
-    await run(testEnv);
-  } finally {
-    testEnv.cleanup();
-  }
 }
 
 module.exports = {
-  SKILL_ROOT,
-  PLAYWRIGHT_ROOT,
-  PROJECT_ROOT_HELPER,
-  PROVIDER_ENV_PATTERN,
-  CHILD_ENV_ALLOWLIST,
-  resolveBrowsersPath,
-  makeTestEnv,
-  removeTree,
-  copySkillScripts,
-  allowlistEnv,
-  writeFakePlaywright,
-  SETUP_HINT_LINES,
-  assertSetupHints,
-  hasBrowser,
-  browserStatus,
-  launchRealChromium,
-  skipWithoutBrowser,
-  withBrowserEnv,
+    SKILL_ROOT,
+    PLAYWRIGHT_ROOT,
+    PROJECT_ROOT_HELPER,
+    PROVIDER_ENV_PATTERN,
+    CHILD_ENV_ALLOWLIST,
+    resolveBrowsersPath,
+    makeTestEnv,
+    removeTree,
+    copySkillScripts,
+    allowlistEnv,
+    writeFakePlaywright,
+    SETUP_HINT_LINES,
+    assertSetupHints,
+    hasBrowser,
+    browserStatus,
+    launchRealChromium,
+    skipWithoutBrowser,
+    withBrowserEnv
 };

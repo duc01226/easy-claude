@@ -30,11 +30,18 @@ const RETIRED_LOCATIONS = Object.freeze(['pbis', 'ideas', 'epics']);
 const JOURNAL_NAME = '.vocabulary-migration.json';
 
 const freeze = value => {
-    if (value && typeof value === 'object' && !Object.isFrozen(value)) { Object.values(value).forEach(freeze); Object.freeze(value); }
+    if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+        Object.values(value).forEach(freeze);
+        Object.freeze(value);
+    }
     return value;
 };
-const plain = value => (Array.isArray(value) ? value.map(plain)
-    : value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, plain(entry)])) : value);
+const plain = value =>
+    Array.isArray(value)
+        ? value.map(plain)
+        : value && typeof value === 'object'
+          ? Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, plain(entry)]))
+          : value;
 
 // The delivery states. Their order is relied on outside the tracker, so the states keep their order relative to each other.
 // Implemented is work that is built and published for review, before its verification starts.
@@ -54,10 +61,17 @@ const CURRENT = freeze({
     kindLifecycles: { initiative: 'tracker', task: 'delivery', story: 'delivery', subtask: 'delivery', area: 'area' },
     // The usual steps of each lifecycle. Policy applies its guards to them and both views offer them.
     transitions: {
-        delivery: { draft: ['planned', 'implemented', 'canceled'], planned: ['ready', 'implemented', 'canceled'], ready: ['in_progress', 'implemented', 'canceled'],
-            in_progress: ['blocked', 'implemented', 'verifying', 'canceled'], blocked: ['in_progress', 'verifying', 'canceled'],
-            implemented: ['in_progress', 'verifying', 'canceled'], verifying: ['done', 'canceled'],
-            done: ['planned', 'ready', 'in_progress', 'canceled'], canceled: [] },
+        delivery: {
+            draft: ['planned', 'implemented', 'canceled'],
+            planned: ['ready', 'implemented', 'canceled'],
+            ready: ['in_progress', 'implemented', 'canceled'],
+            in_progress: ['blocked', 'implemented', 'verifying', 'canceled'],
+            blocked: ['in_progress', 'verifying', 'canceled'],
+            implemented: ['in_progress', 'verifying', 'canceled'],
+            verifying: ['done', 'canceled'],
+            done: ['planned', 'ready', 'in_progress', 'canceled'],
+            canceled: []
+        },
         tracker: { draft: ['approved', 'canceled'], approved: ['committed', 'canceled'], committed: ['done', 'canceled'], done: ['committed'], canceled: [] },
         area: { active: ['canceled'], canceled: [] }
     },
@@ -74,10 +88,20 @@ const CURRENT = freeze({
 const ADDED_STATES = Object.freeze(['implemented']);
 const baseStates = states => states.filter(state => !ADDED_STATES.includes(state));
 /** The base version: the current vocabulary without the words the current version added. */
-const BASE = freeze({ ...plain(CURRENT), version: BASE_VERSION, states: baseStates(DELIVERY_STATES),
+const BASE = freeze({
+    ...plain(CURRENT),
+    version: BASE_VERSION,
+    states: baseStates(DELIVERY_STATES),
     lifecycles: { ...plain(CURRENT.lifecycles), delivery: { ...plain(CURRENT.lifecycles.delivery), states: baseStates(DELIVERY_STATES) } },
-    transitions: { ...plain(CURRENT.transitions), delivery: Object.fromEntries(Object.entries(CURRENT.transitions.delivery)
-        .filter(([from]) => !ADDED_STATES.includes(from)).map(([from, to]) => [from, baseStates(to)])) } });
+    transitions: {
+        ...plain(CURRENT.transitions),
+        delivery: Object.fromEntries(
+            Object.entries(CURRENT.transitions.delivery)
+                .filter(([from]) => !ADDED_STATES.includes(from))
+                .map(([from, to]) => [from, baseStates(to)])
+        )
+    }
+});
 
 /** The earlier vocabulary, written out: it differs from the current one in structure, so no word map derives it. */
 const EARLIER = freeze({
@@ -109,11 +133,25 @@ const EARLIER_MAPPING = freeze({
     // The type of an initiative, by what it was: a finite-outcome group or a proposal.
     types: { group: 'initiative', proposal: 'idea' },
     // The state an earlier delivery state gives an initiative. An area is canceled when it was canceled, active otherwise.
-    initiativeStates: { draft: 'draft', planned: 'approved', ready: 'committed', in_progress: 'committed', blocked: 'committed', verifying: 'committed', done: 'done', canceled: 'canceled' },
+    initiativeStates: {
+        draft: 'draft',
+        planned: 'approved',
+        ready: 'committed',
+        in_progress: 'committed',
+        blocked: 'committed',
+        verifying: 'committed',
+        done: 'done',
+        canceled: 'canceled'
+    },
     areaStates: { canceled: 'canceled' },
     areaState: 'active',
     // The display label a group-purpose label becomes: the configuration key that holds it and the word it is for.
-    labels: { area: ['levelLabels', 'product'], domain: ['levelLabels', 'module'], capability: ['levelLabels', 'feature'], program: ['typeLabels', 'initiative'] }
+    labels: {
+        area: ['levelLabels', 'product'],
+        domain: ['levelLabels', 'module'],
+        capability: ['levelLabels', 'feature'],
+        program: ['typeLabels', 'initiative']
+    }
 });
 
 const KINDS = CURRENT.kinds;
@@ -140,10 +178,13 @@ const RECORDED_STATES = recordedStates(CURRENT);
 /** Item-to-item relations whose chains must stay free of cycles. */
 const ACYCLIC_LINK_ROLES = Object.freeze(['dependency', 'parent', 'area', 'initiative']);
 
-const kindLifecycles = words => Object.fromEntries(KINDS.map(kind => {
-    const name = CURRENT.kindLifecycles[kind];
-    return [kind, { name, ...words.lifecycles[name], transitions: words.transitions[name] }];
-}));
+const kindLifecycles = words =>
+    Object.fromEntries(
+        KINDS.map(kind => {
+            const name = CURRENT.kindLifecycles[kind];
+            return [kind, { name, ...words.lifecycles[name], transitions: words.transitions[name] }];
+        })
+    );
 const KIND_LIFECYCLE = freeze({ [BASE_VERSION]: kindLifecycles(BASE), [CURRENT_VERSION]: kindLifecycles(CURRENT) });
 /**
  * The lifecycle a kind moves through: its name, states, first state and usual steps. A word that is no kind has none.
@@ -164,13 +205,30 @@ const OWNED_VALUES = freeze({
     deadline: { kinds: KINDS.filter(kind => kind !== AREA_KIND), values: null, optional: true, initial: null }
 });
 /** The owned values a new record of the given kind starts with. */
-const ownedDefaults = kind => Object.fromEntries(Object.entries(OWNED_VALUES).filter(([, owned]) => owned.kinds.includes(kind)).map(([field, owned]) => [field, owned.initial]));
+const ownedDefaults = kind =>
+    Object.fromEntries(
+        Object.entries(OWNED_VALUES)
+            .filter(([, owned]) => owned.kinds.includes(kind))
+            .map(([field, owned]) => [field, owned.initial])
+    );
 
 const LABELS = freeze({
     kinds: { initiative: 'Initiative', task: 'Task', story: 'Story', subtask: 'Subtask', area: 'Area' },
     kindsPlural: { initiative: 'Initiatives', task: 'Tasks', story: 'Stories', subtask: 'Subtasks', area: 'Areas' },
-    states: { draft: 'Draft', planned: 'Planned', ready: 'Ready', in_progress: 'In progress', blocked: 'Blocked', implemented: 'Implemented', verifying: 'Verifying', done: 'Done', canceled: 'Canceled',
-        approved: 'Approved', committed: 'Committed', active: 'Active' },
+    states: {
+        draft: 'Draft',
+        planned: 'Planned',
+        ready: 'Ready',
+        in_progress: 'In progress',
+        blocked: 'Blocked',
+        implemented: 'Implemented',
+        verifying: 'Verifying',
+        done: 'Done',
+        canceled: 'Canceled',
+        approved: 'Approved',
+        committed: 'Committed',
+        active: 'Active'
+    },
     levels: { application: 'Application', product: 'Product', module: 'Module', feature: 'Feature' },
     initiativeTypes: { feedback: 'Feedback', idea: 'Idea', initiative: 'Initiative' },
     priorityLevels: { high: 'High', medium: 'Medium', low: 'Low' },
@@ -188,9 +246,11 @@ const strayLocations = version => (version === EARLIER_VERSION ? RETIRED_LOCATIO
 
 const REFUSALS = freeze({
     MIGRATION_REQUIRED: 'Migration required: this project stores the earlier vocabulary and is read-only; preview and run the tracker migration, then retry',
-    MIGRATION_IN_PROGRESS: 'Migration in progress: a vocabulary migration is unfinished; run the tracker migration again to complete it before reading or saving',
+    MIGRATION_IN_PROGRESS:
+        'Migration in progress: a vocabulary migration is unfinished; run the tracker migration again to complete it before reading or saving',
     MIXED_VOCABULARY: 'Mixed vocabularies: record locations from both vocabularies are present; nothing is counted or saved until one vocabulary remains',
-    UNSUPPORTED_VOCABULARY: 'Unsupported vocabulary: this project stores the first vocabulary, which this copy of the tracker neither reads nor migrates; upgrade it with a framework copy that supports the first vocabulary, then run the tracker migration',
+    UNSUPPORTED_VOCABULARY:
+        'Unsupported vocabulary: this project stores the first vocabulary, which this copy of the tracker neither reads nor migrates; upgrade it with a framework copy that supports the first vocabulary, then run the tracker migration',
     EARLIER_VOCABULARY_RECORD: 'Earlier-vocabulary record: not counted',
     EARLIER_VOCABULARY_REQUEST: `Request uses the earlier vocabulary (version ${EARLIER_VERSION}); update the procedure that produced it and send a version ${BASE_VERSION} request in the current words`
 });
@@ -213,11 +273,15 @@ function laterStates(record, version) {
     const words = wordsFor(version);
     if (!words || !inCurrentStructure(version) || !record?.tracking) return [];
     const known = recordedStates(words);
-    const held = [record?.data?.status, ...(Array.isArray(record?.tracking?.history) ? record.tracking.history.flatMap(entry => [entry?.beforeState, entry?.afterState]) : [])];
+    const held = [
+        record?.data?.status,
+        ...(Array.isArray(record?.tracking?.history) ? record.tracking.history.flatMap(entry => [entry?.beforeState, entry?.afterState]) : [])
+    ];
     return [...new Set(held.filter(state => RECORDED_STATES.includes(state) && !known.includes(state)))];
 }
 /** Why a project storing the given version does not take a state a later version added, and what makes it available. */
-const laterStateRefusal = (state, version) => `The ${state} state belongs to vocabulary version ${CURRENT_VERSION} and this project stores version ${version}; declare taskTracking.schemaVersion ${CURRENT_VERSION} in the project configuration to record it`;
+const laterStateRefusal = (state, version) =>
+    `The ${state} state belongs to vocabulary version ${CURRENT_VERSION} and this project stores version ${version}; declare taskTracking.schemaVersion ${CURRENT_VERSION} in the project configuration to record it`;
 /** A version a project may declare: one that is read, or the first one, which is then refused by name. */
 const declarableVersion = version => supportedVersion(version) || version === RETIRED_VERSION;
 
@@ -236,17 +300,40 @@ function resolveVocabulary({ declaredVersion, folderNames = [], journalPresent =
     const blocked = (state, code, reason) => freeze({ state, storedVersion: null, readOnly: true, code, reason, ...found });
     // A declaration wins over what the locations suggest. The first vocabulary is settled before anything else: even an
     // unfinished migration of such a project belongs to the copy that can finish it.
-    if (declared ? declaredVersion === RETIRED_VERSION : retiredLocations.length > 0) return blocked('unsupported', 'UNSUPPORTED_VOCABULARY',
-        `${REFUSALS.UNSUPPORTED_VOCABULARY} (${declared ? `declared version ${RETIRED_VERSION}` : `locations: ${retiredLocations.join(', ')}`})`);
+    if (declared ? declaredVersion === RETIRED_VERSION : retiredLocations.length > 0)
+        return blocked(
+            'unsupported',
+            'UNSUPPORTED_VOCABULARY',
+            `${REFUSALS.UNSUPPORTED_VOCABULARY} (${declared ? `declared version ${RETIRED_VERSION}` : `locations: ${retiredLocations.join(', ')}`})`
+        );
     if (journalPresent) return blocked('migrating', 'MIGRATION_IN_PROGRESS', REFUSALS.MIGRATION_IN_PROGRESS);
     // Undeclared, an earlier-only location means earlier.
     const earlier = declared ? declaredVersion === EARLIER_VERSION : earlierLocations.length > 0;
-    if (earlier && currentLocations.length) return blocked('mixed', 'MIXED_VOCABULARY',
-        `${REFUSALS.MIXED_VOCABULARY} (earlier: ${earlierLocations.join(', ') || 'declared by the project'}; current: ${currentLocations.join(', ')})`);
-    if (earlier) return freeze({ state: 'earlier', storedVersion: EARLIER_VERSION, readOnly: true, code: 'MIGRATION_REQUIRED', reason: REFUSALS.MIGRATION_REQUIRED, ...found });
+    if (earlier && currentLocations.length)
+        return blocked(
+            'mixed',
+            'MIXED_VOCABULARY',
+            `${REFUSALS.MIXED_VOCABULARY} (earlier: ${earlierLocations.join(', ') || 'declared by the project'}; current: ${currentLocations.join(', ')})`
+        );
+    if (earlier)
+        return freeze({
+            state: 'earlier',
+            storedVersion: EARLIER_VERSION,
+            readOnly: true,
+            code: 'MIGRATION_REQUIRED',
+            reason: REFUSALS.MIGRATION_REQUIRED,
+            ...found
+        });
     // The current structure. Only a declaration makes a project store the current version: the base version is what an
     // undeclared project, and every project written before the current version existed, already stores.
-    return freeze({ state: 'current', storedVersion: declaredVersion === CURRENT_VERSION ? CURRENT_VERSION : BASE_VERSION, readOnly: false, code: null, reason: null, ...found });
+    return freeze({
+        state: 'current',
+        storedVersion: declaredVersion === CURRENT_VERSION ? CURRENT_VERSION : BASE_VERSION,
+        readOnly: false,
+        code: null,
+        reason: null,
+        ...found
+    });
 }
 
 const journalPath = artifactsRoot => `${artifactsRoot}/${JOURNAL_NAME}`;
@@ -263,11 +350,23 @@ function projectVocabulary(root, artifactsRoot, declaredVersion) {
     const { relativePath } = require('./task-tracking-config.cjs');
     if (!relativePath(artifactsRoot)) return resolveVocabulary({ declaredVersion });
     const base = path.join(root, ...artifactsRoot.replace(/\\/g, '/').split('/'));
-    const entry = name => { try { return fs.lstatSync(path.join(base, name)); } catch { return null; } };
+    const entry = name => {
+        try {
+            return fs.lstatSync(path.join(base, name));
+        } catch {
+            return null;
+        }
+    };
     // A linked location is still a location: the record walk refuses to follow it and says so.
-    const present = name => { const found = entry(name); return !!found && (found.isDirectory() || found.isSymbolicLink()); };
-    return resolveVocabulary({ declaredVersion, folderNames: [...EARLIER_ONLY_LOCATIONS, ...CURRENT_ONLY_LOCATIONS, ...RETIRED_LOCATIONS].filter(present),
-        journalPresent: entry(JOURNAL_NAME) !== null });
+    const present = name => {
+        const found = entry(name);
+        return !!found && (found.isDirectory() || found.isSymbolicLink());
+    };
+    return resolveVocabulary({
+        declaredVersion,
+        folderNames: [...EARLIER_ONLY_LOCATIONS, ...CURRENT_ONLY_LOCATIONS, ...RETIRED_LOCATIONS].filter(present),
+        journalPresent: entry(JOURNAL_NAME) !== null
+    });
 }
 
 /** Refuses anything but a project in the current vocabulary, with the outcome the project state names. */
@@ -282,7 +381,16 @@ const displayLabel = label => typeof label === 'string' && !!label.trim() && lab
 const EARLIER_LABELS = freeze({
     kinds: { initiative: 'Initiative', task: 'Task', story: 'Story', subtask: 'Subtask', project: 'Project group', vision: 'Vision' },
     kindsPlural: { initiative: 'Initiatives', task: 'Tasks', story: 'Stories', subtask: 'Subtasks', project: 'Project groups', vision: 'Visions' },
-    states: { draft: 'Draft', planned: 'Planned', ready: 'Ready', in_progress: 'In progress', blocked: 'Blocked', verifying: 'Verifying', done: 'Done', canceled: 'Canceled' },
+    states: {
+        draft: 'Draft',
+        planned: 'Planned',
+        ready: 'Ready',
+        in_progress: 'In progress',
+        blocked: 'Blocked',
+        verifying: 'Verifying',
+        done: 'Done',
+        canceled: 'Canceled'
+    },
     groupRoles: { area: 'Area', domain: 'Domain', capability: 'Feature', program: 'Program' },
     linkRoles: { dependency: 'Depends on', parent: 'Parent', initiative: 'Initiative', spec: 'Spec', plan: 'Plan', source: 'Source' }
 });
@@ -292,9 +400,23 @@ const reserved = (words, labels) => Object.freeze([...words, ...Object.values(la
 // was written against, so that a label which was valid when it was declared keeps the project readable until its
 // migration, which names any label the current vocabulary uses for something else.
 const withoutAdded = table => Object.fromEntries(Object.entries(table).filter(([word]) => !ADDED_STATES.includes(word)));
-const currentReserved = (words, labels) => reserved([...KINDS, ...recordedStates(words), ...LEVELS, ...INITIATIVE_TYPES, ...PRIORITY_LEVELS, ...LINK_ROLES,
-    ...EARLIER.kinds, ...EARLIER.states, ...EARLIER.groupRoles, ...EARLIER.linkRoles,
-    ...Object.values(EARLIER_LABELS).flatMap(table => Object.values(table))], labels);
+const currentReserved = (words, labels) =>
+    reserved(
+        [
+            ...KINDS,
+            ...recordedStates(words),
+            ...LEVELS,
+            ...INITIATIVE_TYPES,
+            ...PRIORITY_LEVELS,
+            ...LINK_ROLES,
+            ...EARLIER.kinds,
+            ...EARLIER.states,
+            ...EARLIER.groupRoles,
+            ...EARLIER.linkRoles,
+            ...Object.values(EARLIER_LABELS).flatMap(table => Object.values(table))
+        ],
+        labels
+    );
 const TAKEN_WORDS = Object.freeze({
     [CURRENT_VERSION]: currentReserved(CURRENT, LABELS),
     // A base project is held to the base words: a label that names what the current version added stays valid until the project declares it.
@@ -315,12 +437,20 @@ function kindLabelFindings(declared, version) {
     const findings = [];
     const taken = new Set();
     for (const [kind, label] of Object.entries(declared)) {
-        if (!words.kinds.includes(kind)) { findings.push({ kind, problem: 'unknown field' }); continue; }
+        if (!words.kinds.includes(kind)) {
+            findings.push({ kind, problem: 'unknown field' });
+            continue;
+        }
         const own = [kind, defaults.kinds[kind], defaults.kindsPlural[kind]].filter(Boolean).map(foldLabel);
-        if (!displayLabel(label)) findings.push({ kind, problem: 'kind label invalid (a label is nonblank text of at most 160 characters without control characters)' });
-        else if (TAKEN_WORDS[words.version].includes(foldLabel(label)) && !own.includes(foldLabel(label))) findings.push({ kind,
-            problem: `kind label invalid (${JSON.stringify(label.trim())} is a word or a default label of the ${earlier ? 'earlier' : 'current'} vocabulary)` });
-        else if (taken.has(foldLabel(label))) findings.push({ kind, problem: `kind label invalid (${JSON.stringify(label.trim())} repeats the label of another kind)` });
+        if (!displayLabel(label))
+            findings.push({ kind, problem: 'kind label invalid (a label is nonblank text of at most 160 characters without control characters)' });
+        else if (TAKEN_WORDS[words.version].includes(foldLabel(label)) && !own.includes(foldLabel(label)))
+            findings.push({
+                kind,
+                problem: `kind label invalid (${JSON.stringify(label.trim())} is a word or a default label of the ${earlier ? 'earlier' : 'current'} vocabulary)`
+            });
+        else if (taken.has(foldLabel(label)))
+            findings.push({ kind, problem: `kind label invalid (${JSON.stringify(label.trim())} repeats the label of another kind)` });
         else taken.add(foldLabel(label));
     }
     return findings;
@@ -342,11 +472,15 @@ function currentLabels(declared) {
     const table = value => (value && typeof value === 'object' && !Array.isArray(value) ? value : {});
     const result = { levelLabels: { ...table(declared?.levelLabels) }, typeLabels: { ...table(declared?.typeLabels) }, moved: [], conflicts: [] };
     const purposes = declared?.schemaVersion === EARLIER_VERSION ? table(declared.groupLabels) : {};
-    for (const [purpose, [key, word]] of Object.entries(EARLIER_MAPPING.labels)) if (Object.hasOwn(purposes, purpose)) {
-        if (Object.hasOwn(result[key], word) && result[key][word] !== purposes[purpose]) { result.conflicts.push([purpose, key, word]); continue; }
-        result[key][word] = purposes[purpose];
-        result.moved.push([purpose, key, word]);
-    }
+    for (const [purpose, [key, word]] of Object.entries(EARLIER_MAPPING.labels))
+        if (Object.hasOwn(purposes, purpose)) {
+            if (Object.hasOwn(result[key], word) && result[key][word] !== purposes[purpose]) {
+                result.conflicts.push([purpose, key, word]);
+                continue;
+            }
+            result[key][word] = purposes[purpose];
+            result.moved.push([purpose, key, word]);
+        }
     return result;
 }
 
@@ -369,25 +503,56 @@ function vocabularyBlock(config) {
     if (declared?.kindLabels && !kindLabelErrors(declared.kindLabels, declared.schemaVersion).length) {
         const shown = Object.fromEntries(Object.entries(declared.kindLabels).filter(([kind]) => KINDS.includes(kind)));
         const withheld = new Set(kindLabelFindings(shown, words.version).map(finding => finding.kind));
-        for (const [kind, label] of Object.entries(shown)) if (!withheld.has(kind)) {
-            labels.kinds[kind] = labels.kindsPlural[kind] = label.trim();
-            if (LINK_ROLES.includes(kind)) labels.linkRoles[kind] = label.trim();
+        for (const [kind, label] of Object.entries(shown))
+            if (!withheld.has(kind)) {
+                labels.kinds[kind] = labels.kindsPlural[kind] = label.trim();
+                if (LINK_ROLES.includes(kind)) labels.linkRoles[kind] = label.trim();
+            }
+    }
+    for (const [table, key] of [
+        ['levels', 'levelLabels'],
+        ['initiativeTypes', 'typeLabels']
+    ])
+        for (const word of Object.keys(labels[table])) {
+            const label = declared?.[key]?.[word];
+            if (displayLabel(label)) labels[table][word] = label.trim();
         }
-    }
-    for (const [table, key] of [['levels', 'levelLabels'], ['initiativeTypes', 'typeLabels']]) for (const word of Object.keys(labels[table])) {
-        const label = declared?.[key]?.[word];
-        if (displayLabel(label)) labels[table][word] = label.trim();
-    }
-    return { version: words.version, ...plain({ kinds: KINDS, states: words.states, lifecycles: words.lifecycles, kindLifecycles: CURRENT.kindLifecycles, transitions: words.transitions,
-        levels: LEVELS, initiativeTypes: INITIATIVE_TYPES, priorityLevels: PRIORITY_LEVELS, linkRoles: LINK_ROLES, tagRoles: TAG_ROLES }),
-        deliveryKind: DELIVERY_KIND, areaKind: AREA_KIND, initiativeKind: INITIATIVE_KIND, labels };
+    return {
+        version: words.version,
+        ...plain({
+            kinds: KINDS,
+            states: words.states,
+            lifecycles: words.lifecycles,
+            kindLifecycles: CURRENT.kindLifecycles,
+            transitions: words.transitions,
+            levels: LEVELS,
+            initiativeTypes: INITIATIVE_TYPES,
+            priorityLevels: PRIORITY_LEVELS,
+            linkRoles: LINK_ROLES,
+            tagRoles: TAG_ROLES
+        }),
+        deliveryKind: DELIVERY_KIND,
+        areaKind: AREA_KIND,
+        initiativeKind: INITIATIVE_KIND,
+        labels
+    };
 }
 
 /** What a read states about the selected project's stored vocabulary. */
 function projectVocabularyView(vocabulary) {
-    return vocabulary ? { state: vocabulary.state, storedVersion: vocabulary.storedVersion, declared: vocabulary.declared, readOnly: vocabulary.readOnly,
-        code: vocabulary.code, reason: vocabulary.reason, earlierLocations: [...vocabulary.earlierLocations], currentLocations: [...vocabulary.currentLocations],
-        retiredLocations: [...vocabulary.retiredLocations] } : null;
+    return vocabulary
+        ? {
+              state: vocabulary.state,
+              storedVersion: vocabulary.storedVersion,
+              declared: vocabulary.declared,
+              readOnly: vocabulary.readOnly,
+              code: vocabulary.code,
+              reason: vocabulary.reason,
+              earlierLocations: [...vocabulary.earlierLocations],
+              currentLocations: [...vocabulary.currentLocations],
+              retiredLocations: [...vocabulary.retiredLocations]
+          }
+        : null;
 }
 
 // How a person may name a word in a prompt. Recognising a typed earlier word is compatibility, not vocabulary use.
@@ -405,9 +570,63 @@ function hierarchyTerms() {
     return [...new Set([...LEVELS, AREA_KIND, INITIATIVE_KIND, ...EARLIER.groupRoles])].map(promptForm);
 }
 
-module.exports = { CURRENT_VERSION, BASE_VERSION, EARLIER_VERSION, RETIRED_VERSION, JOURNAL_NAME, CURRENT, BASE, EARLIER, EARLIER_MAPPING, VOCABULARIES,
-    KINDS, FOLDERS, STATES, LIFECYCLES, TRANSITIONS, RECORDED_STATES, LEVELS, INITIATIVE_TYPES, PRIORITY_LEVELS, LINK_ROLES, TAG_ROLES,
-    DELIVERY_KIND, AREA_KIND, INITIATIVE_KIND, PLANNED_STATE, IMPLEMENTED_STATE, ACYCLIC_LINK_ROLES, OWNED_VALUES, LABELS,
-    EARLIER_ONLY_LOCATIONS, CURRENT_ONLY_LOCATIONS, RETIRED_LOCATIONS, STRAY_LOCATIONS, REFUSALS,
-    wordsFor, supportedVersion, declarableVersion, inCurrentStructure, readableStamps, declaredWords, laterStates, laterStateRefusal, strayLocations, lifecycleOf, tagRole, ownedDefaults, resolveVocabulary, projectVocabulary, journalPath, requireCurrentVocabulary,
-    displayLabel, currentLabels, vocabularyBlock, kindLabelFindings, kindLabelErrors, projectVocabularyView, promptTerms, hierarchyTerms };
+module.exports = {
+    CURRENT_VERSION,
+    BASE_VERSION,
+    EARLIER_VERSION,
+    RETIRED_VERSION,
+    JOURNAL_NAME,
+    CURRENT,
+    BASE,
+    EARLIER,
+    EARLIER_MAPPING,
+    VOCABULARIES,
+    KINDS,
+    FOLDERS,
+    STATES,
+    LIFECYCLES,
+    TRANSITIONS,
+    RECORDED_STATES,
+    LEVELS,
+    INITIATIVE_TYPES,
+    PRIORITY_LEVELS,
+    LINK_ROLES,
+    TAG_ROLES,
+    DELIVERY_KIND,
+    AREA_KIND,
+    INITIATIVE_KIND,
+    PLANNED_STATE,
+    IMPLEMENTED_STATE,
+    ACYCLIC_LINK_ROLES,
+    OWNED_VALUES,
+    LABELS,
+    EARLIER_ONLY_LOCATIONS,
+    CURRENT_ONLY_LOCATIONS,
+    RETIRED_LOCATIONS,
+    STRAY_LOCATIONS,
+    REFUSALS,
+    wordsFor,
+    supportedVersion,
+    declarableVersion,
+    inCurrentStructure,
+    readableStamps,
+    declaredWords,
+    laterStates,
+    laterStateRefusal,
+    strayLocations,
+    lifecycleOf,
+    tagRole,
+    ownedDefaults,
+    resolveVocabulary,
+    projectVocabulary,
+    journalPath,
+    requireCurrentVocabulary,
+    displayLabel,
+    currentLabels,
+    vocabularyBlock,
+    kindLabelFindings,
+    kindLabelErrors,
+    projectVocabularyView,
+    promptTerms,
+    hierarchyTerms
+};

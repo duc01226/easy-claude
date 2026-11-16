@@ -128,53 +128,61 @@ function withProject(options, fn) {
     }
 }
 
-test('[skill-profile] TC-ADS-016 preset standard makes the curated skills other skills or hooks start name-only', () => withProject({ profile: { preset: 'standard' } }, root => {
-    // Given a project on the standard preset / When synced
-    const result = run(root);
-    // Then exactly the curated called skills are name-only in skillOverrides
-    assert.equal(result.status, 0, result.stderr);
-    assert.ok(CALLED_BY_OTHERS.length > 0, 'the curated list names at least one called skill');
-    assert.equal(new Set(CALLED_BY_OTHERS).size, CALLED_BY_OTHERS.length, 'the curated list has no duplicates');
-    for (const name of CALLED_BY_OTHERS) assert.ok(fs.existsSync(path.resolve(__dirname, '..', '..', 'skills', name, 'SKILL.md')), `curated skill ${name} ships as a skill`);
-    const overrides = readSettings(root).skillOverrides;
-    assert.deepEqual(Object.keys(overrides).sort(), [...CALLED_BY_OTHERS].sort());
-    for (const name of CALLED_BY_OTHERS) assert.equal(overrides[name], 'name-only', name);
-}));
+test('[skill-profile] TC-ADS-016 preset standard makes the curated skills other skills or hooks start name-only', () =>
+    withProject({ profile: { preset: 'standard' } }, root => {
+        // Given a project on the standard preset / When synced
+        const result = run(root);
+        // Then exactly the curated called skills are name-only in skillOverrides
+        assert.equal(result.status, 0, result.stderr);
+        assert.ok(CALLED_BY_OTHERS.length > 0, 'the curated list names at least one called skill');
+        assert.equal(new Set(CALLED_BY_OTHERS).size, CALLED_BY_OTHERS.length, 'the curated list has no duplicates');
+        for (const name of CALLED_BY_OTHERS)
+            assert.ok(fs.existsSync(path.resolve(__dirname, '..', '..', 'skills', name, 'SKILL.md')), `curated skill ${name} ships as a skill`);
+        const overrides = readSettings(root).skillOverrides;
+        assert.deepEqual(Object.keys(overrides).sort(), [...CALLED_BY_OTHERS].sort());
+        for (const name of CALLED_BY_OTHERS) assert.equal(overrides[name], 'name-only', name);
+    }));
 
-test('[skill-profile] TC-ADS-017 preset minimal keeps only the entry skills listed', () => withProject({ profile: { preset: 'minimal' } }, root => {
-    // Given the minimal preset / When synced
-    const result = run(root);
-    assert.equal(result.status, 0, result.stderr);
-    const overrides = readSettings(root).skillOverrides;
-    // Then entry skills stay on (no entry), a frontmatter-manual skill is left alone, every other skill is name-only
-    for (const name of ENTRY_SKILLS) assert.equal(Object.hasOwn(overrides, name), false, `${name} stays on`);
-    assert.equal(Object.hasOwn(overrides, MANUAL_SKILL), false, 'already manual by frontmatter');
-    const expected = ALL_SKILLS.filter(name => !ENTRY_SKILLS.includes(name) && name !== MANUAL_SKILL);
-    assert.deepEqual(Object.keys(overrides).sort(), expected.sort());
-    for (const name of expected) assert.equal(overrides[name], 'name-only', name);
-}));
+test('[skill-profile] TC-ADS-017 preset minimal keeps only the entry skills listed', () =>
+    withProject({ profile: { preset: 'minimal' } }, root => {
+        // Given the minimal preset / When synced
+        const result = run(root);
+        assert.equal(result.status, 0, result.stderr);
+        const overrides = readSettings(root).skillOverrides;
+        // Then entry skills stay on (no entry), a frontmatter-manual skill is left alone, every other skill is name-only
+        for (const name of ENTRY_SKILLS) assert.equal(Object.hasOwn(overrides, name), false, `${name} stays on`);
+        assert.equal(Object.hasOwn(overrides, MANUAL_SKILL), false, 'already manual by frontmatter');
+        const expected = ALL_SKILLS.filter(name => !ENTRY_SKILLS.includes(name) && name !== MANUAL_SKILL);
+        assert.deepEqual(Object.keys(overrides).sort(), expected.sort());
+        for (const name of expected) assert.equal(overrides[name], 'name-only', name);
+    }));
 
-test('[skill-profile] TC-ADS-018 no preset or list makes a called skill off or user-invocable-only', () => withProject({}, root => {
-    // Given the fixture's callers, collected independently of the resolver: workflow steps in every mode, agent skills:, the curated calledByOthers and entrySkills lists
-    const called = new Set([...CALLED_BY_OTHERS, ...ENTRY_SKILLS, 'plan', 'security-audit', 'variant-only', 'agent-skill']);
-    for (const preset of ['full', 'standard', 'minimal']) {
-        for (const list of [undefined, 'commandOnly', 'off']) {
-            const profile = { preset };
-            if (list) profile[list] = [...called];
-            // When resolved
-            const resolved = profileLib.resolveProfile(root, { skillProfile: profile });
-            // Then every called skill is protected, including a step that runs only in a non-default mode and an agent skill
-            for (const name of ['variant-only', 'agent-skill', 'security-audit', ...CALLED_BY_OTHERS, ...ENTRY_SKILLS]) assert.ok(resolved.called.has(name), `${name} is in the called set`);
-            for (const name of called) {
-                assert.ok(!['commandOnly', 'off'].includes(resolved.overrides[name]), `${preset}/${list}: ${name} -> ${resolved.overrides[name]}`);
+test('[skill-profile] TC-ADS-018 no preset or list makes a called skill off or user-invocable-only', () =>
+    withProject({}, root => {
+        // Given the fixture's callers, collected independently of the resolver: workflow steps in every mode, agent skills:, the curated calledByOthers and entrySkills lists
+        const called = new Set([...CALLED_BY_OTHERS, ...ENTRY_SKILLS, 'plan', 'security-audit', 'variant-only', 'agent-skill']);
+        for (const preset of ['full', 'standard', 'minimal']) {
+            for (const list of [undefined, 'commandOnly', 'off']) {
+                const profile = { preset };
+                if (list) profile[list] = [...called];
+                // When resolved
+                const resolved = profileLib.resolveProfile(root, { skillProfile: profile });
+                // Then every called skill is protected, including a step that runs only in a non-default mode and an agent skill
+                for (const name of ['variant-only', 'agent-skill', 'security-audit', ...CALLED_BY_OTHERS, ...ENTRY_SKILLS])
+                    assert.ok(resolved.called.has(name), `${name} is in the called set`);
+                for (const name of called) {
+                    assert.ok(!['commandOnly', 'off'].includes(resolved.overrides[name]), `${preset}/${list}: ${name} -> ${resolved.overrides[name]}`);
+                }
+                if (list) assert.equal(resolved.refusals.length, called.size, `${preset}/${list}: every called skill in ${list} is refused`);
             }
-            if (list) assert.equal(resolved.refusals.length, called.size, `${preset}/${list}: every called skill in ${list} is refused`);
         }
-    }
-}));
+    }));
 
 test('[skill-profile] TC-ADS-019 user keys and user-changed owned keys are kept with a conflict line', () => {
-    const userSettings = SETTINGS_TEXT.replace('  "cleanupPeriodDays": 30,', '  "cleanupPeriodDays": 30,\n  "skillOverrides": { "code-quality-review": "on", "my-own": "off" },');
+    const userSettings = SETTINGS_TEXT.replace(
+        '  "cleanupPeriodDays": 30,',
+        '  "cleanupPeriodDays": 30,\n  "skillOverrides": { "code-quality-review": "on", "my-own": "off" },'
+    );
     withProject({ profile: { preset: 'standard' }, settingsText: userSettings }, root => {
         // Given user-authored keys, one of which the profile also wants / When synced
         const first = run(root);
@@ -252,85 +260,98 @@ test('[skill-profile] TC-ADS-040 a missing or invalid settings file stops the ru
     });
 });
 
-test('[skill-profile] TC-ADS-041 only the skillOverrides member changes; guards, hooks and one-line arrays keep every byte', () => withProject({ profile: { preset: 'standard' } }, root => {
-    // Given a synced project whose profile then changes
-    assert.equal(run(root).status, 0);
-    const beforeText = fs.readFileSync(settingsPath(root), 'utf8');
-    setProfile(root, { preset: 'standard', nameOnly: ['plain-a'], off: ['plain-b'] });
-    // When synced
-    const result = run(root);
-    assert.equal(result.status, 0, result.stderr);
-    const afterText = fs.readFileSync(settingsPath(root), 'utf8');
-    // Then the text outside the member equals the original input, byte for byte
-    assert.notEqual(afterText, beforeText);
-    assert.equal(afterText.replace(APPENDED_MEMBER, ''), SETTINGS_TEXT);
-    assert.equal(beforeText.replace(APPENDED_MEMBER, ''), SETTINGS_TEXT);
-    // And every other top-level key is deep-equal, the new values landed, and no temp file remains
-    const original = JSON.parse(SETTINGS_TEXT);
-    const after = JSON.parse(afterText);
-    for (const key of Object.keys(original)) assert.deepEqual(after[key], original[key], key);
-    assert.deepEqual(Object.keys(after).sort(), [...Object.keys(original), 'skillOverrides'].sort());
-    assert.equal(after.skillOverrides['plain-a'], 'name-only');
-    assert.equal(after.skillOverrides['plain-b'], 'off');
-    assert.deepEqual(tempFiles(root), []);
-}));
+test('[skill-profile] TC-ADS-041 only the skillOverrides member changes; guards, hooks and one-line arrays keep every byte', () =>
+    withProject({ profile: { preset: 'standard' } }, root => {
+        // Given a synced project whose profile then changes
+        assert.equal(run(root).status, 0);
+        const beforeText = fs.readFileSync(settingsPath(root), 'utf8');
+        setProfile(root, { preset: 'standard', nameOnly: ['plain-a'], off: ['plain-b'] });
+        // When synced
+        const result = run(root);
+        assert.equal(result.status, 0, result.stderr);
+        const afterText = fs.readFileSync(settingsPath(root), 'utf8');
+        // Then the text outside the member equals the original input, byte for byte
+        assert.notEqual(afterText, beforeText);
+        assert.equal(afterText.replace(APPENDED_MEMBER, ''), SETTINGS_TEXT);
+        assert.equal(beforeText.replace(APPENDED_MEMBER, ''), SETTINGS_TEXT);
+        // And every other top-level key is deep-equal, the new values landed, and no temp file remains
+        const original = JSON.parse(SETTINGS_TEXT);
+        const after = JSON.parse(afterText);
+        for (const key of Object.keys(original)) assert.deepEqual(after[key], original[key], key);
+        assert.deepEqual(Object.keys(after).sort(), [...Object.keys(original), 'skillOverrides'].sort());
+        assert.equal(after.skillOverrides['plain-a'], 'name-only');
+        assert.equal(after.skillOverrides['plain-b'], 'off');
+        assert.deepEqual(tempFiles(root), []);
+    }));
 
-test('[skill-profile] TC-ADS-042 hiding a called skill is refused without the opt-in and warned with it', () => withProject({ profile: { preset: 'full', commandOnly: ['security-audit'] } }, root => {
-    // Given commandOnly on a workflow step skill and no opt-in / When synced and checked
-    const result = run(root);
-    const check = run(root, '--check');
-    // Then both exit non-zero naming the skill and its caller, and nothing is written
-    for (const outcome of [result, check]) {
-        assert.equal(outcome.status, 1);
-        assert.match(outcome.stderr, /skill-profile: refusing to hide security-audit \(commandOnly\): started by workflow wf-review; set skillProfile\.allowHidingCalledSkills: true to allow/);
-    }
-    assert.equal(fs.readFileSync(settingsPath(root), 'utf8'), SETTINGS_TEXT);
-    assert.equal(fs.existsSync(path.join(root, '.claude', 'skill-profile.generated.json')), false);
+test('[skill-profile] TC-ADS-042 hiding a called skill is refused without the opt-in and warned with it', () =>
+    withProject({ profile: { preset: 'full', commandOnly: ['security-audit'] } }, root => {
+        // Given commandOnly on a workflow step skill and no opt-in / When synced and checked
+        const result = run(root);
+        const check = run(root, '--check');
+        // Then both exit non-zero naming the skill and its caller, and nothing is written
+        for (const outcome of [result, check]) {
+            assert.equal(outcome.status, 1);
+            assert.match(
+                outcome.stderr,
+                /skill-profile: refusing to hide security-audit \(commandOnly\): started by workflow wf-review; set skillProfile\.allowHidingCalledSkills: true to allow/
+            );
+        }
+        assert.equal(fs.readFileSync(settingsPath(root), 'utf8'), SETTINGS_TEXT);
+        assert.equal(fs.existsSync(path.join(root, '.claude', 'skill-profile.generated.json')), false);
 
-    // Given the explicit opt-in / When synced / Then the value is written and a warning line names the skill
-    setProfile(root, { preset: 'full', commandOnly: ['security-audit'], allowHidingCalledSkills: true });
-    const allowed = run(root);
-    assert.equal(allowed.status, 0, allowed.stderr);
-    assert.equal(readSettings(root).skillOverrides['security-audit'], 'user-invocable-only');
-    assert.match(allowed.stdout, /skill-profile: hiding called skill security-audit \(commandOnly\): started by workflow wf-review/);
-}));
+        // Given the explicit opt-in / When synced / Then the value is written and a warning line names the skill
+        setProfile(root, { preset: 'full', commandOnly: ['security-audit'], allowHidingCalledSkills: true });
+        const allowed = run(root);
+        assert.equal(allowed.status, 0, allowed.stderr);
+        assert.equal(readSettings(root).skillOverrides['security-audit'], 'user-invocable-only');
+        assert.match(allowed.stdout, /skill-profile: hiding called skill security-audit \(commandOnly\): started by workflow wf-review/);
+    }));
 
-test('[skill-profile] TC-ADS-042 an entry skill (the workflow runner) is protected like any called skill', () => withProject({ profile: { preset: 'full', commandOnly: ['start-workflow'] } }, root => {
-    // Given the workflow runner is only in entrySkills (no workflow step, agent or calledByOthers entry names it)
-    assert.ok(ENTRY_SKILLS.includes('start-workflow'), 'start-workflow is a shipped entry skill');
-    assert.ok(!CALLED_BY_OTHERS.includes('start-workflow'), 'start-workflow is not in calledByOthers, so only entrySkills protects it');
-    // When commandOnly names it without the opt-in and the project is synced and checked
-    const result = run(root);
-    const check = run(root, '--check');
-    // Then both refuse, name the entry list as the caller, and nothing is written
-    for (const outcome of [result, check]) {
-        assert.equal(outcome.status, 1, outcome.stdout);
-        assert.match(outcome.stderr, /skill-profile: refusing to hide start-workflow \(commandOnly\): started by the entrySkills list; set skillProfile\.allowHidingCalledSkills: true to allow/);
-    }
-    assert.equal(fs.readFileSync(settingsPath(root), 'utf8'), SETTINGS_TEXT);
-    assert.equal(fs.existsSync(path.join(root, '.claude', 'skill-profile.generated.json')), false);
-    // And the setup skills a hook starts are refused the same way in the off list
-    const offSetup = profileLib.resolveProfile(root, { skillProfile: { off: ['project-init', 'project-config'] } });
-    assert.deepEqual(offSetup.refusals.map(refusal => refusal.skill), ['project-config', 'project-init']);
-    assert.deepEqual(offSetup.overrides, {});
+test('[skill-profile] TC-ADS-042 an entry skill (the workflow runner) is protected like any called skill', () =>
+    withProject({ profile: { preset: 'full', commandOnly: ['start-workflow'] } }, root => {
+        // Given the workflow runner is only in entrySkills (no workflow step, agent or calledByOthers entry names it)
+        assert.ok(ENTRY_SKILLS.includes('start-workflow'), 'start-workflow is a shipped entry skill');
+        assert.ok(!CALLED_BY_OTHERS.includes('start-workflow'), 'start-workflow is not in calledByOthers, so only entrySkills protects it');
+        // When commandOnly names it without the opt-in and the project is synced and checked
+        const result = run(root);
+        const check = run(root, '--check');
+        // Then both refuse, name the entry list as the caller, and nothing is written
+        for (const outcome of [result, check]) {
+            assert.equal(outcome.status, 1, outcome.stdout);
+            assert.match(
+                outcome.stderr,
+                /skill-profile: refusing to hide start-workflow \(commandOnly\): started by the entrySkills list; set skillProfile\.allowHidingCalledSkills: true to allow/
+            );
+        }
+        assert.equal(fs.readFileSync(settingsPath(root), 'utf8'), SETTINGS_TEXT);
+        assert.equal(fs.existsSync(path.join(root, '.claude', 'skill-profile.generated.json')), false);
+        // And the setup skills a hook starts are refused the same way in the off list
+        const offSetup = profileLib.resolveProfile(root, { skillProfile: { off: ['project-init', 'project-config'] } });
+        assert.deepEqual(
+            offSetup.refusals.map(refusal => refusal.skill),
+            ['project-config', 'project-init']
+        );
+        assert.deepEqual(offSetup.overrides, {});
 
-    // Given the explicit opt-in / When synced / Then the value is written and a warning names the entry list
-    setProfile(root, { preset: 'full', commandOnly: ['start-workflow'], allowHidingCalledSkills: true });
-    const allowed = run(root);
-    assert.equal(allowed.status, 0, allowed.stderr);
-    assert.equal(readSettings(root).skillOverrides['start-workflow'], 'user-invocable-only');
-    assert.match(allowed.stdout, /skill-profile: hiding called skill start-workflow \(commandOnly\): started by the entrySkills list/);
-}));
+        // Given the explicit opt-in / When synced / Then the value is written and a warning names the entry list
+        setProfile(root, { preset: 'full', commandOnly: ['start-workflow'], allowHidingCalledSkills: true });
+        const allowed = run(root);
+        assert.equal(allowed.status, 0, allowed.stderr);
+        assert.equal(readSettings(root).skillOverrides['start-workflow'], 'user-invocable-only');
+        assert.match(allowed.stdout, /skill-profile: hiding called skill start-workflow \(commandOnly\): started by the entrySkills list/);
+    }));
 
-test('[skill-profile] TC-ADS-016 the standard preset does not make entry skills name-only', () => withProject({ profile: { preset: 'standard' } }, root => {
-    // Given the standard preset / When resolved
-    const resolved = profileLib.resolveProfile(root, { skillProfile: { preset: 'standard' } });
-    // Then entry skills that are not also in calledByOthers get no entry (protection does not widen the preset)
-    for (const name of ENTRY_SKILLS.filter(skill => !CALLED_BY_OTHERS.includes(skill))) {
-        assert.equal(Object.hasOwn(resolved.overrides, name), false, `${name} keeps its default visibility`);
-    }
-    assert.deepEqual(Object.keys(resolved.overrides).sort(), [...CALLED_BY_OTHERS].sort());
-}));
+test('[skill-profile] TC-ADS-016 the standard preset does not make entry skills name-only', () =>
+    withProject({ profile: { preset: 'standard' } }, root => {
+        // Given the standard preset / When resolved
+        const resolved = profileLib.resolveProfile(root, { skillProfile: { preset: 'standard' } });
+        // Then entry skills that are not also in calledByOthers get no entry (protection does not widen the preset)
+        for (const name of ENTRY_SKILLS.filter(skill => !CALLED_BY_OTHERS.includes(skill))) {
+            assert.equal(Object.hasOwn(resolved.overrides, name), false, `${name} keeps its default visibility`);
+        }
+        assert.deepEqual(Object.keys(resolved.overrides).sort(), [...CALLED_BY_OTHERS].sort());
+    }));
 
 test('[skill-profile] TC-ADS-019 edge: an interrupted settings / ledger write self-heals with no conflict line', () => {
     for (const crashAt of ['settings', 'final ledger']) {
@@ -341,21 +362,30 @@ test('[skill-profile] TC-ADS-019 edge: an interrupted settings / ledger write se
             const plan = profileLib.planSkillProfile({ rootDir: root });
             // When the write is interrupted (the settings write, or the final ledger write, fails)
             let ledgerWrites = 0;
-            assert.throws(() => profileLib.writePairCrashConsistent(plan, {
-                targetChanged: plan.settingsChanged,
-                writeTarget: () => {
-                    if (crashAt === 'settings') throw new Error('interrupted');
-                    profileLib.writeTextAtomic(plan.settingsPath, plan.settingsText);
-                },
-                writeLedger: text => {
-                    ledgerWrites += 1;
-                    if (crashAt === 'final ledger' && ledgerWrites === 2) throw new Error('interrupted');
-                    profileLib.writeTextAtomic(plan.ledgerPath, text);
-                }
-            }), /interrupted/, crashAt);
+            assert.throws(
+                () =>
+                    profileLib.writePairCrashConsistent(plan, {
+                        targetChanged: plan.settingsChanged,
+                        writeTarget: () => {
+                            if (crashAt === 'settings') throw new Error('interrupted');
+                            profileLib.writeTextAtomic(plan.settingsPath, plan.settingsText);
+                        },
+                        writeLedger: text => {
+                            ledgerWrites += 1;
+                            if (crashAt === 'final ledger' && ledgerWrites === 2) throw new Error('interrupted');
+                            profileLib.writeTextAtomic(plan.ledgerPath, text);
+                        }
+                    }),
+                /interrupted/,
+                crashAt
+            );
             // Then the ledger already records both keys (the union), so neither can become the user's
             const ledgerPath = path.join(root, '.claude', 'skill-profile.generated.json');
-            assert.deepEqual(JSON.parse(fs.readFileSync(ledgerPath, 'utf8')).skillOverrides, { 'plain-a': 'name-only', 'plain-b': 'name-only' }, `${crashAt}: interim ledger`);
+            assert.deepEqual(
+                JSON.parse(fs.readFileSync(ledgerPath, 'utf8')).skillOverrides,
+                { 'plain-a': 'name-only', 'plain-b': 'name-only' },
+                `${crashAt}: interim ledger`
+            );
             // And the next sync converges with no conflict line, and --check passes
             const rerun = run(root);
             assert.equal(rerun.status, 0, rerun.stderr);
@@ -367,32 +397,37 @@ test('[skill-profile] TC-ADS-019 edge: an interrupted settings / ledger write se
     }
 });
 
-test('[skill-profile] a ledger copied from another project owns nothing', () => withProject({ profile: { preset: 'full', nameOnly: ['plain-a'] } }, root => {
-    // Given a ledger bound to another project that claims a key the user wrote
-    const userSettings = SETTINGS_TEXT.replace('  "cleanupPeriodDays": 30,', '  "cleanupPeriodDays": 30,\n  "skillOverrides": { "plain-b": "off" },');
-    fs.writeFileSync(settingsPath(root), userSettings, 'utf8');
-    const ledger = { description: 'x', project: 'another-project', skillOverrides: { 'plain-b': 'off' } };
-    fs.writeFileSync(path.join(root, '.claude', 'skill-profile.generated.json'), JSON.stringify(ledger), 'utf8');
-    // When synced
-    const result = run(root);
-    // Then the user's key survives and the ledger is reported as ignored
-    assert.equal(result.status, 0, result.stderr);
-    assert.match(result.stdout, /ignored .*skill-profile\.generated\.json: it belongs to another project/);
-    const overrides = readSettings(root).skillOverrides;
-    assert.equal(overrides['plain-b'], 'off');
-    assert.equal(overrides['plain-a'], 'name-only');
-}));
+test('[skill-profile] a ledger copied from another project owns nothing', () =>
+    withProject({ profile: { preset: 'full', nameOnly: ['plain-a'] } }, root => {
+        // Given a ledger bound to another project that claims a key the user wrote
+        const userSettings = SETTINGS_TEXT.replace('  "cleanupPeriodDays": 30,', '  "cleanupPeriodDays": 30,\n  "skillOverrides": { "plain-b": "off" },');
+        fs.writeFileSync(settingsPath(root), userSettings, 'utf8');
+        const ledger = { description: 'x', project: 'another-project', skillOverrides: { 'plain-b': 'off' } };
+        fs.writeFileSync(path.join(root, '.claude', 'skill-profile.generated.json'), JSON.stringify(ledger), 'utf8');
+        // When synced
+        const result = run(root);
+        // Then the user's key survives and the ledger is reported as ignored
+        assert.equal(result.status, 0, result.stderr);
+        assert.match(result.stdout, /ignored .*skill-profile\.generated\.json: it belongs to another project/);
+        const overrides = readSettings(root).skillOverrides;
+        assert.equal(overrides['plain-b'], 'off');
+        assert.equal(overrides['plain-a'], 'name-only');
+    }));
 
 test('[skill-profile] schema: skillProfile keys validate, carry descriptions, and reject ambiguous lists', () => {
     const base = extra => ({ project: { name: 'p' }, ...extra });
     // Given each key with a valid value / When validated / Then no errors
-    const valid = SCHEMA.validateConfig(base({ skillProfile: { preset: 'minimal', nameOnly: ['a'], commandOnly: ['b'], off: ['c'], allowHidingCalledSkills: false } }));
+    const valid = SCHEMA.validateConfig(
+        base({ skillProfile: { preset: 'minimal', nameOnly: ['a'], commandOnly: ['b'], off: ['c'], allowHidingCalledSkills: false } })
+    );
     assert.deepEqual(valid.errors, []);
     for (const key of ['preset', 'nameOnly', 'commandOnly', 'off', 'allowHidingCalledSkills']) {
         assert.ok(SCHEMA.SCHEMA.skillProfile.properties[key].describe.length > 20, `${key} has a describe text`);
     }
     // Given invalid values / Then each names its path
-    const errors = SCHEMA.validateConfig(base({ skillProfile: { preset: 'tiny', nameOnly: ['x'], off: ['x', 'Bad_Name'], allowHidingCalledSkills: 'yes' } })).errors.join('\n');
+    const errors = SCHEMA.validateConfig(
+        base({ skillProfile: { preset: 'tiny', nameOnly: ['x'], off: ['x', 'Bad_Name'], allowHidingCalledSkills: 'yes' } })
+    ).errors.join('\n');
     assert.match(errors, /skillProfile\.preset: expected one of full\|standard\|minimal/);
     assert.match(errors, /skillProfile\.off: "x" is also listed in skillProfile\.nameOnly/);
     assert.match(errors, /skillProfile\.off\[1\]: "Bad_Name" is not a skill folder name/);
@@ -408,7 +443,10 @@ test('[skill-profile] schema: skillProfile keys validate, carry descriptions, an
 // ─── Personal profile (--personal) ────────────────────────────────────────
 
 const localSettingsPath = root => path.join(root, '.claude', 'settings.local.json');
-const writeJson = (file, value) => { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, `${JSON.stringify(value)}\n`); };
+const writeJson = (file, value) => {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, `${JSON.stringify(value)}\n`);
+};
 function gitIgnoreLocal(root) {
     spawnSync('git', ['init', '-q'], { cwd: root });
     fs.writeFileSync(path.join(root, '.claude', '.gitignore'), '*.local.json\n/.ck.local.json\n');
@@ -416,55 +454,63 @@ function gitIgnoreLocal(root) {
 
 // Invariant: one person can hide skills for themselves without changing the tracked team settings, and the
 // local file carries the team entries too, so the outcome does not depend on how Claude merges the member.
-test('[skill-profile] --personal writes team plus personal entries to the ignored local settings only', () => withProject({ profile: { commandOnly: ['plain-a'] } }, root => {
-    gitIgnoreLocal(root);
-    assert.equal(run(root).status, 0);
-    const teamBytes = readBytes(settingsPath(root));
-    writeJson(path.join(root, 'tmp-home', '.claude', '.ck.json'), { skillProfile: { commandOnly: ['plain-b'] } });
-    writeJson(path.join(root, '.claude', '.ck.local.json'), { skillProfile: { nameOnly: ['plain-b'] } });
-    const result = run(root, '--personal');
-    assert.equal(result.status, 0, result.stderr);
-    assert.deepEqual(JSON.parse(fs.readFileSync(localSettingsPath(root), 'utf8')).skillOverrides,
-        { 'plain-a': 'user-invocable-only', 'plain-b': 'name-only' }, 'checkout layer wins over the user layer per skill');
-    assert.deepEqual(readBytes(settingsPath(root)), teamBytes, 'the tracked team settings are untouched');
-    assert.ok(fs.existsSync(path.join(root, '.claude', 'skill-profile.generated.local.json')));
-    assert.equal(run(root, '--personal', '--check').status, 0, 'current after the write');
-    setProfile(root, { commandOnly: ['plain-a'], nameOnly: ['plan'] });
-    const stale = run(root, '--personal', '--check');
-    assert.equal(stale.status, 1, 'a team profile change makes the personal file stale');
-    assert.match(stale.stderr, /--personal/);
-}));
+test('[skill-profile] --personal writes team plus personal entries to the ignored local settings only', () =>
+    withProject({ profile: { commandOnly: ['plain-a'] } }, root => {
+        gitIgnoreLocal(root);
+        assert.equal(run(root).status, 0);
+        const teamBytes = readBytes(settingsPath(root));
+        writeJson(path.join(root, 'tmp-home', '.claude', '.ck.json'), { skillProfile: { commandOnly: ['plain-b'] } });
+        writeJson(path.join(root, '.claude', '.ck.local.json'), { skillProfile: { nameOnly: ['plain-b'] } });
+        const result = run(root, '--personal');
+        assert.equal(result.status, 0, result.stderr);
+        assert.deepEqual(
+            JSON.parse(fs.readFileSync(localSettingsPath(root), 'utf8')).skillOverrides,
+            { 'plain-a': 'user-invocable-only', 'plain-b': 'name-only' },
+            'checkout layer wins over the user layer per skill'
+        );
+        assert.deepEqual(readBytes(settingsPath(root)), teamBytes, 'the tracked team settings are untouched');
+        assert.ok(fs.existsSync(path.join(root, '.claude', 'skill-profile.generated.local.json')));
+        assert.equal(run(root, '--personal', '--check').status, 0, 'current after the write');
+        setProfile(root, { commandOnly: ['plain-a'], nameOnly: ['plan'] });
+        const stale = run(root, '--personal', '--check');
+        assert.equal(stale.status, 1, 'a team profile change makes the personal file stale');
+        assert.match(stale.stderr, /--personal/);
+    }));
 
 // Invariant: for one skill named by both the team and the person, the person's choice is the one applied.
-test('[skill-profile] --personal: a personal entry wins over the team entry for the same skill', () => withProject({ profile: { commandOnly: ['plain-a'] } }, root => {
-    gitIgnoreLocal(root);
-    writeJson(path.join(root, '.claude', '.ck.local.json'), { skillProfile: { nameOnly: ['plain-a'] } });
-    const result = run(root, '--personal');
-    assert.equal(result.status, 0, result.stderr);
-    assert.deepEqual(JSON.parse(fs.readFileSync(localSettingsPath(root), 'utf8')).skillOverrides, { 'plain-a': 'name-only' });
-}));
+test('[skill-profile] --personal: a personal entry wins over the team entry for the same skill', () =>
+    withProject({ profile: { commandOnly: ['plain-a'] } }, root => {
+        gitIgnoreLocal(root);
+        writeJson(path.join(root, '.claude', '.ck.local.json'), { skillProfile: { nameOnly: ['plain-a'] } });
+        const result = run(root, '--personal');
+        assert.equal(result.status, 0, result.stderr);
+        assert.deepEqual(JSON.parse(fs.readFileSync(localSettingsPath(root), 'utf8')).skillOverrides, { 'plain-a': 'name-only' });
+    }));
 
 // Invariant: a ledger-only rewrite still refuses a personal ledger that Git would track.
-test('[skill-profile] --personal refuses a ledger-only write to a tracked ledger', () => withProject({ profile: {} }, root => {
-    gitIgnoreLocal(root);
-    writeJson(path.join(root, '.claude', '.ck.local.json'), { skillProfile: { nameOnly: ['plain-b'] } });
-    assert.equal(run(root, '--personal').status, 0);
-    const ledger = path.join(root, '.claude', 'skill-profile.generated.local.json');
-    const stale = JSON.parse(fs.readFileSync(ledger, 'utf8'));
-    writeJson(ledger, { ...stale, description: 'an older description' });
-    fs.writeFileSync(path.join(root, '.claude', '.gitignore'), '/settings.local.json\n/.ck.local.json\n');
-    const before = fs.readFileSync(ledger, 'utf8');
-    const result = run(root, '--personal');
-    assert.equal(result.status, 1, 'settings are current, only the ledger would change');
-    assert.match(result.stderr, /not git-ignored/);
-    assert.equal(fs.readFileSync(ledger, 'utf8'), before);
-}));
+test('[skill-profile] --personal refuses a ledger-only write to a tracked ledger', () =>
+    withProject({ profile: {} }, root => {
+        gitIgnoreLocal(root);
+        writeJson(path.join(root, '.claude', '.ck.local.json'), { skillProfile: { nameOnly: ['plain-b'] } });
+        assert.equal(run(root, '--personal').status, 0);
+        const ledger = path.join(root, '.claude', 'skill-profile.generated.local.json');
+        const stale = JSON.parse(fs.readFileSync(ledger, 'utf8'));
+        writeJson(ledger, { ...stale, description: 'an older description' });
+        fs.writeFileSync(path.join(root, '.claude', '.gitignore'), '/settings.local.json\n/.ck.local.json\n');
+        const before = fs.readFileSync(ledger, 'utf8');
+        const result = run(root, '--personal');
+        assert.equal(result.status, 1, 'settings are current, only the ledger would change');
+        assert.match(result.stderr, /not git-ignored/);
+        assert.equal(fs.readFileSync(ledger, 'utf8'), before);
+    }));
 
 // Invariant: the documented personal profile is a declared .ck.json key, so a person who follows the docs gets
 // no "unknown key" warning from every hook that loads the config, and a malformed one is reported.
 test('[skill-profile] the personal skillProfile is part of the .ck.json schema', () => {
     const { validateCkConfig } = require(path.resolve(__dirname, '..', '..', 'hooks', 'lib', 'ck-config-schema.cjs'));
-    const clean = validateCkConfig({ skillProfile: { preset: 'standard', nameOnly: ['plain-a'], commandOnly: [], off: ['plain-b'], allowHidingCalledSkills: false } });
+    const clean = validateCkConfig({
+        skillProfile: { preset: 'standard', nameOnly: ['plain-a'], commandOnly: [], off: ['plain-b'], allowHidingCalledSkills: false }
+    });
     assert.deepEqual([clean.errors, clean.warnings], [[], []]);
     const bad = validateCkConfig({ skillProfile: { preset: 'tiny', off: 'plain-b' } });
     assert.match(bad.errors.join('\n'), /skillProfile\.preset: invalid value/);
@@ -472,25 +518,28 @@ test('[skill-profile] the personal skillProfile is part of the .ck.json schema',
 });
 
 // Invariant: a personal settings file that Git would track never receives generated entries.
-test('[skill-profile] --personal refuses a local settings file that is not git-ignored', () => withProject({ profile: { commandOnly: ['plain-a'] } }, root => {
-    spawnSync('git', ['init', '-q'], { cwd: root });
-    writeJson(path.join(root, '.claude', '.ck.local.json'), { skillProfile: { commandOnly: ['plain-b'] } });
-    const result = run(root, '--personal');
-    assert.equal(result.status, 1);
-    assert.match(result.stderr, /not git-ignored/);
-    assert.equal(fs.existsSync(localSettingsPath(root)), false);
-}));
+test('[skill-profile] --personal refuses a local settings file that is not git-ignored', () =>
+    withProject({ profile: { commandOnly: ['plain-a'] } }, root => {
+        spawnSync('git', ['init', '-q'], { cwd: root });
+        writeJson(path.join(root, '.claude', '.ck.local.json'), { skillProfile: { commandOnly: ['plain-b'] } });
+        const result = run(root, '--personal');
+        assert.equal(result.status, 1);
+        assert.match(result.stderr, /not git-ignored/);
+        assert.equal(fs.existsSync(localSettingsPath(root)), false);
+    }));
 
 // Invariant: the personal list follows the same called-skill guard as the team list.
-test('[skill-profile] --personal applies the called-skill guard', () => withProject({ profile: {} }, root => {
-    gitIgnoreLocal(root);
-    writeJson(path.join(root, '.claude', '.ck.local.json'), { skillProfile: { commandOnly: ['security-audit'] } });
-    const result = run(root, '--personal');
-    assert.equal(result.status, 1);
-    assert.match(result.stderr, /security-audit/);
-    assert.equal(fs.existsSync(localSettingsPath(root)), false);
-}));
+test('[skill-profile] --personal applies the called-skill guard', () =>
+    withProject({ profile: {} }, root => {
+        gitIgnoreLocal(root);
+        writeJson(path.join(root, '.claude', '.ck.local.json'), { skillProfile: { commandOnly: ['security-audit'] } });
+        const result = run(root, '--personal');
+        assert.equal(result.status, 1);
+        assert.match(result.stderr, /security-audit/);
+        assert.equal(fs.existsSync(localSettingsPath(root)), false);
+    }));
 
-test('[skill-profile] unknown options are refused', () => withProject({}, root => {
-    assert.equal(run(root, '--persnal').status, 1);
-}));
+test('[skill-profile] unknown options are refused', () =>
+    withProject({}, root => {
+        assert.equal(run(root, '--persnal').status, 1);
+    }));

@@ -31,7 +31,13 @@ test('export keeps tracked scope by default and requires explicit untracked incl
             const result = spawnSync(process.execPath, [exporter, target, ...(include ? ['--include-untracked'] : [])], { encoding: 'utf8' });
             assert.equal(result.status, 0, result.stderr);
             assert.equal(await fs.readFile(path.join(target, '.claude/tracked.txt'), 'utf8'), 'tracked');
-            assert.equal(await fs.access(path.join(target, '.claude/untracked.txt')).then(() => true, () => false), include);
+            assert.equal(
+                await fs.access(path.join(target, '.claude/untracked.txt')).then(
+                    () => true,
+                    () => false
+                ),
+                include
+            );
             await assert.rejects(fs.access(path.join(target, '.claude/ignored.txt')));
         }
         // A non-Git bundle cannot silently widen the default tracked-only promise.
@@ -62,13 +68,13 @@ test('export rejects unknown flags, duplicate flags, and extra operands before c
         const cases = [
             { name: 'unknown option', args: ['typo-target', '--include-untrackd'], message: /unknown option/ },
             { name: 'extra operand', args: ['extra-target', 'another-target'], message: /multiple target directories/ },
-            { name: 'duplicate flag', args: ['duplicate-target', '--force', '--force'], message: /duplicate --force/ },
+            { name: 'duplicate flag', args: ['duplicate-target', '--force', '--force'], message: /duplicate --force/ }
         ];
 
         for (const { name, args, message } of cases) {
             const target = path.join(tmp, name);
             const result = spawnSync(process.execPath, [exporter, ...args.map(arg => arg.replace(/^(?:typo|extra|duplicate)-target$/, target))], {
-                encoding: 'utf8',
+                encoding: 'utf8'
             });
             assert.equal(result.status, 1, `${name} must fail`);
             assert.match(result.stderr, message, `${name} must explain the invalid argument`);
@@ -79,7 +85,7 @@ test('export rejects unknown flags, duplicate flags, and extra operands before c
     }
 });
 
-test('export rejects a symlink or junction alias of the source before copying', async (t) => {
+test('export rejects a symlink or junction alias of the source before copying', async t => {
     const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'export-self-alias-'));
     try {
         const source = path.join(tmp, 'source');

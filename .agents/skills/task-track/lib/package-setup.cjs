@@ -27,8 +27,11 @@ const RESOLVE_REASONS = Object.freeze({
 });
 
 function readJson(file) {
-    try { return JSON.parse(fs.readFileSync(file, 'utf8')); }
-    catch { return null; }
+    try {
+        return JSON.parse(fs.readFileSync(file, 'utf8'));
+    } catch {
+        return null;
+    }
 }
 
 /** The installed version of `name`, or null when the package is absent or only partly written. */
@@ -44,10 +47,12 @@ function installedVersion(packageDir, name) {
 /** Declared runtime packages that are absent, incomplete or not at their pinned version. */
 function missingPackages(packageDir = PACKAGE_DIR) {
     const declared = readJson(path.join(packageDir, 'package.json'))?.dependencies || {};
-    return Object.entries(declared).filter(([name, wanted]) => {
-        const installed = installedVersion(packageDir, name);
-        return installed === null || (EXACT_VERSION.test(wanted) && installed !== wanted);
-    }).map(([name]) => name);
+    return Object.entries(declared)
+        .filter(([name, wanted]) => {
+            const installed = installedVersion(packageDir, name);
+            return installed === null || (EXACT_VERSION.test(wanted) && installed !== wanted);
+        })
+        .map(([name]) => name);
 }
 
 /**
@@ -58,15 +63,21 @@ function missingPackages(packageDir = PACKAGE_DIR) {
 async function ensurePackages(options = {}) {
     const { env = process.env, platform = process.platform } = options;
     const packageDir = fs.realpathSync(options.packageDir || PACKAGE_DIR);
-    const seams = { resolveExecutable: installer.DEFAULT_SEAMS.resolveExecutable, spawnManager: installer.DEFAULT_SEAMS.spawnManager,
-        withProjectLock: installLock.withProjectLock, now: Date.now, ...options.seams };
+    const seams = {
+        resolveExecutable: installer.DEFAULT_SEAMS.resolveExecutable,
+        spawnManager: installer.DEFAULT_SEAMS.spawnManager,
+        withProjectLock: installLock.withProjectLock,
+        now: Date.now,
+        ...options.seams
+    };
     const projectRoot = path.resolve(packageDir, '../../..');
     const directory = path.relative(projectRoot, packageDir).split(path.sep).join('/');
     const restore = file => `Restore ${directory}/${file} from the framework copy`;
     const manual = `Run "npm ${INSTALL_ARGS.join(' ')}" inside ${directory}`;
 
     const declared = readJson(path.join(packageDir, 'package.json'))?.dependencies;
-    if (!declared || typeof declared !== 'object') return { status: 'unavailable', packages: [], reason: 'the skill package manifest is unreadable', remedy: restore('package.json') };
+    if (!declared || typeof declared !== 'object')
+        return { status: 'unavailable', packages: [], reason: 'the skill package manifest is unreadable', remedy: restore('package.json') };
     const needed = missingPackages(packageDir);
     if (!needed.length) return { status: 'present' };
     const unavailable = (reason, remedy = manual) => ({ status: 'unavailable', packages: needed, reason, remedy });
@@ -76,8 +87,14 @@ async function ensurePackages(options = {}) {
     // PATH entries inside the project are skipped, so a project-local shim never runs as the installer.
     const executable = seams.resolveExecutable({ managerId: 'npm', projectRoot, env, platform });
     if (!executable.ok) return unavailable(RESOLVE_REASONS[executable.code] || 'npm is not usable for automatic setup');
-    const built = installer.buildLaunchPlan({ managerId: 'npm', execPath: executable.execPath, args: [...AUTOMATIC_ARGS], cwd: packageDir,
-        env: installer.buildChildEnv(env, false, platform), platform });
+    const built = installer.buildLaunchPlan({
+        managerId: 'npm',
+        execPath: executable.execPath,
+        args: [...AUTOMATIC_ARGS],
+        cwd: packageDir,
+        env: installer.buildChildEnv(env, false, platform),
+        platform
+    });
     if (built.skip) return unavailable('npm cannot be started safely from its installed path');
 
     const run = async ({ publishGroup }) => {
@@ -93,25 +110,33 @@ async function ensurePackages(options = {}) {
     for (;;) {
         let held;
         // The lock rechecks after acquiring, so a command that waited for another one's install does not repeat it.
-        try { held = await seams.withProjectLock({ canonicalRoot: packageDir, recheck: () => !missingPackages(packageDir).length, run }); }
-        catch { held = { outcome: installLock.LOCK_OUTCOMES.UNAVAILABLE }; }
+        try {
+            held = await seams.withProjectLock({ canonicalRoot: packageDir, recheck: () => !missingPackages(packageDir).length, run });
+        } catch {
+            held = { outcome: installLock.LOCK_OUTCOMES.UNAVAILABLE };
+        }
         switch (held.outcome) {
-        case installer.OUTCOMES.INSTALLED:
-            return missingPackages(packageDir).length ? unavailable('npm finished but the declared package is still not installed') : { status: 'installed', packages: needed };
-        case installLock.LOCK_OUTCOMES.REPAIRED_BY_PEER:
-            return { status: 'present' };
-        case installLock.LOCK_OUTCOMES.IN_PROGRESS:
-            if (seams.now() < until) continue;
-            return unavailable('another setup of this folder is still running', 'Retry when it has finished');
-        case installer.OUTCOMES.INSTALL_TIMEOUT:
-            return unavailable(`npm did not finish within ${Math.round(installer.MANAGER_DEADLINE_MS / 1000)} seconds and was stopped`);
-        case installer.OUTCOMES.INSTALL_FAILED:
-            return unavailable(typeof held.inner?.exitCode === 'number' ? `npm ended with exit code ${held.inner.exitCode}` : 'npm could not be started');
-        case installLock.LOCK_OUTCOMES.RETAINED_CLEANUP_UNPROVEN:
-            return unavailable('the installer could not be confirmed stopped, so its guard is kept', `Make sure no npm process is still running, then ${manual.replace(/^Run/, 'run')}`);
-        default:
-            // The lock refuses rather than guess when it cannot prove a private, single-owner guard on this machine.
-            return unavailable(`automatic setup cannot guard this folder safely here (${held.outcome})`);
+            case installer.OUTCOMES.INSTALLED:
+                return missingPackages(packageDir).length
+                    ? unavailable('npm finished but the declared package is still not installed')
+                    : { status: 'installed', packages: needed };
+            case installLock.LOCK_OUTCOMES.REPAIRED_BY_PEER:
+                return { status: 'present' };
+            case installLock.LOCK_OUTCOMES.IN_PROGRESS:
+                if (seams.now() < until) continue;
+                return unavailable('another setup of this folder is still running', 'Retry when it has finished');
+            case installer.OUTCOMES.INSTALL_TIMEOUT:
+                return unavailable(`npm did not finish within ${Math.round(installer.MANAGER_DEADLINE_MS / 1000)} seconds and was stopped`);
+            case installer.OUTCOMES.INSTALL_FAILED:
+                return unavailable(typeof held.inner?.exitCode === 'number' ? `npm ended with exit code ${held.inner.exitCode}` : 'npm could not be started');
+            case installLock.LOCK_OUTCOMES.RETAINED_CLEANUP_UNPROVEN:
+                return unavailable(
+                    'the installer could not be confirmed stopped, so its guard is kept',
+                    `Make sure no npm process is still running, then ${manual.replace(/^Run/, 'run')}`
+                );
+            default:
+                // The lock refuses rather than guess when it cannot prove a private, single-owner guard on this machine.
+                return unavailable(`automatic setup cannot guard this folder safely here (${held.outcome})`);
         }
     }
 }

@@ -51,7 +51,7 @@ const { liveSourceFiles } = require('../lib/live-source-files.cjs');
 const { resolveAllWorkflowManifests, resolveWorkflowManifest } = require('../../../scripts/lib/workflow-manifest.cjs');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
-const SKIP = isFrameworkRepo(REPO_ROOT) ? false : 'asserts the framework repo\'s own plan skill and workflow registry (framework-repo signal)';
+const SKIP = isFrameworkRepo(REPO_ROOT) ? false : "asserts the framework repo's own plan skill and workflow registry (framework-repo signal)";
 
 const SKILLS = path.join(REPO_ROOT, '.claude', 'skills');
 const read = (...parts) => fs.readFileSync(path.join(...parts), 'utf8').replace(/\r\n/g, '\n');
@@ -75,16 +75,13 @@ function guideTags(text) {
     return tags;
 }
 
-const fixtureDocument = (entry) => ({ version: '1', workflows: { fixture: entry } });
-const resolveFixture = (entry, mode) => resolveWorkflowManifest(fixtureDocument(entry), 'fixture', { availableSkills: ['plan', 'spec'], ...(mode ? { mode } : {}) });
+const fixtureDocument = entry => ({ version: '1', workflows: { fixture: entry } });
+const resolveFixture = (entry, mode) =>
+    resolveWorkflowManifest(fixtureDocument(entry), 'fixture', { availableSkills: ['plan', 'spec'], ...(mode ? { mode } : {}) });
 
 const LIVE_SOURCE_ROOTS = ['.claude', 'docs/specs', 'docs/project-reference', 'README.md'];
 // Generated catalogs are rebuilt from the skill folders; history stays in ADRs and release notes.
-const SCAN_EXCLUDED = new Set([
-    '.claude/SKILLS.yaml',
-    '.claude/scripts/skills_data.yaml',
-    '.claude/hooks/tests/suites/plan-modes-merge.test.cjs'
-]);
+const SCAN_EXCLUDED = new Set(['.claude/SKILLS.yaml', '.claude/scripts/skills_data.yaml', '.claude/hooks/tests/suites/plan-modes-merge.test.cjs']);
 const SCAN_EXCLUDED_DIRS = new Set(['node_modules', '.git', '.code-graph', 'tmp', 'temp', 'plans']);
 const SCAN_EXTENSIONS = new Set(['.md', '.cjs', '.mjs', '.js', '.py', '.json', '.yaml', '.yml', '.html', '.toml']);
 
@@ -113,7 +110,11 @@ const tests = [
             for (const mode of ['review', 'validate', 'execute', 'ci', 'cro']) assert.match(text, new RegExp(`--mode=${mode}`), `--mode=${mode} is documented`);
             // And each of the two merged modes has a mandatory full-read line naming an existing reference
             for (const mode of ['review', 'validate', 'execute']) {
-                assert.match(text, new RegExp(`\\*\\*\\[BLOCKING\\]\\*\\* When \`--mode=${mode}\`, read \`references/mode-${mode}\\.md\` in full FIRST`), `mandatory read line for ${mode}`);
+                assert.match(
+                    text,
+                    new RegExp(`\\*\\*\\[BLOCKING\\]\\*\\* When \`--mode=${mode}\`, read \`references/mode-${mode}\\.md\` in full FIRST`),
+                    `mandatory read line for ${mode}`
+                );
                 assert.ok(fs.existsSync(path.join(SKILLS, 'plan', 'references', `mode-${mode}.md`)), `references/mode-${mode}.md exists`);
             }
             // And the two intake modes carry their own BLOCKING full-read line naming an existing reference (the table column alone is not a read instruction)
@@ -135,8 +136,15 @@ const tests = [
             // Then none of the mode-only contract markers appear in it
             const reviewOnly = ['## Modes and Round Ownership', '## Report and Handoff', '## Finding Validation and Verdict', '## Simplified Why-Review Pass'];
             const validateOnly = ['## Phase 0: Detect Plan Type', 'Phase 0.5: Applicability / Plan Gate', 'Follow-up rules', '### Step 4: Interview User'];
-            const executeOnly = ['## Step 4: Verify (tests + mutation check, once)', '## Pre-Implementation Granularity Gate', '### Step 2 Wave Dispatch', '## Spec-Loop Gate', '## Step 5: User Approval'];
-            for (const marker of [...reviewOnly, ...validateOnly, ...executeOnly]) assert.ok(!text.includes(marker), `plan/SKILL.md must not inline mode text: ${marker}`);
+            const executeOnly = [
+                '## Step 4: Verify (tests + mutation check, once)',
+                '## Pre-Implementation Granularity Gate',
+                '### Step 2 Wave Dispatch',
+                '## Spec-Loop Gate',
+                '## Step 5: User Approval'
+            ];
+            for (const marker of [...reviewOnly, ...validateOnly, ...executeOnly])
+                assert.ok(!text.includes(marker), `plan/SKILL.md must not inline mode text: ${marker}`);
             // And the mode bodies do live in their reference files
             for (const marker of reviewOnly) assert.ok(modeReview().includes(marker), `mode-review.md holds ${marker}`);
             for (const marker of validateOnly) assert.ok(modeValidate().includes(marker), `mode-validate.md holds ${marker}`);
@@ -189,14 +197,18 @@ const tests = [
             assert.match(briefing, /Never ask a question whose context the briefing or its own card does not supply/);
             // Every worked card shows the fields the rule asks for
             for (const card of text.split('```').filter(block => block.includes('\nDeciding: '))) {
-                for (const field of ['Why it matters: ', 'Plan assumes now: ', 'Reversible: ']) assert.ok(card.includes('\n' + field), `worked card carries ${field.trim()}`);
+                for (const field of ['Why it matters: ', 'Plan assumes now: ', 'Reversible: '])
+                    assert.ok(card.includes('\n' + field), `worked card carries ${field.trim()}`);
             }
             assert.match(text, /for each option state what it gives, what it costs and what or who it affects/);
             assert.match(text, /give the reason plus what would change the recommendation/);
             assert.match(text, /record every unasked card as an unconfirmed assumption in the Validation Summary/);
             // No sentence may bring back a cap on the whole interview or the retired hard-constraint wording
             assert.doesNotMatch(text, /hard constraints|never go below min|bounded user questions|never exceed MAX/i);
-            assert.doesNotMatch(text, /\b(at most|no more than|a maximum of|never (ask|exceed) more than|stop after)\b[^\n]*\b(in total|overall|for the whole interview|across the interview|per interview)\b/i);
+            assert.doesNotMatch(
+                text,
+                /\b(at most|no more than|a maximum of|never (ask|exceed) more than|stop after)\b[^\n]*\b(in total|overall|for the whole interview|across the interview|per interview)\b/i
+            );
             assert.doesNotMatch(text, /stop the interview (once|after|when) MAX/i);
             assert.match(text, /Tell the user how many decisions remain, then ask the next round until none remains/);
             // Every worked example that marks a recommendation puts it first, as the card rule says
@@ -261,7 +273,10 @@ const tests = [
             // And a workflow with plan steps but no validate step cannot prove the gate
             assert.throws(() => resolveFixture({ sequence: [plain], outcomeGates: gate('plan --mode=validate') }), /names a skill not in the sequence/);
             // And a different mode does not satisfy it
-            assert.throws(() => resolveFixture({ sequence: [plain, { id: 'r', skill: 'plan', args: '--mode=review' }], outcomeGates: gate('plan --mode=validate') }), /names a skill not in the sequence/);
+            assert.throws(
+                () => resolveFixture({ sequence: [plain, { id: 'r', skill: 'plan', args: '--mode=review' }], outcomeGates: gate('plan --mode=validate') }),
+                /names a skill not in the sequence/
+            );
             // And a mode variant that drops the validate step fails for that mode
             const variants = {
                 defaultMode: 'full',
@@ -286,9 +301,22 @@ const tests = [
             const bodyOf = (text, tag) => text.includes(`<!-- SYNC:${tag} -->`) && text.includes(`<!-- /SYNC:${tag} -->`);
             const reviewOnly = ['category-review-thinking', 'graph-assisted-investigation', 'severity-rubric', 'trade-off-interrogation-gate'];
             const validateOnly = ['sequential-thinking-protocol', 'task-tracking-external-report', 'understand-code-first'];
-            const executeOnly = ['design-distinctiveness-gate', 'design-review-checklist', 'end-to-start-debugger-trace', 'severity-rubric', 'source-test-drift-check', 'ui-action-density-gate', 'ui-copywriting', 'understand-code-first'];
+            const executeOnly = [
+                'design-distinctiveness-gate',
+                'design-review-checklist',
+                'end-to-start-debugger-trace',
+                'severity-rubric',
+                'source-test-drift-check',
+                'ui-action-density-gate',
+                'ui-copywriting',
+                'understand-code-first'
+            ];
             // Each mode-only tag is an inline body in its reference and absent from the default skill
-            for (const [label, text, tags] of [['mode-review', reviewText, reviewOnly], ['mode-validate', validateText, validateOnly], ['mode-execute', executeText, executeOnly]]) {
+            for (const [label, text, tags] of [
+                ['mode-review', reviewText, reviewOnly],
+                ['mode-validate', validateText, validateOnly],
+                ['mode-execute', executeText, executeOnly]
+            ]) {
                 for (const tag of tags) {
                     assert.ok(bodyOf(text, tag), `${label} carries the full ${tag} body`);
                     assert.ok(!planText.includes(`SYNC:${tag}`) && !planTags.includes(tag), `plan/SKILL.md must not carry ${tag}`);
@@ -298,15 +326,33 @@ const tests = [
                 assert.ok(!text.includes('Root-carried protocols'), `${label} carries no retired pointer line`);
             }
             // The review mode's AI-feature depth is one conditional pointer, never a body or a guide line
-            assert.match(reviewText, /\*\*AI surface\?\*\* Only if the plan creates or changes a model call[^\n]*\.claude\/skills\/shared\/protocols\/ai-engineering-gate\.md[^\n]*otherwise skip this line/);
-            assert.ok(!reviewText.includes('SYNC:ai-engineering-gate') && !planText.includes('ai-engineering-gate'), 'default plan creation pays nothing for the AI floor');
+            assert.match(
+                reviewText,
+                /\*\*AI surface\?\*\* Only if the plan creates or changes a model call[^\n]*\.claude\/skills\/shared\/protocols\/ai-engineering-gate\.md[^\n]*otherwise skip this line/
+            );
+            assert.ok(
+                !reviewText.includes('SYNC:ai-engineering-gate') && !planText.includes('ai-engineering-gate'),
+                'default plan creation pays nothing for the AI floor'
+            );
             // And plan keeps every protocol the modes share with plan creation
-            for (const tag of ['core-engineering-principles', 'evidence-based-reasoning', 'goal-contract-satisfaction-loop', 'plan-granularity', 'plan-quality', 'verify-last-order', 'cross-service-check']) {
+            for (const tag of [
+                'core-engineering-principles',
+                'evidence-based-reasoning',
+                'goal-contract-satisfaction-loop',
+                'plan-granularity',
+                'plan-quality',
+                'verify-last-order',
+                'cross-service-check'
+            ]) {
                 assert.ok(planTags.includes(tag), `plan/SKILL.md carries ${tag}`);
             }
             for (const tag of planTags) assert.ok(fs.existsSync(path.join(SKILLS, 'shared', 'protocols', `${tag}.md`)), `projection file for ${tag}`);
             // And every mode's SYNC fences stay balanced (bodies and reminders)
-            for (const [label, text] of [['mode-review', reviewText], ['mode-validate', validateText], ['mode-execute', executeText]]) {
+            for (const [label, text] of [
+                ['mode-review', reviewText],
+                ['mode-validate', validateText],
+                ['mode-execute', executeText]
+            ]) {
                 const opens = text.match(/<!-- SYNC:[a-z-]+(?::reminder)? -->/g) || [];
                 const closes = text.match(/<!-- \/SYNC:[a-z-]+(?::reminder)? -->/g) || [];
                 assert.equal(opens.length, closes.length, `${label} fences balanced`);
@@ -335,8 +381,13 @@ const tests = [
             assert.ok(scanned > 500, `tripwire: the scan covers the framework sources (${scanned} files)`);
             assert.deepEqual(offenders, [], 'replace each with `plan --mode=review` / `plan --mode=validate`');
             // The allow-list is live: each allowed mention still exists and is the only one in its file
-            const formerly = planSkill().split('\n').filter(line => REMOVED.some(name => line.includes(name)));
-            assert.ok(formerly.length >= 1 && formerly.every(line => allowedMention('.claude/skills/plan/SKILL.md', line)), 'plan/SKILL.md names the removed commands only as "formerly"');
+            const formerly = planSkill()
+                .split('\n')
+                .filter(line => REMOVED.some(name => line.includes(name)));
+            assert.ok(
+                formerly.length >= 1 && formerly.every(line => allowedMention('.claude/skills/plan/SKILL.md', line)),
+                'plan/SKILL.md names the removed commands only as "formerly"'
+            );
         }
     },
     {
@@ -396,15 +447,25 @@ const tests = [
             // The effective value is read through the settings loader, so a personal or checkout layer can turn it off
             assert.match(chain, /as the effective `plan\.validation\.mode` setting directs/);
             assert.match(chain, /merges the user, project and checkout settings files \(the later one wins\)/);
-            assert.ok(chain.includes("require('./.claude/hooks/lib/ck-config-loader.cjs').loadConfig().plan.validation.mode"), 'the chain names the loader call');
-            assert.equal(typeof require(path.join(REPO_ROOT, '.claude', 'hooks', 'lib', 'ck-config-loader.cjs')).loadConfig, 'function', 'that loader call exists');
+            assert.ok(
+                chain.includes("require('./.claude/hooks/lib/ck-config-loader.cjs').loadConfig().plan.validation.mode"),
+                'the chain names the loader call'
+            );
+            assert.equal(
+                typeof require(path.join(REPO_ROOT, '.claude', 'hooks', 'lib', 'ck-config-loader.cjs')).loadConfig,
+                'function',
+                'that loader call exists'
+            );
             assert.doesNotMatch(chain, /framework settings file `\.claude\/\.ck\.json`/, 'the chain never reads the tracked file alone');
-            assert.match(chain, /`auto` runs the interview without asking, `prompt` first asks one question, `Validate this plan with an interview now\?`, and `off` skips the interview/);
+            assert.match(
+                chain,
+                /`auto` runs the interview without asking, `prompt` first asks one question, `Validate this plan with an interview now\?`, and `off` skips the interview/
+            );
             // And the shipped default is auto, so a standalone plan validates without a question first
             const loader = read(REPO_ROOT, '.claude', 'hooks', 'lib', 'ck-config-loader.cjs');
-            assert.match(loader, /validation: \{\s*mode: "auto"/);
+            assert.match(loader, /validation: \{\s*mode: ["']auto["']/);
             assert.equal(JSON.parse(read(REPO_ROOT, '.claude', '.ck.json')).plan.validation.mode, 'auto');
-            assert.match(read(REPO_ROOT, '.claude', 'hooks', 'session-init.cjs'), /"CK_VALIDATION_MODE", validation\.mode \|\| "auto"/);
+            assert.match(read(REPO_ROOT, '.claude', 'hooks', 'session-init.cjs'), /["']CK_VALIDATION_MODE["'], validation\.mode \|\| ["']auto["']/);
             // And every place that states the default agrees with the loader: the settings help and the option catalogue
             const help = read(REPO_ROOT, '.claude', 'scripts', 'ck-help.py');
             assert.match(help, /"mode": "auto",\s+\/\/ "auto" \| "prompt" \| "off"/);
@@ -424,7 +485,10 @@ const tests = [
             assert.match(chain, /lists every edit under `### Applied Changes` there/);
             // And an edit that opens a new material decision is asked, never settled by the agent, and the chain never restarts itself
             assert.match(chain, /shows that list in the conversation/);
-            assert.match(chain, /ask it as a further round through the same reference before closing, and repeat until applying answers creates no new one; never settle it yourself/);
+            assert.match(
+                chain,
+                /ask it as a further round through the same reference before closing, and repeat until applying answers creates no new one; never settle it yourself/
+            );
             assert.match(chain, /re-check the Self-Check Before Handoff bullets once; do not start this chain again/);
             assert.match(chain, /keeps the plan `BLOCKED`: report it, never settle it by assumption/);
             // And the exits sit under a "do not start" heading, each one named
@@ -437,24 +501,48 @@ const tests = [
             const exits = chain.slice(exitsAt);
             assert.match(exits, /- \*\*A workflow owns this run and lists its own `\/plan --mode=validate` step\*\* — that step decides/);
             // A workflow with no validate step runs the chain inside its plan step, so the answers are applied there, and closes without the review question
-            assert.match(exits, /When the workflow lists no validate step, run this chain inside the workflow too, so the answers are applied in this same step/);
-            assert.match(chain, /3\. \*\*Close\*\* — return the plan path and summary with the review and validation results; ask no further question here\. A standalone run then asks the one question in \[Standalone Close\]\(#standalone-close\)/);
+            assert.match(
+                exits,
+                /When the workflow lists no validate step, run this chain inside the workflow too, so the answers are applied in this same step/
+            );
+            assert.match(
+                chain,
+                /3\. \*\*Close\*\* — return the plan path and summary with the review and validation results; ask no further question here\. A standalone run then asks the one question in \[Standalone Close\]\(#standalone-close\)/
+            );
             // Inside a workflow the interview asks only open material decisions; with none open the plan records it and returns
-            assert.match(exits, /Inside a workflow the interview asks only the material decisions the plan leaves open that the run's decision log does not already hold; an unapproved Plan Gate \(`Human approval: REQUIRED`\) counts as one, and its question is the plan approval\. With none open, write `Validation: not needed — no open material decision`/);
+            assert.match(
+                exits,
+                /Inside a workflow the interview asks only the material decisions the plan leaves open that the run's decision log does not already hold; an unapproved Plan Gate \(`Human approval: REQUIRED`\) counts as one, and its question is the plan approval\. With none open, write `Validation: not needed — no open material decision`/
+            );
             // And no setting or decline skips the Plan Gate approval inside a workflow
-            assert.match(exits, /Inside a workflow plan step this exit skips the decision interview only: an unapproved Plan Gate still gets its one approval question/);
+            assert.match(
+                exits,
+                /Inside a workflow plan step this exit skips the decision interview only: an unapproved Plan Gate still gets its one approval question/
+            );
             assert.match(exits, /- \*\*Another skill runs plan creation as one of its own steps\*\* — that skill owns what follows the plan/);
-            assert.match(exits, /- \*\*The setting is `off`, or the request explicitly declines validation\*\* \(an answer of no to the `prompt` question counts\) — write `Validation: SKIPPED/);
+            assert.match(
+                exits,
+                /- \*\*The setting is `off`, or the request explicitly declines validation\*\* \(an answer of no to the `prompt` question counts\) — write `Validation: SKIPPED/
+            );
             // And a context with no user channel records PENDING in the plan, hands back, and the receiving session resumes the chain
             assert.match(exits, /write `Validation: PENDING` under `## Validation Summary` in `plan\.md`/);
             assert.match(exits, /`Validation: PENDING — run the Standalone Validation Chain of the plan skill on <plan-path>`[^\n]*never self-answer it/);
             // The receiving session starts the chain from its top, so the setting and the exits apply to it too
             assert.match(exits, /runs this chain from its first paragraph for that plan, so the setting and these exits apply/);
             // The off-or-declined exit is listed before the no-user exit: a sub-agent under `off` records SKIPPED, not PENDING
-            assert.ok(exits.indexOf('**The setting is `off`') < exits.indexOf('**This context cannot reach the user**'), 'off is checked before the no-user hand-back');
+            assert.ok(
+                exits.indexOf('**The setting is `off`') < exits.indexOf('**This context cannot reach the user**'),
+                'off is checked before the no-user hand-back'
+            );
             // And both invocation contexts agree with the chain
-            assert.match(text, /\*\*Workflow invocation:\*\*[^\n]*Run the validation interview only when the workflow lists no `\/plan --mode=validate` step of its own; when it does, that parent step owns validation/);
-            assert.match(text, /\*\*Standalone invocation:\*\*[^\n]*run the \[Self-Review Pass\]\(#self-review-pass\); then run the \[Standalone Validation Chain\]\(#standalone-validation-chain\) as the `plan\.validation\.mode` setting directs/);
+            assert.match(
+                text,
+                /\*\*Workflow invocation:\*\*[^\n]*Run the validation interview only when the workflow lists no `\/plan --mode=validate` step of its own; when it does, that parent step owns validation/
+            );
+            assert.match(
+                text,
+                /\*\*Standalone invocation:\*\*[^\n]*run the \[Self-Review Pass\]\(#self-review-pass\); then run the \[Standalone Validation Chain\]\(#standalone-validation-chain\) as the `plan\.validation\.mode` setting directs/
+            );
             assert.match(text, /the chain's own exits cover a plan that another skill creates as one of its steps/);
             // And review and execute stay separate invocations that creation never starts
             assert.match(text, /`--mode=review` and `--mode=execute` are separate invocations over an existing plan; plan creation never chains into them/);
@@ -462,12 +550,18 @@ const tests = [
             const validate = modeValidate();
             assert.match(validate, /1\. Chained from a standalone plan creation → use the plan path that creation just saved/);
             assert.match(validate, /\*\*Chained from a standalone plan creation:\*\* present none of the options below/);
-            assert.match(validate, /which applies the action items and closes with no further question\. A workflow plan step that runs the chain counts as chained/);
+            assert.match(
+                validate,
+                /which applies the action items and closes with no further question\. A workflow plan step that runs the chain counts as chained/
+            );
             assert.match(validate, /inside a workflow the setting never skips the Plan Gate approval question/);
             assert.match(validate, /decides only whether a standalone plan creation starts this interview/);
             assert.match(validate, /A direct `--mode=validate` invocation and a `\/plan --mode=validate` workflow step always run it/);
             assert.match(validate, /a workflow plan step that runs the chain counts as one \(`plan\/SKILL\.md` → Standalone Validation Chain/);
-            assert.ok(validate.includes("require('./.claude/hooks/lib/ck-config-loader.cjs').loadConfig().plan.validation"), 'the range is read as the effective merged value');
+            assert.ok(
+                validate.includes("require('./.claude/hooks/lib/ck-config-loader.cjs').loadConfig().plan.validation"),
+                'the range is read as the effective merged value'
+            );
             // A decision with one reading is recorded as an unasked assumption with its evidence, never as confirmed
             assert.match(validate, /is not asked: record it under `### Assumptions Not Asked` with that evidence/);
             assert.doesNotMatch(validate, /is not asked: record it under `### Confirmed Decisions`/);
@@ -476,19 +570,33 @@ const tests = [
             }
             // And the intake modes and the planner agent state the same hand-off
             for (const mode of ['mode-ci.md', 'mode-cro.md']) {
-                assert.match(read(SKILLS, 'plan', 'references', mode), /standalone follows the Standalone Validation Chain in `plan\/SKILL\.md`, setting and exits included, after its Self-Review Pass, and ends with the one Standalone Close question \(execute · deeper review · stop\)/);
+                assert.match(
+                    read(SKILLS, 'plan', 'references', mode),
+                    /standalone follows the Standalone Validation Chain in `plan\/SKILL\.md`, setting and exits included, after its Self-Review Pass, and ends with the one Standalone Close question \(execute · deeper review · stop\)/
+                );
             }
             const planner = read(REPO_ROOT, '.claude', 'agents', 'planner.md');
-            const owed = planner.split('\n').filter(l => /standalone (invocation )?follows the Standalone Validation Chain in `plan\/SKILL\.md`, setting and exits included/i.test(l));
+            const owed = planner
+                .split('\n')
+                .filter(l => /standalone (invocation )?follows the Standalone Validation Chain in `plan\/SKILL\.md`, setting and exits included/i.test(l));
             assert.equal(owed.length, 3, 'the summary, the handoff step and the closing reminder all point at the chain, with its setting and exits');
             assert.match(planner, /hand back `Validation: PENDING — run the Standalone Validation Chain of the plan skill on <plan-path>`/);
             assert.doesNotMatch(planner, /owes the (automatic )?validation interview/i, 'the planner never restates the chain without its setting');
             assert.doesNotMatch(planner, /Invoke only when the caller selected this gate/);
             // And a workflow plan step reviews its own plan too, unless its workflow lists its own plan review (round 5 M1):
             // the workflow branch of the invocation context, the post-save step and the planner agent all say so
-            assert.match(text, /\*\*Workflow invocation:\*\*[^\n]*Run the \[Self-Review Pass\]\(#self-review-pass\) unless the workflow lists its own `\/plan --mode=review` step/);
-            assert.match(text, /Persist the plan path and a short summary, then run the \[Self-Review Pass\]\(#self-review-pass\); its own list says when it is skipped/);
-            assert.match(planner, /workflow invocation runs the same Self-Review Pass unless the workflow lists its own `\/plan --mode=review` step, then returns to its parent/);
+            assert.match(
+                text,
+                /\*\*Workflow invocation:\*\*[^\n]*Run the \[Self-Review Pass\]\(#self-review-pass\) unless the workflow lists its own `\/plan --mode=review` step/
+            );
+            assert.match(
+                text,
+                /Persist the plan path and a short summary, then run the \[Self-Review Pass\]\(#self-review-pass\); its own list says when it is skipped/
+            );
+            assert.match(
+                planner,
+                /workflow invocation runs the same Self-Review Pass unless the workflow lists its own `\/plan --mode=review` step, then returns to its parent/
+            );
             // And a calling skill that plans as its own step keeps its own contract
             assert.match(read(SKILLS, 'project-config', 'SKILL.md'), /recon → `\/plan` → execute/);
         }

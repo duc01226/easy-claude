@@ -48,12 +48,7 @@ const {
 } = require('./lib/session-init-helpers.cjs');
 const { loadConfig } = require('./lib/ck-config-loader.cjs');
 const { SCAN_STALE_PATH, ensureProjectTmpDir } = require('./lib/ck-paths.cjs');
-const {
-    getConfiguredDocsIndexPath,
-    getDocsRoot,
-    loadProjectConfig,
-    getProjectConfigStatus
-} = require('./lib/project-config-loader.cjs');
+const { getConfiguredDocsIndexPath, getDocsRoot, loadProjectConfig, getProjectConfigStatus } = require('./lib/project-config-loader.cjs');
 const { resolveProjectRoot } = require('./lib/project-root.cjs');
 const { isHookEntryPoint } = require('./lib/hook-runner.cjs');
 
@@ -183,9 +178,10 @@ function main() {
         // existing/customized template. Mirrors the referenceDocs templatePath contract.
         try {
             const wp = (loadProjectConfig() || {}).workflowPatterns || {};
-            const templateDestRel = (typeof wp.featureDocTemplate === 'string' && wp.featureDocTemplate.trim() !== '')
-                ? wp.featureDocTemplate.trim()
-                : defaultFeatureDocTemplateDest();
+            const templateDestRel =
+                typeof wp.featureDocTemplate === 'string' && wp.featureDocTemplate.trim() !== ''
+                    ? wp.featureDocTemplate.trim()
+                    : defaultFeatureDocTemplateDest();
             const templateDest = getProjectTemplatePath(templateDestRel);
             const templateSource = getProjectTemplatePath(FEATURE_DOC_TEMPLATE_SOURCE);
             if (!fs.existsSync(templateDest) && fs.existsSync(templateSource) && fs.statSync(templateSource).isFile()) {
@@ -205,9 +201,7 @@ function main() {
         // Project config enforcement is handled by init-prompt-gate.cjs using a
         // host-supported UserPromptSubmit JSON block when verification fails.
         // Placeholder docs stay silent here; static docs and prompt gates own guidance.
-        const placeholderDocs = docsToEnsure
-            .filter(doc => getReferenceDocScanSkill(doc))
-            .filter(doc => isPlaceholderFile(getReferenceDocPath(doc)));
+        const placeholderDocs = docsToEnsure.filter(doc => getReferenceDocScanSkill(doc)).filter(doc => isPlaceholderFile(getReferenceDocPath(doc)));
 
         if (placeholderDocs.length > 0) {
             const skillList = placeholderDocs.map(d => `/${getReferenceDocScanSkill(d)}`).join(', ');

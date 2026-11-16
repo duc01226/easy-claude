@@ -64,7 +64,7 @@ const PY_DUMP = [
     '    except ValueError:',
     '        lsb = None',
     "    out[tag] = {'rcb': rcb, 'lsb': lsb}",
-    'sys.stdout.write(json.dumps(out))',
+    'sys.stdout.write(json.dumps(out))'
 ].join('\n');
 
 function makeTempDir(prefix) {
@@ -81,7 +81,7 @@ function isolatedEnv(tempRoot) {
         TMP: tempRoot,
         PYTHONDONTWRITEBYTECODE: '1',
         PYTHONPATH: undefined,
-        PYTHONSTARTUP: undefined,
+        PYTHONSTARTUP: undefined
     });
 }
 
@@ -89,13 +89,23 @@ let pythonCache;
 /** `{ command, args }` for a working Python 3, or null. Resolved once per process. */
 function resolvePython() {
     if (pythonCache !== undefined) return pythonCache;
-    const candidates = process.platform === 'win32'
-        ? [['py', ['-3']], ['python', []], ['python3', []]]
-        : [['python3', []], ['python', []]];
+    const candidates =
+        process.platform === 'win32'
+            ? [
+                  ['py', ['-3']],
+                  ['python', []],
+                  ['python3', []]
+              ]
+            : [
+                  ['python3', []],
+                  ['python', []]
+              ];
     pythonCache = null;
     for (const [command, args] of candidates) {
         const probe = spawnSync(command, [...args, '-c', 'import sys; sys.exit(0 if sys.version_info[0] == 3 else 1)'], {
-            encoding: 'utf8', timeout: 15000, windowsHide: true,
+            encoding: 'utf8',
+            timeout: 15000,
+            windowsHide: true
         });
         if (!probe.error && probe.status === 0) {
             pythonCache = { command, args };
@@ -116,7 +126,7 @@ function pythonBodies(projectRoot, tags, tempRoot) {
         encoding: 'utf8',
         timeout: 60000,
         windowsHide: true,
-        env: isolatedEnv(tempRoot),
+        env: isolatedEnv(tempRoot)
     });
     assert.equal(result.status, 0, `python readers failed (exit ${result.status}): ${result.stderr || result.error}`);
     return JSON.parse(result.stdout);
@@ -157,14 +167,17 @@ function fixtureCanonical() {
         '> Delta ends the file with a trailing separator.',
         '',
         '---',
-        '',
+        ''
     ].join('\n');
 }
 
 test('fixture: the JS reader and the Python writer end every block at the same line (LF and CRLF)', { skip: NO_PYTHON }, () => {
     const tempRoot = makeTempDir('ck-sync-reader-parity-');
     try {
-        for (const [label, eol] of [['LF', '\n'], ['CRLF', '\r\n']]) {
+        for (const [label, eol] of [
+            ['LF', '\n'],
+            ['CRLF', '\r\n']
+        ]) {
             // Given a temp project carrying the shipped Python readers and a canonical file with
             // an HTML comment after a separator, a separator with trailing blanks, a heading with no
             // separator before it and a trailing separator at EOF
@@ -189,9 +202,17 @@ test('fixture: the JS reader and the Python writer end every block at the same l
                 assert.equal(typeof py[tag].rcb, 'string', `${label} ${tag}: the Python writer resolves the block`);
                 assert.equal(extractSyncBody(markdown, tag), py[tag].rcb, `${label} ${tag}: JS and Python bodies differ`);
             }
-            assert.equal(extractSyncBody(markdown, 'alpha:reminder'), '**Alpha** reminder.', `${label}: a comment after the separator is not part of the block`);
+            assert.equal(
+                extractSyncBody(markdown, 'alpha:reminder'),
+                '**Alpha** reminder.',
+                `${label}: a comment after the separator is not part of the block`
+            );
             assert.equal(extractSyncBody(markdown, 'gamma'), '> Gamma body with no blank line around its separator.', `${label}: a heading ends the block`);
-            assert.equal(extractSyncBody(markdown, 'delta'), '> Delta ends the file with a trailing separator.', `${label}: the last block drops its trailing separator`);
+            assert.equal(
+                extractSyncBody(markdown, 'delta'),
+                '> Delta ends the file with a trailing separator.',
+                `${label}: the last block drops its trailing separator`
+            );
         }
     } finally {
         removeTempDir(tempRoot);
@@ -213,7 +234,8 @@ test('corpus: all three readers agree on every heading of the shipped canonical 
         const mismatches = [];
         for (const tag of tags) {
             const js = extractSyncBody(markdown, tag);
-            if (js !== py[tag].rcb) mismatches.push(`${tag}: extractSyncBody (${js && js.length} chars) != read_canonical_block (${py[tag].rcb && py[tag].rcb.length} chars)`);
+            if (js !== py[tag].rcb)
+                mismatches.push(`${tag}: extractSyncBody (${js && js.length} chars) != read_canonical_block (${py[tag].rcb && py[tag].rcb.length} chars)`);
             if (py[tag].lsb !== py[tag].rcb) mismatches.push(`${tag}: load_sync_body != read_canonical_block`);
         }
         assert.deepEqual(mismatches, [], `canonical readers disagree:\n${mismatches.join('\n')}`);

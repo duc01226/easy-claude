@@ -104,8 +104,7 @@ function withFixture(refFiles, fn) {
         }
 
         // git grep needs a repository; --untracked means no commit is required.
-        const git = (...args) =>
-            spawnSync('git', args, { cwd: root, encoding: 'utf-8', windowsHide: true, env: fixtureEnv() });
+        const git = (...args) => spawnSync('git', args, { cwd: root, encoding: 'utf-8', windowsHide: true, env: fixtureEnv() });
         git('init', '--quiet');
         git('config', 'user.email', 'fixture@example.invalid');
         git('config', 'user.name', 'fixture');
@@ -154,11 +153,12 @@ function fixtureEnv() {
 }
 
 function runGc(root, extraArgs = [], name = SKILL) {
-    return spawnSync(
-        process.execPath,
-        [path.join(root, '.claude', 'scripts', 'skill-gc.cjs'), name, ...extraArgs],
-        { cwd: root, encoding: 'utf-8', windowsHide: true, env: fixtureEnv() }
-    );
+    return spawnSync(process.execPath, [path.join(root, '.claude', 'scripts', 'skill-gc.cjs'), name, ...extraArgs], {
+        cwd: root,
+        encoding: 'utf-8',
+        windowsHide: true,
+        env: fixtureEnv()
+    });
 }
 
 // Mode 000 is not a read barrier for root, and Windows does not enforce the read bit this way.
@@ -180,68 +180,47 @@ const IS_ROOT = typeof process.getuid === 'function' && process.getuid() === 0;
 function assertBlockedNaming(result, expectedPath, context) {
     const out = `${result.stdout}${result.stderr}`;
     assertEqual(result.status, 1, `${context} — expected exit 1 (BLOCKED). Output: ${out}`);
-    assertTrue(
-        out.includes('[BLOCKED'),
-        `${context} — expected a BLOCKED decision, not a crash or a collection. Output: ${out}`
-    );
-    assertTrue(
-        /^Summary: READY=/m.test(out),
-        `${context} — the run must reach its summary; a thrown diagnostic never does. Output: ${out}`
-    );
-    assertTrue(
-        out.includes(expectedPath),
-        `${context} — the block must name ${expectedPath}, proving the reference parsed. Output: ${out}`
-    );
+    assertTrue(out.includes('[BLOCKED'), `${context} — expected a BLOCKED decision, not a crash or a collection. Output: ${out}`);
+    assertTrue(/^Summary: READY=/m.test(out), `${context} — the run must reach its summary; a thrown diagnostic never does. Output: ${out}`);
+    assertTrue(out.includes(expectedPath), `${context} — the block must name ${expectedPath}, proving the reference parsed. Output: ${out}`);
 }
 
 const tests = [
     {
         name: '[skill-gc] G1 a referenced skill is blocked, not deleted',
         fn: () => {
-            withFixture(
-                { 'docs/guide.md': `Read the ${SKILL} skill before editing.\n` },
-                ({ root, skillDir }) => {
-                    const dry = runGc(root);
-                    assertBlockedNaming(
-                        dry,
-                        'docs/guide.md',
-                        'A live reference must block. A collection here is the fail-open this ' +
-                            'suite exists for: the sweep found nothing and the skill read as ' +
-                            'unreferenced, which on Apple git was the behaviour of the whole script'
-                    );
+            withFixture({ 'docs/guide.md': `Read the ${SKILL} skill before editing.\n` }, ({ root, skillDir }) => {
+                const dry = runGc(root);
+                assertBlockedNaming(
+                    dry,
+                    'docs/guide.md',
+                    'A live reference must block. A collection here is the fail-open this ' +
+                        'suite exists for: the sweep found nothing and the skill read as ' +
+                        'unreferenced, which on Apple git was the behaviour of the whole script'
+                );
 
-                    // The gate must also hold under --apply, which is the destructive path.
-                    const applied = runGc(root, ['--apply']);
-                    assertBlockedNaming(applied, 'docs/guide.md', '--apply must respect the same block');
-                    assertTrue(
-                        fs.existsSync(path.join(skillDir, 'SKILL.md')),
-                        'A referenced skill must survive --apply.'
-                    );
-                }
-            );
+                // The gate must also hold under --apply, which is the destructive path.
+                const applied = runGc(root, ['--apply']);
+                assertBlockedNaming(applied, 'docs/guide.md', '--apply must respect the same block');
+                assertTrue(fs.existsSync(path.join(skillDir, 'SKILL.md')), 'A referenced skill must survive --apply.');
+            });
         }
     },
     {
         name: '[skill-gc] G2 a substring-only mention is not a reference',
         fn: () => {
-            withFixture(
-                { 'docs/guide.md': `See ${SUPERSTRING}, which is a different skill.\n` },
-                ({ root, skillDir }) => {
-                    const applied = runGc(root, ['--apply']);
-                    assertEqual(
-                        applied.status,
-                        0,
-                        'A longer identifier that merely CONTAINS the name is not a reference. ' +
-                            'The fix moved the word boundary from the git pattern into ' +
-                            'JavaScript; if it were dropped instead of moved, --fixed-strings ' +
-                            `would match here and block forever. stdout: ${applied.stdout}${applied.stderr}`
-                    );
-                    assertFalse(
-                        fs.existsSync(skillDir),
-                        'An unreferenced, past-due skill is collected.'
-                    );
-                }
-            );
+            withFixture({ 'docs/guide.md': `See ${SUPERSTRING}, which is a different skill.\n` }, ({ root, skillDir }) => {
+                const applied = runGc(root, ['--apply']);
+                assertEqual(
+                    applied.status,
+                    0,
+                    'A longer identifier that merely CONTAINS the name is not a reference. ' +
+                        'The fix moved the word boundary from the git pattern into ' +
+                        'JavaScript; if it were dropped instead of moved, --fixed-strings ' +
+                        `would match here and block forever. stdout: ${applied.stdout}${applied.stderr}`
+                );
+                assertFalse(fs.existsSync(skillDir), 'An unreferenced, past-due skill is collected.');
+            });
         }
     },
     {
@@ -252,11 +231,7 @@ const tests = [
             // git reports `Binary file docs/blob.bin matches` — a line whose first
             // field is not a path, which the scope filter drops. The reference would
             // be invisible and the deletion would proceed.
-            const blob = Buffer.concat([
-                Buffer.from(`ref: ${SKILL}\n`, 'utf8'),
-                Buffer.from([0x00]),
-                Buffer.from('trailing\n', 'utf8')
-            ]);
+            const blob = Buffer.concat([Buffer.from(`ref: ${SKILL}\n`, 'utf8'), Buffer.from([0x00]), Buffer.from('trailing\n', 'utf8')]);
             withFixture({}, ({ root, skillDir }) => {
                 fs.writeFileSync(path.join(root, 'docs', 'blob.bin'), blob);
                 const applied = runGc(root, ['--apply']);
@@ -266,16 +241,10 @@ const tests = [
                     'A name inside a binary-classified file is still a reference; a collection ' +
                         'here means the sweep silently skipped a file that mentions the skill'
                 );
-                assertTrue(
-                    fs.existsSync(path.join(skillDir, 'SKILL.md')),
-                    'The skill must survive a reference it could not display.'
-                );
+                assertTrue(fs.existsSync(path.join(skillDir, 'SKILL.md')), 'The skill must survive a reference it could not display.');
                 // Exit 1 alone would also be satisfied by a crash, which is survival
                 // for the wrong reason. The report must NAME the blocking file.
-                assertTrue(
-                    `${applied.stdout}${applied.stderr}`.includes('docs/blob.bin'),
-                    'The block must be attributed to the binary file, not an error.'
-                );
+                assertTrue(`${applied.stdout}${applied.stderr}`.includes('docs/blob.bin'), 'The block must be attributed to the binary file, not an error.');
             });
         }
     },
@@ -285,18 +254,11 @@ const tests = [
             // Positive control. G1-G3 assert that the sweep BLOCKS; without this they
             // would pass equally against a script that blocks unconditionally, so the
             // suite would be green while the tool did nothing useful.
-            withFixture(
-                { 'docs/guide.md': 'Nothing here names the fixture skill.\n' },
-                ({ root, skillDir }) => {
-                    const applied = runGc(root, ['--apply']);
-                    assertEqual(
-                        applied.status,
-                        0,
-                        `An unreferenced, past-due skill must be collected. stdout: ${applied.stdout}${applied.stderr}`
-                    );
-                    assertFalse(fs.existsSync(skillDir), 'The canonical skill directory is removed.');
-                }
-            );
+            withFixture({ 'docs/guide.md': 'Nothing here names the fixture skill.\n' }, ({ root, skillDir }) => {
+                const applied = runGc(root, ['--apply']);
+                assertEqual(applied.status, 0, `An unreferenced, past-due skill must be collected. stdout: ${applied.stdout}${applied.stderr}`);
+                assertFalse(fs.existsSync(skillDir), 'The canonical skill directory is removed.');
+            });
         }
     },
     {
@@ -306,23 +268,13 @@ const tests = [
             // starting with an include dir and every line fails the scope gate: refs
             // come back empty and --apply deletes a referenced skill. Reproduced
             // end-to-end before --no-color was added.
-            withFixture(
-                { 'docs/guide.md': `Read the ${SKILL} skill.\n` },
-                ({ root, skillDir, git }) => {
-                    git('config', 'color.grep', 'always');
-                    git('config', 'color.ui', 'always');
-                    const applied = runGc(root, ['--apply']);
-                    assertBlockedNaming(
-                        applied,
-                        'docs/guide.md',
-                        'A colourised git must not turn a reference into a deletion'
-                    );
-                    assertTrue(
-                        fs.existsSync(path.join(skillDir, 'SKILL.md')),
-                        'The referenced skill survives under color.grep=always.'
-                    );
-                }
-            );
+            withFixture({ 'docs/guide.md': `Read the ${SKILL} skill.\n` }, ({ root, skillDir, git }) => {
+                git('config', 'color.grep', 'always');
+                git('config', 'color.ui', 'always');
+                const applied = runGc(root, ['--apply']);
+                assertBlockedNaming(applied, 'docs/guide.md', 'A colourised git must not turn a reference into a deletion');
+                assertTrue(fs.existsSync(path.join(skillDir, 'SKILL.md')), 'The referenced skill survives under color.grep=always.');
+            });
         }
     },
     {
@@ -334,10 +286,7 @@ const tests = [
             withFixture({ 'docs/ræf.md': `Read the ${SKILL} skill.\n` }, ({ root, skillDir }) => {
                 const applied = runGc(root, ['--apply']);
                 assertBlockedNaming(applied, 'docs/ræf.md', 'A non-ASCII path is still a reference');
-                assertTrue(
-                    fs.existsSync(path.join(skillDir, 'SKILL.md')),
-                    'The referenced skill survives a path git would quote.'
-                );
+                assertTrue(fs.existsSync(path.join(skillDir, 'SKILL.md')), 'The referenced skill survives a path git would quote.');
             });
         }
     },
@@ -351,15 +300,8 @@ const tests = [
             // gate saw a truncated prefix. -z removes the ambiguity entirely.
             withFixture({ 'docs/adr:foo.md': `Read the ${SKILL} skill.\n` }, ({ root, skillDir }) => {
                 const applied = runGc(root, ['--apply']);
-                assertBlockedNaming(
-                    applied,
-                    'docs/adr:foo.md',
-                    'A colon in the path is not a field separator'
-                );
-                assertTrue(
-                    fs.existsSync(path.join(skillDir, 'SKILL.md')),
-                    'The referenced skill survives a colon in the path.'
-                );
+                assertBlockedNaming(applied, 'docs/adr:foo.md', 'A colon in the path is not a field separator');
+                assertTrue(fs.existsSync(path.join(skillDir, 'SKILL.md')), 'The referenced skill survives a colon in the path.');
             });
         }
     },
@@ -376,32 +318,26 @@ const tests = [
             // anything, so every reference file was untracked and the working-tree walk
             // found them all. This one commits the ignored carrier, which is the state
             // the real repository is in.
-            withFixture(
-                { '.gitignore': 'CLAUDE.md\n', 'CLAUDE.md': `Read the ${SKILL} skill.\n` },
-                ({ root, skillDir, git }) => {
-                    git('add', '-f', '.gitignore', 'CLAUDE.md');
-                    // gpgsign and a global core.hooksPath would otherwise reach into the
-                    // developer's own configuration from inside a throwaway repository.
-                    git('-c', 'commit.gpgsign=false', 'commit', '--quiet', '--no-verify', '-m', 'fixture');
-                    const tracked = git('ls-files', '--', 'CLAUDE.md').stdout.trim();
-                    assertEqual(tracked, 'CLAUDE.md', 'Precondition: the carrier is tracked.');
-                    const ignored = git('check-ignore', '--no-index', '--', 'CLAUDE.md').stdout.trim();
-                    assertEqual(ignored, 'CLAUDE.md', 'Precondition: the carrier is also ignored.');
+            withFixture({ '.gitignore': 'CLAUDE.md\n', 'CLAUDE.md': `Read the ${SKILL} skill.\n` }, ({ root, skillDir, git }) => {
+                git('add', '-f', '.gitignore', 'CLAUDE.md');
+                // gpgsign and a global core.hooksPath would otherwise reach into the
+                // developer's own configuration from inside a throwaway repository.
+                git('-c', 'commit.gpgsign=false', 'commit', '--quiet', '--no-verify', '-m', 'fixture');
+                const tracked = git('ls-files', '--', 'CLAUDE.md').stdout.trim();
+                assertEqual(tracked, 'CLAUDE.md', 'Precondition: the carrier is tracked.');
+                const ignored = git('check-ignore', '--no-index', '--', 'CLAUDE.md').stdout.trim();
+                assertEqual(ignored, 'CLAUDE.md', 'Precondition: the carrier is also ignored.');
 
-                    const applied = runGc(root, ['--apply']);
-                    assertBlockedNaming(
-                        applied,
-                        'CLAUDE.md',
-                        'A tracked-but-ignored file is still a reference; a collection here is ' +
-                            'the fail-open, with the index arm missing and the working-tree walk ' +
-                            'excluding the only carrier'
-                    );
-                    assertTrue(
-                        fs.existsSync(path.join(skillDir, 'SKILL.md')),
-                        'The referenced skill survives when its only carrier is gitignored.'
-                    );
-                }
-            );
+                const applied = runGc(root, ['--apply']);
+                assertBlockedNaming(
+                    applied,
+                    'CLAUDE.md',
+                    'A tracked-but-ignored file is still a reference; a collection here is ' +
+                        'the fail-open, with the index arm missing and the working-tree walk ' +
+                        'excluding the only carrier'
+                );
+                assertTrue(fs.existsSync(path.join(skillDir, 'SKILL.md')), 'The referenced skill survives when its only carrier is gitignored.');
+            });
         }
     },
     {
@@ -425,8 +361,7 @@ const tests = [
                 assertEqual(
                     applied.status,
                     0,
-                    'An archived plan naming a retired skill is not a live reference. ' +
-                        `stdout: ${applied.stdout}${applied.stderr}`
+                    'An archived plan naming a retired skill is not a live reference. ' + `stdout: ${applied.stdout}${applied.stderr}`
                 );
                 assertFalse(fs.existsSync(skillDir), 'The archived mention does not save the skill.');
             });
@@ -443,11 +378,7 @@ const tests = [
             //  - a `plans` PATH SEGMENT anywhere else (`.gitignore`'s bare `plans/` matches that way);
             //  - a prefix match without the trailing `/` (`plans-live.md` shares the `plans` prefix).
             withFixture({ 'docs/other/plans/live.md': body }, ({ root }) => {
-                assertBlockedNaming(
-                    runGc(root, ['--apply']),
-                    'docs/other/plans/live.md',
-                    'A `plans` directory elsewhere is not the archive: it must block'
-                );
+                assertBlockedNaming(runGc(root, ['--apply']), 'docs/other/plans/live.md', 'A `plans` directory elsewhere is not the archive: it must block');
             });
             withFixture({ 'docs/superpowers/plans-live.md': body }, ({ root }) => {
                 assertBlockedNaming(
@@ -479,15 +410,8 @@ const tests = [
                 // Remove it from the worktree ONLY — the index entry survives, which is
                 // the state a sparse checkout leaves behind.
                 fs.rmSync(path.join(root, 'CLAUDE.md'));
-                assertEqual(
-                    git('ls-files', '--', 'CLAUDE.md').stdout.trim(),
-                    'CLAUDE.md',
-                    'Precondition: the reference root is still tracked.'
-                );
-                assertFalse(
-                    fs.existsSync(path.join(root, 'CLAUDE.md')),
-                    'Precondition: the reference root is absent from the working tree.'
-                );
+                assertEqual(git('ls-files', '--', 'CLAUDE.md').stdout.trim(), 'CLAUDE.md', 'Precondition: the reference root is still tracked.');
+                assertFalse(fs.existsSync(path.join(root, 'CLAUDE.md')), 'Precondition: the reference root is absent from the working tree.');
 
                 const dry = runGc(root);
                 assertTrue(
@@ -503,14 +427,8 @@ const tests = [
                         'no carrier was readable, so the skill read as unreferenced and was ' +
                         `deleted on the strength of a sweep that never looked. stdout: ${applied.stdout}${applied.stderr}`
                 );
-                assertTrue(
-                    applied.stderr.includes('Refusing --apply'),
-                    `The refusal must be explicit, not an incidental crash. stderr: ${applied.stderr}`
-                );
-                assertTrue(
-                    fs.existsSync(path.join(skillDir, 'SKILL.md')),
-                    'No skill may be deleted while a declared reference root went unswept.'
-                );
+                assertTrue(applied.stderr.includes('Refusing --apply'), `The refusal must be explicit, not an incidental crash. stderr: ${applied.stderr}`);
+                assertTrue(fs.existsSync(path.join(skillDir, 'SKILL.md')), 'No skill may be deleted while a declared reference root went unswept.');
             });
         }
     },
@@ -527,19 +445,9 @@ const tests = [
                     const applied = runGc(root, ['--apply'], spelling);
                     // Exit 2 + "skill not found" is the refusal under test. A crash (exit 1) would also leave the
                     // folder in place, so it must not be able to satisfy this row.
-                    assertEqual(
-                        applied.status,
-                        2,
-                        `Spelling "${spelling}" must be refused as an unknown skill. stdout: ${applied.stdout}${applied.stderr}`
-                    );
-                    assertTrue(
-                        /skill not found/.test(applied.stderr),
-                        `The refusal must name the unknown skill. stderr: ${applied.stderr}`
-                    );
-                    assertTrue(
-                        fs.existsSync(path.join(skillDir, 'SKILL.md')),
-                        `Spelling "${spelling}" deleted a skill that a document still references.`
-                    );
+                    assertEqual(applied.status, 2, `Spelling "${spelling}" must be refused as an unknown skill. stdout: ${applied.stdout}${applied.stderr}`);
+                    assertTrue(/skill not found/.test(applied.stderr), `The refusal must name the unknown skill. stderr: ${applied.stderr}`);
+                    assertTrue(fs.existsSync(path.join(skillDir, 'SKILL.md')), `Spelling "${spelling}" deleted a skill that a document still references.`);
                 });
             }
         }
@@ -610,16 +518,13 @@ const tests = [
                         /could not be read|Refusing to decide/.test(applied.stderr),
                         `The refusal must name the read failure. stderr: ${applied.stderr}`
                     );
-                    assertTrue(
-                        fs.existsSync(path.join(skillDir, 'SKILL.md')),
-                        'The skill survives a sweep that could not read part of the tree.'
-                    );
+                    assertTrue(fs.existsSync(path.join(skillDir, 'SKILL.md')), 'The skill survives a sweep that could not read part of the tree.');
                 } finally {
                     fs.chmodSync(carrier, 0o600);
                 }
             });
         }
-    },
+    }
 ];
 
 module.exports = {

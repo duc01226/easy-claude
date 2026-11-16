@@ -14,12 +14,15 @@ Fetch pins source without inference. Configure makes one native account-backed g
 function parseArgs(argv) {
     const [command, ...args] = argv;
     if (!command || ['help', '--help', '-h'].includes(command)) return { command: 'help' };
-    const allowed = command === 'fetch' ? ['recipe', 'framework', 'out'] : command === 'configure' ? ['template', 'runtime', 'host', 'model', 'framework'] : null;
+    const allowed =
+        command === 'fetch' ? ['recipe', 'framework', 'out'] : command === 'configure' ? ['template', 'runtime', 'host', 'model', 'framework'] : null;
     if (!allowed) throw new Error(HELP);
     const options = { command };
     for (let index = 0; index < args.length; index += 2) {
-        const key = args[index].replace(/^--/, ''), value = args[index + 1];
-        if (!args[index].startsWith('--') || !allowed.includes(key) || !value || value.startsWith('--') || options[key]) throw new Error('Invalid or duplicate template option');
+        const key = args[index].replace(/^--/, ''),
+            value = args[index + 1];
+        if (!args[index].startsWith('--') || !allowed.includes(key) || !value || value.startsWith('--') || options[key])
+            throw new Error('Invalid or duplicate template option');
         options[key] = value;
     }
     if (command === 'fetch' ? !options.recipe : !options.template) throw new Error('Missing required template option');
@@ -29,12 +32,24 @@ function parseArgs(argv) {
 
 async function main(argv = process.argv.slice(2), { cwd = process.cwd(), log = console.log } = {}) {
     const options = parseArgs(argv);
-    if (options.command === 'help') { log(HELP); return 0; }
+    if (options.command === 'help') {
+        log(HELP);
+        return 0;
+    }
     const frameworkRoot = options.framework ? path.resolve(cwd, options.framework) : path.resolve(__dirname, '../../../..');
-    const result = options.command === 'fetch'
-        ? templates.fetchTemplate({ recipeFile: path.resolve(cwd, options.recipe), frameworkRoot, outputRoot: outputDirectory(cwd, options.out || 'tmp/framework-benchmark-templates') })
-        : await templates.configureTemplate({ templateRoot: path.resolve(cwd, options.template), frameworkRoot,
-            runtimeFile: options.runtime ? path.resolve(cwd, options.runtime) : null, nativeOptions: { host: options.host, model: options.model } });
+    const result =
+        options.command === 'fetch'
+            ? templates.fetchTemplate({
+                  recipeFile: path.resolve(cwd, options.recipe),
+                  frameworkRoot,
+                  outputRoot: outputDirectory(cwd, options.out || 'tmp/framework-benchmark-templates')
+              })
+            : await templates.configureTemplate({
+                  templateRoot: path.resolve(cwd, options.template),
+                  frameworkRoot,
+                  runtimeFile: options.runtime ? path.resolve(cwd, options.runtime) : null,
+                  nativeOptions: { host: options.host, model: options.model }
+              });
     log(JSON.stringify({ root: result.root, status: result.manifest.status, manifest: path.join(result.root, 'template.json') }, null, 2));
     return 0;
 }
@@ -43,6 +58,13 @@ if (isInvokedAsScript(process.argv[1], __filename)) {
     let completion;
     installSignalHandlers(() => completion);
     completion = main();
-    completion.then(code => { process.exitCode = code; }).catch(error => { process.stderr.write(error.message + '\n'); process.exitCode = 1; });
+    completion
+        .then(code => {
+            process.exitCode = code;
+        })
+        .catch(error => {
+            process.stderr.write(error.message + '\n');
+            process.exitCode = 1;
+        });
 }
 module.exports = { HELP, parseArgs, main };

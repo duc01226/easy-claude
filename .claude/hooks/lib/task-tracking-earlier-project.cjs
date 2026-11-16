@@ -47,7 +47,11 @@ function memberIndex(records, artifactsRoot) {
         const listed = record.tracking?.[MAPPING.memberField];
         const purpose = record.tracking?.[MAPPING.purposeField];
         const group = { id: record.id, kind: record.kind, purpose: typeof purpose === 'string' ? purpose : null, from: slashed(record.ownerPath) };
-        groups.push({ ...group, to: destination(artifactsRoot, group), members: [...new Set((Array.isArray(listed) ? listed : []).filter(id => typeof id === 'string'))] });
+        groups.push({
+            ...group,
+            to: destination(artifactsRoot, group),
+            members: [...new Set((Array.isArray(listed) ? listed : []).filter(id => typeof id === 'string'))]
+        });
     }
     return { groups: groups.sort((a, b) => byText(a.id, b.id) || byText(a.from, b.from)) };
 }
@@ -88,14 +92,25 @@ function mapEarlierProject({ records, artifactsRoot, index = memberIndex(records
     // An area's level comes from its purpose. One that would sit under a deeper area is left unset: an unset level constrains nothing.
     const rank = level => LEVELS.indexOf(level);
     const proposed = new Map();
-    for (const group of groups.values()) if (becomes(group.id) === AREA_KIND) {
-        const nested = group.purpose === MAPPING.nesting.purpose && listedBy.get(group.id).some(parent => groups.get(parent).purpose === MAPPING.nesting.purpose);
-        proposed.set(group.id, nested ? MAPPING.nesting.level : Object.hasOwn(MAPPING.purposeLevels, group.purpose) ? MAPPING.purposeLevels[group.purpose] : null);
-    }
+    for (const group of groups.values())
+        if (becomes(group.id) === AREA_KIND) {
+            const nested =
+                group.purpose === MAPPING.nesting.purpose && listedBy.get(group.id).some(parent => groups.get(parent).purpose === MAPPING.nesting.purpose);
+            proposed.set(
+                group.id,
+                nested ? MAPPING.nesting.level : Object.hasOwn(MAPPING.purposeLevels, group.purpose) ? MAPPING.purposeLevels[group.purpose] : null
+            );
+        }
     const levels = new Map();
     const levelsUnset = [];
     for (const [id, level] of proposed) {
-        const deeper = level === null ? [] : listedBy.get(id).filter(parent => proposed.get(parent) && rank(proposed.get(parent)) > rank(level)).sort(byText);
+        const deeper =
+            level === null
+                ? []
+                : listedBy
+                      .get(id)
+                      .filter(parent => proposed.get(parent) && rank(proposed.get(parent)) > rank(level))
+                      .sort(byText);
         levels.set(id, deeper.length ? null : level);
         if (deeper.length) levelsUnset.push({ itemId: id, level, parentId: deeper[0], parentLevel: proposed.get(deeper[0]) });
     }
@@ -127,8 +142,14 @@ function mapEarlierProject({ records, artifactsRoot, index = memberIndex(records
     for (const group of groups.values()) {
         const relation = becomes(group.id) === AREA_KIND ? AREA_TAG : INITIATIVE_TAG;
         for (const member of group.members) {
-            if (!known(member)) { problems.push({ code: 'MEMBER_NOT_FOUND', groupId: group.id, memberId: member }); continue; }
-            if (!groups.has(member)) { gain(member, relation, group.id); continue; }
+            if (!known(member)) {
+                problems.push({ code: 'MEMBER_NOT_FOUND', groupId: group.id, memberId: member });
+                continue;
+            }
+            if (!groups.has(member)) {
+                gain(member, relation, group.id);
+                continue;
+            }
             const alike = becomes(member) === becomes(group.id);
             if (alike) gain(member, relation, group.id);
             // An area already holds what is beneath the areas under it. An initiative holds only what links to it
@@ -145,46 +166,103 @@ function mapEarlierProject({ records, artifactsRoot, index = memberIndex(records
         // Already written in the current terms by the migration this mapping serves.
         if (record.storedVersion === BASE_VERSION) continue;
         const group = isGroupKind(record.kind) ? groups.get(record.id) : null;
-        if (isGroupKind(record.kind) && !group) { problems.push({ code: 'UNINDEXED_GROUP', itemId: record.id, path: record.ownerPath }); continue; }
-        if (group && group.purpose !== null && !EARLIER.groupRoles.includes(group.purpose)) problems.push({ code: 'INVALID_RECORD', itemId: record.id, reason: 'Group purpose is not one the earlier vocabulary has' });
+        if (isGroupKind(record.kind) && !group) {
+            problems.push({ code: 'UNINDEXED_GROUP', itemId: record.id, path: record.ownerPath });
+            continue;
+        }
+        if (group && group.purpose !== null && !EARLIER.groupRoles.includes(group.purpose))
+            problems.push({ code: 'INVALID_RECORD', itemId: record.id, reason: 'Group purpose is not one the earlier vocabulary has' });
         const t = record.tracking;
-        if (!group && Array.isArray(t?.[MAPPING.memberField]) && t[MAPPING.memberField].length) problems.push({ code: 'INVALID_RECORD', itemId: record.id, reason: 'A record that is not a group holds a member list' });
-        if (group && t && t[MAPPING.memberField] !== undefined && (!Array.isArray(t[MAPPING.memberField]) || t[MAPPING.memberField].some(id => typeof id !== 'string'))) problems.push({ code: 'INVALID_RECORD', itemId: record.id, reason: 'Member list is malformed' });
+        if (!group && Array.isArray(t?.[MAPPING.memberField]) && t[MAPPING.memberField].length)
+            problems.push({ code: 'INVALID_RECORD', itemId: record.id, reason: 'A record that is not a group holds a member list' });
+        if (
+            group &&
+            t &&
+            t[MAPPING.memberField] !== undefined &&
+            (!Array.isArray(t[MAPPING.memberField]) || t[MAPPING.memberField].some(id => typeof id !== 'string'))
+        )
+            problems.push({ code: 'INVALID_RECORD', itemId: record.id, reason: 'Member list is malformed' });
         const kind = group ? groupKind(group.purpose) : record.kind;
         const status = currentState(kind, record.data.status);
         const tags = gained.get(record.id);
         const added = Object.fromEntries(TAGS.map(relation => [relation, [...(tags?.[relation] || [])].sort(byText)]));
         // What the current vocabulary adds for the kind: an area's level, an initiative's type.
-        const owned = { ...(kind === AREA_KIND && group ? { level: levels.get(record.id) ?? null } : {}),
-            ...(kind === INITIATIVE_KIND ? { type: group ? MAPPING.types.group : MAPPING.types.proposal } : {}) };
+        const owned = {
+            ...(kind === AREA_KIND && group ? { level: levels.get(record.id) ?? null } : {}),
+            ...(kind === INITIATIVE_KIND ? { type: group ? MAPPING.types.group : MAPPING.types.proposal } : {})
+        };
         if (!t) {
             // A record without tracking metadata gains none. One that would gain a link cannot carry it, which is named.
             const links = TAGS.flatMap(relation => added[relation].map(itemId => ({ relation, itemId })));
-            if (links.length) problems.push({ code: 'MEMBER_WITHOUT_TRACKING', itemId: record.id, path: record.ownerPath, groupIds: [...new Set(links.map(link => link.itemId))].sort(byText) });
-            conversions.set(record, { kind, status, tracking: null, added, uncarried: links.length ? { links, ...(kind === INITIATIVE_KIND ? owned : {}) } : null, group });
+            if (links.length)
+                problems.push({
+                    code: 'MEMBER_WITHOUT_TRACKING',
+                    itemId: record.id,
+                    path: record.ownerPath,
+                    groupIds: [...new Set(links.map(link => link.itemId))].sort(byText)
+                });
+            conversions.set(record, {
+                kind,
+                status,
+                tracking: null,
+                added,
+                uncarried: links.length ? { links, ...(kind === INITIATIVE_KIND ? owned : {}) } : null,
+                group
+            });
             continue;
         }
         const links = Array.isArray(t.links) ? t.links : [];
         const has = (relation, itemId) => links.some(link => link?.relation === relation && link.itemId === itemId);
         const more = TAGS.flatMap(relation => added[relation].filter(id => !has(relation, id)).map(itemId => ({ relation, itemId })));
-        if (more.length && t.links !== undefined && !Array.isArray(t.links)) problems.push({ code: 'INVALID_RECORD', itemId: record.id, reason: 'Links are malformed' });
+        if (more.length && t.links !== undefined && !Array.isArray(t.links))
+            problems.push({ code: 'INVALID_RECORD', itemId: record.id, reason: 'Links are malformed' });
         const { [MAPPING.memberField]: listed, [MAPPING.purposeField]: purpose, ...kept } = t;
-        const tracking = { ...kept, schemaVersion: BASE_VERSION, kind,
+        const tracking = {
+            ...kept,
+            schemaVersion: BASE_VERSION,
+            kind,
             ...(more.length && (t.links === undefined || Array.isArray(t.links)) ? { links: [...links, ...more] } : {}),
             // A receipt names the kind its record had when it was saved; it follows the record's kind.
-            ...(kind !== record.kind && Array.isArray(t.receipts) ? { receipts: t.receipts.map(receipt => (mapping(receipt) && mapping(receipt.result) && receipt.result.kind === record.kind
-                ? { ...receipt, result: { ...receipt.result, kind } } : receipt)) } : {}),
-            ...owned };
-        conversions.set(record, { kind, status, tracking, added: Object.fromEntries(TAGS.map(relation => [relation, more.filter(link => link.relation === relation).map(link => link.itemId)])), uncarried: null, group });
+            ...(kind !== record.kind && Array.isArray(t.receipts)
+                ? {
+                      receipts: t.receipts.map(receipt =>
+                          mapping(receipt) && mapping(receipt.result) && receipt.result.kind === record.kind
+                              ? { ...receipt, result: { ...receipt.result, kind } }
+                              : receipt
+                      )
+                  }
+                : {}),
+            ...owned
+        };
+        conversions.set(record, {
+            kind,
+            status,
+            tracking,
+            added: Object.fromEntries(TAGS.map(relation => [relation, more.filter(link => link.relation === relation).map(link => link.itemId)])),
+            uncarried: null,
+            group
+        });
     }
-    return { index, conversions, moves: index.groups.map(group => ({ itemId: group.id, from: group.from, to: group.to })), crossings, nested, levelsUnset, problems };
+    return {
+        index,
+        conversions,
+        moves: index.groups.map(group => ({ itemId: group.id, from: group.from, to: group.to })),
+        crossings,
+        nested,
+        levelsUnset,
+        problems
+    };
 }
 
 /** What a reader is told about a mapped project beyond its records: each listing that names no record. */
 function findings(mapped) {
-    return mapped.problems.filter(problem => ['MEMBER_NOT_FOUND', 'INVALID_RECORD'].includes(problem.code)).map(problem => (problem.code === 'MEMBER_NOT_FOUND'
-        ? { itemId: problem.groupId, code: problem.code, reason: `Listed identity ${problem.memberId} has no record` }
-        : { itemId: problem.itemId, code: problem.code, reason: problem.reason }));
+    return mapped.problems
+        .filter(problem => ['MEMBER_NOT_FOUND', 'INVALID_RECORD'].includes(problem.code))
+        .map(problem =>
+            problem.code === 'MEMBER_NOT_FOUND'
+                ? { itemId: problem.groupId, code: problem.code, reason: `Listed identity ${problem.memberId} has no record` }
+                : { itemId: problem.itemId, code: problem.code, reason: problem.reason }
+        );
 }
 
 /**
@@ -195,21 +273,39 @@ function findings(mapped) {
  */
 function currentProject(records, artifactsRoot) {
     const mapped = mapEarlierProject({ records, artifactsRoot });
-    return { diagnostics: findings(mapped), records: records.map(record => {
-        const conversion = mapped.conversions.get(record);
-        if (!conversion) return { ...record, storedVocabulary: EARLIER_VERSION };
-        return { ...record, kind: conversion.kind, data: conversion.status === record.data.status ? record.data : { ...record.data, status: conversion.status },
-            tracking: conversion.tracking || conversion.uncarried, storedVocabulary: EARLIER_VERSION };
-    }) };
+    return {
+        diagnostics: findings(mapped),
+        records: records.map(record => {
+            const conversion = mapped.conversions.get(record);
+            if (!conversion) return { ...record, storedVocabulary: EARLIER_VERSION };
+            return {
+                ...record,
+                kind: conversion.kind,
+                data: conversion.status === record.data.status ? record.data : { ...record.data, status: conversion.status },
+                tracking: conversion.tracking || conversion.uncarried,
+                storedVocabulary: EARLIER_VERSION
+            };
+        })
+    };
 }
 
 /** Tracking metadata with every stored link path and receipt location passed through `movedPath`, which answers where a moved record now is. */
 function relocated(tracking, movedPath) {
-    const moved = (value, key) => (mapping(value) && typeof value[key] === 'string' && movedPath(value[key]) !== value[key] ? { ...value, [key]: movedPath(value[key]) } : value);
-    return { ...tracking,
+    const moved = (value, key) =>
+        mapping(value) && typeof value[key] === 'string' && movedPath(value[key]) !== value[key] ? { ...value, [key]: movedPath(value[key]) } : value;
+    return {
+        ...tracking,
         ...(Array.isArray(tracking.links) ? { links: tracking.links.map(link => moved(link, 'path')) } : {}),
-        ...(Array.isArray(tracking.receipts) ? { receipts: tracking.receipts.map(receipt => (mapping(receipt) && moved(receipt.result, 'ownerPath') !== receipt.result
-            ? { ...receipt, result: moved(receipt.result, 'ownerPath') } : receipt)) } : {}) };
+        ...(Array.isArray(tracking.receipts)
+            ? {
+                  receipts: tracking.receipts.map(receipt =>
+                      mapping(receipt) && moved(receipt.result, 'ownerPath') !== receipt.result
+                          ? { ...receipt, result: moved(receipt.result, 'ownerPath') }
+                          : receipt
+                  )
+              }
+            : {})
+    };
 }
 
 module.exports = { TAGS, groupKind, destination, memberIndex, mapEarlierProject, currentProject, relocated };

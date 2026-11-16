@@ -18,21 +18,21 @@
 // `.claude/skills` and `.agents/skills`, so skill files themselves are not copied
 // here (unlike sync-codex).
 
-import { spawn } from "node:child_process";
-import { readdir } from "node:fs/promises";
-import path from "node:path";
-import url from "node:url";
+import { spawn } from 'node:child_process';
+import { readdir } from 'node:fs/promises';
+import path from 'node:path';
+import url from 'node:url';
 
 const here = path.dirname(url.fileURLToPath(import.meta.url));
-const rootDir = path.resolve(here, "..", "..", "..", "..");
-const sourceScriptsDir = path.join(rootDir, ".claude", "scripts", "opencode");
+const rootDir = path.resolve(here, '..', '..', '..', '..');
+const sourceScriptsDir = path.join(rootDir, '.claude', 'scripts', 'opencode');
 
 const args = process.argv.slice(2);
-const verbose = args.includes("--verbose") || args.includes("-v");
-const verifyOnly = args.includes("--verify-only");
-const listStages = args.includes("--list-stages");
-const skipSet = parseListFlag("--skip");
-const onlySet = parseListFlag("--only");
+const verbose = args.includes('--verbose') || args.includes('-v');
+const verifyOnly = args.includes('--verify-only');
+const listStages = args.includes('--list-stages');
+const skipSet = parseListFlag('--skip');
+const onlySet = parseListFlag('--only');
 
 function parseListFlag(name) {
     const matches = args.filter(arg => arg.startsWith(`${name}=`));
@@ -41,7 +41,13 @@ function parseListFlag(name) {
         process.exit(1);
     }
     if (matches.length === 0) return null;
-    return new Set(matches[0].slice(`${name}=`.length).split(",").map(s => s.trim()).filter(Boolean));
+    return new Set(
+        matches[0]
+            .slice(`${name}=`.length)
+            .split(',')
+            .map(s => s.trim())
+            .filter(Boolean)
+    );
 }
 
 async function listTestFiles(dir) {
@@ -58,13 +64,17 @@ async function listTestFiles(dir) {
 
 function runCaptured(cmd, argv) {
     return new Promise((resolve, reject) => {
-        const child = spawn(cmd, argv, { cwd: rootDir, stdio: ["ignore", "pipe", "pipe"] });
-        let stdout = "";
-        let stderr = "";
-        child.stdout.on("data", data => { stdout += data.toString(); });
-        child.stderr.on("data", data => { stderr += data.toString(); });
-        child.on("error", reject);
-        child.on("close", code => resolve({ code, stdout, stderr }));
+        const child = spawn(cmd, argv, { cwd: rootDir, stdio: ['ignore', 'pipe', 'pipe'] });
+        let stdout = '';
+        let stderr = '';
+        child.stdout.on('data', data => {
+            stdout += data.toString();
+        });
+        child.stderr.on('data', data => {
+            stderr += data.toString();
+        });
+        child.on('error', reject);
+        child.on('close', code => resolve({ code, stdout, stderr }));
     });
 }
 
@@ -75,23 +85,26 @@ function relay(result) {
 
 // `--test-concurrency` was backported only to Node 18.19+, Node 20.10+, and Node 21+.
 // Keep the framework's declared Node 18.0+ floor runnable.
-const [nodeMajor, nodeMinor] = process.versions.node.split(".").map(Number);
-const supportsTestConcurrencyFlag = nodeMajor >= 21
-    || (nodeMajor === 20 && nodeMinor >= 10)
-    || (nodeMajor === 18 && nodeMinor >= 19);
-const testConcurrencyArgs = supportsTestConcurrencyFlag ? ["--test-concurrency=1"] : [];
+const [nodeMajor, nodeMinor] = process.versions.node.split('.').map(Number);
+const supportsTestConcurrencyFlag = nodeMajor >= 21 || (nodeMajor === 20 && nodeMinor >= 10) || (nodeMajor === 18 && nodeMinor >= 19);
+const testConcurrencyArgs = supportsTestConcurrencyFlag ? ['--test-concurrency=1'] : [];
 
-const testsDir = path.join(sourceScriptsDir, "tests");
+const testsDir = path.join(sourceScriptsDir, 'tests');
 const stages = [
-    { id: "config", label: "sync-opencode-config", mutate: true, cmd: process.execPath, args: [path.join(sourceScriptsDir, "sync-config.mjs")] },
-    { id: "skills", label: "sync-opencode-skills", mutate: true, cmd: process.execPath, args: [path.join(sourceScriptsDir, "sync-skills.mjs")] },
-    { id: "hooks", label: "sync-opencode-hooks", mutate: true, cmd: process.execPath, args: [path.join(sourceScriptsDir, "sync-hooks.mjs")] },
-    { id: "agents", label: "sync-opencode-agents", mutate: true, cmd: process.execPath, args: [path.join(sourceScriptsDir, "sync-agents.mjs")] },
-    { id: "tests", label: "test-opencode", cmd: process.execPath, argsAsync: async () => ["--test", ...testConcurrencyArgs, ...await listTestFiles(testsDir)] },
-    { id: "verify-config", label: "verify-opencode-config", cmd: process.execPath, args: [path.join(sourceScriptsDir, "sync-config.mjs"), "--check"] },
-    { id: "verify-skills", label: "verify-opencode-skills", cmd: process.execPath, args: [path.join(sourceScriptsDir, "sync-skills.mjs"), "--check"] },
-    { id: "verify-hooks", label: "verify-opencode-hooks", cmd: process.execPath, args: [path.join(sourceScriptsDir, "sync-hooks.mjs"), "--check"] },
-    { id: "verify-agents", label: "verify-opencode-agents", cmd: process.execPath, args: [path.join(sourceScriptsDir, "sync-agents.mjs"), "--check"] },
+    { id: 'config', label: 'sync-opencode-config', mutate: true, cmd: process.execPath, args: [path.join(sourceScriptsDir, 'sync-config.mjs')] },
+    { id: 'skills', label: 'sync-opencode-skills', mutate: true, cmd: process.execPath, args: [path.join(sourceScriptsDir, 'sync-skills.mjs')] },
+    { id: 'hooks', label: 'sync-opencode-hooks', mutate: true, cmd: process.execPath, args: [path.join(sourceScriptsDir, 'sync-hooks.mjs')] },
+    { id: 'agents', label: 'sync-opencode-agents', mutate: true, cmd: process.execPath, args: [path.join(sourceScriptsDir, 'sync-agents.mjs')] },
+    {
+        id: 'tests',
+        label: 'test-opencode',
+        cmd: process.execPath,
+        argsAsync: async () => ['--test', ...testConcurrencyArgs, ...(await listTestFiles(testsDir))]
+    },
+    { id: 'verify-config', label: 'verify-opencode-config', cmd: process.execPath, args: [path.join(sourceScriptsDir, 'sync-config.mjs'), '--check'] },
+    { id: 'verify-skills', label: 'verify-opencode-skills', cmd: process.execPath, args: [path.join(sourceScriptsDir, 'sync-skills.mjs'), '--check'] },
+    { id: 'verify-hooks', label: 'verify-opencode-hooks', cmd: process.execPath, args: [path.join(sourceScriptsDir, 'sync-hooks.mjs'), '--check'] },
+    { id: 'verify-agents', label: 'verify-opencode-agents', cmd: process.execPath, args: [path.join(sourceScriptsDir, 'sync-agents.mjs'), '--check'] }
 ];
 
 function shouldRun(stage) {
@@ -104,34 +117,36 @@ function shouldRun(stage) {
 function validateStageSelectors() {
     const knownIds = new Set(stages.map(s => s.id));
     const unknown = [];
-    for (const [flag, set] of [["--only", onlySet], ["--skip", skipSet]]) {
+    for (const [flag, set] of [
+        ['--only', onlySet],
+        ['--skip', skipSet]
+    ]) {
         if (!set) continue;
         for (const id of set) if (!knownIds.has(id)) unknown.push(`${flag}=${id}`);
     }
     if (unknown.length > 0) {
-        console.error(`[opencode-sync] unknown stage id(s): ${unknown.join(", ")}`);
-        console.error(`[opencode-sync] valid stage ids: ${[...knownIds].join(", ")}`);
+        console.error(`[opencode-sync] unknown stage id(s): ${unknown.join(', ')}`);
+        console.error(`[opencode-sync] valid stage ids: ${[...knownIds].join(', ')}`);
         process.exit(1);
     }
 }
 
-const KNOWN_FLAGS = ["--verbose", "-v", "--verify-only", "--list-stages"];
-const KNOWN_LIST_FLAGS = ["--only", "--skip"];
+const KNOWN_FLAGS = ['--verbose', '-v', '--verify-only', '--list-stages'];
+const KNOWN_LIST_FLAGS = ['--only', '--skip'];
 function validateFlags() {
-    const unknown = args.filter(arg =>
-        !KNOWN_FLAGS.includes(arg) && !KNOWN_LIST_FLAGS.some(flag => arg.startsWith(`${flag}=`)));
+    const unknown = args.filter(arg => !KNOWN_FLAGS.includes(arg) && !KNOWN_LIST_FLAGS.some(flag => arg.startsWith(`${flag}=`)));
     if (unknown.length > 0) {
-        console.error(`[opencode-sync] unknown flag(s): ${unknown.join(", ")}`);
-        console.error(`[opencode-sync] valid flags: ${[...KNOWN_FLAGS, ...KNOWN_LIST_FLAGS.map(f => `${f}=<ids>`)].join(", ")}`);
-        console.error(`[opencode-sync] valid stage ids: ${stages.map(s => s.id).join(", ")}`);
+        console.error(`[opencode-sync] unknown flag(s): ${unknown.join(', ')}`);
+        console.error(`[opencode-sync] valid flags: ${[...KNOWN_FLAGS, ...KNOWN_LIST_FLAGS.map(f => `${f}=<ids>`)].join(', ')}`);
+        console.error(`[opencode-sync] valid stage ids: ${stages.map(s => s.id).join(', ')}`);
         process.exit(1);
     }
 }
 
 async function runStage(stage, index, total) {
-    const argv = stage.argsAsync ? await stage.argsAsync() : stage.args ?? [];
-    const hasTarget = argv.some(argument => typeof argument === "string" && !argument.startsWith("--"));
-    if (stage.argsAsync && argv.includes("--test") && !hasTarget) {
+    const argv = stage.argsAsync ? await stage.argsAsync() : (stage.args ?? []);
+    const hasTarget = argv.some(argument => typeof argument === 'string' && !argument.startsWith('--'));
+    if (stage.argsAsync && argv.includes('--test') && !hasTarget) {
         throw Object.assign(new Error(`No tests discovered for ${stage.id}`), { stage: stage.id });
     }
     const label = `[${index}/${total}] ${stage.label}`;
@@ -152,7 +167,7 @@ async function runStage(stage, index, total) {
 function printStageRoster() {
     console.log(`[opencode-sync] ${stages.length} stages (in order), from ${rootDir}`);
     for (const [index, stage] of stages.entries()) {
-        console.log(`  ${String(index + 1).padStart(2)}. ${stage.id.padEnd(14)} ${stage.mutate ? "MUTATE" : "verify"}  ${stage.label}`);
+        console.log(`  ${String(index + 1).padStart(2)}. ${stage.id.padEnd(14)} ${stage.mutate ? 'MUTATE' : 'verify'}  ${stage.label}`);
     }
     console.log("[opencode-sync] --verify-only runs every 'verify' stage above; --only=<ids>/--skip=<ids> select a subset.");
 }
@@ -166,7 +181,7 @@ async function main() {
     }
     const active = stages.filter(shouldRun);
     if (active.length === 0) {
-        console.error("[opencode-sync] no stages selected; check --only/--skip flags");
+        console.error('[opencode-sync] no stages selected; check --only/--skip flags');
         process.exit(1);
     }
 
@@ -176,7 +191,7 @@ async function main() {
         try {
             await runStage(active[i], i + 1, active.length);
         } catch (err) {
-            console.error(`[opencode-sync] aborted at stage '${err.stage}' (exit ${err.exitCode ?? "?"})`);
+            console.error(`[opencode-sync] aborted at stage '${err.stage}' (exit ${err.exitCode ?? '?'})`);
             process.exit(err.exitCode || 1);
         }
     }

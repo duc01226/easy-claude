@@ -25,24 +25,36 @@ function applicable(overrides = {}) {
         execution: { method: 'configured-runner', entryPoint: 'checkout journey', command: 'tool run checkout' },
         conditions: { platform: 'test-host', identity: 'run-001', fixture: 'valid-buyer' },
         observations: [{ id: 'obs-001', summary: 'The confirmation appeared after the final action.', evidenceRefs: ['evidence/obs-001'] }],
-        judgments: [{ id: 'j-001', result: 'PASS', summary: 'The observed journey served its stated purpose.', evidenceRefs: ['evidence/obs-001'], confidence: 87 }],
+        judgments: [
+            { id: 'j-001', result: 'PASS', summary: 'The observed journey served its stated purpose.', evidenceRefs: ['evidence/obs-001'], confidence: 87 }
+        ],
         limitations: ['Only the configured happy path was exercised.'],
         ...overrides
     };
 }
 
 function accepted() {
-    return applicable({ acceptance: {
-        status: 'HUMAN-ACCEPTED', acceptedBy: 'owner', acceptedAt: '2026-09-07T10:00:00Z',
-        intentRef: 'spec/checkout', evidenceRefs: ['evidence/obs-001'], scope: 'Checkout'
-    } });
+    return applicable({
+        acceptance: {
+            status: 'HUMAN-ACCEPTED',
+            acceptedBy: 'owner',
+            acceptedAt: '2026-09-07T10:00:00Z',
+            intentRef: 'spec/checkout',
+            evidenceRefs: ['evidence/obs-001'],
+            scope: 'Checkout'
+        }
+    });
 }
 
 test('TC-EXP-009: malformed acceptance never reports human acceptance', () => {
     for (const [field, values] of Object.entries({
-        acceptedBy: ['', ' owner', null], intentRef: ['', 'spec\nref'],
-        evidenceRefs: [[null], [''], []], scope: ['', 'scope '], acceptedAt: ['invalid'],
-        status: ['APPROVED'], residualRisk: ['']
+        acceptedBy: ['', ' owner', null],
+        intentRef: ['', 'spec\nref'],
+        evidenceRefs: [[null], [''], []],
+        scope: ['', 'scope '],
+        acceptedAt: ['invalid'],
+        status: ['APPROVED'],
+        residualRisk: ['']
     })) {
         for (const value of values) {
             const record = accepted();
@@ -61,9 +73,27 @@ test('TC-EXP-009: malformed acceptance never reports human acceptance', () => {
 
 test('TC-EXP-010: each required evidence field has a sole-invalid rejection oracle', () => {
     const cases = [
-        ['execution.method', record => { delete record.execution.method; }, 'execution.method must be a bounded printable string'],
-        ['judgments[0].evidenceRefs', record => { delete record.judgments[0].evidenceRefs; }, 'judgments[0].evidenceRefs must be a non-empty array with at most 32 items'],
-        ['acceptance.acceptedBy', record => { delete record.acceptance.acceptedBy; }, 'acceptance.acceptedBy must be a bounded printable string']
+        [
+            'execution.method',
+            record => {
+                delete record.execution.method;
+            },
+            'execution.method must be a bounded printable string'
+        ],
+        [
+            'judgments[0].evidenceRefs',
+            record => {
+                delete record.judgments[0].evidenceRefs;
+            },
+            'judgments[0].evidenceRefs must be a non-empty array with at most 32 items'
+        ],
+        [
+            'acceptance.acceptedBy',
+            record => {
+                delete record.acceptance.acceptedBy;
+            },
+            'acceptance.acceptedBy must be a bounded printable string'
+        ]
     ];
     for (const [field, invalidate, error] of cases) {
         const record = accepted();
@@ -80,11 +110,20 @@ test('TC-EXP-011: real CLI dispatch preserves evidence and reports structured ou
     const sentinel = path.join(cwd, 'accepted-baseline.json');
     const bytes = '{"accepted":"unchanged"}\n';
     fs.writeFileSync(sentinel, bytes);
-    const run = (args, input) => spawnSync(process.execPath,
-        [path.resolve(__dirname, '../lib/experience-verification.cjs'), ...args],
-        { cwd, input, encoding: 'utf8', timeout: 10000, windowsHide: true });
+    const run = (args, input) =>
+        spawnSync(process.execPath, [path.resolve(__dirname, '../lib/experience-verification.cjs'), ...args], {
+            cwd,
+            input,
+            encoding: 'utf8',
+            timeout: 10000,
+            windowsHide: true
+        });
     for (const [command, input, expected] of [
-        ['compare', { baselineExists: true, comparison: 'MATCH' }, { decision: 'NO-REGRESSION', requiresAcceptance: false, action: 'retain the accepted baseline' }],
+        [
+            'compare',
+            { baselineExists: true, comparison: 'MATCH' },
+            { decision: 'NO-REGRESSION', requiresAcceptance: false, action: 'retain the accepted baseline' }
+        ],
         ['promote', accepted(), { allowed: true, reasons: [], status: 'HUMAN-ACCEPTED' }],
         ['promote', applicable(), { allowed: false, reasons: ['explicit HUMAN-ACCEPTED record is required'], status: 'ACCEPTANCE-PENDING' }],
         ['validate', accepted(), { valid: true, errors: [], status: 'HUMAN-ACCEPTED' }]
@@ -143,8 +182,24 @@ test('TC-EXP-003: explicit acceptance permits a passing baseline', () => {
 });
 
 test('TC-EXP-004: non-applicable and blocked surfaces require a reason and evidence', () => {
-    const notApplicable = applicable({ applicability: 'NOT-APPLICABLE', reason: 'This project has no user-facing surface.', evidenceRefs: ['config/project.json'], execution: undefined, conditions: undefined, observations: [], judgments: [] });
-    const blocked = applicable({ applicability: 'ENVIRONMENT-BLOCKED', reason: 'The required device is unavailable.', evidenceRefs: ['runner/log.txt'], execution: undefined, conditions: undefined, observations: [], judgments: [] });
+    const notApplicable = applicable({
+        applicability: 'NOT-APPLICABLE',
+        reason: 'This project has no user-facing surface.',
+        evidenceRefs: ['config/project.json'],
+        execution: undefined,
+        conditions: undefined,
+        observations: [],
+        judgments: []
+    });
+    const blocked = applicable({
+        applicability: 'ENVIRONMENT-BLOCKED',
+        reason: 'The required device is unavailable.',
+        evidenceRefs: ['runner/log.txt'],
+        execution: undefined,
+        conditions: undefined,
+        observations: [],
+        judgments: []
+    });
     assert.equal(validateEvidenceRecord(notApplicable).status, 'NOT-APPLICABLE');
     assert.equal(validateEvidenceRecord(blocked).status, 'ENVIRONMENT-BLOCKED');
     assert.equal(canPromoteBaseline(blocked).allowed, false);
@@ -160,8 +215,13 @@ test('TC-EXP-005: missing observation is unverified rather than successful', () 
 
 test('TC-EXP-004: optional judgments on non-applicable records never crash promotion', () => {
     for (const applicability of ['NOT-APPLICABLE', 'ENVIRONMENT-BLOCKED']) {
-        const record = applicable({ applicability, reason: 'No observable surface is available.',
-            evidenceRefs: ['config/project.json'], observations: undefined, judgments: undefined });
+        const record = applicable({
+            applicability,
+            reason: 'No observable surface is available.',
+            evidenceRefs: ['config/project.json'],
+            observations: undefined,
+            judgments: undefined
+        });
         assert.equal(validateEvidenceRecord(record).valid, true);
         const result = canPromoteBaseline(record);
         assert.equal(result.allowed, false);
@@ -172,10 +232,17 @@ test('TC-EXP-004: optional judgments on non-applicable records never crash promo
 
 test('TC-EXP-005: malformed judgments produce structured invalid evidence, never acceptance', () => {
     for (const judgment of [null, false, 'PASS', [], {}, { result: 'UNKNOWN' }]) {
-        for (const acceptance of [undefined, {
-            status: 'HUMAN-ACCEPTED', acceptedBy: 'owner', acceptedAt: '2026-09-07T10:00:00Z',
-            intentRef: 'spec/checkout', evidenceRefs: ['evidence/obs-001'], scope: 'Checkout'
-        }]) {
+        for (const acceptance of [
+            undefined,
+            {
+                status: 'HUMAN-ACCEPTED',
+                acceptedBy: 'owner',
+                acceptedAt: '2026-09-07T10:00:00Z',
+                intentRef: 'spec/checkout',
+                evidenceRefs: ['evidence/obs-001'],
+                scope: 'Checkout'
+            }
+        ]) {
             const record = applicable({ judgments: [judgment], acceptance });
             const validation = validateEvidenceRecord(record);
             assert.equal(validation.valid, false);
@@ -198,12 +265,16 @@ test('TC-EXP-006: known-invalid conditions cannot establish a clean or candidate
     assert.equal(classifyBaselineComparison({ baselineExists: true, comparison: 'MATCH', testCondition: 'VALID' }).decision, 'NO-REGRESSION');
     for (const baselineExists of [true, false]) {
         for (const reviewStatus of ['ENVIRONMENT-BLOCKED', 'UNVERIFIED', 'NOT-APPLICABLE', 'INVALID-RECORD']) {
-            assert.equal(classifyBaselineComparison({ baselineExists, comparison: 'MATCH', testCondition: 'INVALID', reviewStatus }).decision,
-                reviewStatus === 'INVALID-RECORD' ? 'UNVERIFIED' : reviewStatus);
+            assert.equal(
+                classifyBaselineComparison({ baselineExists, comparison: 'MATCH', testCondition: 'INVALID', reviewStatus }).decision,
+                reviewStatus === 'INVALID-RECORD' ? 'UNVERIFIED' : reviewStatus
+            );
         }
         for (const environmentBlocked of [true, false]) {
-            assert.equal(classifyBaselineComparison({ baselineExists, comparison: 'NOT-RUN', testCondition: 'INVALID', environmentBlocked }).decision,
-                environmentBlocked ? 'ENVIRONMENT-BLOCKED' : 'UNVERIFIED');
+            assert.equal(
+                classifyBaselineComparison({ baselineExists, comparison: 'NOT-RUN', testCondition: 'INVALID', environmentBlocked }).decision,
+                environmentBlocked ? 'ENVIRONMENT-BLOCKED' : 'UNVERIFIED'
+            );
         }
     }
 });
@@ -213,7 +284,10 @@ test('TC-EXP-006: comparison decisions preserve expectations and require deliber
     assert.equal(classifyBaselineComparison({ baselineExists: false, reviewStatus: 'NOT-APPLICABLE' }).decision, 'NOT-APPLICABLE');
     assert.equal(classifyBaselineComparison({ baselineExists: true, reviewStatus: 'INVALID-RECORD' }).decision, 'UNVERIFIED');
     assert.equal(classifyBaselineComparison({ baselineExists: true, comparison: 'DIFFERENCE', intent: 'UNCHANGED' }).decision, 'POTENTIAL-REGRESSION');
-    assert.equal(classifyBaselineComparison({ baselineExists: true, comparison: 'DIFFERENCE', intent: 'INTENDED' }).decision, 'INTENDED-CHANGE-PENDING-ACCEPTANCE');
+    assert.equal(
+        classifyBaselineComparison({ baselineExists: true, comparison: 'DIFFERENCE', intent: 'INTENDED' }).decision,
+        'INTENDED-CHANGE-PENDING-ACCEPTANCE'
+    );
     assert.equal(classifyBaselineComparison({ baselineExists: true, comparison: 'DIFFERENCE', testCondition: 'INVALID' }).decision, 'TEST-CONDITION-INVALID');
     assert.equal(classifyBaselineComparison({ baselineExists: true, comparison: 'NOT-RUN', environmentBlocked: true }).decision, 'ENVIRONMENT-BLOCKED');
 });

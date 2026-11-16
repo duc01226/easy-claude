@@ -59,7 +59,10 @@ test('business-evaluation summary matches its seven detailed steps and market pr
     const business = await read('.claude/skills/business-evaluation/SKILL.md');
     const headings = [...business.matchAll(/^## Step (\d+): (.+)$/gm)].slice(0, 7);
 
-    assert.deepEqual(headings.map(match => match[1]), ['1', '2', '3', '4', '5', '6', '7']);
+    assert.deepEqual(
+        headings.map(match => match[1]),
+        ['1', '2', '3', '4', '5', '6', '7']
+    );
     assert.equal(headings.at(-1)?.[2], 'Verdict');
     assert.match(business, /Seven evaluation steps, preceded by a market-evidence precondition/);
     assert.match(business, /Precondition — load market analysis/);
@@ -111,17 +114,20 @@ const UNIVERSAL_SECTION_HEADINGS = [
     'Task Planning Rules',
     'Workflow Step Advancement & Parallel Phases',
     'Evidence-Based Reasoning & Investigation',
-    'Git & Version-Control Discipline',
+    'Git & Version-Control Discipline'
 ];
 
 test('disposable generated-artifact policy is one universal protocol, delivered by the hook and absent from the root template (TC-PROMPT-008)', async () => {
     const [shared, projection, template] = await Promise.all([
         read('.claude/skills/shared/sync-inline-versions.md'),
         read('.claude/skills/shared/protocols/artifact-storage.md'),
-        read('.claude/skills/ai-context-refresh/references/claude-md-template.md'),
+        read('.claude/skills/ai-context-refresh/references/claude-md-template.md')
     ]);
 
-    for (const [name, content] of [['canonical', shared], ['projection', projection]]) {
+    for (const [name, content] of [
+        ['canonical', shared],
+        ['projection', projection]
+    ]) {
         assert.match(content, /Store disposable generated output in the project workspace/, `${name} carries the universal rule`);
         assert.match(content, /project-root \`tmp\/\` or \`temp\/\`/, `${name} carries the temp-path contract`);
         assert.match(content, /integration\/E2E (test )?results/, `${name} names the artifact kinds`);
@@ -129,7 +135,11 @@ test('disposable generated-artifact policy is one universal protocol, delivered 
     assert.match(shared, /tmp\/reports/);
     assert.match(shared, /tmp\/analysis/);
     for (const heading of UNIVERSAL_SECTION_HEADINGS) {
-        assert.doesNotMatch(template, new RegExp(`^## ${heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'm'), `the template must not regrow the universal section "${heading}"`);
+        assert.doesNotMatch(
+            template,
+            new RegExp(`^## ${heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'm'),
+            `the template must not regrow the universal section "${heading}"`
+        );
     }
 });
 
@@ -139,7 +149,7 @@ test('main-agent work is preferred while task-graph analysis and parallel limits
         read('.claude/skills/shared/protocols/task-planning-rules.md'),
         read('.claude/skills/shared/protocols/workflow-step-advancement.md'),
         read('.claude/skills/shared/sync-inline-versions.md'),
-        read('.claude/skills/shared/protocols/concise-agent-core.md'),
+        read('.claude/skills/shared/protocols/concise-agent-core.md')
     ]);
     const anchor = /Analyze the task graph BEFORE executing/g;
 
@@ -166,7 +176,7 @@ test('active-plan and workflow-end prompts agree with live state ownership (TC-P
         read('.claude/skills/feature-presentation/SKILL.md'),
         read('.claude/skills/feature-presentation/references/artifact-accumulation.md'),
         read('.claude/scripts/set-active-plan.cjs'),
-        read('.claude/skills/workflow-end/SKILL.md'),
+        read('.claude/skills/workflow-end/SKILL.md')
     ]);
 
     for (const content of [presentation, accumulation, activePlan]) {
@@ -176,11 +186,7 @@ test('active-plan and workflow-end prompts agree with live state ownership (TC-P
 
     assert.match(workflowEnd, /per-session state is retained until explicit `\/clear`/);
     assert.doesNotMatch(workflowEnd, /clear-workflow-state/);
-    assert.equal(
-        (workflowEnd.match(/^\*\*IMPORTANT MANDATORY Steps:/gm) || []).length,
-        1,
-        'workflow-end must have one authoritative mandatory sequence',
-    );
+    assert.equal((workflowEnd.match(/^\*\*IMPORTANT MANDATORY Steps:/gm) || []).length, 1, 'workflow-end must have one authoritative mandatory sequence');
 });
 
 test('why-review council suppression resolves the project-owned workflow state (TC-PROMPT-007)', async () => {

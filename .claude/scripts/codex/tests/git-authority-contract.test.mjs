@@ -13,9 +13,14 @@ const section = (text, heading) => {
     return text.slice(start + heading.length).split(/\n## /)[0];
 };
 const expected = new Map([
-    ['implementation-only', []], ['generic approval', []], ['approval-off', []],
-    ['stage', ['stage']], ['commit', ['stage', 'commit']], ['push', ['push']],
-    ['commit and push', ['stage', 'commit', 'push']], ['create-pr', ['create-pr']],
+    ['implementation-only', []],
+    ['generic approval', []],
+    ['approval-off', []],
+    ['stage', ['stage']],
+    ['commit', ['stage', 'commit']],
+    ['push', ['push']],
+    ['commit and push', ['stage', 'commit', 'push']],
+    ['create-pr', ['create-pr']]
 ]);
 
 function operationRows(text) {
@@ -56,9 +61,12 @@ function assertAuthority(plan, role) {
 }
 
 const secretDiagnosticAnchors = [
-    '- **GATE A (hard)', '- SECRETS > 0', '**If SECRETS > 0:**',
-    '| Secrets detected', '**IMPORTANT MUST ATTENTION** NEVER commit secrets,',
-    '| "Just one secret match,',
+    '- **GATE A (hard)',
+    '- SECRETS > 0',
+    '**If SECRETS > 0:**',
+    '| Secrets detected',
+    '**IMPORTANT MUST ATTENTION** NEVER commit secrets,',
+    '| "Just one secret match,'
 ];
 
 function assertSecretDiagnostics(role) {
@@ -133,8 +141,7 @@ test('TC-HARNESS-004 bounded property: each request permits exactly its declared
     const rows = operationRows(agent);
     for (const [request, allowed] of expected) {
         for (const operation of ['stage', 'commit', 'push', 'create-pr']) {
-            assert.equal(rows.get(request)?.includes(operation), allowed.includes(operation),
-                JSON.stringify({ request, operation }));
+            assert.equal(rows.get(request)?.includes(operation), allowed.includes(operation), JSON.stringify({ request, operation }));
         }
     }
     // Boundary counter-cases: stage and push are standalone; unknown intent
@@ -146,8 +153,7 @@ test('TC-HARNESS-004 bounded property: each request permits exactly its declared
 
 test('TC-HARNESS-004 seeded authority mutants are rejected at summary/body/closing anchors', () => {
     assertAuthority(skill, agent); // tripwire: valid source must actually pass
-    const seeds = ['MUST commit after approval.', 'Always commit when complete.',
-        'Mandatory stage after review.', 'Always push after commit.'];
+    const seeds = ['MUST commit after approval.', 'Always commit when complete.', 'Mandatory stage after review.', 'Always push after commit.'];
     // Bounded mutation domain: 2 source prompts × 3 anchors × 4 escalations.
     for (const target of ['skill', 'agent']) {
         for (const heading of ['## Quick Summary', '## Workflow', '## Closing Reminders']) {
@@ -156,8 +162,10 @@ test('TC-HARNESS-004 seeded authority mutants are rejected at summary/body/closi
                 assert.ok(original.includes(heading));
                 const mutant = original.replace(heading, `${heading}\n${seed}`);
                 assert.notEqual(mutant, original);
-                assert.throws(() => assertAuthority(target === 'skill' ? mutant : skill,
-                    target === 'agent' ? mutant : agent), { code: 'ERR_ASSERTION', operator: 'doesNotMatch' });
+                assert.throws(() => assertAuthority(target === 'skill' ? mutant : skill, target === 'agent' ? mutant : agent), {
+                    code: 'ERR_ASSERTION',
+                    operator: 'doesNotMatch'
+                });
             }
         }
     }
@@ -166,8 +174,7 @@ test('TC-HARNESS-004 seeded authority mutants are rejected at summary/body/closi
     const row = (request, operations) => `| \`${request}\` | \`${operations.join(', ') || 'none'}\` |`;
     for (const [request, allowed] of expected) {
         for (const operation of ['stage', 'commit', 'push', 'create-pr']) {
-            const changed = allowed.includes(operation)
-                ? allowed.filter(value => value !== operation) : [...allowed, operation];
+            const changed = allowed.includes(operation) ? allowed.filter(value => value !== operation) : [...allowed, operation];
             const mutant = agent.replace(row(request, allowed), row(request, changed));
             assert.notEqual(mutant, agent);
             assert.throws(() => assertAuthority(skill, mutant), { code: 'ERR_ASSERTION', operator: 'deepStrictEqual' });

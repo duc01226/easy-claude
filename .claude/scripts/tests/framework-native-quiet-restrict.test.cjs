@@ -42,9 +42,18 @@ function fixture(t) {
     const local = path.join(rootDir, '.claude/.ck.local.json');
     const claude = path.join(rootDir, '.claude/settings.local.json');
     const codex = path.join(homeDir, '.codex/config.toml');
-    const apply = (scope = 'checkout', root = rootDir) => applyNativeSkills(planNativeSkills({ rootDir: root, homeDir, env: { CK_QUIET_NATIVE: 'restrict' }, scope }));
-    const env = { PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, HOME: homeDir, USERPROFILE: homeDir,
-        CLAUDE_PROJECT_DIR: rootDir, CK_AUTO_INSTALL_DEPENDENCIES: '0', CK_QUIET_NATIVE: 'restrict', CK_AUTO_APPLY_NATIVE: 'true' };
+    const apply = (scope = 'checkout', root = rootDir) =>
+        applyNativeSkills(planNativeSkills({ rootDir: root, homeDir, env: { CK_QUIET_NATIVE: 'restrict' }, scope }));
+    const env = {
+        PATH: process.env.PATH,
+        SystemRoot: process.env.SystemRoot,
+        HOME: homeDir,
+        USERPROFILE: homeDir,
+        CLAUDE_PROJECT_DIR: rootDir,
+        CK_AUTO_INSTALL_DEPENDENCIES: '0',
+        CK_QUIET_NATIVE: 'restrict',
+        CK_AUTO_APPLY_NATIVE: 'true'
+    };
     const run = args => spawnSync(process.execPath, [cli, ...args], { cwd: rootDir, env, encoding: 'utf8', timeout: 15000 });
     t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
     return { dir, homeDir, rootDir, write, project, user, local, claude, codex, apply, run };
@@ -52,8 +61,9 @@ function fixture(t) {
 
 function linkSettings(t, target, file) {
     fs.mkdirSync(path.dirname(file), { recursive: true });
-    try { fs.symlinkSync(target, file, 'file'); }
-    catch (error) {
+    try {
+        fs.symlinkSync(target, file, 'file');
+    } catch (error) {
         if (process.platform !== 'win32' || error.code !== 'EPERM') throw error;
         t.skip('File symlinks require Windows Developer Mode or symlink privilege.');
         return false;
@@ -139,9 +149,16 @@ test('quiet hides framework skills except kept ones, denies framework agents, an
     f.write(f.local, { frameworkRuntime: { mode: 'quiet' } });
     f.apply();
     const quiet = JSON.parse(fs.readFileSync(f.claude));
-    assert.deepEqual(quiet.skillOverrides, {
-        commit: 'name-only', unrelated: 'on', 'why-review': quietOverride, 'workflow-feature': quietOverride
-    }, 'the commit gate keeps commit; everything else leaves automatic use');
+    assert.deepEqual(
+        quiet.skillOverrides,
+        {
+            commit: 'name-only',
+            unrelated: 'on',
+            'why-review': quietOverride,
+            'workflow-feature': quietOverride
+        },
+        'the commit gate keeps commit; everything else leaves automatic use'
+    );
     assert.deepEqual(quiet.permissions, { allow: ['Read'], deny: ['Agent(reviewer)'] });
     const restricted = fs.readFileSync(f.codex, 'utf8');
     assert.equal((restricted.match(/enabled = false/g) || []).length, 2);
@@ -181,7 +198,8 @@ test('quiet keeps the reviews a risk-based commit gate asks for and never remove
 test('global toggles cover registered checkouts and honor a checkout opt-out', t => {
     const f = fixture(t);
     const second = f.project('second');
-    f.apply(); f.apply('checkout', second);
+    f.apply();
+    f.apply('checkout', second);
     f.write(f.user, { frameworkRuntime: { mode: 'quiet' } });
     f.write(f.local, { frameworkRuntime: { mode: 'on' } });
     const results = f.apply('user');
@@ -199,7 +217,8 @@ test('multiple checkout blocks coexist and restoring one preserves the other and
     const f = fixture(t);
     const second = f.project('second');
     f.write(f.user, { frameworkRuntime: { mode: 'quiet' } });
-    f.apply(); f.apply('checkout', second);
+    f.apply();
+    f.apply('checkout', second);
     fs.appendFileSync(f.codex, '\n[tui]\nnotifications = false\n');
     f.write(f.local, { frameworkRuntime: { mode: 'on' } });
     f.apply();
@@ -225,10 +244,12 @@ test('existing user Codex skill policy fails before the requested preference or 
 
 test('restore refuses changed owned overrides while preserving unrelated settings', t => {
     const f = fixture(t);
-    f.write(f.local, { frameworkRuntime: { mode: 'quiet' } }); f.apply();
+    f.write(f.local, { frameworkRuntime: { mode: 'quiet' } });
+    f.apply();
     const config = JSON.parse(fs.readFileSync(f.claude));
     config.skillOverrides['why-review'] = 'on';
-    config.language = 'en'; f.write(f.claude, config);
+    config.language = 'en';
+    f.write(f.claude, config);
     f.write(f.local, { frameworkRuntime: { mode: 'on' } });
     assert.throws(() => f.apply(), /changed while quiet/);
     assert.deepEqual(JSON.parse(fs.readFileSync(f.claude)), config);
@@ -254,7 +275,8 @@ test('interrupted restriction and restore recover from the ledger without losing
 
 test('a user override or deny-rule removal while quiet stops the reconcile instead of being absorbed', t => {
     const f = fixture(t);
-    f.write(f.local, { frameworkRuntime: { mode: 'quiet' } }); f.apply();
+    f.write(f.local, { frameworkRuntime: { mode: 'quiet' } });
+    f.apply();
     let config = JSON.parse(fs.readFileSync(f.claude));
     config.skillOverrides['why-review'] = 'off';
     f.write(f.claude, config);
@@ -269,7 +291,8 @@ test('a user override or deny-rule removal while quiet stops the reconcile inste
 test('an interrupted release keeps the released override in the interim ledger', t => {
     const f = fixture(t);
     f.write(f.claude, { skillOverrides: { 'why-review': 'name-only' } });
-    f.write(f.local, { frameworkRuntime: { mode: 'quiet' } }); f.apply();
+    f.write(f.local, { frameworkRuntime: { mode: 'quiet' } });
+    f.apply();
     f.write(f.local, { frameworkRuntime: { mode: 'quiet', quietSkills: ['why-review'] } });
     const plan = planNativeSkills({ rootDir: f.rootDir, homeDir: f.homeDir, env: RESTRICT });
     assert.equal(plan.interim.projects[f.rootDir].disabled.claudeBefore['why-review'], 'name-only');
@@ -310,9 +333,21 @@ test('the session-start sync applies the mode in a main checkout, reports once, 
     const f = fixture(t);
     const hook = path.join(repo, '.claude/hooks/framework-native-sync.cjs');
     const run = (root, env = {}) => {
-        const result = spawnSync(process.execPath, [hook], { cwd: root, encoding: 'utf8', timeout: 30000,
+        const result = spawnSync(process.execPath, [hook], {
+            cwd: root,
+            encoding: 'utf8',
+            timeout: 30000,
             input: JSON.stringify({ hook_event_name: 'SessionStart', source: 'startup', cwd: root }),
-            env: { PATH: process.env.PATH, HOME: f.homeDir, USERPROFILE: f.homeDir, CLAUDE_PROJECT_DIR: root, CK_QUIET_NATIVE: 'restrict', CK_AUTO_APPLY_NATIVE: 'true', ...env } });
+            env: {
+                PATH: process.env.PATH,
+                HOME: f.homeDir,
+                USERPROFILE: f.homeDir,
+                CLAUDE_PROJECT_DIR: root,
+                CK_QUIET_NATIVE: 'restrict',
+                CK_AUTO_APPLY_NATIVE: 'true',
+                ...env
+            }
+        });
         assert.equal(result.status, 0, result.stderr);
         return result.stdout ? JSON.parse(result.stdout) : null;
     };
@@ -403,7 +438,8 @@ test('quiet includes nested template skills discovered by the native host', t =>
 
 test('an interrupted switch from off to the quiet restriction recovers from the interim ledger', t => {
     const f = fixture(t);
-    f.write(f.local, { frameworkRuntime: { mode: 'off' } }); f.apply();
+    f.write(f.local, { frameworkRuntime: { mode: 'off' } });
+    f.apply();
     assert.equal(JSON.parse(fs.readFileSync(f.claude)).skillOverrides['why-review'], 'off');
     f.write(f.local, { frameworkRuntime: { mode: 'quiet' } });
     const plan = planNativeSkills({ rootDir: f.rootDir, homeDir: f.homeDir, env: RESTRICT });
@@ -413,6 +449,7 @@ test('an interrupted switch from off to the quiet restriction recovers from the 
     f.apply();
     assert.equal(JSON.parse(fs.readFileSync(f.claude)).skillOverrides['why-review'], quietOverride);
     assert.equal(nativeStatus(f.rootDir, f.homeDir, RESTRICT).restricted, true);
-    f.write(f.local, { frameworkRuntime: { mode: 'on' } }); f.apply();
+    f.write(f.local, { frameworkRuntime: { mode: 'on' } });
+    f.apply();
     assert.equal(fs.existsSync(f.claude), false, 'on restores the original absence of local settings');
 });

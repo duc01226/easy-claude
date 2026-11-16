@@ -10,8 +10,13 @@ const root = path.resolve(__dirname, '../..');
 const repo = path.dirname(root);
 const cli = path.join(root, 'scripts/framework-mode.cjs');
 const settings = JSON.parse(fs.readFileSync(path.join(root, 'settings.json'), 'utf8'));
-const hooks = [...new Set(Object.values(settings.hooks).flatMap(groups => groups.flatMap(group => group.hooks.map(hook =>
-    /\.claude\/hooks\/([\w./-]+\.cjs)/.exec(hook.command)?.[1]).filter(Boolean))))];
+const hooks = [
+    ...new Set(
+        Object.values(settings.hooks).flatMap(groups =>
+            groups.flatMap(group => group.hooks.map(hook => /\.claude\/hooks\/([\w./-]+\.cjs)/.exec(hook.command)?.[1]).filter(Boolean))
+        )
+    )
+];
 
 function fixture(t) {
     const tmp = path.join(repo, 'tmp');
@@ -22,8 +27,17 @@ function fixture(t) {
     fs.mkdirSync(path.join(rootDir, '.claude'), { recursive: true });
     fs.mkdirSync(homeDir, { recursive: true });
     t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-    const env = { PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, HOME: homeDir, USERPROFILE: homeDir,
-        TMPDIR: dir, TEMP: dir, TMP: dir, CLAUDE_PROJECT_DIR: rootDir, CK_AUTO_INSTALL_DEPENDENCIES: '0' };
+    const env = {
+        PATH: process.env.PATH,
+        SystemRoot: process.env.SystemRoot,
+        HOME: homeDir,
+        USERPROFILE: homeDir,
+        TMPDIR: dir,
+        TEMP: dir,
+        TMP: dir,
+        CLAUDE_PROJECT_DIR: rootDir,
+        CK_AUTO_INSTALL_DEPENDENCIES: '0'
+    };
     const write = (file, value) => {
         fs.mkdirSync(path.dirname(file), { recursive: true });
         fs.writeFileSync(file, typeof value === 'string' || Buffer.isBuffer(value) ? value : JSON.stringify(value));
@@ -32,9 +46,15 @@ function fixture(t) {
     const user = path.join(homeDir, '.claude/.ck.json');
     const team = path.join(rootDir, 'docs/project-config.json');
     const resolve = extra => resolveFrameworkMode({ rootDir, homeDir, env: {}, ...extra });
-    const run = (file, args = [], input = '{}', extraEnv = {}, cwd = rootDir) => spawnSync(process.execPath, [file, ...args], {
-        cwd, env: { ...env, ...extraEnv }, input, encoding: 'utf8', windowsHide: true, timeout: 15000
-    });
+    const run = (file, args = [], input = '{}', extraEnv = {}, cwd = rootDir) =>
+        spawnSync(process.execPath, [file, ...args], {
+            cwd,
+            env: { ...env, ...extraEnv },
+            input,
+            encoding: 'utf8',
+            windowsHide: true,
+            timeout: 15000
+        });
     return { dir, rootDir, homeDir, write, local, user, team, resolve, run, env };
 }
 
@@ -69,7 +89,10 @@ test('off leaves every registered hook silent without runtime side effects', t =
     f.write(f.local, { frameworkRuntime: { mode: 'off' } });
     assert.ok(hooks.length > 30, 'exercise the real registry, not a vacuous fixture');
     for (const hook of hooks) {
-        for (const input of ['invalid input', JSON.stringify({ hook_event_name: 'UserPromptSubmit', prompt: 'implement the UI', cwd: f.rootDir, session_id: 'off-test' })]) {
+        for (const input of [
+            'invalid input',
+            JSON.stringify({ hook_event_name: 'UserPromptSubmit', prompt: 'implement the UI', cwd: f.rootDir, session_id: 'off-test' })
+        ]) {
             const result = f.run(path.join(root, 'hooks', hook), [], input);
             assert.equal(result.status, 0, `${hook}: ${result.stderr}`);
             assert.equal(result.stdout + result.stderr, '', hook);
@@ -84,8 +107,10 @@ test('quiet and off suppress the registered UI reminder through both native laun
     const hook = path.join(root, 'hooks/ui-reuse-remind.cjs');
     const input = JSON.stringify({ hook_event_name: 'UserPromptSubmit', prompt: 'implement the UI', cwd: f.rootDir, session_id: 'ui-mode-test' });
     for (const mode of ['off', 'quiet']) {
-        for (const result of [f.run(hook, [], input, { CK_FRAMEWORK_MODE: mode }),
-            f.run('-e', ['require(process.argv[1])', '--', hook], input, { CK_FRAMEWORK_MODE: mode })]) {
+        for (const result of [
+            f.run(hook, [], input, { CK_FRAMEWORK_MODE: mode }),
+            f.run('-e', ['require(process.argv[1])', '--', hook], input, { CK_FRAMEWORK_MODE: mode })
+        ]) {
             assert.equal(result.status, 0, result.stderr);
             assert.equal(result.stdout + result.stderr, '', mode);
         }
@@ -104,9 +129,16 @@ test('quiet suppresses every context hook but still blocks a commit lacking revi
     assert.equal(spawnSync('git', ['init', '-q'], { cwd: f.rootDir, env: f.env }).status, 0);
     f.write(path.join(f.rootDir, 'candidate.txt'), 'changed');
     assert.equal(spawnSync('git', ['add', 'candidate.txt'], { cwd: f.rootDir, env: f.env }).status, 0);
-    const result = f.run(path.join(root, 'hooks/review-commit-gate.cjs'), [], JSON.stringify({
-        hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: 'git commit -m test' }, cwd: f.rootDir
-    }));
+    const result = f.run(
+        path.join(root, 'hooks/review-commit-gate.cjs'),
+        [],
+        JSON.stringify({
+            hook_event_name: 'PreToolUse',
+            tool_name: 'Bash',
+            tool_input: { command: 'git commit -m test' },
+            cwd: f.rootDir
+        })
+    );
     assert.equal(result.status, 2, result.stdout + result.stderr);
     assert.match(result.stderr, /review|receipt|lease|git/i);
 });
@@ -231,7 +263,14 @@ test('quietNative and autoApplyNative default off and follow the same layers as 
     assert.deepEqual([resolveQuietNative(opts()).source, resolveAutoApplyNative(opts()).source], ['project-config', 'project-config']);
     f.write(f.local, { frameworkRuntime: { quietNative: 'none', autoApplyNative: false } });
     assert.deepEqual([resolveQuietNative(opts()).value, resolveAutoApplyNative(opts()).enabled], ['none', false], 'a checkout preference beats the team value');
-    assert.deepEqual([resolveQuietNative(opts({ env: { CK_QUIET_NATIVE: 'restrict' } })).value, resolveAutoApplyNative(opts({ env: { CK_AUTO_APPLY_NATIVE: '1' } })).enabled], ['restrict', true], 'the environment wins last');
+    assert.deepEqual(
+        [
+            resolveQuietNative(opts({ env: { CK_QUIET_NATIVE: 'restrict' } })).value,
+            resolveAutoApplyNative(opts({ env: { CK_AUTO_APPLY_NATIVE: '1' } })).enabled
+        ],
+        ['restrict', true],
+        'the environment wins last'
+    );
     f.write(f.local, { frameworkRuntime: { quietNative: 'everything' } });
     assert.equal(resolveQuietNative(opts()).value, 'restrict', 'an invalid value expresses no preference');
 });

@@ -50,7 +50,7 @@ test('concise Codex preambles retain every execution and authority requirement',
         'an actually unavailable required capability stops with its step/evidence and a user question before adaptation.',
         'Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.',
         'Preserve protocol order unless the user approves a deviation.',
-        'Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.',
+        'Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.'
     ]) {
         assert.ok(note.includes(clause), `positive control contains ${clause}`);
         assert.deepEqual(missingSnippets(note.replace(clause, '')), [clause], `missing requirement fails: ${clause}`);
@@ -85,7 +85,7 @@ test('TC-CTXP-035e: the projection budget matches the generator that produces th
 // Same cross-producer rule for the Codex manual-only policy: the generator writes `agents/openai.yaml` and
 // accepts a skill-owned one by the shared lib pattern, while this self-contained gate keeps a local copy.
 // If they drift, the gate rejects the generator's own output or passes a policy the generator refuses.
-test('TC-CTXP-035h: the manual-only policy pattern matches the generator\'s shared constant', async () => {
+test("TC-CTXP-035h: the manual-only policy pattern matches the generator's shared constant", async () => {
     const shared = await import(pathToFileURL(path.resolve(thisDir, '..', '..', 'lib', 'agent-frontmatter.mjs')).href);
     assert.equal(CODEX_IMPLICIT_OFF_RE.source, shared.CODEX_IMPLICIT_OFF_RE.source);
     assert.equal(CODEX_IMPLICIT_OFF_RE.flags, shared.CODEX_IMPLICIT_OFF_RE.flags);
@@ -110,8 +110,10 @@ test('TC-CTXP-035i: a manual-only skill fails unless its Codex policy turns impl
     // Given a manual-only skill whose policy still allows implicit invocation
     // When the policy is checked
     // Then it fails
-    assert.ok(checkManualOnlyPolicy(true, 'policy:\n  allow_implicit_invocation: true\n', rel),
-        'allow_implicit_invocation: true must fail for a manual-only skill');
+    assert.ok(
+        checkManualOnlyPolicy(true, 'policy:\n  allow_implicit_invocation: true\n', rel),
+        'allow_implicit_invocation: true must fail for a manual-only skill'
+    );
 
     // Given a manual-only skill whose policy turns implicit invocation off
     // When the policy is checked
@@ -147,8 +149,12 @@ test('TC-CTXP-035j: the verifier CLI reports a manual-only mirror without its Co
         const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_')));
         Object.assign(env, { CLAUDE_PROJECT_DIR: temp, HOME: temp, USERPROFILE: temp, TMPDIR: temp, TEMP: temp, TMP: temp });
         const run = () => {
-            const result = spawnSync(process.execPath, [path.join(temp, '.claude/scripts/codex/verify-skill-protocol-compliance.mjs')],
-                { cwd: temp, env, encoding: 'utf8', timeout: 60000 });
+            const result = spawnSync(process.execPath, [path.join(temp, '.claude/scripts/codex/verify-skill-protocol-compliance.mjs')], {
+                cwd: temp,
+                env,
+                encoding: 'utf8',
+                timeout: 60000
+            });
             assert.equal(result.error, undefined);
             return result.stdout + result.stderr;
         };
@@ -193,8 +199,12 @@ function runVerifierWithSkillLocalPackage(extraFiles) {
 
         const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_')));
         Object.assign(env, { CLAUDE_PROJECT_DIR: temp, HOME: temp, USERPROFILE: temp, TMPDIR: temp, TEMP: temp, TMP: temp });
-        const result = spawnSync(process.execPath, [path.join(temp, '.claude/scripts/codex/verify-skill-protocol-compliance.mjs')],
-            { cwd: temp, env, encoding: 'utf8', timeout: 60000 });
+        const result = spawnSync(process.execPath, [path.join(temp, '.claude/scripts/codex/verify-skill-protocol-compliance.mjs')], {
+            cwd: temp,
+            env,
+            encoding: 'utf8',
+            timeout: 60000
+        });
         assert.equal(result.error, undefined);
         return `${result.stdout}${result.stderr}`;
     } finally {
@@ -207,7 +217,7 @@ test('TC-CTXP-035k: SKILL.md files inside a skill-local node_modules are not sca
     // When the verifier runs
     const output = runVerifierWithSkillLocalPackage({
         '.claude/skills/dep-sample/node_modules/some-dep/skills/bundled/SKILL.md':
-            '---\nname: bundled\ndescription: Package-owned.\n---\n\n## Empty\n## Stacked\n',
+            '---\nname: bundled\ndescription: Package-owned.\n---\n\n## Empty\n## Stacked\n'
     });
     // Then no failure names the package's files (the skeletal fixture may fail for other reasons,
     // and the generic remediation text mentions node_modules, so the oracle is the package path)
@@ -217,16 +227,20 @@ test('TC-CTXP-035k: SKILL.md files inside a skill-local node_modules are not sca
 // The guide-carrier scan walks every .md under the skills root with a walker of its own, so the skip must
 // hold there too. TC-CTXP-035k cannot see that walker: a package SKILL.md without a guide block trips no guide rule.
 test('TC-CTXP-035l: .md guide carriers inside a skill-local node_modules are not checked for guide rules', () => {
-    const guideCarrier = tag => [
-        '# Notes', '', '<!-- PROTOCOL-GUIDES:START -->',
-        `- \`${tag}\` — Fixture protocol; always → .claude/skills/shared/protocols/${tag}.md`,
-        '<!-- PROTOCOL-GUIDES:END -->', '',
-    ].join('\n');
+    const guideCarrier = tag =>
+        [
+            '# Notes',
+            '',
+            '<!-- PROTOCOL-GUIDES:START -->',
+            `- \`${tag}\` — Fixture protocol; always → .claude/skills/shared/protocols/${tag}.md`,
+            '<!-- PROTOCOL-GUIDES:END -->',
+            ''
+        ].join('\n');
     // Given two guide carriers that name protocols with no projection file: one skill-owned, one package-owned
     // When the verifier runs
     const output = runVerifierWithSkillLocalPackage({
         '.claude/skills/dep-sample/references/own-notes.md': guideCarrier('missing-own-protocol'),
-        '.claude/skills/dep-sample/node_modules/some-dep/docs/dep-notes.md': guideCarrier('missing-dep-protocol'),
+        '.claude/skills/dep-sample/node_modules/some-dep/docs/dep-notes.md': guideCarrier('missing-dep-protocol')
     });
     // Then the skill-owned carrier is reported, proving the guide scan ran in this fixture ...
     assert.match(output, /own-notes\.md: guide entry names protocol "missing-own-protocol"/);
@@ -275,7 +289,12 @@ test('TC-CTXP-035d: deleting the retired-block rejection is killed by the retire
     assert.equal(source.split(guard).length, 2, 'mutation anchor must be unique');
     const mutated = source.replace(guard, 'if (false)').replaceAll('import.meta.url', JSON.stringify(pathToFileURL(verifierPath).href));
     const verifier = await import(`data:text/javascript;base64,${Buffer.from(mutated).toString('base64')}`);
-    const agents = joinLines('<!-- CK:CODEX-ROOT-PROJECTION -->', '<!-- /CK:CODEX-ROOT-PROJECTION -->', '<!-- CODEX-CONTEXT-MIRROR:START -->', '<!-- CODEX-CONTEXT-MIRROR:END -->');
+    const agents = joinLines(
+        '<!-- CK:CODEX-ROOT-PROJECTION -->',
+        '<!-- /CK:CODEX-ROOT-PROJECTION -->',
+        '<!-- CODEX-CONTEXT-MIRROR:START -->',
+        '<!-- CODEX-CONTEXT-MIRROR:END -->'
+    );
     const oracle = fn => assert.equal(fn(agents).length, 1);
     oracle(checkCompactAgentsProjection);
     assert.throws(() => oracle(verifier.checkCompactAgentsProjection), assert.AssertionError);
@@ -297,13 +316,7 @@ test('TC-CTXP-035c: a retired context or protocol mirror block in AGENTS.md is a
 // TC-SKILLFIX-001 — orphan: heading immediately followed by a SAME-level heading, no body.
 // This is the exact class removed from the plan review mode and why-review (`## X` -> `## Your mission`).
 test('TC-SKILLFIX-001: flags `##` immediately followed by `##` with no body', () => {
-    const content = joinLines(
-        '## Behavioral Delta Matrix (MANDATORY for bugfixes)',
-        '',
-        '## Your mission',
-        '',
-        'Real body here.'
-    );
+    const content = joinLines('## Behavioral Delta Matrix (MANDATORY for bugfixes)', '', '## Your mission', '', 'Real body here.');
     const result = checkOrphanHeadings(content, '.claude/skills/example/SKILL.md');
     assert.ok(result, 'expected an orphan-heading failure');
     assert.match(result, /orphan heading\(s\)/);
@@ -318,15 +331,7 @@ test('TC-SKILLFIX-001b: flags `##` immediately followed by shallower `#`', () =>
 
 // TC-SKILLFIX-002 — a heading with prose body must pass.
 test('TC-SKILLFIX-002: passes a heading that has a body', () => {
-    const content = joinLines(
-        '## Real Section',
-        '',
-        'This section has prose body.',
-        '',
-        '## Next Section',
-        '',
-        'More body.'
-    );
+    const content = joinLines('## Real Section', '', 'This section has prose body.', '', '## Next Section', '', 'More body.');
     assert.equal(checkOrphanHeadings(content, 'SKILL.md'), null);
 });
 
@@ -406,13 +411,16 @@ test('TC-DEBUGTRACE-002: fails when end-to-start debugger trace gate is missing'
 
 // ── Guide carriers (P48) ─────────────────────────────────────────────────────────────────────────
 // A guide block with one line per tag, written by the shared writer (never a restated format).
-const guideBlock = (...tags) => joinLines(
-    guideCarrier.GUIDE_BLOCK_START,
-    '',
-    ...tags.map(tag => guideCarrier.formatGuideLine({ tag, summary: `Summary of ${tag}`, when: `using ${tag}`, path: `.claude/skills/shared/protocols/${tag}.md` })),
-    '',
-    guideCarrier.GUIDE_BLOCK_END
-);
+const guideBlock = (...tags) =>
+    joinLines(
+        guideCarrier.GUIDE_BLOCK_START,
+        '',
+        ...tags.map(tag =>
+            guideCarrier.formatGuideLine({ tag, summary: `Summary of ${tag}`, when: `using ${tag}`, path: `.claude/skills/shared/protocols/${tag}.md` })
+        ),
+        '',
+        guideCarrier.GUIDE_BLOCK_END
+    );
 const TRACE_PROJECTION = joinLines(
     '> **End-to-Start Debugger Trace** — start from the observed final state.',
     '> Enumerate all feeder paths, build the hypothesis matrix, pick the owning fix layer,',
@@ -421,7 +429,7 @@ const TRACE_PROJECTION = joinLines(
 
 // The lazy loader only asks the recognizer about text that holds this hint, so the hint must stay a
 // substring of the recognizer's own block marker — or every guide would silently read as absent.
-test('TC-PDL-065a: the guide-block hint stays inside the recognizer\'s block marker', () => {
+test("TC-PDL-065a: the guide-block hint stays inside the recognizer's block marker", () => {
     assert.ok(guideCarrier.GUIDE_BLOCK_START.includes(GUIDE_BLOCK_HINT));
     assert.deepEqual(guideTagsIn(guideBlock('alpha', 'beta')), ['alpha', 'beta']);
     assert.deepEqual(guideTagsIn('no block here'), []);
@@ -449,8 +457,11 @@ test('TC-PDL-065b: debugger-trace coverage accepts a guide carrier backed by its
 test('TC-PDL-032: a guide naming a protocol with no projection file fails', () => {
     // Given a skill whose guide names `ghost`, and no projection for it
     const failures = checkGuideCarrierRules({
-        relativePath: '.claude/skills/s/SKILL.md', skillName: 's', content: guideBlock('alpha', 'ghost'),
-        inlineSkills: [], projectionExists: tag => tag === 'alpha'
+        relativePath: '.claude/skills/s/SKILL.md',
+        skillName: 's',
+        content: guideBlock('alpha', 'ghost'),
+        inlineSkills: [],
+        projectionExists: tag => tag === 'alpha'
     });
     // When verified, Then only the ghost guide fails, naming the missing projection file
     assert.equal(failures.length, 1);
@@ -461,18 +472,39 @@ test('TC-PDL-033: one file carrying the full body and a guide for the same tag f
     const exists = () => true;
     const body = joinLines('<!-- SYNC:alpha -->', '', '> Alpha body.', '', '<!-- /SYNC:alpha -->');
     // Given full text + guide for one tag in the same file, When verified, Then it fails
-    const both = checkGuideCarrierRules({ relativePath: '.claude/skills/s/SKILL.md', skillName: 's', content: joinLines(guideBlock('alpha'), '', body), projectionExists: exists });
+    const both = checkGuideCarrierRules({
+        relativePath: '.claude/skills/s/SKILL.md',
+        skillName: 's',
+        content: joinLines(guideBlock('alpha'), '', body),
+        projectionExists: exists
+    });
     assert.equal(both.length, 1);
     assert.match(both[0], /carries both the full <!-- SYNC:alpha --> body and a guide entry for "alpha"/);
     // Given the guide in SKILL.md and the full text in references/r.md, When each file is verified, Then both pass
-    assert.deepEqual(checkGuideCarrierRules({ relativePath: '.claude/skills/s/SKILL.md', skillName: 's', content: guideBlock('alpha'), projectionExists: exists }), []);
+    assert.deepEqual(
+        checkGuideCarrierRules({ relativePath: '.claude/skills/s/SKILL.md', skillName: 's', content: guideBlock('alpha'), projectionExists: exists }),
+        []
+    );
     assert.deepEqual(checkGuideCarrierRules({ relativePath: '.claude/skills/s/references/r.md', skillName: 's', content: body, projectionExists: exists }), []);
     // A guide for a DIFFERENT tag beside a body is not a both-forms case
-    assert.deepEqual(checkGuideCarrierRules({ relativePath: '.claude/skills/s/SKILL.md', skillName: 's', content: joinLines(guideBlock('beta'), '', body), projectionExists: exists }), []);
+    assert.deepEqual(
+        checkGuideCarrierRules({
+            relativePath: '.claude/skills/s/SKILL.md',
+            skillName: 's',
+            content: joinLines(guideBlock('beta'), '', body),
+            projectionExists: exists
+        }),
+        []
+    );
 });
 
 test('TC-PDL-083: a skill listed in inlineSkills fails when it carries any guide entry', () => {
-    const args = { relativePath: '.claude/skills/code-quality-review/SKILL.md', skillName: 'code-quality-review', inlineSkills: ['code-quality-review'], projectionExists: () => true };
+    const args = {
+        relativePath: '.claude/skills/code-quality-review/SKILL.md',
+        skillName: 'code-quality-review',
+        inlineSkills: ['code-quality-review'],
+        projectionExists: () => true
+    };
     // Given S in inlineSkills, When S carries a guide entry, Then the verifier fails naming S
     const failures = checkGuideCarrierRules({ ...args, content: guideBlock('alpha') });
     assert.equal(failures.length, 1);
@@ -510,8 +542,12 @@ test('TC-PDL-032/033/083: the verifier CLI reports each guide-carrier violation 
         const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_')));
         Object.assign(env, { CLAUDE_PROJECT_DIR: temp, HOME: temp, USERPROFILE: temp, TMPDIR: temp, TEMP: temp, TMP: temp });
         const run = () => {
-            const result = spawnSync(process.execPath, [path.join(temp, '.claude/scripts/codex/verify-skill-protocol-compliance.mjs')],
-                { cwd: temp, env, encoding: 'utf8', timeout: 60000 });
+            const result = spawnSync(process.execPath, [path.join(temp, '.claude/scripts/codex/verify-skill-protocol-compliance.mjs')], {
+                cwd: temp,
+                env,
+                encoding: 'utf8',
+                timeout: 60000
+            });
             assert.equal(result.error, undefined);
             return (result.stdout + result.stderr).split(/\r?\n/).filter(line => /guide entr|carries both the full/.test(line));
         };
@@ -604,7 +640,7 @@ test('TC-CTXP-035b: compact AGENTS projection rejects missing markers, universal
         'x'.repeat(AGENTS_ROOT_LIMIT_BYTES + 1)
     );
     const failures = checkCompactAgentsProjection(agents);
-    assert.ok(failures.some((failure) => new RegExp(`above the ${AGENTS_ROOT_LIMIT_BYTES}-byte`).test(failure)));
-    assert.ok(failures.some((failure) => /bounded root projection markers/.test(failure)));
-    assert.ok(failures.some((failure) => /universal protocol text/.test(failure)));
+    assert.ok(failures.some(failure => new RegExp(`above the ${AGENTS_ROOT_LIMIT_BYTES}-byte`).test(failure)));
+    assert.ok(failures.some(failure => /bounded root projection markers/.test(failure)));
+    assert.ok(failures.some(failure => /universal protocol text/.test(failure)));
 });

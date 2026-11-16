@@ -47,7 +47,10 @@ const tests = [
             const changes = shipped('skills', 'changes-review', 'SKILL.md');
             const policy = shipped('skills', 'shared', 'protocols', 'review-policy.md');
             assert.match(contract, /explicit review-only request overrides the workflow's fix-loop default/);
-            assert.match(contract, /child reviews and validates its assigned pass read-only; the caller waits for all reports, fixes once, and requests fresh passes/);
+            assert.match(
+                contract,
+                /child reviews and validates its assigned pass read-only; the caller waits for all reports, fixes once, and requests fresh passes/
+            );
             assert.match(contract, /never permission for parallel source mutation or a nested loop/);
             assert.match(contract, /Deferral never skips a gate/);
             assert.match(contract, /Preserve complete target coverage, required rules and report findings/);
@@ -57,7 +60,11 @@ const tests = [
             assert.match(changes, /all readers join its loop without concurrent writers/);
             assert.match(changes, /Review-only returns the validated report without source changes/);
             // And no other leaf's report-only section was loosened by the exemption
-            for (const [leaf, file] of [['security-audit', ['SKILL.md']], ['performance-review', ['SKILL.md']], ['ui-design --mode=review', ['references', 'mode-review.md']]]) {
+            for (const [leaf, file] of [
+                ['security-audit', ['SKILL.md']],
+                ['performance-review', ['SKILL.md']],
+                ['ui-design --mode=review', ['references', 'mode-review.md']]
+            ]) {
                 const text = shipped('skills', leaf.split(' ')[0], ...file);
                 assert.ok(/\*\*No nested fan-out\.\*\*/.test(text), `${leaf}: lost its own no-nested-fan-out rule`);
             }
@@ -71,16 +78,37 @@ const tests = [
             // Then the audits are invoked only on a named brief or a user request
             assert.ok(/only when the brief names them or the user asks for that audit/.test(evaluate), 'architect Evaluate step lost its named-only condition');
             // And otherwise the agent reads, in full and before applying the lenses, the two design-altitude sections by heading (the agent body holds no lens rules of its own)
-            assert.ok(/otherwise read in full, BEFORE applying the lenses/.test(evaluate), 'architect Evaluate step lost the mandatory read before applying the lenses');
-            assert.ok(/section `Architecture-Altitude Performance Review` of `\.claude\/skills\/performance-review\/SKILL\.md`/.test(evaluate), 'architect Evaluate step no longer names the performance design-altitude section');
-            assert.ok(/section `Report-Only Mode` of `\.claude\/skills\/security-audit\/SKILL\.md`/.test(evaluate), 'architect Evaluate step no longer names the security design-altitude rule');
+            assert.ok(
+                /otherwise read in full, BEFORE applying the lenses/.test(evaluate),
+                'architect Evaluate step lost the mandatory read before applying the lenses'
+            );
+            assert.ok(
+                /section `Architecture-Altitude Performance Review` of `\.claude\/skills\/performance-review\/SKILL\.md`/.test(evaluate),
+                'architect Evaluate step no longer names the performance design-altitude section'
+            );
+            assert.ok(
+                /section `Report-Only Mode` of `\.claude\/skills\/security-audit\/SKILL\.md`/.test(evaluate),
+                'architect Evaluate step no longer names the security design-altitude rule'
+            );
             // And the read lines point at headings that exist in the skills (a renamed heading fails here, not silently in a design review)
-            assert.ok(/^## Architecture-Altitude Performance Review$/m.test(shipped('skills', 'performance-review', 'SKILL.md')), 'performance-review lost the Architecture-Altitude Performance Review heading');
+            assert.ok(
+                /^## Architecture-Altitude Performance Review$/m.test(shipped('skills', 'performance-review', 'SKILL.md')),
+                'performance-review lost the Architecture-Altitude Performance Review heading'
+            );
             const security = shipped('skills', 'security-audit', 'SKILL.md');
-            assert.ok(/^## Report-Only Mode /m.test(security) && /design altitude/.test(security), 'security-audit lost the Report-Only Mode section or its design-altitude rule');
+            assert.ok(
+                /^## Report-Only Mode /m.test(security) && /design altitude/.test(security),
+                'security-audit lost the Report-Only Mode section or its design-altitude rule'
+            );
             // And running the whole audits stays an explicit choice: the step does not auto-invoke them
-            assert.ok(/a wave brief that names no sibling specialist is not a request for a duplicate audit/.test(evaluate), 'architect Evaluate step lost the no-duplicate-audit guarantee');
-            assert.ok(!/invoke `security-audit` \/ `performance-review` \(architecture-altitude section\) on demand/.test(evaluate), 'architect Evaluate step still auto-invokes the audits');
+            assert.ok(
+                /a wave brief that names no sibling specialist is not a request for a duplicate audit/.test(evaluate),
+                'architect Evaluate step lost the no-duplicate-audit guarantee'
+            );
+            assert.ok(
+                !/invoke `security-audit` \/ `performance-review` \(architecture-altitude section\) on demand/.test(evaluate),
+                'architect Evaluate step still auto-invokes the audits'
+            );
         })
     },
     {
@@ -91,7 +119,10 @@ const tests = [
             const inferred = lineStarting(text, 'No `--target` (or an unrecognized value)', '/fix no-target routing line');
             // Then an inferred branch reads its reference in full first, and the read is blocking
             assert.ok(/inference selects a branch \(`types\|ci\|logs\|test\|ui`\)/.test(inferred), '/fix no-target line lost the inferred-branch clause');
-            assert.ok(/references\/target-<name>\.md` in full FIRST \(BLOCKING\)/.test(inferred), '/fix no-target line lost the blocking read of the target reference');
+            assert.ok(
+                /references\/target-<name>\.md` in full FIRST \(BLOCKING\)/.test(inferred),
+                '/fix no-target line lost the blocking read of the target reference'
+            );
             // And every branch that has a reference file is one the clause can name
             for (const name of ['types', 'ci', 'logs', 'test', 'ui']) {
                 assert.ok(fs.existsSync(path.join(CLAUDE_DIR, 'skills', 'fix', 'references', `target-${name}.md`)), `references/target-${name}.md is missing`);

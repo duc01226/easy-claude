@@ -47,9 +47,7 @@ function nearestProjectRoot(start) {
  * @returns {{rootDir: string, source: string, error?: string}}
  */
 function resolveProjectRoot({ cwd = process.cwd(), scriptPath, env = process.env, preferCwdFallback = false } = {}) {
-    const explicit = env && Object.prototype.hasOwnProperty.call(env, 'CLAUDE_PROJECT_DIR')
-        ? env.CLAUDE_PROJECT_DIR
-        : undefined;
+    const explicit = env && Object.prototype.hasOwnProperty.call(env, 'CLAUDE_PROJECT_DIR') ? env.CLAUDE_PROJECT_DIR : undefined;
 
     if (explicit !== undefined && explicit !== null && String(explicit).trim() !== '') {
         const explicitRoot = absoluteDirectory(String(explicit));
@@ -120,9 +118,7 @@ function isInvokedAsScript(invokedPath, selfPath, options = {}) {
         const realpath = options.realpath || fs.realpathSync.native;
         const invoked = canonicalPath(invokedPath, realpath);
         const self = canonicalPath(selfPath, realpath);
-        return (options.platform || process.platform) === 'win32'
-            ? invoked.toLowerCase() === self.toLowerCase()
-            : invoked === self;
+        return (options.platform || process.platform) === 'win32' ? invoked.toLowerCase() === self.toLowerCase() : invoked === self;
     } catch {
         return false;
     }

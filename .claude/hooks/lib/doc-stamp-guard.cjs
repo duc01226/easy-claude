@@ -50,7 +50,7 @@ const VOLATILE_PATTERNS = [
     // Prose form: "... across 11 indexed categories. Last scanned: 2026-09-14."
     { name: 'last-scanned-prose', re: /(Last scanned:\s*)\d{4}-\d{2}-\d{2}/g, replace: '$1<DATE>' },
     // Generated technical views: "Regenerated: 2026-09-14."
-    { name: 'regenerated', re: /(Regenerated:\s*)\d{4}-\d{2}-\d{2}/g, replace: '$1<DATE>' },
+    { name: 'regenerated', re: /(Regenerated:\s*)\d{4}-\d{2}-\d{2}/g, replace: '$1<DATE>' }
 ];
 
 /**
@@ -92,15 +92,17 @@ function normalizeDocContent(content) {
     for (const { re, replace } of VOLATILE_PATTERNS) {
         normalized = normalized.replace(re, replace);
     }
-    return normalized
-        .split('\n')
-        // Two or more trailing spaces are a markdown hard line break — that IS
-        // meaning, so it is normalized to a stable token rather than deleted.
-        // A single trailing space or tab is invisible formatting noise.
-        .map(line => line.replace(/[ \t]{2,}$/, '<BR>').replace(/[ \t]+$/, ''))
-        .join('\n')
-        .replace(/\n{3,}/g, '\n\n')
-        .trim();
+    return (
+        normalized
+            .split('\n')
+            // Two or more trailing spaces are a markdown hard line break — that IS
+            // meaning, so it is normalized to a stable token rather than deleted.
+            // A single trailing space or tab is invisible formatting noise.
+            .map(line => line.replace(/[ \t]{2,}$/, '<BR>').replace(/[ \t]+$/, ''))
+            .join('\n')
+            .replace(/\n{3,}/g, '\n\n')
+            .trim()
+    );
 }
 
 /**
@@ -171,8 +173,7 @@ function matchesDocBaseline(filePath, baselineContent) {
  * Optimistic check only: callers serialize application; this is not a lock.
  */
 function writeDocIfChanged(filePath, nextContent, options = {}) {
-    if (Object.prototype.hasOwnProperty.call(options, 'baselineContent') &&
-        !matchesDocBaseline(filePath, options.baselineContent)) {
+    if (Object.prototype.hasOwnProperty.call(options, 'baselineContent') && !matchesDocBaseline(filePath, options.baselineContent)) {
         return { written: false, reason: 'baseline conflict — reconcile current document' };
     }
     let existing = null;
@@ -212,7 +213,7 @@ function runGit(args, cwd) {
         cwd,
         encoding: 'utf-8',
         maxBuffer: 32 * 1024 * 1024,
-        windowsHide: true,
+        windowsHide: true
     });
 }
 
@@ -296,7 +297,7 @@ function printUsage() {
             '',
             'This tool NEVER mutates the repository. Act on its output with',
             '`git restore --staged <path>` only — never revert the working tree.',
-            '',
+            ''
         ].join('\n')
     );
 }
@@ -327,11 +328,7 @@ function main(argv) {
         } else if (result.stampOnly.length === 0) {
             process.stdout.write(`No stamp-only staged diffs (${result.inspected} modified file(s) inspected).\n`);
         } else {
-            process.stdout.write(
-                `Stamp-only staged diffs — no real content change, safe to unstage:\n${result.stampOnly
-                    .map(p => `  ${p}`)
-                    .join('\n')}\n`
-            );
+            process.stdout.write(`Stamp-only staged diffs — no real content change, safe to unstage:\n${result.stampOnly.map(p => `  ${p}`).join('\n')}\n`);
         }
         return result.stampOnly.length === 0 ? 0 : 3;
     }
@@ -402,7 +399,7 @@ module.exports = {
     contentHash,
     writeDocIfChanged,
     matchesDocBaseline,
-    findStampOnlyStagedDocs,
+    findStampOnlyStagedDocs
 };
 
 // Publish the API before direct CLI startup. `--record-verified` loads

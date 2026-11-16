@@ -25,9 +25,9 @@ const asstEv = (t, outputTokens) => ({
 test('happy path: two valid turns, average across both', () => {
     const avg = computeAvgTps([
         userEv(1000),
-        asstEv(2000, 100),   // 1s gap, 100 tokens → 100 tok/s
+        asstEv(2000, 100), // 1s gap, 100 tokens → 100 tok/s
         userEv(3000),
-        asstEv(5000, 200)    // 2s gap, 200 tokens → 100 tok/s
+        asstEv(5000, 200) // 2s gap, 200 tokens → 100 tok/s
     ]);
     assert.ok(avg != null, 'expected non-null avg');
     assert.ok(Math.abs(avg - 100) < 0.01, `expected ~100, got ${avg}`);
@@ -38,7 +38,7 @@ test('gap exceeds MAX_TURN_GAP_MS: turn skipped', () => {
         userEv(1000),
         asstEv(1000 + MAX_TURN_GAP_MS + 1, 500), // gap > max → skip
         userEv(2000 + MAX_TURN_GAP_MS),
-        asstEv(2000 + MAX_TURN_GAP_MS + 1000, 50)  // 1s, 50 tokens → 50 tok/s
+        asstEv(2000 + MAX_TURN_GAP_MS + 1000, 50) // 1s, 50 tokens → 50 tok/s
     ]);
     assert.ok(avg != null);
     assert.ok(Math.abs(avg - 50) < 0.01, `expected ~50, got ${avg}`);
@@ -46,9 +46,9 @@ test('gap exceeds MAX_TURN_GAP_MS: turn skipped', () => {
 
 test('no preceding non-assistant: assistant ignored', () => {
     const avg = computeAvgTps([
-        asstEv(1000, 100),  // no prior non-assistant — should not pair
+        asstEv(1000, 100), // no prior non-assistant — should not pair
         userEv(2000),
-        asstEv(3000, 100)   // 1s, 100 tokens → 100 tok/s
+        asstEv(3000, 100) // 1s, 100 tokens → 100 tok/s
     ]);
     assert.ok(avg != null);
     assert.ok(Math.abs(avg - 100) < 0.01, `expected ~100, got ${avg}`);
@@ -57,9 +57,9 @@ test('no preceding non-assistant: assistant ignored', () => {
 test('zero output_tokens: turn skipped', () => {
     const avg = computeAvgTps([
         userEv(1000),
-        asstEv(2000, 0),    // skipped (out <= 0)
+        asstEv(2000, 0), // skipped (out <= 0)
         userEv(3000),
-        asstEv(4000, 100)   // 1s, 100 tokens → 100 tok/s
+        asstEv(4000, 100) // 1s, 100 tokens → 100 tok/s
     ]);
     assert.ok(avg != null);
     assert.ok(Math.abs(avg - 100) < 0.01, `expected ~100, got ${avg}`);

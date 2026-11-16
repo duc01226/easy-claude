@@ -20,16 +20,29 @@ const TESTS_DIR = path.resolve(__dirname, '..');
 const { runTest } = require(path.join(TESTS_DIR, 'run-all-tests.cjs'));
 const { TestGroup } = require(path.join(TESTS_DIR, 'helpers', 'test-utils.cjs'));
 
-const later = (ms, fn) => new Promise((resolve, reject) => setTimeout(() => {
-    try { resolve(fn()); } catch (err) { reject(err); }
-}, ms));
+const later = (ms, fn) =>
+    new Promise((resolve, reject) =>
+        setTimeout(() => {
+            try {
+                resolve(fn());
+            } catch (err) {
+                reject(err);
+            }
+        }, ms)
+    );
 
 const tests = [
     {
         name: 'TC-RAC-001 runTest fails a non-async test whose returned promise rejects',
         fn: async () => {
             // Given a plain function returning a promise that rejects after a tick
-            const test = { name: 'returns-rejecting-promise', fn: () => later(5, () => { throw new Error('late assertion'); }) };
+            const test = {
+                name: 'returns-rejecting-promise',
+                fn: () =>
+                    later(5, () => {
+                        throw new Error('late assertion');
+                    })
+            };
             // When the aggregate runner runs it
             const result = await runTest(test, false);
             // Then the rejection is the test's own failure, not a silent pass
@@ -41,7 +54,13 @@ const tests = [
         name: 'TC-RAC-002 runTest passes a non-async test only after its returned promise settles',
         fn: async () => {
             let settled = false;
-            const test = { name: 'returns-resolving-promise', fn: () => later(5, () => { settled = true; }) };
+            const test = {
+                name: 'returns-resolving-promise',
+                fn: () =>
+                    later(5, () => {
+                        settled = true;
+                    })
+            };
             const result = await runTest(test, false);
             assert.equal(result.passed, true);
             assert.equal(settled, true, 'the pass is recorded after the assertions finished');
@@ -52,8 +71,16 @@ const tests = [
         fn: async () => {
             const group = new TestGroup('await-contract');
             let settled = false;
-            group.test('rejects late', () => later(5, () => { throw new Error('late assertion'); }));
-            group.test('resolves late', () => later(5, () => { settled = true; }));
+            group.test('rejects late', () =>
+                later(5, () => {
+                    throw new Error('late assertion');
+                })
+            );
+            group.test('resolves late', () =>
+                later(5, () => {
+                    settled = true;
+                })
+            );
             const log = console.log;
             console.log = () => {};
             let outcome;

@@ -74,12 +74,18 @@ const signal = (name, re) => ({ name, re });
 // prompt also carries one framework cue.
 const CONCRETE_SIGNALS = [
     signal('RAG', /\bRAG\b|\b[Rr]etrieval[- ][Aa]ugmented\b/),
-    signal('embeddings', /\bembeddings\b|\b(?:text|sentence|vector|word|document) embedding\b|\bembedding (?:model|vectors?|index|store|search|dimensions?|api)\b/i),
+    signal(
+        'embeddings',
+        /\bembeddings\b|\b(?:text|sentence|vector|word|document) embedding\b|\bembedding (?:model|vectors?|index|store|search|dimensions?|api)\b/i
+    ),
     signal('vector store', /\bvector (?:stores?|search|db|databases?|index(?:es)?)\b|\b(?:pgvector|pinecone|weaviate|qdrant|chromadb|milvus|lancedb)\b/i),
     signal('prompt injection', /\bprompt[- ]injection\b|\bjailbreaks?\b/i),
     signal('prompt caching', /\bprompt caching\b/i),
     signal('OpenAI / GPT', /\b(?:openai|chatgpt|gpt-?[345]\w*)\b/i),
-    signal('provider API', /\b(?:anthropic|gemini|mistral|cohere|bedrock|vertex ai|azure openai|ollama)\b[^.?!\n]{0,24}\b(?:api|sdk|client|endpoint|integration|models?)\b|\b(?:api|sdk|client|endpoint|integration)\b[^.?!\n]{0,16}\b(?:anthropic|gemini|mistral|cohere|bedrock|vertex ai)\b|\bclaude(?: agent)? (?:api|sdk)\b|\b(?:api|sdk|integration)\b[^.?!\n]{0,16}\bclaude\b(?![- ]?code\b|\.(?:md|ai)\b)/i),
+    signal(
+        'provider API',
+        /\b(?:anthropic|gemini|mistral|cohere|bedrock|vertex ai|azure openai|ollama)\b[^.?!\n]{0,24}\b(?:api|sdk|client|endpoint|integration|models?)\b|\b(?:api|sdk|client|endpoint|integration)\b[^.?!\n]{0,16}\b(?:anthropic|gemini|mistral|cohere|bedrock|vertex ai)\b|\bclaude(?: agent)? (?:api|sdk)\b|\b(?:api|sdk|integration)\b[^.?!\n]{0,16}\bclaude\b(?![- ]?code\b|\.(?:md|ai)\b)/i
+    ),
     signal('function calling', /\bfunction[- ]calling\b/i),
     signal('fine-tuning', /\bfine[- ]?tun(?:e|ed|es|ing)\b[^.?!\n]{0,40}\b(?:model|llm|llama|gpt|embedding|classifier|lora|dataset|training data)\b/i),
     signal('semantic search', /\bsemantic search\b/i),
@@ -91,7 +97,10 @@ const CONCRETE_SIGNALS = [
 // routes only when the prompt carries no framework cue.
 const GENERIC_SIGNALS = [
     signal('LLM', /\bLLMs?\b/i),
-    signal('AI feature', /\bai[- ](?:feature|powered|chatbot|copilot|integration|pipeline|backend|generated content|assistants?|models?|apps?|services?)\b|\b(?:chat ?bot|copilot feature|assistant feature)\b/i),
+    signal(
+        'AI feature',
+        /\bai[- ](?:feature|powered|chatbot|copilot|integration|pipeline|backend|generated content|assistants?|models?|apps?|services?)\b|\b(?:chat ?bot|copilot feature|assistant feature)\b/i
+    ),
     signal('agentic app', /\bagentic (?:app|application|feature|product|system)s?\b/i),
     signal('system prompt', /\bsystem prompts?\b/i),
     signal('guardrails', /\bguardrails?\b/i),
@@ -101,18 +110,24 @@ const GENERIC_SIGNALS = [
     signal('browser agent', /\b(?:browser|computer)[- ]use (?:agents?|tools?|apis?|mode)\b|\b(?:browser|computer[- ]use) agents?\b/i),
     signal('agent protocol', /\bagent[- ]to[- ]agent (?:communication|delegation)\b/i),
     signal('prompt engineering', /\bprompt engineering\b|\bprompt templates?\b/i),
-    signal('model eval', /\b(?:evals?|evaluation) (?:set|suite|harness|dataset|pipeline)s?\b[^.?!\n]{0,40}\b(?:model|llm|prompts?|rag)\b|\b(?:model|llm|prompt|rag) evals?\b/i)
+    signal(
+        'model eval',
+        /\b(?:evals?|evaluation) (?:set|suite|harness|dataset|pipeline)s?\b[^.?!\n]{0,40}\b(?:model|llm|prompts?|rag)\b|\b(?:model|llm|prompt|rag) evals?\b/i
+    )
 ];
 
 // Cheap prefilter over the raw prompt: any word either list can match. No hit, no further work.
-const PREFILTER = /\b(?:ai|llms?|rag|retrieval|embeddings?|openai|chatgpt|gpt|anthropic|gemini|mistral|cohere|bedrock|vertex|ollama|chat ?bot|copilot|agentic|vector|pgvector|pinecone|weaviate|qdrant|chromadb|milvus|lancedb|jailbreaks?|prompt|semantic|function[- ]calling|guardrails?|hallucinat\w*|tool[- ](?:calling|use)|mcp|model context|model rout\w*|model evals?|fine[- ]?tun\w*|evals?|evaluation|(?:browser|computer)[- ]use|browser agents?|a2a|agent[- ]to[- ]agent)\b|\bclaude(?: agent)? (?:api|sdk)\b|\b(?:api|sdk|integration)\b[^.?!\n]{0,16}\bclaude\b/i;
+const PREFILTER =
+    /\b(?:ai|llms?|rag|retrieval|embeddings?|openai|chatgpt|gpt|anthropic|gemini|mistral|cohere|bedrock|vertex|ollama|chat ?bot|copilot|agentic|vector|pgvector|pinecone|weaviate|qdrant|chromadb|milvus|lancedb|jailbreaks?|prompt|semantic|function[- ]calling|guardrails?|hallucinat\w*|tool[- ](?:calling|use)|mcp|model context|model rout\w*|model evals?|fine[- ]?tun\w*|evals?|evaluation|(?:browser|computer)[- ]use|browser agents?|a2a|agent[- ]to[- ]agent)\b|\bclaude(?: agent)? (?:api|sdk)\b|\b(?:api|sdk|integration)\b[^.?!\n]{0,16}\bclaude\b/i;
 
 // The framework's own machinery: `countFrameworkCues` in `lib/prompt-route-utils.cjs` owns the cue list,
 // shared with the knowledge router (`knowledge-route.cjs`).
 
 // A request to act on the technique (build, plan, integrate, review...), not to learn what it is.
-const ACTION_CUE = /\b(?:add|build|building|create|implement|integrat\w*|design|plan|develop|ship|wire|write|use|using|enable|set ?up|protect|secure|harden|reduce|improve|fix|review|audit|assess|evaluate|critique|inspect|check|migrate|switch|deploy|architect|estimate|refactor|scaffold|prototype|introduce|adopt|connect|call|extend|support|cache|route|test|prevent|mitigate|defend|optimi[sz]e|tune)\b|\bhow (?:do|should|can|would|could) (?:we|i|you)\b/i;
-const REVIEW_CUE = /\b(?:review|audit|assess|critique|inspect|evaluate|check)\b|\b(?:is|are) (?:this|it|the)\b[^.?!\n]{0,40}\b(?:safe|secure|correct|ok|okay|sound|robust)\b|\bany (?:gaps|issues|problems|risks|vulnerabilit(?:y|ies))\b/i;
+const ACTION_CUE =
+    /\b(?:add|build|building|create|implement|integrat\w*|design|plan|develop|ship|wire|write|use|using|enable|set ?up|protect|secure|harden|reduce|improve|fix|review|audit|assess|evaluate|critique|inspect|check|migrate|switch|deploy|architect|estimate|refactor|scaffold|prototype|introduce|adopt|connect|call|extend|support|cache|route|test|prevent|mitigate|defend|optimi[sz]e|tune)\b|\bhow (?:do|should|can|would|could) (?:we|i|you)\b/i;
+const REVIEW_CUE =
+    /\b(?:review|audit|assess|critique|inspect|evaluate|check)\b|\b(?:is|are) (?:this|it|the)\b[^.?!\n]{0,40}\b(?:safe|secure|correct|ok|okay|sound|robust)\b|\bany (?:gaps|issues|problems|risks|vulnerabilit(?:y|ies))\b/i;
 const PLAN_CUE = /\b(?:plan|planning|design|architect\w*|estimate|scope|proposal|approach|roadmap|spec)\b/i;
 // An explicit invocation of the review skill already carries its own protocol.
 const EXPLICIT_REVIEW_INVOCATION = new RegExp(`^\\s*[/$](?:[\\w-]+:)?${REVIEW_SKILL}\\b`, 'i');
@@ -233,17 +248,25 @@ function run(input, deps = {}) {
             const env = deps.env || process.env;
             const ledger = deps.ledger || require('./lib/convention-ledger.cjs');
             const crypto = require('crypto');
-            ledger.deliverWithCompaction({
-                root: deps.storeRoot || ledger.storeRoot(env),
-                input: ledger.agentStartInput(input),
-                group: RECORD_GROUP,
-                // One record for every intent: the window is per session scope, not per wording.
-                hash: crypto.createHash('sha256').update(`${HOOK_NAME}:${GATE_FILE}:${FRAMING_FILE}:${require('./lib/prompt-route-utils.cjs').resolveHookSkillAutoTrigger(deps).enabled}`, 'utf8').digest('hex'),
-                payload: require('./lib/prompt-route-utils.cjs').routerOutput(input, text),
-                settings: ledgerSettings(ledger),
-                now: typeof deps.now === 'number' ? deps.now : Date.now(),
-                write: deps.write || defaultWrite
-            }).then(resolve, () => resolve(''));
+            ledger
+                .deliverWithCompaction({
+                    root: deps.storeRoot || ledger.storeRoot(env),
+                    input: ledger.agentStartInput(input),
+                    group: RECORD_GROUP,
+                    // One record for every intent: the window is per session scope, not per wording.
+                    hash: crypto
+                        .createHash('sha256')
+                        .update(
+                            `${HOOK_NAME}:${GATE_FILE}:${FRAMING_FILE}:${require('./lib/prompt-route-utils.cjs').resolveHookSkillAutoTrigger(deps).enabled}`,
+                            'utf8'
+                        )
+                        .digest('hex'),
+                    payload: require('./lib/prompt-route-utils.cjs').routerOutput(input, text),
+                    settings: ledgerSettings(ledger),
+                    now: typeof deps.now === 'number' ? deps.now : Date.now(),
+                    write: deps.write || defaultWrite
+                })
+                .then(resolve, () => resolve(''));
         } catch (error) {
             debug(error); // fail open: an advisory hook never blocks a prompt
             resolve('');
@@ -276,7 +299,15 @@ if (isHookEntryPoint(module)) {
     try {
         const { parseStdinSync } = require('./lib/stdin-parser.cjs');
         const input = parseStdinSync({ defaultValue: null, throwOnError: false, context: HOOK_NAME });
-        if (input) run(input).then(() => { process.exitCode = 0; }, () => { process.exitCode = 0; });
+        if (input)
+            run(input).then(
+                () => {
+                    process.exitCode = 0;
+                },
+                () => {
+                    process.exitCode = 0;
+                }
+            );
     } catch (error) {
         debug(error); // fail open: an advisory hook never blocks a prompt
     }

@@ -97,7 +97,11 @@ function setTodoState(sessionId, state) {
             // for non-critical session state (fail-open design).
             if (renameErr.code === 'EEXIST' || renameErr.code === 'EPERM') {
                 fs.copyFileSync(tmpFile, statePath);
-                try { fs.unlinkSync(tmpFile); } catch (_) { /* ignore cleanup failure */ }
+                try {
+                    fs.unlinkSync(tmpFile);
+                } catch (_) {
+                    /* ignore cleanup failure */
+                }
             } else {
                 throw renameErr;
             }

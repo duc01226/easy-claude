@@ -57,7 +57,12 @@ const ROOT_MATRIX = [
     { token: 'SPEC_ROOT_TECHNICAL', configPath: 'specRoots.technical.path', value: 'spec-library-derived', variance: 'segment-boundary sibling' },
     { token: 'REF_DOCS_ROOT', configPath: 'docsRoots.projectReference.path', value: 'documentation/reference', variance: 'nested two levels' },
     { token: 'ADR_ROOT', configPath: 'docsRoots.adr.path', value: 'documentation/Decisions', variance: 'CASE' },
-    { token: 'TEMPLATES_ROOT', configPath: 'docsRoots.templates.path', value: 'documentation/blueprints', variance: 'BACKSLASH (declared `documentation\\blueprints`)' },
+    {
+        token: 'TEMPLATES_ROOT',
+        configPath: 'docsRoots.templates.path',
+        value: 'documentation/blueprints',
+        variance: 'BACKSLASH (declared `documentation\\blueprints`)'
+    },
     { token: 'PLANS_ROOT', configPath: 'docsRoots.plans.path', value: 'work-plans', variance: 'plain; beats the `.ck.json` tier' },
     { token: 'TEAM_ARTIFACTS_ROOT', configPath: 'docsRoots.teamArtifacts.path', value: 'artifacts', variance: 'TRAILING SLASH (declared `artifacts/`)' },
     { token: 'PRODUCT_ROADMAP_DOC', configPath: 'docsRoots.productRoadmap.path', value: 'documentation/roadmap.md', variance: 'file, relocated tree' }
@@ -110,9 +115,7 @@ function inFixture(fixtureDir, body) {
 /** Import the ESM verifier from a CJS suite — Windows needs a file:// URL, not a drive path. */
 async function importSdd() {
     const { pathToFileURL } = require('url');
-    return import(
-        pathToFileURL(path.join(REPO, '.claude', 'scripts', 'codex', 'verify-sdd-semantic-compliance.mjs')).href
-    );
+    return import(pathToFileURL(path.join(REPO, '.claude', 'scripts', 'codex', 'verify-sdd-semantic-compliance.mjs')).href);
 }
 
 const tests = [
@@ -138,19 +141,13 @@ const tests = [
                 const declared = pathUtils.normalizeRootPath(readDotted(RELOCATED_CONFIG, root.configPath));
                 const dflt = loader.PORTABILITY_TOKENS[root.token].default;
                 assertEqual(declared, root.value, `${root.configPath} drifted from the documented fixture value`);
-                assertTrue(
-                    declared !== dflt,
-                    `${root.configPath} equals its DEFAULT (${dflt}) — the fixture would pass with the accessor unwired`
-                );
+                assertTrue(declared !== dflt, `${root.configPath} equals its DEFAULT (${dflt}) — the fixture would pass with the accessor unwired`);
             }
             // Only existence warnings are acceptable: the semantic validator resolves against the
             // REAL repo root (project-config-schema.cjs:1163), so fixture-relative roots are
             // legitimately absent there. Anything else is a genuine config defect.
             for (const warning of result.warnings) {
-                assertTrue(
-                    warning.includes('does not exist on disk') || warning.includes('unknown top-level key'),
-                    `unexpected warning: ${warning}`
-                );
+                assertTrue(warning.includes('does not exist on disk') || warning.includes('unknown top-level key'), `unexpected warning: ${warning}`);
             }
         }
     },
@@ -189,11 +186,9 @@ const tests = [
             }
 
             // The CLI is the surface an AI actually runs; prove it emits the same text.
-            const cli = spawnSync(
-                process.execPath,
-                [path.join(REPO, '.claude', 'hooks', 'lib', 'project-config-schema.cjs'), '--describe'],
-                { encoding: 'utf8' }
-            );
+            const cli = spawnSync(process.execPath, [path.join(REPO, '.claude', 'hooks', 'lib', 'project-config-schema.cjs'), '--describe'], {
+                encoding: 'utf8'
+            });
             assertEqual(cli.status, 0, `--describe must exit 0, got ${cli.status}: ${cli.stderr}`);
             const cliBlock = blockOf(cli.stdout, 'docsRoots (object, optional)');
             for (const key of DOCS_ROOT_KEYS) {
@@ -304,15 +299,15 @@ const tests = [
                 !/PORTABILITY_TOKEN_DEFAULTS|resolvePortabilityTokens/.test(mirrorSource),
                 'the context mirror must carry no portability-token resolver or default table'
             );
-            const loaderDefaults = Object.fromEntries(
-                Object.entries(loader.PORTABILITY_TOKENS).map(([token, spec]) => [token, spec.default])
-            );
+            const loaderDefaults = Object.fromEntries(Object.entries(loader.PORTABILITY_TOKENS).map(([token, spec]) => [token, spec.default]));
 
             // 2. The Codex-side consumer that travels without hooks/lib resolves the same
             //    RELOCATED values as the loader for the same config — the actual parity claim.
             const sdd = await importSdd();
             assertDeepEqual(sdd.PORTABILITY_TOKEN_DEFAULTS, loaderDefaults, 'verify-sdd defaults drifted from the loader');
-            const probe = Object.keys(loader.PORTABILITY_TOKENS).map(t => `{${t}}`).join(' | ');
+            const probe = Object.keys(loader.PORTABILITY_TOKENS)
+                .map(t => `{${t}}`)
+                .join(' | ');
             assertEqual(
                 sdd.resolveTokens(probe, RELOCATED_CONFIG),
                 loader.resolvePortabilityTokens(probe, RELOCATED_CONFIG),
@@ -340,9 +335,7 @@ const tests = [
             assertContains(missing, 'doc-index unavailable', 'the note must say why the tree is missing');
 
             // A rendered root retains its SECTION:doc-index markers with the relocated content.
-            const template = [
-                '# Root', '', '<!-- SECTION:doc-index -->', '(placeholder)', '<!-- /SECTION:doc-index -->', ''
-            ].join('\n');
+            const template = ['# Root', '', '<!-- SECTION:doc-index -->', '(placeholder)', '<!-- /SECTION:doc-index -->', ''].join('\n');
             const rendered = claudeMd.updateMarkedSections(template, { 'doc-index': block }, () => {});
             assertContains(rendered, '<!-- SECTION:doc-index -->', 'the OPEN marker must survive');
             assertContains(rendered, '<!-- /SECTION:doc-index -->', 'the CLOSE marker must survive');
@@ -368,15 +361,14 @@ const tests = [
     {
         name: '[docroot-relocation] TC-DOCROOT-158 buildSkeleton stays minimal under relocated project roots',
         fn: () => {
-            const skeleton = inFixture(RELOCATED, `
+            const skeleton = inFixture(
+                RELOCATED,
+                `
                 const H = require(REPO + '/.claude/hooks/lib/session-init-helpers.cjs');
                 return H.buildSkeleton();
-            `);
-            assertEqual(
-                schema.validateConfig(skeleton).valid,
-                true,
-                'a relocated project can still bootstrap the minimum schema-valid config'
+            `
             );
+            assertEqual(schema.validateConfig(skeleton).valid, true, 'a relocated project can still bootstrap the minimum schema-valid config');
             assertEqual(skeleton.project.name, path.basename(RELOCATED), 'the project-root folder is the evidence-backed identity fallback');
             assertDeepEqual(
                 Object.keys(skeleton).sort(),
@@ -394,7 +386,9 @@ const tests = [
     {
         name: '[docroot-relocation] TC-DOCROOT-159 doc-sync-classify and doc-impact-map agree about the relocated spec root',
         fn: () => {
-            const out = inFixture(RELOCATED, `
+            const out = inFixture(
+                RELOCATED,
+                `
                 const cls = require(REPO + '/.claude/hooks/lib/doc-sync-classify.cjs');
                 const cfg = { enforcedAreas: [{ name: 'ContextDelivery' }] };
                 return {
@@ -403,7 +397,8 @@ const tests = [
                     defaultRootMiss: cls.areaForFeatureDoc('docs/specs/ContextDelivery/README.SampleFeature.md', cfg) === null,
                     siblingMiss: cls.areaForFeatureDoc('spec-library-derived/ContextDelivery/README.SampleFeature.md', cfg) === null
                 };
-            `);
+            `
+            );
             assertEqual(out.dir, 'spec-library/ContextDelivery/', 'a slash-free relocated root must JOIN, never concatenate');
             assertTrue(out.hit, 'the fixture spec must classify as a feature spec under the relocated root');
             assertTrue(out.defaultRootMiss, 'once relocated, the default `docs/specs/` tree is no longer the spec root');
@@ -423,9 +418,7 @@ const tests = [
                 !inside.some(d => d.endsWith('docs-index-reference.md')),
                 `a doc inside the configured spec root must be EXCLUDED from the docs-tree rule. got: ${inside.join(', ')}`
             );
-            const sibling = impactMap
-                .mapChanges([{ status: 'M', file: 'docs/spec-library-notes/README.md' }], relocatedSpecRoots)
-                .docs.map(d => d.doc);
+            const sibling = impactMap.mapChanges([{ status: 'M', file: 'docs/spec-library-notes/README.md' }], relocatedSpecRoots).docs.map(d => d.doc);
             assertTrue(
                 sibling.some(d => d.endsWith('docs-index-reference.md')),
                 `a prefix-sharing SIBLING must NOT be excluded — that is the fail-open case. got: ${sibling.join(', ')}`
@@ -437,11 +430,7 @@ const tests = [
         fn: () => {
             const ck = JSON.parse(fs.readFileSync(path.join(RELOCATED, '.claude', '.ck.json'), 'utf8'));
             assertEqual(ck.paths.plans, 'ck-legacy-plans', 'the fixture must declare a DIFFERENT .ck.json plans dir, or precedence is untested');
-            assertEqual(
-                planResolver.resolvePlansDir(ck.paths, RELOCATED_CONFIG),
-                'work-plans',
-                'docsRoots.plans.path must WIN over .ck.json paths.plans'
-            );
+            assertEqual(planResolver.resolvePlansDir(ck.paths, RELOCATED_CONFIG), 'work-plans', 'docsRoots.plans.path must WIN over .ck.json paths.plans');
             assertEqual(
                 planResolver.resolvePlansDir(ck.paths, {}),
                 'ck-legacy-plans',
@@ -465,13 +454,11 @@ const tests = [
                     JSON.stringify({ schemaVersion: 2, project: { name: 'Docroot Fallback Fixture' } }),
                     'utf8'
                 );
-                fs.writeFileSync(
-                    path.join(isolatedRoot, '.claude', '.ck.json'),
-                    JSON.stringify({ paths: { plans: ck.paths.plans } }),
-                    'utf8'
-                );
+                fs.writeFileSync(path.join(isolatedRoot, '.claude', '.ck.json'), JSON.stringify({ paths: { plans: ck.paths.plans } }), 'utf8');
 
-                const fallback = inFixture(isolatedRoot, `
+                const fallback = inFixture(
+                    isolatedRoot,
+                    `
                     const resolver = require(REPO + '/.claude/hooks/lib/ck-plan-resolver.cjs');
                     const config = JSON.parse(require('fs').readFileSync(require('path').join(FIXTURE, 'docs', 'project-config.json'), 'utf8'));
                     const legacy = JSON.parse(require('fs').readFileSync(require('path').join(FIXTURE, '.claude', '.ck.json'), 'utf8'));
@@ -480,7 +467,8 @@ const tests = [
                         plans: resolver.resolvePlansDir(legacy.paths),
                         reports: resolver.getReportsPath(null, null, { reportsDir: 'reports' }, legacy.paths)
                     };
-                `);
+                `
+                );
                 assertTrue(fallback.configHasNoPlansRoot, 'The isolated required config must omit docsRoots.plans.path');
                 assertEqual(fallback.plans, 'ck-legacy-plans', 'With no configured content root the live resolver uses .ck.json paths.plans');
                 assertEqual(
@@ -519,10 +507,7 @@ const tests = [
             };
             for (const root of ROOT_MATRIX) {
                 const declared = readDotted(ESCAPED_CONFIG, root.configPath);
-                assertTrue(
-                    pathUtils.escapesRepoRoot(declared),
-                    `${root.configPath} must actually declare an escaping value, got "${declared}"`
-                );
+                assertTrue(pathUtils.escapesRepoRoot(declared), `${root.configPath} must actually declare an escaping value, got "${declared}"`);
                 assertEqual(
                     runtime[root.token],
                     loader.PORTABILITY_TOKENS[root.token].default,
@@ -612,7 +597,9 @@ const tests = [
             // The A1 failure: `buildDocIndex` derives the docs tree from `projectReference`'s
             // dirname while `session-init-helpers` derives it from `docsIndexPath`'s dirname. Two
             // answers for one project, each passing its own unit test. They must be EQUAL.
-            const out = inFixture(RELOCATED, `
+            const out = inFixture(
+                RELOCATED,
+                `
                 const path = require('path');
                 const L = require(REPO + '/.claude/hooks/lib/project-config-loader.cjs');
                 const B = require(REPO + '/.claude/skills/ai-context-refresh/scripts/section-builders.cjs');
@@ -625,7 +612,8 @@ const tests = [
                     fromGetDocsRoot_reference: L.getDocsRoot('projectReference', cfg),
                     fromBuildDocIndex_lines: B.buildDocIndex(cfg, FIXTURE).split('\\n').filter(l => l && l !== '\\u0060\\u0060\\u0060')
                 };
-            `);
+            `
+            );
 
             assertEqual(
                 out.fromDocsIndexPath_reference,
@@ -662,7 +650,7 @@ const tests = [
             // `REFERENCE_DOCS_DIR` from this value, so it then scaffolded a full 18-file stub tree at
             // `docs/project-reference/` beside the project's real docs, and every consumer read the
             // stubs. Two sources of truth for one root; following the documented one half-worked.
-            const mk = (ck) => {
+            const mk = ck => {
                 const dir = fs.mkdtempSync(path.join(os.tmpdir(), `docroot-164-${process.pid}-`));
                 fs.mkdirSync(path.join(dir, 'docs'), { recursive: true });
                 fs.writeFileSync(
@@ -736,11 +724,7 @@ const tests = [
             const pinnedDir = mk({ portability: { docsIndexPath: 'pinned/elsewhere/docs-index-reference.md' } });
             try {
                 const pinned = inFixture(pinnedDir, probe);
-                assertEqual(
-                    pinned.referenceRoot,
-                    'pinned/elsewhere',
-                    'an explicit `.ck.json` portability.docsIndexPath must keep precedence over docsRoots'
-                );
+                assertEqual(pinned.referenceRoot, 'pinned/elsewhere', 'an explicit `.ck.json` portability.docsIndexPath must keep precedence over docsRoots');
             } finally {
                 fs.rmSync(pinnedDir, { recursive: true, force: true });
             }
@@ -793,11 +777,7 @@ const tests = [
             try {
                 fs.mkdirSync(path.join(dir, 'docs'), { recursive: true });
                 fs.mkdirSync(path.join(dir, 'empty-specs'), { recursive: true });
-                fs.writeFileSync(
-                    path.join(dir, 'docs', 'project-config.json'),
-                    JSON.stringify({ specRoots: { business: { path: 'empty-specs' } } }),
-                    'utf8'
-                );
+                fs.writeFileSync(path.join(dir, 'docs', 'project-config.json'), JSON.stringify({ specRoots: { business: { path: 'empty-specs' } } }), 'utf8');
                 const bad = await sdd.runChecks(dir, [], {});
                 assertTrue(
                     bad.failures.some(f => f.code === 'SDD025' && f.severity !== 'warn'),
@@ -812,7 +792,11 @@ const tests = [
         name: '[docroot-relocation] TC-DOCROOT-164 SDD004 accepts the default literal inside a form-(b) sentence under relocation',
         fn: async () => {
             const sdd = await importSdd();
-            const [check] = await sdd.resolveChecks(RELOCATED, sdd.CHECKS.filter(c => c.code === 'SDD004'), {});
+            const [check] = await sdd.resolveChecks(
+                RELOCATED,
+                sdd.CHECKS.filter(c => c.code === 'SDD004'),
+                {}
+            );
             assertTrue(!!check.rootTerms, 'SDD004 must carry a rootTerms map once its tokens resolve');
             assertEqual(check.rootTerms.get('artifacts/tasks'), 'team-artifacts/tasks', 'the resolved term must remember its default literal');
 
@@ -823,8 +807,7 @@ const tests = [
             assertDeepEqual(
                 sdd.evaluateCheck(check, formB),
                 [],
-                'a form-(b) sentence naming the DEFAULT literal is the documented idiom and must CLEAR, ' +
-                    'even though the configured root is `artifacts`'
+                'a form-(b) sentence naming the DEFAULT literal is the documented idiom and must CLEAR, ' + 'even though the configured root is `artifacts`'
             );
             assertTrue(sdd.isFormBOverrideSentence(formB), 'the shared form-(b) predicate must recognise the sentence');
             assertTrue(!sdd.hasBareOccurrence(formB, 'team-artifacts/tasks'), 'the default literal has no BARE occurrence here');
@@ -857,11 +840,7 @@ const tests = [
 
             const siblings = ['documentation/', 'spec-library', 'work-plans', 'artifacts', '.claude', 'docs/'];
             for (const sibling of siblings) {
-                assertNotContains(
-                    block,
-                    sibling,
-                    `the docs tree degenerated to the project root — \`${sibling}\` leaked into the doc index`
-                );
+                assertNotContains(block, sibling, `the docs tree degenerated to the project root — \`${sibling}\` leaked into the doc index`);
             }
             // The nested variant is unaffected: it resolves to its PARENT, as designed.
             const nested = builders.buildDocIndex(RELOCATED_CONFIG, RELOCATED);

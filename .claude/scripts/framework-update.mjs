@@ -84,7 +84,8 @@ const COUNT_RE = /<!--\s*COUNT:([a-z][a-z0-9_-]*)(?::([a-z][a-z0-9_-]*))?\s*-->\
 const COUNTED = /\.(md|html?)$/i;
 // Object ids per `git fetch` call: keeps the command line under the Windows limit.
 const FETCH_BATCH = 400;
-const USAGE = 'Usage: node .claude/scripts/framework-update.mjs <easy-claude-dir> [--ref=<rev>] [--working-tree] [--base=<rev>|auto] [--project=<dir>] [--source-url=<url>] [--dry-run] [--no-sync] [--record-only] [--allow-dirty-project] [--json]\n       node .claude/scripts/framework-update.mjs --regenerate [--project=<dir>]';
+const USAGE =
+    'Usage: node .claude/scripts/framework-update.mjs <easy-claude-dir> [--ref=<rev>] [--working-tree] [--base=<rev>|auto] [--project=<dir>] [--source-url=<url>] [--dry-run] [--no-sync] [--record-only] [--allow-dirty-project] [--json]\n       node .claude/scripts/framework-update.mjs --regenerate [--project=<dir>]';
 
 function git(cwd, args, { input, allowFail = false } = {}) {
     const result = spawnSync('git', args, { cwd, input, maxBuffer: 1 << 30, windowsHide: true });
@@ -92,7 +93,12 @@ function git(cwd, args, { input, allowFail = false } = {}) {
     if (result.status !== 0 && !allowFail) throw new Error(`git ${args.join(' ')} failed in ${cwd}: ${String(result.stderr).trim()}`);
     return result;
 }
-const lines = buffer => buffer.toString('utf8').split('\n').map(line => line.trim()).filter(Boolean);
+const lines = buffer =>
+    buffer
+        .toString('utf8')
+        .split('\n')
+        .map(line => line.trim())
+        .filter(Boolean);
 const nulList = buffer => buffer.toString('utf8').split('\0').filter(Boolean);
 
 const sha256 = buffer => crypto.createHash('sha256').update(buffer).digest('hex');
@@ -110,8 +116,8 @@ export function normalizeContent(buffer, file = 'doc.md') {
     return next === text ? buffer : Buffer.from(next, 'utf8');
 }
 const hasCounts = (buffer, file) => buffer !== null && COUNTED.test(file) && isText(buffer) && new RegExp(COUNT_RE.source).test(buffer.toString('utf8'));
-const same = (a, b) => (a === null || b === null) ? a === b : a.equals(b);
-const withLf = buffer => isText(buffer) && buffer.includes('\r\n') ? Buffer.from(buffer.toString('utf8').replace(/\r\n/g, '\n'), 'utf8') : buffer;
+const same = (a, b) => (a === null || b === null ? a === b : a.equals(b));
+const withLf = buffer => (isText(buffer) && buffer.includes('\r\n') ? Buffer.from(buffer.toString('utf8').replace(/\r\n/g, '\n'), 'utf8') : buffer);
 /** The id Git gives `buffer` as a blob, so project files compare with upstream tree entries without Git. */
 const blobId = (buffer, format) => crypto.createHash(format).update(`blob ${buffer.length}\0`).update(buffer).digest('hex');
 
@@ -125,7 +131,10 @@ function readBlobs(repo, rev, paths) {
         const newline = stdout.indexOf(10, offset);
         const header = stdout.subarray(offset, newline).toString('utf8');
         offset = newline + 1;
-        if (header.endsWith(' missing')) { out.set(p, null); continue; }
+        if (header.endsWith(' missing')) {
+            out.set(p, null);
+            continue;
+        }
         const size = Number(header.split(' ')[2]);
         out.set(p, Buffer.from(stdout.subarray(offset, offset + size)));
         offset += size + 1;
@@ -149,7 +158,8 @@ function promisorRemote(repo) {
     const named = lines(git(repo, ['config', '--get', 'extensions.partialclone'], { allowFail: true }).stdout)[0];
     if (named) return named;
     const marked = lines(git(repo, ['config', '--get-regexp', '^remote\\..+\\.promisor$'], { allowFail: true }).stdout)
-        .map(line => /^remote\.(.+)\.promisor\s+true$/i.exec(line)).find(Boolean);
+        .map(line => /^remote\.(.+)\.promisor\s+true$/i.exec(line))
+        .find(Boolean);
     return marked ? marked[1] : '';
 }
 
@@ -163,19 +173,36 @@ export function prefetchBlobs(repo, revs) {
     if (!remote || !revs.length) return 0;
     const wanted = new Set(revs.flatMap(rev => [...treeIds(repo, rev).values()]));
     // `--missing=print` lists absent objects without fetching them; a path filter would drop the commits.
-    const missing = [...new Set(lines(git(repo, ['rev-list', '--objects', '--missing=print', '--no-walk', ...revs]).stdout)
-        .filter(line => line.startsWith('?')).map(line => line.slice(1)).filter(id => wanted.has(id)))];
+    const missing = [
+        ...new Set(
+            lines(git(repo, ['rev-list', '--objects', '--missing=print', '--no-walk', ...revs]).stdout)
+                .filter(line => line.startsWith('?'))
+                .map(line => line.slice(1))
+                .filter(id => wanted.has(id))
+        )
+    ];
     for (let start = 0; start < missing.length; start += FETCH_BATCH) {
-        git(repo, ['-c', 'fetch.negotiationAlgorithm=noop', 'fetch', '--quiet', '--no-tags', '--no-write-fetch-head',
-            '--filter=blob:none', remote, ...missing.slice(start, start + FETCH_BATCH)]);
+        git(repo, [
+            '-c',
+            'fetch.negotiationAlgorithm=noop',
+            'fetch',
+            '--quiet',
+            '--no-tags',
+            '--no-write-fetch-head',
+            '--filter=blob:none',
+            remote,
+            ...missing.slice(start, start + FETCH_BATCH)
+        ]);
     }
     return missing.length;
 }
 
 /** Every file under `.claude/` the project has, tracked or not, ignored files excluded. */
 function projectFiles(project) {
-    return nulList(git(project, ['ls-files', '-z', '--cached', '--others', '--exclude-standard', '--', SCOPE]).stdout)
-        .filter(p => { const file = path.join(project, p); return fs.existsSync(file) && fs.statSync(file).isFile(); });
+    return nulList(git(project, ['ls-files', '-z', '--cached', '--others', '--exclude-standard', '--', SCOPE]).stdout).filter(p => {
+        const file = path.join(project, p);
+        return fs.existsSync(file) && fs.statSync(file).isFile();
+    });
 }
 
 /**
@@ -223,13 +250,17 @@ function mergeFile(ours, base, theirs) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'framework-update-'));
     try {
         const [o, b, t] = ['project', 'base', 'upstream'].map(name => path.join(dir, name));
-        fs.writeFileSync(o, ours); fs.writeFileSync(b, base); fs.writeFileSync(t, theirs);
+        fs.writeFileSync(o, ours);
+        fs.writeFileSync(b, base);
+        fs.writeFileSync(t, theirs);
         // A user's merge.conflictStyle (diff3, zdiff3) would add a base section the merge guide does not describe.
         // `--no-diff3` wins over the config; `-c merge.conflictStyle=merge` does not.
         const result = git(dir, ['merge-file', '-p', '--no-diff3', '-L', 'project', '-L', 'base', '-L', 'upstream', o, b, t], { allowFail: true });
         if (result.status < 0 || result.status > 127) throw new Error(`git merge-file failed: ${String(result.stderr).trim()}`);
         return { merged: result.stdout, conflicts: result.status };
-    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+    } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+    }
 }
 
 function resolveCommit(repo, rev) {
@@ -243,16 +274,23 @@ function buildLock(upstream, theirs, { ref, workingTree, sourceUrl, previous }) 
     const files = {};
     for (const [p, buffer] of theirs) if (!NEVER_TAKEN.has(p)) files[p] = sha256(normalizeContent(buffer, p));
     const urlValue = sourceUrl || previous?.source?.url;
-    return { schemaVersion: 1, source: { commit: workingTree ? null : resolveCommit(upstream, ref), ref: workingTree ? null : ref, workingTree: !!workingTree,
-        ...(workingTree ? { headCommit: git(upstream, ['rev-parse', 'HEAD']).stdout.toString('utf8').trim() } : {}),
-        ...(urlValue ? { url: urlValue } : {}) }, files };
+    return {
+        schemaVersion: 1,
+        source: {
+            commit: workingTree ? null : resolveCommit(upstream, ref),
+            ref: workingTree ? null : ref,
+            workingTree: !!workingTree,
+            ...(workingTree ? { headCommit: git(upstream, ['rev-parse', 'HEAD']).stdout.toString('utf8').trim() } : {}),
+            ...(urlValue ? { url: urlValue } : {})
+        },
+        files
+    };
 }
 
-const readLock = project => fs.existsSync(path.join(project, LOCK_PATH)) ? JSON.parse(fs.readFileSync(path.join(project, LOCK_PATH), 'utf8')) : null;
+const readLock = project => (fs.existsSync(path.join(project, LOCK_PATH)) ? JSON.parse(fs.readFileSync(path.join(project, LOCK_PATH), 'utf8')) : null);
 
 /** Top-level `.claude/skills/` entry names among framework paths. */
-const frameworkSkillNames = frameworkPaths => [...new Set([...frameworkPaths]
-    .filter(p => p.startsWith(`${SCOPE}/skills/`)).map(p => p.split('/')[2]))].sort();
+const frameworkSkillNames = frameworkPaths => [...new Set([...frameworkPaths].filter(p => p.startsWith(`${SCOPE}/skills/`)).map(p => p.split('/')[2]))].sort();
 
 /**
  * `.agents/skills/` entries that are the project's own: neither a project skill source nor a name the
@@ -264,7 +302,11 @@ function mirrorOnlySkills(project, frameworkPaths) {
     if (!fs.existsSync(mirror)) return [];
     const sources = path.join(project, SCOPE, 'skills');
     const known = new Set([...(fs.existsSync(sources) ? fs.readdirSync(sources) : []), ...frameworkSkillNames(frameworkPaths)]);
-    return fs.readdirSync(mirror).filter(name => !known.has(name) && !MIRROR_OWN.has(name)).sort().map(name => `${MIRROR_SKILLS}/${name}`);
+    return fs
+        .readdirSync(mirror)
+        .filter(name => !known.has(name) && !MIRROR_OWN.has(name))
+        .sort()
+        .map(name => `${MIRROR_SKILLS}/${name}`);
 }
 
 /**
@@ -277,8 +319,11 @@ function mirrorClashes(project, addedSkills) {
     const mirror = path.join(project, MIRROR_SKILLS);
     if (!fs.existsSync(mirror)) return [];
     const added = new Set(addedSkills);
-    return fs.readdirSync(mirror).filter(name => added.has(name) && !fs.existsSync(path.join(project, SCOPE, 'skills', name)))
-        .sort().map(name => `${MIRROR_SKILLS}/${name}`);
+    return fs
+        .readdirSync(mirror)
+        .filter(name => added.has(name) && !fs.existsSync(path.join(project, SCOPE, 'skills', name)))
+        .sort()
+        .map(name => `${MIRROR_SKILLS}/${name}`);
 }
 
 /**
@@ -293,8 +338,10 @@ function retiredFrameworkMirrors(project, frameworkSkills) {
     const [root, real] = [fs.realpathSync(project), fs.realpathSync(mirror)];
     if (real !== root && !real.startsWith(root + path.sep)) return [];
     const framework = new Set(frameworkSkills);
-    return fs.readdirSync(mirror).filter(name => framework.has(name) && !MIRROR_OWN.has(name)
-        && !fs.existsSync(path.join(project, SCOPE, 'skills', name))).sort();
+    return fs
+        .readdirSync(mirror)
+        .filter(name => framework.has(name) && !MIRROR_OWN.has(name) && !fs.existsSync(path.join(project, SCOPE, 'skills', name)))
+        .sort();
 }
 
 /**
@@ -311,7 +358,9 @@ export function planUpdate({ project, upstream, ref = 'HEAD', workingTree = fals
     const baseRev = baseDetection?.commit || base || (lock && !lock.source?.workingTree ? lock.source?.commit : undefined);
     const resolvedBase = baseRev ? resolveCommit(upstream, baseRev) : null;
     const warnings = [];
-    try { prefetchBlobs(upstream, [resolvedRef, resolvedBase].filter(Boolean)); } catch (error) {
+    try {
+        prefetchBlobs(upstream, [resolvedRef, resolvedBase].filter(Boolean));
+    } catch (error) {
         // Git older than 2.29 cannot batch; reading still works, one download per file.
         warnings.push(`Batched download failed, so Git fetches each file separately (slow): ${error.message.split('\n')[0]}`);
     }
@@ -325,38 +374,75 @@ export function planUpdate({ project, upstream, ref = 'HEAD', workingTree = fals
     for (const p of paths) {
         const up = theirs.get(p) ?? null;
         const mine = readProject(project, p);
-        if (REGENERATED.has(p)) { actions.push({ path: p, kind: 'skip-regenerated' }); continue; }
+        if (REGENERATED.has(p)) {
+            actions.push({ path: p, kind: 'skip-regenerated' });
+            continue;
+        }
         const [nUp, nMine] = [normalizeContent(up, p), normalizeContent(mine, p)];
         // Base text when the lock names a commit; otherwise only the hash taken last time.
         const baseText = resolvedBase ? normalizeContent(baseBlobs.get(p) ?? null, p) : undefined;
         const baseHash = lock?.files?.[p];
-        const isBase = buffer => baseText !== undefined ? same(buffer, baseText) : (buffer === null ? baseHash === undefined : sha256(buffer) === baseHash);
-        if (same(nMine, nUp)) { actions.push({ path: p, kind: 'same', content: up }); continue; }
-        if (isBase(nMine)) { actions.push(up === null ? { path: p, kind: 'delete' } : { path: p, kind: 'take', content: up }); continue; }
-        if (isBase(nUp)) { actions.push({ path: p, kind: 'keep' }); continue; }
+        const isBase = buffer => (baseText !== undefined ? same(buffer, baseText) : buffer === null ? baseHash === undefined : sha256(buffer) === baseHash);
+        if (same(nMine, nUp)) {
+            actions.push({ path: p, kind: 'same', content: up });
+            continue;
+        }
+        if (isBase(nMine)) {
+            actions.push(up === null ? { path: p, kind: 'delete' } : { path: p, kind: 'take', content: up });
+            continue;
+        }
+        if (isBase(nUp)) {
+            actions.push({ path: p, kind: 'keep' });
+            continue;
+        }
         if (mine !== null && up !== null && baseText && isText(mine) && isText(up) && isText(baseText)) {
             const { merged, conflicts } = mergeFile(nMine, baseText, nUp);
             actions.push({ path: p, kind: conflicts ? 'conflict' : 'merge', content: merged, conflicts });
             continue;
         }
         // Added on both sides, deleted on one side and changed on the other, binary, or no base text.
-        actions.push({ path: p, kind: 'conflict-side', content: up,
-            reason: mine === null ? 'deleted in the project, changed upstream' : up === null ? 'changed in the project, deleted upstream'
-                : !baseText && baseHash === undefined ? 'added on both sides' : 'no base text to merge' });
+        actions.push({
+            path: p,
+            kind: 'conflict-side',
+            content: up,
+            reason:
+                mine === null
+                    ? 'deleted in the project, changed upstream'
+                    : up === null
+                      ? 'changed in the project, deleted upstream'
+                      : !baseText && baseHash === undefined
+                        ? 'added on both sides'
+                        : 'no base text to merge'
+        });
     }
-    const projectOnly = projectFiles(project).filter(p => !frameworkPaths.has(p) && !NEVER_TAKEN.has(p)).sort();
+    const projectOnly = projectFiles(project)
+        .filter(p => !frameworkPaths.has(p) && !NEVER_TAKEN.has(p))
+        .sort();
     const nextLock = buildLock(upstream, theirs, { ref: resolvedRef, workingTree, sourceUrl, previous: lock });
     if (!workingTree) nextLock.source.ref = ref;
     // A skill is new in this update when neither the base nor the lock had it.
     const previousSkills = new Set(frameworkSkillNames([...basePaths, ...Object.keys(lock?.files || {})]));
     const addedSkills = frameworkSkillNames(theirs.keys()).filter(name => !previousSkills.has(name));
-    return { actions, nextLock, base: resolvedBase, baseDetection, firstLock: !lock, projectOnly,
-        mirrorOnly: mirrorOnlySkills(project, frameworkPaths), mirrorClashes: mirrorClashes(project, addedSkills),
-        frameworkSkills: frameworkSkillNames(frameworkPaths), warnings };
+    return {
+        actions,
+        nextLock,
+        base: resolvedBase,
+        baseDetection,
+        firstLock: !lock,
+        projectOnly,
+        mirrorOnly: mirrorOnlySkills(project, frameworkPaths),
+        mirrorClashes: mirrorClashes(project, addedSkills),
+        frameworkSkills: frameworkSkillNames(frameworkPaths),
+        warnings
+    };
 }
 
 function python() {
-    for (const [cmd, args] of [['python3', []], ['py', ['-3']], ['python', []]]) {
+    for (const [cmd, args] of [
+        ['python3', []],
+        ['py', ['-3']],
+        ['python', []]
+    ]) {
         if (spawnSync(cmd, [...args, '--version'], { windowsHide: true }).status === 0) return [cmd, args];
     }
     return null;
@@ -370,20 +456,34 @@ function python() {
  */
 export function assertInsideProject(project, plan) {
     const root = fs.realpathSync(project);
-    const present = file => { try { fs.lstatSync(file); return true; } catch { return false; } };
+    const present = file => {
+        try {
+            fs.lstatSync(file);
+            return true;
+        } catch {
+            return false;
+        }
+    };
     const resolves = target => {
         let probe = target;
         while (!present(probe)) probe = path.dirname(probe);
         let real;
-        try { real = fs.realpathSync(probe); } catch { return false; }  // a dangling link: its target is unknown
+        try {
+            real = fs.realpathSync(probe);
+        } catch {
+            return false;
+        } // a dangling link: its target is unknown
         return real === root || real.startsWith(root + path.sep);
     };
-    const targets = plan.actions.filter(a => ['take', 'merge', 'conflict', 'delete'].includes(a.kind))
+    const targets = plan.actions
+        .filter(a => ['take', 'merge', 'conflict', 'delete'].includes(a.kind))
         .map(a => ({ path: a.path, file: path.join(project, a.path), del: a.kind === 'delete' }))
         .concat([{ path: LOCK_PATH, file: path.join(project, LOCK_PATH), del: false }]);
     const outside = targets.filter(t => !resolves(t.del ? path.dirname(t.file) : t.file)).map(t => t.path);
     if (outside.length) {
-        throw new Error(`Refusing to update: ${outside.length} path(s) lead outside the project through a symlink, for example ${outside.slice(0, 3).join(', ')}. Replace the link with a real folder (or update the linked folder's own repository), then rerun.`);
+        throw new Error(
+            `Refusing to update: ${outside.length} path(s) lead outside the project through a symlink, for example ${outside.slice(0, 3).join(', ')}. Replace the link with a real folder (or update the linked folder's own repository), then rerun.`
+        );
     }
 }
 
@@ -445,16 +545,24 @@ export function applyUpdate(project, plan, { sync = true } = {}) {
     for (const name of removedMirrors) fs.rmSync(path.join(project, MIRROR_SKILLS, name), { recursive: true, force: true });
     fs.writeFileSync(path.join(project, LOCK_PATH), `${JSON.stringify(plan.nextLock, null, 2)}\n`);
     const followUps = regenerate(project);
-    if (removedMirrors.length) followUps.push(`Removed the mirror of ${removedMirrors.length} framework skill(s) the project no longer has: ${removedMirrors.map(name => `${MIRROR_SKILLS}/${name}`).join(', ')}.`);
+    if (removedMirrors.length)
+        followUps.push(
+            `Removed the mirror of ${removedMirrors.length} framework skill(s) the project no longer has: ${removedMirrors.map(name => `${MIRROR_SKILLS}/${name}`).join(', ')}.`
+        );
     const conflicts = plan.actions.filter(a => a.kind === 'conflict' || a.kind === 'conflict-side');
     const blocked = conflicts.length || plan.mirrorClashes.length;
     if (sync && !blocked) {
-        const result = spawnSync(process.execPath, [path.join(project, '.claude/skills/sync-codex/scripts/run-codex-sync.mjs')],
-            { cwd: project, stdio: 'inherit', windowsHide: true });
+        const result = spawnSync(process.execPath, [path.join(project, '.claude/skills/sync-codex/scripts/run-codex-sync.mjs')], {
+            cwd: project,
+            stdio: 'inherit',
+            windowsHide: true
+        });
         followUps.push(result.status === 0 ? 'sync-codex passed.' : `sync-codex failed (exit ${result.status}); fix it before committing.`);
     } else if (blocked) {
         for (const entry of plan.mirrorClashes) {
-            followUps.push(`Sync skipped: upstream now ships ${SCOPE}/skills/${path.basename(entry)}, whose mirror would replace the Codex-only ${entry}. Rename that skill (its folder and the name in its SKILL.md), or remove it to take upstream's.`);
+            followUps.push(
+                `Sync skipped: upstream now ships ${SCOPE}/skills/${path.basename(entry)}, whose mirror would replace the Codex-only ${entry}. Rename that skill (its folder and the name in its SKILL.md), or remove it to take upstream's.`
+            );
         }
         followUps.push(`${conflicts.length ? 'Resolve the conflicts, then run' : 'Then run'}: node .claude/skills/sync-codex/scripts/run-codex-sync.mjs`);
     }
@@ -480,7 +588,8 @@ function parseArgs(argv) {
         else positional.push(arg);
     }
     if (options.regenerate ? positional.length : positional.length !== 1 || (options.workingTree && options.ref !== 'HEAD')) throw new Error(USAGE);
-    for (const value of [options.ref, options.base, options.project, options.sourceUrl]) if (value !== undefined && (!value || value.startsWith('-'))) throw new Error(USAGE);
+    for (const value of [options.ref, options.base, options.project, options.sourceUrl])
+        if (value !== undefined && (!value || value.startsWith('-'))) throw new Error(USAGE);
     return { upstream: positional.length ? path.resolve(positional[0]) : null, ...options };
 }
 
@@ -491,7 +600,8 @@ function assertUpstream(options) {
     }
     if (!fs.existsSync(options.upstream)) throw new Error(`No upstream repository at ${options.upstream}`);
     resolveCommit(options.upstream, options.ref);
-    if (!git(options.upstream, ['ls-tree', '--name-only', options.ref, '--', SCOPE]).stdout.length) throw new Error(`No ${SCOPE}/ at ${options.ref} in ${options.upstream}`);
+    if (!git(options.upstream, ['ls-tree', '--name-only', options.ref, '--', SCOPE]).stdout.length)
+        throw new Error(`No ${SCOPE}/ at ${options.ref} in ${options.upstream}`);
 }
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
@@ -507,50 +617,91 @@ export function main(argv = process.argv.slice(2), defaultProject = path.resolve
     assertUpstream(options);
     if (fs.realpathSync(options.upstream) === fs.realpathSync(project)) throw new Error('The upstream directory is this project.');
     if (!options.allowDirtyProject && git(project, ['status', '--porcelain', '--', ...GUARDED]).stdout.length) {
-        throw new Error(`The project has uncommitted changes in ${GUARDED.join(', ')}; commit or stash them first so the update is one reviewable diff (or pass --allow-dirty-project).`);
+        throw new Error(
+            `The project has uncommitted changes in ${GUARDED.join(', ')}; commit or stash them first so the update is one reviewable diff (or pass --allow-dirty-project).`
+        );
     }
     if (options.recordOnly) {
         if (!options.workingTree) {
-            try { prefetchBlobs(options.upstream, [resolveCommit(options.upstream, options.ref)]); } catch (error) {
+            try {
+                prefetchBlobs(options.upstream, [resolveCommit(options.upstream, options.ref)]);
+            } catch (error) {
                 process.stderr.write(`WARNING Batched download failed, so Git fetches each file separately (slow): ${error.message.split('\n')[0]}\n`);
             }
         }
-        const lock = buildLock(options.upstream, upstreamFiles(options.upstream, { ref: options.ref, workingTree: options.workingTree }),
-            { ref: options.ref, workingTree: options.workingTree, sourceUrl: options.sourceUrl, previous: readLock(project) });
+        const lock = buildLock(options.upstream, upstreamFiles(options.upstream, { ref: options.ref, workingTree: options.workingTree }), {
+            ref: options.ref,
+            workingTree: options.workingTree,
+            sourceUrl: options.sourceUrl,
+            previous: readLock(project)
+        });
         const count = Object.keys(lock.files).length;
         if (!options.dryRun) fs.writeFileSync(path.join(project, LOCK_PATH), `${JSON.stringify(lock, null, 2)}\n`);
-        process.stdout.write(`${options.dryRun ? '[dry run] ' : ''}Recorded ${count} framework files at ${lock.source.commit ? lock.source.commit.slice(0, 10) : 'the upstream working tree'} in ${LOCK_PATH}; no other file changed.\n`);
+        process.stdout.write(
+            `${options.dryRun ? '[dry run] ' : ''}Recorded ${count} framework files at ${lock.source.commit ? lock.source.commit.slice(0, 10) : 'the upstream working tree'} in ${LOCK_PATH}; no other file changed.\n`
+        );
         return 0;
     }
-    const plan = planUpdate({ project, upstream: options.upstream, ref: options.ref, workingTree: options.workingTree, base: options.base, sourceUrl: options.sourceUrl });
+    const plan = planUpdate({
+        project,
+        upstream: options.upstream,
+        ref: options.ref,
+        workingTree: options.workingTree,
+        base: options.base,
+        sourceUrl: options.sourceUrl
+    });
     assertInsideProject(project, plan);
     const count = kind => plan.actions.filter(a => a.kind === kind).length;
-    const summary = { base: plan.base, baseDetection: plan.baseDetection, upstream: plan.nextLock.source, firstLock: plan.firstLock,
-        taken: count('take'), deleted: count('delete'), merged: count('merge'), kept: count('keep'), unchanged: count('same'),
+    const summary = {
+        base: plan.base,
+        baseDetection: plan.baseDetection,
+        upstream: plan.nextLock.source,
+        firstLock: plan.firstLock,
+        taken: count('take'),
+        deleted: count('delete'),
+        merged: count('merge'),
+        kept: count('keep'),
+        unchanged: count('same'),
         regenerated: count('skip-regenerated'),
-        conflicts: plan.actions.filter(a => a.kind === 'conflict' || a.kind === 'conflict-side')
+        conflicts: plan.actions
+            .filter(a => a.kind === 'conflict' || a.kind === 'conflict-side')
             .map(a => ({ path: a.path, kind: a.kind, ...(a.reason ? { reason: a.reason } : {}), ...(a.conflicts ? { hunks: a.conflicts } : {}) })),
-        mirrorOnly: plan.mirrorOnly, mirrorClashes: plan.mirrorClashes, projectOnly: plan.projectOnly, warnings: plan.warnings };
+        mirrorOnly: plan.mirrorOnly,
+        mirrorClashes: plan.mirrorClashes,
+        projectOnly: plan.projectOnly,
+        warnings: plan.warnings
+    };
     let result = { written: [], followUps: [] };
     if (!options.dryRun) result = applyUpdate(project, plan, { sync: options.sync });
     if (options.json) process.stdout.write(`${JSON.stringify({ ...summary, dryRun: options.dryRun, ...result }, null, 2)}\n`);
     else {
         const detection = plan.baseDetection;
-        const describe = c => c.kind === 'conflict-side' ? `${c.reason}; upstream copy in tmp/framework-update/${c.path}`
-            : `${plural(c.hunks, 'hunk')} marked in the file`;
-        process.stdout.write(`${options.dryRun ? '[dry run] ' : ''}Framework update from ${plan.base ? plan.base.slice(0, 10) : 'the locked hashes'} to ${options.workingTree ? 'the upstream working tree' : plan.nextLock.source.commit.slice(0, 10)}\n` +
-            (detection ? `base found by content: ${detection.matched} of ${detection.projectFiles} project files match ${detection.commit.slice(0, 10)} (${detection.candidates} commits compared)\n` : '') +
-            `taken ${summary.taken} · deleted ${summary.deleted} · merged ${summary.merged} · kept project changes ${summary.kept} · unchanged ${summary.unchanged} · regenerated ${summary.regenerated}\n` +
-            `project-only files left as they are: ${summary.projectOnly.length}\n` +
-            summary.warnings.map(line => `WARNING ${line}\n`).join('') +
-            summary.conflicts.map(c => `CONFLICT ${c.path} (${describe(c)})\n`).join('') +
-            summary.mirrorOnly.map(p => `MIRROR-ONLY ${p} (no .claude/skills source; the sync keeps it, but no other host gets it)\n`).join('') +
-            summary.mirrorClashes.map(p => `MIRROR-CLASH ${p} (upstream now ships a skill of this name; its mirror would replace this Codex-only skill)\n`).join('') +
-            result.followUps.map(line => `${line}\n`).join(''));
+        const describe = c =>
+            c.kind === 'conflict-side' ? `${c.reason}; upstream copy in tmp/framework-update/${c.path}` : `${plural(c.hunks, 'hunk')} marked in the file`;
+        process.stdout.write(
+            `${options.dryRun ? '[dry run] ' : ''}Framework update from ${plan.base ? plan.base.slice(0, 10) : 'the locked hashes'} to ${options.workingTree ? 'the upstream working tree' : plan.nextLock.source.commit.slice(0, 10)}\n` +
+                (detection
+                    ? `base found by content: ${detection.matched} of ${detection.projectFiles} project files match ${detection.commit.slice(0, 10)} (${detection.candidates} commits compared)\n`
+                    : '') +
+                `taken ${summary.taken} · deleted ${summary.deleted} · merged ${summary.merged} · kept project changes ${summary.kept} · unchanged ${summary.unchanged} · regenerated ${summary.regenerated}\n` +
+                `project-only files left as they are: ${summary.projectOnly.length}\n` +
+                summary.warnings.map(line => `WARNING ${line}\n`).join('') +
+                summary.conflicts.map(c => `CONFLICT ${c.path} (${describe(c)})\n`).join('') +
+                summary.mirrorOnly.map(p => `MIRROR-ONLY ${p} (no .claude/skills source; the sync keeps it, but no other host gets it)\n`).join('') +
+                summary.mirrorClashes
+                    .map(p => `MIRROR-CLASH ${p} (upstream now ships a skill of this name; its mirror would replace this Codex-only skill)\n`)
+                    .join('') +
+                result.followUps.map(line => `${line}\n`).join('')
+        );
     }
-    return (summary.conflicts.length || summary.mirrorClashes.length) ? 2 : 0;
+    return summary.conflicts.length || summary.mirrorClashes.length ? 2 : 0;
 }
 
 if (process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpathSync(url.fileURLToPath(import.meta.url))) {
-    try { process.exitCode = main(); } catch (error) { process.stderr.write(`${error.message}\n`); process.exitCode = 1; }
+    try {
+        process.exitCode = main();
+    } catch (error) {
+        process.stderr.write(`${error.message}\n`);
+        process.exitCode = 1;
+    }
 }

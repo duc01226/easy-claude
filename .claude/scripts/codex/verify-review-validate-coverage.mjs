@@ -34,7 +34,7 @@ const { resolveProjectRoot, isInvokedAsScript } = require('../lib/project-root.c
 const rootResolution = resolveProjectRoot({
     cwd: process.cwd(),
     scriptPath: fileURLToPath(import.meta.url),
-    env: process.env,
+    env: process.env
 });
 const rootDir = rootResolution.rootDir;
 
@@ -75,12 +75,7 @@ export const GRADER_MODE_REFERENCES = [
 
 // Findings/severity/verdict language — presence means the skill produces findings and therefore
 // owes the validate route. Any one match qualifies.
-const FINDINGS_LANGUAGE_PATTERNS = [
-    /\bfindings?\b/i,
-    /\bseverity\b/i,
-    /PASS\/FAIL/,
-    /CRITICAL\/HIGH/
-];
+const FINDINGS_LANGUAGE_PATTERNS = [/\bfindings?\b/i, /\bseverity\b/i, /PASS\/FAIL/, /CRITICAL\/HIGH/];
 
 // The SPECIFIC route that satisfies the positive rule. Matches `/why-review --validate-findings`
 // and `why-review --validate-findings` (leading slash optional; whitespace/newline between tokens).
@@ -109,7 +104,7 @@ export function findCoverageViolations(skillName, content, options = {}) {
     const { isGrader = false } = options;
     const violations = [];
 
-    const hasFindingsLanguage = FINDINGS_LANGUAGE_PATTERNS.some((re) => re.test(content));
+    const hasFindingsLanguage = FINDINGS_LANGUAGE_PATTERNS.some(re => re.test(content));
     const hasValidateRoute = VALIDATE_ROUTE_PATTERN.test(content);
 
     // POSITIVE rule (coverage): findings language present -> the why-review validate route MUST be

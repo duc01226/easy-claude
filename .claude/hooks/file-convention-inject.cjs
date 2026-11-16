@@ -103,7 +103,9 @@ function readInput(fd = 0, io = {}) {
             if (total > MAX_INPUT_BYTES) return null;
             chunks.push(Buffer.from(buffer.subarray(0, bytesRead)));
         }
-        const raw = Buffer.concat(chunks, total).toString('utf8').replace(/^\uFEFF/, '');
+        const raw = Buffer.concat(chunks, total)
+            .toString('utf8')
+            .replace(/^\uFEFF/, '');
         if (!raw.trim()) return null;
         const parsed = JSON.parse(raw);
         return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
@@ -237,13 +239,17 @@ function planDelivery(input, deps) {
     // as an 'evidence' delivery so later triggers skip on the record alone, and deliver nothing.
     const evidencePresent = (entry, hash, perClass) => {
         if (!entry.evidenceDocs.length && !entry.evidenceSkills.length) return false;
-        const found = ledger.scanEvidence(ledger.transcriptPathFor(input), { docs: entry.evidenceDocs, skills: entry.evidenceSkills }, {
-            projectDir,
-            cwd: input.cwd,
-            windowBytes: perClass.reinjectAfterBytes,
-            lastCompactionAt: ctx.lastCompactionAt,
-            compactionMarkers: settings.compactionMarkers
-        });
+        const found = ledger.scanEvidence(
+            ledger.transcriptPathFor(input),
+            { docs: entry.evidenceDocs, skills: entry.evidenceSkills },
+            {
+                projectDir,
+                cwd: input.cwd,
+                windowBytes: perClass.reinjectAfterBytes,
+                lastCompactionAt: ctx.lastCompactionAt,
+                compactionMarkers: settings.compactionMarkers
+            }
+        );
         if (!found) return false;
         const record = { hash, deliveredAt: found.at, transcriptBytes: found.transcriptBytes, form: 'evidence' };
         if (!ledger.isPresent(record, hash, ctx, perClass)) return false;
@@ -364,9 +370,14 @@ function run(input, deps = {}) {
                 } catch {
                     /* fail-open */
                 }
-                note(resolved, delivered === false
-                    ? 'write failed: nothing recorded'
-                    : `delivered: ${Object.keys(plan.forms).map(name => `${name}=${plan.forms[name]}`).join(', ')}`);
+                note(
+                    resolved,
+                    delivered === false
+                        ? 'write failed: nothing recorded'
+                        : `delivered: ${Object.keys(plan.forms)
+                              .map(name => `${name}=${plan.forms[name]}`)
+                              .join(', ')}`
+                );
                 resolve(delivered === false ? '' : payload);
             });
         } catch (err) {
@@ -385,6 +396,13 @@ if (require('./lib/hook-runner.cjs').isHookEntryPoint(module)) {
     process.exitCode = 0;
     const input = readInput();
     if (input) {
-        run(input).then(() => { process.exitCode = 0; }, () => { process.exitCode = 0; });
+        run(input).then(
+            () => {
+                process.exitCode = 0;
+            },
+            () => {
+                process.exitCode = 0;
+            }
+        );
     }
 }

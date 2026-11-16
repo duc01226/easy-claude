@@ -238,14 +238,20 @@ module.exports = {
                 // Then the offer is one question with three options, including skip
                 assertContains(text, "ask ONE question with the host's question tool: grill it (`/grill`");
                 assertContains(text, 'review it (`/why-review`');
-                assertContains(text, '· skip, naming instead `/plan --mode=validate`, `/wayfinder` or `/llm-council` where one fits better (at most two checks)');
+                assertContains(
+                    text,
+                    '· skip, naming instead `/plan --mode=validate`, `/wayfinder` or `/llm-council` where one fits better (at most two checks)'
+                );
                 // And the offer follows the answer and the active mode, not the prompt's wording
                 assertContains(text, "judged by the answer and never by the prompt's wording");
                 assertContains(text, 'close it per the active decision-support mode (`portability.decisionSupportMode`, default `ask`)');
                 assertContains(text, '`suggest` → one closing line naming the checks, no question; `auto` → why-review the draft report-only before replying');
                 assertContains(text, 'Active decision-support mode: `');
                 // And it never fires where it would interrupt or cannot be answered
-                assertContains(text, 'Never after a lookup or trivial answer, inside a running workflow or a skill that owns its closing step, from a sub-agent or headless run');
+                assertContains(
+                    text,
+                    'Never after a lookup or trivial answer, inside a running workflow or a skill that owns its closing step, from a sub-agent or headless run'
+                );
                 assertContains(text, 'again after a skip, or on a turn the mid-session plan question covers (it replaces this offer)');
             }
         },
@@ -260,8 +266,16 @@ module.exports = {
                 const deliver = async (input, env = {}, extra = {}) => {
                     const writes = [];
                     const text = await hook.run(input, {
-                        env, projectDir: project, homeDir: home, storeRoot: store, now: Date.now(),
-                        write: (chunk, done) => { writes.push(chunk); done(true); }, ...extra
+                        env,
+                        projectDir: project,
+                        homeDir: home,
+                        storeRoot: store,
+                        now: Date.now(),
+                        write: (chunk, done) => {
+                            writes.push(chunk);
+                            done(true);
+                        },
+                        ...extra
                     });
                     return { text, out: writes.join('') };
                 };
@@ -275,8 +289,12 @@ module.exports = {
                     assertContains(first.out, hook.DS_MARKER_START);
                     assertContains(first.out, 'Mode `ask`');
                     assertContains(first.out, "Judge YOUR answer, not the prompt's wording");
-                    assertContains(first.out, 'Close such an answer with ONE question via the host question tool (plain text when it has none): the 1–2 fitting checks + skip.');
-                    for (const check of ['`/grill`', '`/why-review`', '`/plan --mode=validate`', '`/wayfinder`', '`/llm-council`']) assertContains(first.out, check);
+                    assertContains(
+                        first.out,
+                        'Close such an answer with ONE question via the host question tool (plain text when it has none): the 1–2 fitting checks + skip.'
+                    );
+                    for (const check of ['`/grill`', '`/why-review`', '`/plan --mode=validate`', '`/wayfinder`', '`/llm-council`'])
+                        assertContains(first.out, check);
                     assertContains(first.out, 'First offer this session: one short clause per check');
                     assertContains(first.out, 'CK_DECISION_SUPPORT_MODE');
                     assertTrue(!first.out.includes(hook.MARKER_START), 'no verdict directive on a work request');
@@ -299,7 +317,10 @@ module.exports = {
                     const agent = await deliver({ hook_event_name: 'SubagentStart', session_id: session(), agent_id: 'a1', agent_type: 'general-purpose' });
                     assertTrue(agent.out === '', 'a sub-agent start gets no decision-support rule');
                     // And host content and a prompt without a session id get nothing
-                    assertTrue((await deliver(prompt(session(), '<task-notification>\ndone\n</task-notification>'))).out === '', 'host content is not a user prompt');
+                    assertTrue(
+                        (await deliver(prompt(session(), '<task-notification>\ndone\n</task-notification>'))).out === '',
+                        'host content is not a user prompt'
+                    );
                     assertTrue((await deliver({ hook_event_name: 'UserPromptSubmit', prompt: 'hello' })).out === '', 'no session id, no rule');
                     // Each mode writes its own form
                     const auto = await deliver(prompt(session(), 'hello'), { CK_DECISION_SUPPORT_MODE: 'auto', CK_SKILL_AUTO_TRIGGER: 'true' });
@@ -328,7 +349,10 @@ module.exports = {
                 const routing = require(path.join(PROJECT_DIR, '.claude', 'scripts', 'lib', 'workflow-routing-config.cjs'));
                 const project = makeSettingsProject({});
                 const home = fs.mkdtempSync(path.join(os.tmpdir(), 'jir-ds-layers-'));
-                const writeJson = (file, value) => { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, JSON.stringify(value)); };
+                const writeJson = (file, value) => {
+                    fs.mkdirSync(path.dirname(file), { recursive: true });
+                    fs.writeFileSync(file, JSON.stringify(value));
+                };
                 const mode = value => ({ portability: { decisionSupportMode: value } });
                 const resolve = (env = {}) => routing.resolveDecisionSupportMode({ rootDir: project, homeDir: home, env, skillAutoTrigger: true });
                 try {
@@ -346,7 +370,11 @@ module.exports = {
                     writeJson(path.join(project, '.claude', '.ck.local.json'), mode('sometimes'));
                     assertTrue(resolve({ CK_DECISION_SUPPORT_MODE: 'loud' }).mode === 'suggest', 'unknown values fall through to the next layer down');
                     // And the team scope reads the team layer only
-                    assertTrue(routing.resolveDecisionSupportMode({ rootDir: project, homeDir: home, env: {}, scope: routing.SCOPE_TEAM, skillAutoTrigger: true }).mode === 'off', 'team scope');
+                    assertTrue(
+                        routing.resolveDecisionSupportMode({ rootDir: project, homeDir: home, env: {}, scope: routing.SCOPE_TEAM, skillAutoTrigger: true })
+                            .mode === 'off',
+                        'team scope'
+                    );
                     // And auto is acted on as ask while skill auto-trigger is off
                     writeJson(path.join(project, '.claude', '.ck.local.json'), mode('auto'));
                     const capped = routing.resolveDecisionSupportMode({ rootDir: project, homeDir: home, env: {}, skillAutoTrigger: false });
@@ -371,7 +399,8 @@ module.exports = {
                 assertTrue(Boolean(canonical), 'canonical SYNC:judgement-integrity:reminder must exist');
                 // Given a verdict ask with automatic activation enabled, independent of project/personal defaults
                 const text = hook.evaluate(event('does this plan have any gaps?'), {
-                    ...ISOLATED, env: { ...CLEAN_ENV, CK_SKILL_AUTO_TRIGGER: 'true' }
+                    ...ISOLATED,
+                    env: { ...CLEAN_ENV, CK_SKILL_AUTO_TRIGGER: 'true' }
                 });
                 // Then the directive carries the canonical reminder verbatim
                 assertContains(text, hook.MARKER_START);
@@ -441,13 +470,17 @@ module.exports = {
                     // When a developer-local override re-enables it / Then the local value wins
                     assertContains(hook.evaluate(ask, { env: CLEAN_ENV, projectDir: localOnDir }), hook.MARKER_START);
                     // When the env switch is 0 / Then it stays silent even though config enables it
-                    assertTrue(hook.evaluate(ask, { env: { CK_JUDGEMENT_INTEGRITY_ROUTE: '0' }, projectDir: enabledDir }) === '', 'CK_JUDGEMENT_INTEGRITY_ROUTE=0 must silence');
+                    assertTrue(
+                        hook.evaluate(ask, { env: { CK_JUDGEMENT_INTEGRITY_ROUTE: '0' }, projectDir: enabledDir }) === '',
+                        'CK_JUDGEMENT_INTEGRITY_ROUTE=0 must silence'
+                    );
                     // And at the real process boundary: the hook resolves settings from CLAUDE_PROJECT_DIR
-                    const run = (dir, extraEnv = {}) => spawnSync(process.execPath, [HOOK_PATH], {
-                        input: JSON.stringify(ask),
-                        encoding: 'utf8',
-                        env: childEnv({ ...CHILD_ENV_RESET, CLAUDE_PROJECT_DIR: dir, ...extraEnv })
-                    });
+                    const run = (dir, extraEnv = {}) =>
+                        spawnSync(process.execPath, [HOOK_PATH], {
+                            input: JSON.stringify(ask),
+                            encoding: 'utf8',
+                            env: childEnv({ ...CHILD_ENV_RESET, CLAUDE_PROJECT_DIR: dir, ...extraEnv })
+                        });
                     const on = run(enabledDir);
                     assertTrue(on.status === 0, `enabled run exits 0, got ${on.status}`);
                     assertContains(on.stdout, hook.MARKER_START);
@@ -469,10 +502,11 @@ module.exports = {
                     "const input = { hook_event_name: 'UserPromptSubmit', get prompt() { throw new Error('probe-failure'); } };",
                     'process.stdout.write(hook.evaluate(input));'
                 ].join(' ');
-                const run = debug => spawnSync(process.execPath, ['-e', driver, HOOK_PATH], {
-                    encoding: 'utf8',
-                    env: { ...process.env, CK_DEBUG: debug }
-                });
+                const run = debug =>
+                    spawnSync(process.execPath, ['-e', driver, HOOK_PATH], {
+                        encoding: 'utf8',
+                        env: { ...process.env, CK_DEBUG: debug }
+                    });
                 // When evaluated without and with CK_DEBUG
                 const quiet = run('');
                 const loud = run('1');
@@ -490,8 +524,10 @@ module.exports = {
                 const project = makeHookTreeProject('judgement-route');
                 try {
                     // When Codex launches the router from the fixture root on a verdict ask
-                    const result = runCodexLauncher('judgement-integrity-route.cjs', JSON.stringify(event('am I right that this is the root cause?')),
-                        { cwd: project, env: CHILD_ENV_RESET });
+                    const result = runCodexLauncher('judgement-integrity-route.cjs', JSON.stringify(event('am I right that this is the root cause?')), {
+                        cwd: project,
+                        env: CHILD_ENV_RESET
+                    });
                     // Then it exits 0 and emits the directive
                     assertTrue(result.code === 0, `Codex launcher exited ${result.code}: ${result.stderr}`);
                     assertContains(result.stdout, hook.MARKER_START);
@@ -551,10 +587,22 @@ module.exports = {
                 for (const key of Object.keys(process.env)) {
                     if (/^(?:CK_|CLAUDE_|CODEX_|OPENCODE_|OPENAI_|ANTHROPIC_|GEMINI_|GOOGLE_|AZURE_)/i.test(key)) reset[key] = undefined;
                 }
-                const env = childEnv({ ...reset, HOME: project, USERPROFILE: project, TMPDIR: project, TEMP: project, TMP: project, CLAUDE_PROJECT_DIR: project });
-                const run = (input, debug = '') => spawnSync(process.execPath, [HOOK_PATH], {
-                    input, encoding: 'utf8', windowsHide: true, env: { ...env, CK_DEBUG: debug }
+                const env = childEnv({
+                    ...reset,
+                    HOME: project,
+                    USERPROFILE: project,
+                    TMPDIR: project,
+                    TEMP: project,
+                    TMP: project,
+                    CLAUDE_PROJECT_DIR: project
                 });
+                const run = (input, debug = '') =>
+                    spawnSync(process.execPath, [HOOK_PATH], {
+                        input,
+                        encoding: 'utf8',
+                        windowsHide: true,
+                        env: { ...env, CK_DEBUG: debug }
+                    });
                 try {
                     // When the hook runs as `node <hook>` on a verdict ask / Then it emits the directive
                     const out = execFileSync(process.execPath, [HOOK_PATH], {
@@ -566,13 +614,19 @@ module.exports = {
                     // When stdin is empty, non-JSON, malformed or nonobject / Then both channels stay silent and exit 0
                     for (const input of ['', 'not json', '{"secret":"SYNTHETIC-SECRET",', 'null', '[]']) {
                         const silent = run(input);
-                        assertTrue(silent.status === 0 && silent.stdout === '' && silent.stderr === '', `malformed input stays silent: ${JSON.stringify(input)}; stderr=${silent.stderr}`);
+                        assertTrue(
+                            silent.status === 0 && silent.stdout === '' && silent.stderr === '',
+                            `malformed input stays silent: ${JSON.stringify(input)}; stderr=${silent.stderr}`
+                        );
                     }
                     // When the prompt is code only / Then no verdict directive: quoted code is not a verdict ask
                     // (the once-per-session decision-support rule may still arrive: it does not depend on the wording)
                     for (const input of [JSON.stringify(event('``any gaps?``')), JSON.stringify(event('~~~text\nany gaps?\n~~~'))]) {
                         const codeOnly = run(input);
-                        assertTrue(codeOnly.status === 0 && !codeOnly.stdout.includes(hook.MARKER_START) && codeOnly.stderr === '', `code input gets no verdict directive: ${JSON.stringify(input)}; stderr=${codeOnly.stderr}`);
+                        assertTrue(
+                            codeOnly.status === 0 && !codeOnly.stdout.includes(hook.MARKER_START) && codeOnly.stderr === '',
+                            `code input gets no verdict directive: ${JSON.stringify(input)}; stderr=${codeOnly.stderr}`
+                        );
                     }
                     // When malformed JSON arrives in debug mode / Then the sanitized diagnostic uses stderr only
                     const diagnosed = run('{"secret":"SYNTHETIC-SECRET",', '1');
@@ -588,9 +642,10 @@ module.exports = {
             name: '[judgement-integrity-route] TC-JIR-006 registered on UserPromptSubmit, SubagentStart and SessionStart compact, and carried by the universal critical-thinking protocol',
             fn: () => {
                 const settings = require(path.join(PROJECT_DIR, '.claude', 'settings.json'));
-                const wired = (event, matcher) => (settings.hooks[event] || [])
-                    .filter(group => matcher === undefined || group.matcher === matcher)
-                    .some(group => group.hooks.some(h => h.command.includes('judgement-integrity-route.cjs')));
+                const wired = (event, matcher) =>
+                    (settings.hooks[event] || [])
+                        .filter(group => matcher === undefined || group.matcher === matcher)
+                        .some(group => group.hooks.some(h => h.command.includes('judgement-integrity-route.cjs')));
                 assertTrue(wired('UserPromptSubmit'), 'hook must be wired on prompts');
                 assertTrue(wired('SubagentStart'), 'hook must be wired on every sub-agent start');
                 assertTrue(wired('SessionStart', 'compact'), 'hook must be wired on the compaction report');

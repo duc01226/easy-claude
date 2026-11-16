@@ -46,7 +46,7 @@ const { liveSourceFiles } = require('../lib/live-source-files.cjs');
 const { resolveAllWorkflowManifests, resolveWorkflowManifest } = require('../../../scripts/lib/workflow-manifest.cjs');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
-const SKIP = isFrameworkRepo(REPO_ROOT) ? false : 'asserts the framework repo\'s own docs-manager skill and workflow registry (framework-repo signal)';
+const SKIP = isFrameworkRepo(REPO_ROOT) ? false : "asserts the framework repo's own docs-manager skill and workflow registry (framework-repo signal)";
 
 const SKILLS = path.join(REPO_ROOT, '.claude', 'skills');
 const read = (...parts) => fs.readFileSync(path.join(...parts), 'utf8').replace(/\r\n/g, '\n');
@@ -70,16 +70,12 @@ function guideTags(text) {
     return tags;
 }
 
-const fixtureDocument = (entry) => ({ version: '1', workflows: { fixture: entry } });
-const resolveFixture = (entry) => resolveWorkflowManifest(fixtureDocument(entry), 'fixture', { availableSkills: ['docs-manager', 'test'] });
+const fixtureDocument = entry => ({ version: '1', workflows: { fixture: entry } });
+const resolveFixture = entry => resolveWorkflowManifest(fixtureDocument(entry), 'fixture', { availableSkills: ['docs-manager', 'test'] });
 
 const LIVE_SOURCE_ROOTS = ['.claude', 'docs/specs', 'docs/project-reference', 'README.md'];
 // Generated catalogs are rebuilt from the skill folders; history stays in ADRs and release notes.
-const SCAN_EXCLUDED = new Set([
-    '.claude/SKILLS.yaml',
-    '.claude/scripts/skills_data.yaml',
-    '.claude/hooks/tests/suites/docs-manager-modes-merge.test.cjs'
-]);
+const SCAN_EXCLUDED = new Set(['.claude/SKILLS.yaml', '.claude/scripts/skills_data.yaml', '.claude/hooks/tests/suites/docs-manager-modes-merge.test.cjs']);
 const SCAN_EXCLUDED_DIRS = new Set(['node_modules', '.git', '.code-graph', 'tmp', 'temp', 'plans']);
 const REMOVED_TOKEN = new RegExp(`(?<![\\w-])(?:${REMOVED.join('|')})(?![\\w-])`);
 const SCAN_EXTENSIONS = new Set(['.md', '.cjs', '.mjs', '.js', '.py', '.json', '.yaml', '.yml', '.html', '.toml']);
@@ -110,17 +106,31 @@ const tests = [
             for (const mode of MODES) assert.match(text, new RegExp(`--mode=${mode}`), `--mode=${mode} is documented`);
             // And each mode has a mandatory full-read line naming an existing reference
             for (const mode of MODES) {
-                assert.match(text, new RegExp(`\\*\\*\\[BLOCKING\\]\\*\\* When \`--mode=${mode}\`, read \`references/mode-${mode}\\.md\` in full FIRST`), `mandatory read line for ${mode}`);
+                assert.match(
+                    text,
+                    new RegExp(`\\*\\*\\[BLOCKING\\]\\*\\* When \`--mode=${mode}\`, read \`references/mode-${mode}\\.md\` in full FIRST`),
+                    `mandatory read line for ${mode}`
+                );
                 assert.ok(fs.existsSync(path.join(SKILLS, 'docs-manager', 'references', `mode-${mode}.md`)), `references/mode-${mode}.md exists`);
             }
             // And the removed slash commands resolve through a prominent "formerly" mapping
             assert.match(text, /former `\/[a-z-]+` and `\/[a-z-]+`: those slash commands no longer exist/);
             // And no mode shows the table and stops: nothing is asked, nothing runs, init needs the explicit flag
-            assert.match(text, /No mode flag and no natural-language request matching the `update` Intent column: show the \[Mode Dispatch\]\(#mode-dispatch\) table and stop — ask nothing and run nothing/);
+            assert.match(
+                text,
+                /No mode flag and no natural-language request matching the `update` Intent column: show the \[Mode Dispatch\]\(#mode-dispatch\) table and stop — ask nothing and run nothing/
+            );
             assert.match(text, /`init` is selected only by an explicit `--mode=init`/);
             // And the banner and the Key Rules state ONE routing rule: a natural-language update request selects update (never init); the table-and-stop applies only without one
-            assert.match(text, /A natural-language request that matches the `update` Intent column selects `update`; `init` is selected only by an explicit `--mode=init`\. No mode flag and no such request: show the \[Mode Dispatch\]/);
-            assert.doesNotMatch(text, /\bNo mode: show/i, 'no unconditional "No mode: show the table" statement may contradict natural-language update routing');
+            assert.match(
+                text,
+                /A natural-language request that matches the `update` Intent column selects `update`; `init` is selected only by an explicit `--mode=init`\. No mode flag and no such request: show the \[Mode Dispatch\]/
+            );
+            assert.doesNotMatch(
+                text,
+                /\bNo mode: show/i,
+                'no unconditional "No mode: show the table" statement may contradict natural-language update routing'
+            );
             assert.doesNotMatch(text, /no mode shows the mode table and stops/, 'the closing reminder is conditioned on the update-intent request');
             assert.doesNotMatch(text, /ask user question tool/, 'the dispatcher asks no question');
         }
@@ -130,8 +140,18 @@ const tests = [
         skip: SKIP,
         fn: () => {
             const text = skillText();
-            const updateOnly = ['## Scope and inputs', '## Ownership and update boundaries', '## Context quality gates', '## Stamp discipline', '## Existing demo-guide relevance'];
-            const initOnly = ['## Step 1: Validate Project Config', '## Step 2: Detect Placeholder vs Populated', '## Step 4: M1-M5/M7 Compliance Gate (BLOCKING)'];
+            const updateOnly = [
+                '## Scope and inputs',
+                '## Ownership and update boundaries',
+                '## Context quality gates',
+                '## Stamp discipline',
+                '## Existing demo-guide relevance'
+            ];
+            const initOnly = [
+                '## Step 1: Validate Project Config',
+                '## Step 2: Detect Placeholder vs Populated',
+                '## Step 4: M1-M5/M7 Compliance Gate (BLOCKING)'
+            ];
             for (const marker of [...updateOnly, ...initOnly]) assert.ok(!text.includes(marker), `SKILL.md must not inline mode text: ${marker}`);
             for (const marker of updateOnly) assert.ok(modeUpdate().includes(marker), `mode-update.md holds ${marker}`);
             for (const marker of initOnly) assert.ok(modeInit().includes(marker), `mode-init.md holds ${marker}`);
@@ -146,10 +166,20 @@ const tests = [
         fn: () => {
             const text = modeUpdate();
             // Guard the decisions a future agent must make, not a phase/task count.
-            for (const owner of ['/scan --target=<key>', '/project-config', '/spec', '/spec [mode=tests]', '/spec [mode=sync]', '/spec [mode=index]', '/tech-spec', '/demo-guide']) {
+            for (const owner of [
+                '/scan --target=<key>',
+                '/project-config',
+                '/spec',
+                '/spec [mode=tests]',
+                '/spec [mode=sync]',
+                '/spec [mode=index]',
+                '/tech-spec',
+                '/demo-guide'
+            ]) {
                 assert.ok(text.includes(owner), `canonical owner is discoverable: ${owner}`);
             }
-            for (const verdict of ['FRESH', 'PATCHED', 'RESCAN REQUIRED', 'UNVERIFIED', 'NOT-APPLICABLE', 'DEFERRED']) assert.ok(text.includes(verdict), verdict);
+            for (const verdict of ['FRESH', 'PATCHED', 'RESCAN REQUIRED', 'UNVERIFIED', 'NOT-APPLICABLE', 'DEFERRED'])
+                assert.ok(text.includes(verdict), verdict);
             assert.match(text, /explicit `changed_files` → caller `base` diff → default working-tree diff/);
             assert.match(text, /outside every context-patching brief\/write set/);
             assert.match(text, /unchecked content is never `FRESH`/);
@@ -158,7 +188,8 @@ const tests = [
             assert.match(text, /`\[HARD\]` rule blocks until resolved or explicitly owner-accepted/);
             assert.match(text, /every test `TestSpec` annotation must resolve to the canonical registry/);
             assert.match(text, /every scoped artifact has a result/);
-            for (const flag of ['modules', 'changed_files', 'base', 'mode', 'tc_mode', 'freshness', 'phases', 'skip_phases']) assert.ok(text.includes('`' + flag + '`'), flag);
+            for (const flag of ['modules', 'changed_files', 'base', 'mode', 'tc_mode', 'freshness', 'phases', 'skip_phases'])
+                assert.ok(text.includes('`' + flag + '`'), flag);
             assert.ok(text.includes('tmp/reports/' + REMOVED[0] + '-{YYMMDD}-{HHMM}.md'));
             assert.match(text, /The `mode=update` caller flag \(no dashes\) only overrides `\/spec` mode detection/);
             assert.doesNotMatch(text, /Create ALL 9|TaskCreate|## Phase \d|dispatch the parallel wave/);
@@ -173,7 +204,10 @@ const tests = [
             assert.match(text, /## Step 1: Validate Project Config/);
             assert.match(text, /`docs\/project-config\.json` \(or its configured path\) is OPTIONAL/);
             assert.match(text, /`lessons\.md` and `docs-index-reference\.md` are project-init-owned always-on inputs/);
-            assert.match(text, /\[BLOCKING\] read the head of its own file `\.claude\/skills\/scan\/references\/targets\/<key>\.md` \(its `applies when` and `skip when` lines\)/);
+            assert.match(
+                text,
+                /\[BLOCKING\] read the head of its own file `\.claude\/skills\/scan\/references\/targets\/<key>\.md` \(its `applies when` and `skip when` lines\)/
+            );
             assert.match(text, /Run clearly applicable selected scans without a routine user-choice gate/);
             assert.match(text, /Do not interrupt an otherwise clear initialization to ask which applicable configured scans to run/);
             assert.match(text, /Do not invent a verifier command/);
@@ -229,7 +263,10 @@ const tests = [
                 for (const id of Object.keys(document.workflows)) {
                     // Entry gates and each mode's own gates: a merged workflow (planned-work) keeps its gates per mode
                     const workflow = document.workflows[id];
-                    const liveGates = [...(workflow.outcomeGates || []), ...Object.values(workflow.variants || {}).flatMap(variant => variant.outcomeGates || [])];
+                    const liveGates = [
+                        ...(workflow.outcomeGates || []),
+                        ...Object.values(workflow.variants || {}).flatMap(variant => variant.outcomeGates || [])
+                    ];
                     for (const liveGate of liveGates) {
                         for (const satisfier of liveGate.satisfiedBy) {
                             if (!/^docs-manager\b/.test(satisfier)) continue;
@@ -250,7 +287,10 @@ const tests = [
             const bodyOf = (text, tag) => text.includes(`<!-- SYNC:${tag} -->`) && text.includes(`<!-- /SYNC:${tag} -->`);
             const updateOnly = [];
             const initOnly = [];
-            for (const [label, text, tags] of [['mode-update', modeUpdate(), updateOnly], ['mode-init', modeInit(), initOnly]]) {
+            for (const [label, text, tags] of [
+                ['mode-update', modeUpdate(), updateOnly],
+                ['mode-init', modeInit(), initOnly]
+            ]) {
                 for (const tag of tags) {
                     assert.ok(bodyOf(text, tag), `${label} carries the full ${tag} body`);
                     assert.ok(!skill.includes(`SYNC:${tag}`), `docs-manager/SKILL.md must not carry ${tag}`);
@@ -268,7 +308,10 @@ const tests = [
             assert.ok(skill.includes('<!-- SYNC:output-quality-principles:reminder -->'), 'the document-quality reminder remains discoverable');
             const groups = JSON.parse(read(SKILLS, 'shared', 'protocol-groups.json'));
             assert.equal(groups.groups['workflow-task'].tags['output-quality-principles'].trigger, 'documentation', 'document depth stays conditional');
-            assert.ok(groups.deliveryTriggers.documentation.skills.includes('docs-manager'), 'the documentation trigger delivers the document-quality protocol to docs-manager');
+            assert.ok(
+                groups.deliveryTriggers.documentation.skills.includes('docs-manager'),
+                'the documentation trigger delivers the document-quality protocol to docs-manager'
+            );
             assert.equal((skill.match(/Root-carried protocols/g) || []).length, 0, 'no retired pointer line');
             // And the update reminders survive
             const reminders = (modeUpdate().match(/<!-- SYNC:[a-z-]+:reminder -->/g) || []).length;
@@ -294,9 +337,17 @@ const tests = [
             assert.ok(scanned > 500, `tripwire: the scan covers the framework sources (${scanned} files)`);
             assert.deepEqual(offenders, [], 'replace each with `docs-manager --mode=update` / `docs-manager --mode=init`');
             // The allow-list is live: docs-manager/SKILL.md names the removed commands only as "formerly" (or as the report filename prefix)
-            const named = skillText().split('\n').filter(line => REMOVED.some(name => line.includes(name)));
-            assert.ok(named.some(line => /former/i.test(line)), 'docs-manager/SKILL.md maps the removed commands with a "formerly" line');
-            assert.ok(named.every(line => allowedMention('.claude/skills/docs-manager/SKILL.md', line)), 'docs-manager/SKILL.md names the removed commands only as "formerly" or as the report filename prefix');
+            const named = skillText()
+                .split('\n')
+                .filter(line => REMOVED.some(name => line.includes(name)));
+            assert.ok(
+                named.some(line => /former/i.test(line)),
+                'docs-manager/SKILL.md maps the removed commands with a "formerly" line'
+            );
+            assert.ok(
+                named.every(line => allowedMention('.claude/skills/docs-manager/SKILL.md', line)),
+                'docs-manager/SKILL.md names the removed commands only as "formerly" or as the report filename prefix'
+            );
         }
     },
     {
@@ -337,7 +388,10 @@ const tests = [
             const target = /`(\.claude\/skills\/docs-manager\/references\/mode-update\.md)`/.exec(stamp);
             assert.ok(target && fs.existsSync(path.join(REPO_ROOT, ...target[1].split('/'))), 'the stamp rule points at the mode-update reference');
             // The skill tells the two artifacts apart
-            assert.match(skillText(), /The `docs-manager` sub-agent \(`subagent_type="docs-manager"`\) is an agent, not this skill; it drives `\/docs-manager --mode=update`/);
+            assert.match(
+                skillText(),
+                /The `docs-manager` sub-agent \(`subagent_type="docs-manager"`\) is an agent, not this skill; it drives `\/docs-manager --mode=update`/
+            );
         }
     },
     {

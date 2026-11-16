@@ -29,16 +29,10 @@ const REFERENCE_DOC_ALIASES = Object.freeze({
 });
 
 const CUSTOM_SCAN_TARGETS = new Set(['generic', 'manual']);
-const BUILT_IN_DOC_NAMES = new Set([
-    ...Object.keys(SCAN_SKILL_MAP),
-    ...Object.keys(REFERENCE_DOC_ALIASES),
-    ...Object.values(REFERENCE_DOC_ALIASES)
-]);
+const BUILT_IN_DOC_NAMES = new Set([...Object.keys(SCAN_SKILL_MAP), ...Object.keys(REFERENCE_DOC_ALIASES), ...Object.values(REFERENCE_DOC_ALIASES)]);
 
 function resolveReferenceDocAlias(filename) {
-    return Object.prototype.hasOwnProperty.call(REFERENCE_DOC_ALIASES, filename)
-        ? REFERENCE_DOC_ALIASES[filename]
-        : filename;
+    return Object.prototype.hasOwnProperty.call(REFERENCE_DOC_ALIASES, filename) ? REFERENCE_DOC_ALIASES[filename] : filename;
 }
 
 /**

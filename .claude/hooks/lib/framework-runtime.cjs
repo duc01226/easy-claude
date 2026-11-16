@@ -9,12 +9,7 @@ const routing = require('../../scripts/lib/workflow-routing-config.cjs');
 const MODES = Object.freeze(['on', 'quiet', 'off']);
 // Quiet suppresses context-producing automation before it reads transcripts or
 // updates delivery ledgers. These operational hooks retain their own diagnostics.
-const QUIET_HOOKS = new Set([
-    'review-commit-gate.cjs',
-    'doc-sync-gate.cjs',
-    'post-edit-prettier.cjs',
-    'notifications/notify.cjs'
-]);
+const QUIET_HOOKS = new Set(['review-commit-gate.cjs', 'doc-sync-gate.cjs', 'post-edit-prettier.cjs', 'notifications/notify.cjs']);
 
 // Runs in every mode: it only reconciles native skill and agent visibility with the
 // mode, and does nothing unless `frameworkRuntime.autoApplyNative` is true.
@@ -23,11 +18,7 @@ const ALWAYS_HOOKS = new Set(['framework-native-sync.cjs']);
 // Opt-in for quiet: keep the hooks that deliver the PROJECT's own rules (its skill overlays, its
 // per-file conventions and the skill auto-trigger policy) while generic guidance stays off. Each is
 // small and project-authored, so a quiet session still sees the rules the project wrote down.
-const QUIET_PROJECT_RULE_HOOKS = new Set([
-    'skill-overlay-remind.cjs',
-    'file-convention-inject.cjs',
-    'skill-activation-inject.cjs'
-]);
+const QUIET_PROJECT_RULE_HOOKS = new Set(['skill-overlay-remind.cjs', 'file-convention-inject.cjs', 'skill-activation-inject.cjs']);
 
 // `frameworkRuntime.quietNative`: what quiet does to native skill and agent visibility.
 // `none` (default) leaves it; `restrict` hides framework skills from automatic use and
@@ -48,7 +39,10 @@ function normalizeBoolean(value) {
 
 function normalizeChoice(value, choices) {
     if (typeof value !== 'string') return undefined;
-    const text = value.trim().replace(/^(["'])(.*)\1$/, '$2').toLowerCase();
+    const text = value
+        .trim()
+        .replace(/^(["'])(.*)\1$/, '$2')
+        .toLowerCase();
     return choices.includes(text) ? text : undefined;
 }
 
@@ -99,8 +93,16 @@ function resolveFrameworkMode(options = {}) {
     const winner = layers.filter(layer => layer.mode !== undefined).at(-1);
     const quietSkills = layers.filter(layer => layer.quietSkills !== undefined).at(-1)?.quietSkills || [];
     const offReadAsQuiet = winner.mode === 'off' && resolveOffMode({ rootDir, readConfig: configReader }).value === 'as-quiet';
-    return { mode: offReadAsQuiet ? 'quiet' : winner.mode, source: winner.source, ...(offReadAsQuiet ? { offReadAsQuiet } : {}),
-        quietSkills, configPath, userPath, localPath, layers };
+    return {
+        mode: offReadAsQuiet ? 'quiet' : winner.mode,
+        source: winner.source,
+        ...(offReadAsQuiet ? { offReadAsQuiet } : {}),
+        quietSkills,
+        configPath,
+        userPath,
+        localPath,
+        layers
+    };
 }
 
 // One reader for the per-person runtime options: default, project config, ~/.claude/.ck.json,
@@ -157,7 +159,18 @@ function skipHook(mod) {
 }
 
 module.exports = {
-    MODES, QUIET_HOOKS, ALWAYS_HOOKS, QUIET_PROJECT_RULE_HOOKS, QUIET_NATIVE, OFF_MODES,
-    normalizeMode, resolveFrameworkMode, resolveOffMode, resolveQuietProjectRules, resolveQuietNative, resolveAutoApplyNative,
-    isHookEnabled, skipHook
+    MODES,
+    QUIET_HOOKS,
+    ALWAYS_HOOKS,
+    QUIET_PROJECT_RULE_HOOKS,
+    QUIET_NATIVE,
+    OFF_MODES,
+    normalizeMode,
+    resolveFrameworkMode,
+    resolveOffMode,
+    resolveQuietProjectRules,
+    resolveQuietNative,
+    resolveAutoApplyNative,
+    isHookEnabled,
+    skipHook
 };

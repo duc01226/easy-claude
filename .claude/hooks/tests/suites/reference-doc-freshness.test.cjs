@@ -20,18 +20,10 @@ const path = require('path');
 const { assertEqual, assertTrue } = require('../lib/assertions.cjs');
 
 const REPO = path.resolve(__dirname, '..', '..', '..', '..');
-const {
-    checkClaims,
-    defaultClaimTargets
-} = require(path.join(REPO, '.claude', 'scripts', 'doc-impact-map.cjs'));
-const {
-    parseLastScannedDate,
-    REFERENCE_DOCS_DIR,
-    getAlwaysOnReferenceDocs,
-    getReferenceDocs,
-    getReferenceDocScanSkill,
-    getReferenceDocPath
-} = require(path.join(REPO, '.claude', 'hooks', 'lib', 'session-init-helpers.cjs'));
+const { checkClaims, defaultClaimTargets } = require(path.join(REPO, '.claude', 'scripts', 'doc-impact-map.cjs'));
+const { parseLastScannedDate, REFERENCE_DOCS_DIR, getAlwaysOnReferenceDocs, getReferenceDocs, getReferenceDocScanSkill, getReferenceDocPath } = require(
+    path.join(REPO, '.claude', 'hooks', 'lib', 'session-init-helpers.cjs')
+);
 
 const REF_DIR = REFERENCE_DOCS_DIR;
 const LAST_SCANNED_ANYWHERE = /<!--\s*Last scanned:\s*(\d{4}-\d{2}-\d{2})/;
@@ -72,8 +64,7 @@ const tests = [
         fn: () => {
             let registered = [];
             try {
-                registered = JSON.parse(fs.readFileSync(path.join(REPO, 'docs', 'project-config.json'), 'utf8'))
-                    .referenceDocs || [];
+                registered = JSON.parse(fs.readFileSync(path.join(REPO, 'docs', 'project-config.json'), 'utf8')).referenceDocs || [];
             } catch {
                 registered = [];
             }
@@ -99,11 +90,7 @@ const tests = [
             fs.writeFileSync(fixture, 'Cites `docs/project-reference/no-such-doc-xyz.md` which does not exist.\n', 'utf8');
             try {
                 const result = checkClaims(rel);
-                assertEqual(
-                    result.missing.length,
-                    1,
-                    'The checker must detect a deliberately dead citation — otherwise F1 passes vacuously'
-                );
+                assertEqual(result.missing.length, 1, 'The checker must detect a deliberately dead citation — otherwise F1 passes vacuously');
             } finally {
                 if (fs.existsSync(fixture)) fs.unlinkSync(fixture);
             }

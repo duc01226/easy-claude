@@ -17,8 +17,7 @@ function example(text, heading, predicate = () => true) {
     const start = text.indexOf(heading);
     assert.notEqual(start, -1, `missing section: ${heading}`);
     const section = text.slice(start + heading.length).split(/\n#{1,3} /)[0];
-    const blocks = [...section.matchAll(/```(?:javascript|js|json)\r?\n([\s\S]*?)```/g)]
-        .map(match => match[1]).filter(predicate);
+    const blocks = [...section.matchAll(/```(?:javascript|js|json)\r?\n([\s\S]*?)```/g)].map(match => match[1]).filter(predicate);
     assert.equal(blocks.length, 1, `expected exactly one matching example: ${heading}`);
     return blocks[0];
 }
@@ -27,7 +26,11 @@ function runExample(source, input, prefix = '') {
     const env = { ...process.env, CLAUDE_HOOK_DEBUG: '0', CK_DEBUG: '0' };
     delete env.NODE_TEST_CONTEXT;
     const result = spawnSync(process.execPath, ['-e', prefix + source], {
-        cwd: path.join(root, '.claude/hooks'), env, input, encoding: 'utf8', timeout: 10000
+        cwd: path.join(root, '.claude/hooks'),
+        env,
+        input,
+        encoding: 'utf8',
+        timeout: 10000
     });
     assert.equal(result.error, undefined, result.error?.message);
     assert.equal(result.signal, null);
@@ -37,10 +40,12 @@ function runExample(source, input, prefix = '') {
 function assertRewrite(source) {
     const input = { tool_input: { command: 'old && unrelated', timeout: 1234, cwd: '/fixture', extra: 'keep' } };
     const output = JSON.parse(new Function('input', 'rewrittenCommand', source)(input, 'new && unrelated').stdout);
-    assert.deepEqual(output, { hookSpecificOutput: {
-        hookEventName: 'PreToolUse',
-        updatedInput: { ...input.tool_input, command: 'new && unrelated' }
-    } });
+    assert.deepEqual(output, {
+        hookSpecificOutput: {
+            hookEventName: 'PreToolUse',
+            updatedInput: { ...input.tool_input, command: 'new && unrelated' }
+        }
+    });
 }
 
 test('DOC-HOOK-001 syntax-only rewrite preserves fields without granting permission', () => {
@@ -58,14 +63,32 @@ test('DOC-HOOK-001 syntax-only rewrite preserves fields without granting permiss
 
 function assertDrainedBlock(source) {
     const pending = [];
-    const context = { result: { allowed: false, message: 'complete block message' }, name: 'example',
-        debug() {}, process: { stderr: { write: value => pending.push(value) },
-            exit() { throw new Error('immediate exit discards pending writes'); } } };
+    const context = {
+        result: { allowed: false, message: 'complete block message' },
+        name: 'example',
+        debug() {},
+        process: {
+            stderr: { write: value => pending.push(value) },
+            exit() {
+                throw new Error('immediate exit discards pending writes');
+            }
+        }
+    };
     vm.runInNewContext(`(function () { ${source}\nprocess.fellThrough = true; })();`, context);
     assert.equal(context.process.exitCode, 2);
     assert.equal(context.process.fellThrough, undefined, 'rejection must return before later allow logic');
     assert.deepEqual(pending, ['complete block message']);
-    const allowed = { ...context, result: { allowed: true }, process: { stderr: { write() { assert.fail('allow wrote stderr'); } } } };
+    const allowed = {
+        ...context,
+        result: { allowed: true },
+        process: {
+            stderr: {
+                write() {
+                    assert.fail('allow wrote stderr');
+                }
+            }
+        }
+    };
     vm.runInNewContext(`(function () { ${source}\n})();`, allowed);
     assert.equal(allowed.process.exitCode, undefined);
     assert.doesNotMatch(source, /process\.exit\s*\(/);
@@ -85,16 +108,22 @@ function assertDrainedBlock(source) {
 test('DOC-HOOK-002 backend rejection example drains and returns with exit 2', () => {
     const source = example(guide, '## Validation Patterns');
     assertDrainedBlock(source);
-    for (const mutant of [source.replace('process.exitCode = 2;', 'process.exit(2);'),
+    for (const mutant of [
+        source.replace('process.exitCode = 2;', 'process.exit(2);'),
         source.replace('process.exitCode = 2;', 'process.exitCode = 0;'),
-        source.replace('return;', ''), source.replace('process.stderr.write(result.message);', '')]) {
+        source.replace('return;', ''),
+        source.replace('process.stderr.write(result.message);', '')
+    ]) {
         assert.notEqual(mutant, source);
         assert.throws(() => assertDrainedBlock(mutant));
     }
     // Real pipe boundary: the extracted snippet must not truncate a large diagnostic.
     const message = 'BLOCK-SENTINEL\n'.repeat(20000);
-    const result = runExample(`function block(result) { ${source}\n}\nblock({allowed:false,message:'BLOCK-SENTINEL\\n'.repeat(20000)});`, '',
-        "const name='example'; const debug=()=>{};\n");
+    const result = runExample(
+        `function block(result) { ${source}\n}\nblock({allowed:false,message:'BLOCK-SENTINEL\\n'.repeat(20000)});`,
+        '',
+        "const name='example'; const debug=()=>{};\n"
+    );
     assert.equal(result.status, 2);
     assert.equal(result.stdout, '');
     assert.equal(result.stderr, message);
@@ -103,7 +132,12 @@ test('DOC-HOOK-002 backend rejection example drains and returns with exit 2', ()
 test('DOC-HOOK-003 disabled experience example validates with a machine-readable reason', () => {
     const source = example(read('.claude/docs/configuration/experience-verification.md'), '## Honest non-applicability');
     // The guide supplies a block to merge, not the unrelated required project fields.
-    const config = { project: { name: 'fixture' }, framework: { name: 'fixture' }, designSystem: { docsPath: 'docs/design', appMappings: [] }, ...JSON.parse(source) };
+    const config = {
+        project: { name: 'fixture' },
+        framework: { name: 'fixture' },
+        designSystem: { docsPath: 'docs/design', appMappings: [] },
+        ...JSON.parse(source)
+    };
     assert.equal(config.experienceVerification.enabled, false);
     assert.deepEqual(config.experienceVerification.surfaces, []);
     const valid = validateConfig(config);
@@ -150,7 +184,11 @@ test('DOC-HOOK-005 generic blocking example explicitly retains allow-on-error co
     assert.match(guide, /policy uncertainty[^\n]*runtime errors/i);
     const source = example(guide, '### Blocking Hook Template');
     const input = JSON.stringify({ tool_name: 'Bash', tool_input: { command: 'echo safe' } });
-    for (const [predicate, status] of [['return false;', 0], ['return true;', 2], ["throw new Error('fixture failure');", 0]]) {
+    for (const [predicate, status] of [
+        ['return false;', 0],
+        ['return true;', 2],
+        ["throw new Error('fixture failure');", 0]
+    ]) {
         const result = runExample(source, input, `function shouldBlock() { ${predicate} }\n`);
         assert.equal(result.status, status, result.stderr);
         assert.equal(result.stdout, '');

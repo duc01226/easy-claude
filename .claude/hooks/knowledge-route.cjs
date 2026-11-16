@@ -57,7 +57,10 @@ function debug(error) {
 function reportStale(stale) {
     if (!Array.isArray(stale) || !stale.length) return;
     try {
-        require('./lib/debug-log.cjs').debug(HOOK_NAME, `knowledge index of the ${stale.join(' and ')} plane${stale.length > 1 ? 's' : ''} is out of date; served from an in-memory rebuild — run /knowledge-base build`);
+        require('./lib/debug-log.cjs').debug(
+            HOOK_NAME,
+            `knowledge index of the ${stale.join(' and ')} plane${stale.length > 1 ? 's' : ''} is out of date; served from an in-memory rebuild — run /knowledge-base build`
+        );
     } catch {
         /* diagnostics are best-effort */
     }
@@ -114,7 +117,10 @@ function asFlag(value) {
  * default recorded by the held-out evaluation (`promptTriggersDefault`), else off.
  */
 function promptTriggersOn(projectDir, deps) {
-    const settings = deps.rawSettings !== undefined ? deps.rawSettings : require('./lib/prompt-route-utils.cjs').loadRouterSettings(projectDir, SETTINGS_SECTION, { homeDir: deps.homeDir });
+    const settings =
+        deps.rawSettings !== undefined
+            ? deps.rawSettings
+            : require('./lib/prompt-route-utils.cjs').loadRouterSettings(projectDir, SETTINGS_SECTION, { homeDir: deps.homeDir });
     const explicit = isPlainObject(settings) ? asFlag(settings.promptTriggers) : null;
     if (explicit !== null) return explicit;
     try {
@@ -232,7 +238,8 @@ function run(input, deps = {}) {
             const utils = require('./lib/prompt-route-utils.cjs');
             const env = deps.env || process.env;
             const projectDir = projectDirFor(input, deps);
-            if (!utils.isRouterEnabled(SETTINGS_SECTION, ENV_SWITCH, { env, projectDir, rawSettings: deps.rawSettings, homeDir: deps.homeDir })) return resolve('');
+            if (!utils.isRouterEnabled(SETTINGS_SECTION, ENV_SWITCH, { env, projectDir, rawSettings: deps.rawSettings, homeDir: deps.homeDir }))
+                return resolve('');
             const indexLib = require('./lib/knowledge-index.cjs');
             const telemetry = require('./lib/knowledge-telemetry.cjs');
             if (kind === 'read') {
@@ -270,19 +277,24 @@ function run(input, deps = {}) {
             // claimed, so they stay eligible for the next match.
             for (const item of ordered) {
                 if (collected.length >= match.MAX_PACKS) break;
-                pending.push(deliver({
-                    root,
-                    input: scoped,
-                    group: `${GROUP_PREFIX}${item.entry.plane}-${item.entry.id}`,
-                    hash: crypto.createHash('sha256').update(`${item.entry.plane}:${item.entry.id}:${item.entry.hash}`, 'utf8').digest('hex'),
-                    payload: item.entry.id,
-                    settings,
-                    now,
-                    write: (text, done) => collected.push({ item, done })
-                }));
+                pending.push(
+                    deliver({
+                        root,
+                        input: scoped,
+                        group: `${GROUP_PREFIX}${item.entry.plane}-${item.entry.id}`,
+                        hash: crypto.createHash('sha256').update(`${item.entry.plane}:${item.entry.id}:${item.entry.hash}`, 'utf8').digest('hex'),
+                        payload: item.entry.id,
+                        settings,
+                        now,
+                        write: (text, done) => collected.push({ item, done })
+                    })
+                );
             }
             if (!collected.length) {
-                Promise.all(pending).then(() => resolve(''), () => resolve(''));
+                Promise.all(pending).then(
+                    () => resolve(''),
+                    () => resolve('')
+                );
                 return undefined;
             }
             const pointer = match.pointerFor(collected.map(entry => entry.item));
@@ -291,12 +303,21 @@ function run(input, deps = {}) {
             const acknowledge = ok => {
                 for (const entry of collected) entry.done(ok && named.has(entry.item));
                 if (ok) {
-                    telemetry.record(projectDir, collected.filter(entry => named.has(entry.item)).map(entry => ({ pack: entry.item.entry.id, plane: entry.item.entry.plane, trigger: entry.item.trigger, event: 'delivered' })), { file: deps.telemetryFile, now });
+                    telemetry.record(
+                        projectDir,
+                        collected
+                            .filter(entry => named.has(entry.item))
+                            .map(entry => ({ pack: entry.item.entry.id, plane: entry.item.entry.plane, trigger: entry.item.trigger, event: 'delivered' })),
+                        { file: deps.telemetryFile, now }
+                    );
                 }
             };
             if (!text) {
                 acknowledge(false);
-                Promise.all(pending).then(() => resolve(''), () => resolve(''));
+                Promise.all(pending).then(
+                    () => resolve(''),
+                    () => resolve('')
+                );
                 return undefined;
             }
             const payload = utils.routerOutput(input, `${text}\n`);
@@ -306,7 +327,10 @@ function run(input, deps = {}) {
                 if (finished) return;
                 finished = true;
                 acknowledge(ok !== false);
-                Promise.all(pending).then(() => resolve(ok === false ? '' : payload), () => resolve(ok === false ? '' : payload));
+                Promise.all(pending).then(
+                    () => resolve(ok === false ? '' : payload),
+                    () => resolve(ok === false ? '' : payload)
+                );
             });
             return undefined;
         } catch (error) {
@@ -332,7 +356,15 @@ if (require('./lib/hook-runner.cjs').isHookEntryPoint(module)) {
     try {
         const { parseStdinSync } = require('./lib/stdin-parser.cjs');
         const input = parseStdinSync({ defaultValue: null, throwOnError: false, context: HOOK_NAME });
-        if (input) run(input).then(() => { process.exitCode = 0; }, () => { process.exitCode = 0; });
+        if (input)
+            run(input).then(
+                () => {
+                    process.exitCode = 0;
+                },
+                () => {
+                    process.exitCode = 0;
+                }
+            );
     } catch (error) {
         debug(error); // fail open
     }

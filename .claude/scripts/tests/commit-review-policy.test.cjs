@@ -24,7 +24,10 @@ function fixture(t) {
         fs.writeFileSync(file, Buffer.isBuffer(value) || typeof value === 'string' ? value : JSON.stringify(value));
     };
     return {
-        rootDir, homeDir, env: {}, write,
+        rootDir,
+        homeDir,
+        env: {},
+        write,
         team: path.join(rootDir, 'docs/project-config.json'),
         user: path.join(homeDir, '.claude/.ck.json'),
         local: path.join(rootDir, '.claude/.ck.local.json')
@@ -45,7 +48,11 @@ test('requested commits select a real lightweight review at every risk tier by d
 test('risk-based commits retain tier selection including the Low-risk skip', t => {
     const f = fixture(t);
     f.write(f.team, { commit: { reviewMode: 'risk-based' } });
-    for (const [risk, skill] of [['low', null], ['medium', 'why-review'], ['high', 'changes-review']]) {
+    for (const [risk, skill] of [
+        ['low', null],
+        ['medium', 'why-review'],
+        ['high', 'changes-review']
+    ]) {
         assert.equal(policy.decideReview({ ...f, risk }).skill, skill);
     }
 });
@@ -118,10 +125,12 @@ test('the read-only CLI reports its selected review and refuses unknown argument
     const f = fixture(t);
     f.write(f.team, { project: { name: 'Fixture' }, commit: { reviewMode: 'risk-based' } });
     const before = fs.readFileSync(f.team);
-    const run = args => spawnSync(process.execPath, [SCRIPT, ...args], {
-        cwd: f.rootDir, encoding: 'utf8',
-        env: { ...process.env, HOME: f.homeDir, USERPROFILE: f.homeDir, CK_COMMIT_REVIEW_MODE: '' }
-    });
+    const run = args =>
+        spawnSync(process.execPath, [SCRIPT, ...args], {
+            cwd: f.rootDir,
+            encoding: 'utf8',
+            env: { ...process.env, HOME: f.homeDir, USERPROFILE: f.homeDir, CK_COMMIT_REVIEW_MODE: '' }
+        });
     const result = run(['--risk=high']);
     assert.equal(result.status, 0, result.stderr);
     assert.equal(JSON.parse(result.stdout).skill, 'changes-review');
@@ -137,7 +146,10 @@ test('the read-only CLI reports its selected review and refuses unknown argument
 
 test('shipped Git permissions do not ask again and still register commit review enforcement', () => {
     const settings = JSON.parse(fs.readFileSync(path.join(REPO, '.claude/settings.json'), 'utf8'));
-    assert.equal(settings.permissions.ask.some(rule => /git (?:commit|push)\b/.test(rule)), false);
+    assert.equal(
+        settings.permissions.ask.some(rule => /git (?:commit|push)\b/.test(rule)),
+        false
+    );
     for (const rule of ['Bash(git commit:*)', 'Bash(git push:*)']) assert.ok(settings.permissions.allow.includes(rule));
     assert.ok(settings.permissions.ask.includes('Bash(npm publish:*)'), 'unrelated publication prompts remain');
     assert.match(JSON.stringify(settings.hooks.PreToolUse), /review-commit-gate\.cjs/);

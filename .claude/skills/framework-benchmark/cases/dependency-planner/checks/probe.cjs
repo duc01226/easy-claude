@@ -5,19 +5,24 @@ const path = require('node:path');
 const steps = JSON.parse(fs.readFileSync(0, 'utf8'));
 const stringify = JSON.stringify;
 const parse = JSON.parse;
-const clone = value => value === undefined ? null : parse(stringify(value));
+const clone = value => (value === undefined ? null : parse(stringify(value)));
 const send = fs.writeSync.bind(fs);
 const api = require(path.join(process.env.BENCH_WORKSPACE || '/workspace', 'planner.cjs'));
 const values = Object.create(null);
 const observations = Object.create(null);
 let planner;
-const resolve = value => value && typeof value === 'object' && '$ref' in value ? values[value.$ref] : value;
+const resolve = value => (value && typeof value === 'object' && '$ref' in value ? values[value.$ref] : value);
 for (const step of steps) {
     try {
         let value;
-        if (step.op === 'store') { values[step.save] = step.value; continue; }
-        if (step.op === 'create') { planner = api.createPlanner(...(step.args || []).map(resolve)); value = null; }
-        else if (step.op === 'format') value = api.formatOrder(...step.args.map(resolve));
+        if (step.op === 'store') {
+            values[step.save] = step.value;
+            continue;
+        }
+        if (step.op === 'create') {
+            planner = api.createPlanner(...(step.args || []).map(resolve));
+            value = null;
+        } else if (step.op === 'format') value = api.formatOrder(...step.args.map(resolve));
         else if (step.op === 'read') value = resolve(step.value);
         else if (step.op === 'call') value = planner[step.method](...(step.args || []).map(resolve));
         else if (step.op === 'mutate') {

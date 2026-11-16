@@ -114,7 +114,11 @@ function reminderOf(text, tag) {
     return m ? m[0] : null;
 }
 /** The text with every reminder removed and blank runs collapsed: what a guided run must not touch. */
-const withoutReminders = text => text.replace(ANY_REMINDER_RE, '').replace(/\n{3,}/g, '\n\n').trimEnd();
+const withoutReminders = text =>
+    text
+        .replace(ANY_REMINDER_RE, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trimEnd();
 const withStaleReminders = text => text.replace(ANY_REMINDER_RE, (_m, tag) => staleReminder(tag));
 const withNoReminders = text => text.replace(ANY_REMINDER_RE, '');
 
@@ -298,7 +302,10 @@ test('TC-PDL-066: no skill injector inserts a body into a guided skill; reminder
                     if (variant === 'stale-reminder') {
                         // Given the same guided skills saved with CRLF line endings
                         // When the injector runs, Then the result is the LF result with CRLF kept
-                        const crlfOut = project.run(script, mapFiles(FIXTURE_SKILLS, name => crlf(guidedIn[name])));
+                        const crlfOut = project.run(
+                            script,
+                            mapFiles(FIXTURE_SKILLS, name => crlf(guidedIn[name]))
+                        );
                         for (const name of FIXTURE_SKILLS) {
                             assert.equal(crlfOut[name], crlf(guidedOut[name]), `${script} did not keep CRLF in ${name}`);
                         }
@@ -311,7 +318,6 @@ test('TC-PDL-066: no skill injector inserts a body into a guided skill; reminder
     }
 });
 
-
 test('sync-hooks-to-skills leaves bare and guided skills unchanged when skill tiers are empty', () => {
     const project = makeProject();
     try {
@@ -319,7 +325,9 @@ test('sync-hooks-to-skills leaves bare and guided skills unchanged when skill ti
             const input = mapFiles(FIXTURE_SKILLS, name => skillText(name, { guides }));
             assert.deepEqual(project.run('sync-hooks-to-skills.py', input), input);
         }
-    } finally { project.cleanup(); }
+    } finally {
+        project.cleanup();
+    }
 });
 
 // Invariant: the agent injector honours an agent's guide line only while the opt-in agent-guide policy

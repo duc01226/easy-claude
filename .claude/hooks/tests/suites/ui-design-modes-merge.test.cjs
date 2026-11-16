@@ -45,7 +45,7 @@ const { resolveAllWorkflowManifests } = require('../../../scripts/lib/workflow-m
 const { extractSyncBody, normalizeEol } = require('../../../scripts/lib/extract-sync-block.cjs');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
-const SKIP = isFrameworkRepo(REPO_ROOT) ? false : 'asserts the framework repo\'s own ui-design skill and workflow registry (framework-repo signal)';
+const SKIP = isFrameworkRepo(REPO_ROOT) ? false : "asserts the framework repo's own ui-design skill and workflow registry (framework-repo signal)";
 
 const SKILLS = path.join(REPO_ROOT, '.claude', 'skills');
 const read = (...parts) => fs.readFileSync(path.join(...parts), 'utf8').replace(/\r\n/g, '\n');
@@ -76,11 +76,7 @@ function guideTags(text) {
 
 const LIVE_SOURCE_ROOTS = ['.claude', 'docs/specs', 'docs/project-reference', 'README.md'];
 // Generated catalogs are rebuilt from the skill folders; history stays in ADRs and release notes.
-const SCAN_EXCLUDED = new Set([
-    '.claude/SKILLS.yaml',
-    '.claude/scripts/skills_data.yaml',
-    '.claude/hooks/tests/suites/ui-design-modes-merge.test.cjs'
-]);
+const SCAN_EXCLUDED = new Set(['.claude/SKILLS.yaml', '.claude/scripts/skills_data.yaml', '.claude/hooks/tests/suites/ui-design-modes-merge.test.cjs']);
 const SCAN_EXCLUDED_DIRS = new Set(['node_modules', '.git', '.code-graph', 'tmp', 'temp', 'plans', '__pycache__']);
 const SCAN_EXTENSIONS = new Set(['.md', '.cjs', '.mjs', '.js', '.py', '.json', '.yaml', '.yml', '.html', '.toml']);
 
@@ -118,12 +114,32 @@ function occurrencesOf(skill) {
 
 // Protocols only the review mode needs: carried as full canonical bodies inside the mode reference.
 const MODE_ONLY_TAGS = [
-    'category-review-thinking', 'core-engineering-principles', 'design-patterns-quality', 'evidence-based-reasoning', 'goal-contract-satisfaction-loop', 'graph-assisted-investigation', 'review-principle-awareness', 'sequential-thinking-protocol', 'severity-rubric', 'source-test-drift-check',
-    'subagent-return-contract', 'systematic-review-batching', 'task-tracking-external-report', 'trade-off-interrogation-gate',
+    'category-review-thinking',
+    'core-engineering-principles',
+    'design-patterns-quality',
+    'evidence-based-reasoning',
+    'goal-contract-satisfaction-loop',
+    'graph-assisted-investigation',
+    'review-principle-awareness',
+    'sequential-thinking-protocol',
+    'severity-rubric',
+    'source-test-drift-check',
+    'subagent-return-contract',
+    'systematic-review-batching',
+    'task-tracking-external-report',
+    'trade-off-interrogation-gate',
     'understand-code-first'
 ];
 // Protocols the design modes already carry in SKILL.md (guide line + reminder); the reference does not repeat them.
-const SHARED_TAGS = ['design-distinctiveness-gate', 'design-review-checklist', 'prototype-design-system', 'ui-action-density-gate', 'ui-copywriting', 'ui-ux-design-principles', 'ux-journey-gate'];
+const SHARED_TAGS = [
+    'design-distinctiveness-gate',
+    'design-review-checklist',
+    'prototype-design-system',
+    'ui-action-density-gate',
+    'ui-copywriting',
+    'ui-ux-design-principles',
+    'ux-journey-gate'
+];
 
 const tests = [
     {
@@ -187,7 +203,20 @@ const tests = [
         fn: () => {
             const text = modeReview();
             // Phases and categories
-            for (const phase of ['0: Load UI Rules', '1: Determine Scope', '2: Blast Radius', '2B: Surface Composition', '2C: Surface UX Pass', '3: UI Category Review', '3B: UI/UX Design Principles Pass', '3C: Design Distinctiveness Pass', '3D: Action & Density Pass', '4: Finalize', '5: Why-Review Findings Validation Gate', '6: Validated Fix + Full UI Re-Review Loop']) {
+            for (const phase of [
+                '0: Load UI Rules',
+                '1: Determine Scope',
+                '2: Blast Radius',
+                '2B: Surface Composition',
+                '2C: Surface UX Pass',
+                '3: UI Category Review',
+                '3B: UI/UX Design Principles Pass',
+                '3C: Design Distinctiveness Pass',
+                '3D: Action & Density Pass',
+                '4: Finalize',
+                '5: Why-Review Findings Validation Gate',
+                '6: Validated Fix + Full UI Re-Review Loop'
+            ]) {
                 assert.ok(text.includes(`\n## Phase ${phase}`), `Phase ${phase} exists`);
             }
             for (const category of [1, 2, 3, 4, 5, 6]) assert.match(text, new RegExp(`\\n### Category ${category}: `), `Category ${category}`);
@@ -281,8 +310,7 @@ const tests = [
             for (const manifest of resolveAllWorkflowManifests(document, 'workflow-review-changes', { rootDir: REPO_ROOT })) {
                 const leaf = manifest.occurrences.find(entry => entry.skill === 'ui-design');
                 assert.ok(leaf && leaf.id === step.id, 'conditional reviewer identity survives every variant');
-                assert.equal(leaf.args, manifest.mode === 'fix-loop'
-                    ? '--mode=review --fix-loop --loop-owner=caller' : '--mode=review --review-only');
+                assert.equal(leaf.args, manifest.mode === 'fix-loop' ? '--mode=review --fix-loop --loop-owner=caller' : '--mode=review --review-only');
                 assert.ok(leaf.applicability && leaf.applicability.when && leaf.applicability.skipReason);
             }
             // The mockup workflow keeps its always-run review gate on the merged mode
@@ -310,7 +338,10 @@ const tests = [
                 const args = occurrence.args.trim();
                 const match = /^--mode=([a-z]+)((?: (?:--report-only|--review-only|--fix-loop|--loop-owner=caller))*)$/.exec(args);
                 assert.ok(match, `${workflow}/${mode}/${occurrence.id}: unsupported ui-design arguments "${args}"`);
-                assert.ok(dispatch.includes(`\`--mode=${match[1]}`) || dispatch.includes(`| \`${match[1]}\``), `${workflow}/${occurrence.id}: ui-design has no --mode=${match[1]}`);
+                assert.ok(
+                    dispatch.includes(`\`--mode=${match[1]}`) || dispatch.includes(`| \`${match[1]}\``),
+                    `${workflow}/${occurrence.id}: ui-design has no --mode=${match[1]}`
+                );
                 // --report-only belongs to the review mode only
                 if (match[2]) assert.equal(match[1], 'review', `${workflow}/${occurrence.id}: --report-only is a review-mode flag`);
             }
@@ -328,7 +359,18 @@ const tests = [
             for (const mode of ['fast', 'good', 'explore', 'describe', 'screenshot', 'video', 'review']) {
                 assert.ok(skillText().includes(`\`${mode}\``) || skillText().includes(`--mode=${mode}`), `dispatch retains the ${mode} mode`);
             }
-            for (const intent of [/UI (?:design|creation)/, /explor(?:ation|e)/, /descrip(?:tion|be)/, /screenshots?/, /videos?/, /--mode=review/, /layout/, /styling/, /accessibility/, /async states/]) {
+            for (const intent of [
+                /UI (?:design|creation)/,
+                /explor(?:ation|e)/,
+                /descrip(?:tion|be)/,
+                /screenshots?/,
+                /videos?/,
+                /--mode=review/,
+                /layout/,
+                /styling/,
+                /accessibility/,
+                /async states/
+            ]) {
                 assert.match(description, intent, `description retains routing intent ${intent}`);
             }
             // Content-fit requirements belong to the mandatory review reference.
@@ -341,7 +383,9 @@ const tests = [
         fn: () => {
             const document = loadRegistry();
             for (const id of ['workflow-review-changes', 'workflow-spec-to-mockup']) {
-                const line = read(SKILLS, id, 'SKILL.md').split('\n').find(candidate => candidate.startsWith('**IMPORTANT MANDATORY Steps:**'));
+                const line = read(SKILLS, id, 'SKILL.md')
+                    .split('\n')
+                    .find(candidate => candidate.startsWith('**IMPORTANT MANDATORY Steps:**'));
                 assert.ok(line, `${id} has its mandatory steps line`);
                 const manifests = resolveAllWorkflowManifests(document, id, { rootDir: REPO_ROOT });
                 const manifest = manifests.find(item => item.mode === document.workflows[id].defaultMode) || manifests[0];
@@ -370,8 +414,13 @@ const tests = [
             assert.ok(scanned > 500, `tripwire: the scan covers the framework sources (${scanned} files)`);
             assert.deepEqual(offenders, [], 'replace each with `ui-design --mode=review`');
             // The allow-list is live: SKILL.md names the removed command only as "formerly"
-            const named = skillText().split('\n').filter(line => line.includes(REMOVED));
-            assert.ok(named.length >= 1 && named.every(line => allowedMention('.claude/skills/ui-design/SKILL.md', line)), 'ui-design/SKILL.md names the removed command only as "formerly"');
+            const named = skillText()
+                .split('\n')
+                .filter(line => line.includes(REMOVED));
+            assert.ok(
+                named.length >= 1 && named.every(line => allowedMention('.claude/skills/ui-design/SKILL.md', line)),
+                'ui-design/SKILL.md names the removed command only as "formerly"'
+            );
         }
     }
 ];

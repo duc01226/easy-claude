@@ -19,22 +19,22 @@ console.log('='.repeat(60));
 
 // Load test files
 for (const testFile of testFiles) {
-  const testPath = path.join(testsDir, testFile);
-  if (fs.existsSync(testPath)) {
-    try {
-      require(testPath);
-    } catch (error) {
-      console.error(`\nError loading ${testFile}: ${error.message}`);
-      if (process.env.DEBUG) {
-        console.error(error.stack);
-      }
+    const testPath = path.join(testsDir, testFile);
+    if (fs.existsSync(testPath)) {
+        try {
+            require(testPath);
+        } catch (error) {
+            console.error(`\nError loading ${testFile}: ${error.message}`);
+            if (process.env.DEBUG) {
+                console.error(error.stack);
+            }
+        }
+    } else {
+        console.log(`Skipping ${testFile} (not found)`);
     }
-  } else {
-    console.log(`Skipping ${testFile} (not found)`);
-  }
 }
 
 // Run all tests
 global.runAllTests().then(({ passed, failed }) => {
-  process.exit(failed > 0 ? 1 : 0);
+    process.exit(failed > 0 ? 1 : 0);
 });
