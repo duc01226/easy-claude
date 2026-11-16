@@ -240,7 +240,11 @@ const tests = [
                 // A fix repairs the cause; a workaround that hides it is not a fix.
                 assert.match(text, /an ad hoc patch or (a )?workaround/, `${label}: workarounds are ruled out with ad hoc patches`);
             }
-            assert.match(full, /post-fix lesson check[^.]*`\/learn` once the user confirms/, 'the full protocol names the post-fix lesson check');
+            assert.match(
+                full,
+                /post-fix lesson check that reports sibling instances of the bug class and offers its strongest guard, structure-first with a `\/learn` lesson last, once the user confirms/,
+                'the full protocol names the post-fix lesson check: siblings reported, strongest guard first, /learn last, user confirms'
+            );
             const description = name => /^description: '(.*)'$/m.exec(fs.readFileSync(path.join(REPO_ROOT, '.claude', 'skills', name, 'SKILL.md'), 'utf8'))[1];
             assert.match(description('changes-review'), /simple pull request/, 'changes-review description owns simple pull requests');
             assert.match(description('workflow-review-changes'), /complex, risky or cross-module/, 'the workflow description is conditioned on complexity');

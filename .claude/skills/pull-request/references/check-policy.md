@@ -24,6 +24,8 @@ Inspect the **actual candidate**: its file list, `--stat` and the diff itself �
 | The change is really small, or no executable behavior changed | Skip. Record `Tests: skipped — really small change` or `Tests: not applicable`, with the reason. |
 | Anything else | Run the tests scoped to the change and fix-loop every failure until all pass. |
 
+The verify runner is the exception to the skip rows. When `node .claude/hooks/lib/verify-receipt.cjs plan` lists a configured command and `reviewGate.verify` is not `off`, reuse only a current `PASS` receipt for the exact tree (`verify-receipt.cjs check`); otherwise run it. The "really small" skip predates a bounded runner: `verify`/`affected` and per-command time budgets keep the run proportionate, so size never skips it. A timeout or an uninstallable tool is `ENVIRONMENT-BLOCKED`; record it with `verify-receipt.cjs skip --reason=...`, never as passed.
+
 Old evidence never covers new content: a run from before the last edit to the covered code, old green CI and an assertion that tests passed are not current results. Markdown skills and CI/config changes may still own contract or build checks — look for a lane before recording not applicable.
 
 ## Decide review

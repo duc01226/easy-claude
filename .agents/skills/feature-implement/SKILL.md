@@ -87,7 +87,7 @@ description: '[Implementation] Use when the user asks to build a feature from an
 >
 > **Any condition fails → use full protocol below.** When in doubt, default hard. Skipping review/tests on non-trivial change ships bugs.
 >
-> **Fast mode skips (and only skips):** researcher subagent phase (direct grep instead), mandatory `code-reviewer` review (self-review only), separate test phase (verify inline). Does NOT skip `$plan` step, test execution, `$docs-manager --mode=update` triage.
+> **Fast mode skips (and only skips):** researcher subagent phase (direct grep instead), mandatory `code-reviewer` review (self-review only), separate test phase (verify inline, through `node .claude/hooks/lib/verify-receipt.cjs run` when the project configures verify commands). Does NOT skip `$plan` step, test execution, `$docs-manager --mode=update` triage.
 
 ### Backend Context (if applicable)
 
@@ -196,7 +196,7 @@ mistakes compound through later tasks.
 
 ### 5. Mandatory Verify (tests + mutation check, once)
 
-- Use `tester` subagent ONCE for the full affected suite; then run the mutation check yourself (`tester` is read-only) on every changed core-logic line and new rule
+- Use `tester` subagent ONCE for the full affected suite; then run the mutation check yourself (`tester` is read-only) on every changed core-logic line and new rule. When the project configures verify commands, route the RED/GREEN proof through the verify runner: `verify-receipt.cjs run` reports the mutant as a new failure, and the restored tree passes
 - Tests cover: happy path scenarios, edge cases from research, error handling paths
 - Exercise the owned integration behavior through real paths. Use realistic valid fixtures and project-supported test doubles only at designated external seams; deterministic AI tests mock the model at one seam (AE-6.2), and default CI makes no live paid calls. Never mock away the invariant under test.
 - Any red test or surviving mutant: record the provisional verdict, fix at the owner, re-run until all tests pass and every mutant is killed

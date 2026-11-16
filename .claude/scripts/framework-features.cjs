@@ -217,6 +217,21 @@ const FEATURES = [
         }
     },
     {
+        key: 'reviewGate.verify',
+        default: 'warn',
+        scope: TEAM_ONLY,
+        what: 'warn = a reviewed commit without a passing verify receipt proceeds with guidance naming new failures (silent while no verify command is configured); enforce = it is refused until verify-receipt.cjs run passes or a skip with a reason is recorded; off = no verify check',
+        change: '{ "reviewGate": { "verify": "enforce" } } in the project config (pull request); fill testing.commands verify keys with /project-config',
+        resolve: ({ rootDir }) => {
+            try {
+                const r = lib('scripts/lib/commit-review-policy.cjs').resolveVerifyGate({ rootDir });
+                return { value: r.mode, source: r.source };
+            } catch {
+                return { value: 'enforce (invalid setting)', source: 'project-config' };
+            }
+        }
+    },
+    {
         key: 'reviewGate.status',
         default: 'off',
         scope: TEAM_ONLY,

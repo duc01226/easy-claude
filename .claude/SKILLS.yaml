@@ -116,7 +116,7 @@ skills:
         --push also pushes.'
       category: other
       has_scripts: false
-      has_references: false
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null

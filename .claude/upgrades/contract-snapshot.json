@@ -96,6 +96,14 @@
       "hash": "d30f0df05a37",
       "by": "baseline"
     },
+    "config:DEFAULT_VERIFY_TIMEOUT_SECONDS": {
+      "hash": "e6b37550577c",
+      "by": "fill-verify-commands"
+    },
+    "config:MAX_VERIFY_TIMEOUT_SECONDS": {
+      "hash": "b045dd9c18ca",
+      "by": "fill-verify-commands"
+    },
     "config:SKILL_PROFILE_LISTS": {
       "hash": "cb389e1f13f8",
       "by": "baseline"
@@ -107,6 +115,18 @@
     "config:TOKEN_BUDGET_CHECKPOINT_RANGE": {
       "hash": "235501c0d383",
       "by": "baseline"
+    },
+    "config:VERIFY_COMMAND_KEYS": {
+      "hash": "6f327c6f8b92",
+      "by": "fill-verify-commands"
+    },
+    "config:VERIFY_MODES": {
+      "hash": "977dfb6c378c",
+      "by": "fill-verify-commands"
+    },
+    "config:VERIFY_SLOTS": {
+      "hash": "6eeccf41cf3d",
+      "by": "fill-verify-commands"
     },
     "config:WORKFLOW_ACTIVATION_TIERS": {
       "hash": "4ce3643e8606",
@@ -269,8 +289,8 @@
       "by": "baseline"
     },
     "config:reviewGate": {
-      "hash": "67f7a27074d2",
-      "by": "baseline"
+      "hash": "36346190c147",
+      "by": "fill-verify-commands"
     },
     "config:schemaVersion": {
       "hash": "6bf30c5de888",

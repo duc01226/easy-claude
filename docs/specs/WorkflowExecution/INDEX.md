@@ -1,10 +1,10 @@
 > **DERIVED — regenerate via `$spec [mode=index]`; do NOT hand-edit.** Source of truth: the linked canonical artifacts under the configured root.
 >
-> Regenerated: 2026-11-12
+> Regenerated: 2026-11-16
 
 # WorkflowExecution — Bucket Index
 
-Read the linked capability when selecting workflow execution, completion proof, review quality, dependency remediation or framework comparison.
+Read the linked capability when selecting workflow execution, completion proof, review quality, dependency remediation, framework comparison or commit verification.
 
 | Capability | Feature Code | Status | Spec |
 | --- | --- | --- | --- |
@@ -12,3 +12,4 @@ Read the linked capability when selecting workflow execution, completion proof, 
 | Framework Benchmark | FBM | active | [README.FrameworkBenchmark.md](README.FrameworkBenchmark.md) |
 | Guided Workflow Execution — Feature Spec | 'GWF' | draft | [README.GuidedWorkflow.md](README.GuidedWorkflow.md) |
 | Review Quality — Feature Spec | RVQ | active | [README.ReviewQuality.md](README.ReviewQuality.md) |
+| Verify Receipt — Feature Spec | VRC | active | [README.VerifyReceipt.md](README.VerifyReceipt.md) |

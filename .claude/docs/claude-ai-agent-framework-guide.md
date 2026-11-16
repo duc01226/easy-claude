@@ -2,7 +2,7 @@
 
 > **Purpose:** the one-page map of the portable `.claude/` framework — what it does, how the parts fit, how to use it day to day, and where each topic's detailed owner doc lives. Read it first when you adopt the framework, change it, or need to explain a hook block, a routing decision or a workflow step.
 >
-> **Framework inventory:** <!-- COUNT:hooks -->38<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->74<!-- /COUNT --> hook-library modules · <!-- COUNT:skills -->108<!-- /COUNT --> skills · <!-- COUNT:workflows -->17<!-- /COUNT --> workflows · <!-- COUNT:agents -->25<!-- /COUNT --> agents · <!-- COUNT:shared -->16<!-- /COUNT --> shared reference/protocol entries.
+> **Framework inventory:** <!-- COUNT:hooks -->38<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->77<!-- /COUNT --> hook-library modules · <!-- COUNT:skills -->108<!-- /COUNT --> skills · <!-- COUNT:workflows -->17<!-- /COUNT --> workflows · <!-- COUNT:agents -->25<!-- /COUNT --> agents · <!-- COUNT:shared -->16<!-- /COUNT --> shared reference/protocol entries.
 >
 > **Visual overview:** `.claude/docs/claude-ai-agent-framework-guide.html`. Use this Markdown guide for current inventories and source-owner pointers.
 
@@ -342,7 +342,7 @@ Read `spec-system-reference.md` in the project-reference docs root (default `doc
 
 - **Generated context** — `/ai-context-refresh` regenerates the `SECTION:*` blocks of `CLAUDE.md` from config (your own text outside them is preserved); `AGENTS.md` is a projection of it; `COUNT:*` markers are refreshed by `generate_catalogs.py`.
 - **Reference docs** — `/scan --target=<doc>` and `/scan-all` regenerate project-reference docs from evidence (a missing capability is marked not applicable, never filled with example code).
-- **Lessons** — `lessons.md` holds learned guardrails. At the end of non-trivial work Claude names the root-cause failure mode, checks it is general, recurring and not mechanically catchable, and then asks you to run `/learn`.
+- **Lessons** — `lessons.md` holds learned guardrails. At the end of non-trivial work Claude names the root-cause failure mode, checks it is general and recurring, and proposes the strongest guard first: a design that makes the mistake impossible, a lint rule or architecture test with a frozen baseline, a test or a hook, with a `/learn` prose lesson last.
 - **Project overlays** — `/project-skill-protocol` adds project rules on top of a framework skill. Overlays are additive only and can never waive a routing, git, review or confirmation gate.
 - **Saved prompts** — `/custom-prompt` stores project playbooks.
 - **Developer settings** — `.claude/.ck.json` (team) and the git-ignored `.claude/.ck.local.json` (personal) hold hook switches such as `promptLedger`, `commitSkillRoute`, `judgementIntegrityRoute` and `aiFeatureRoute`.
@@ -384,11 +384,11 @@ Codex transforms `/skill` into `$skill`, `Agent` into `spawn_agent` and strips C
 | Runner                                  | Tests  | Covers                                                                 |
 | --------------------------------------- | ------ | ---------------------------------------------------------------------- |
 | `test-all-hooks.cjs` (primary gate)  | **133** | Hook behaviors, bridged suites and the count guard                     |
-| `run-all-tests.cjs` (full aggregate) | **2307** | 135 `tests/suites/*.test.cjs` files; primary gate runs separately |
+| `run-all-tests.cjs` (full aggregate) | **2351** | 137 `tests/suites/*.test.cjs` files; primary gate runs separately |
 | `node --test .claude/scripts/codex/tests` | —      | Mirror generators and verifiers                                        |
 | `run-codex-sync.mjs --verify-only`      | —      | Every read-only gate before a commit                                   |
 
-> Source-declared inventory: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 2307 executors across 135 suite files. Both runners fail when these numbers drift from the docs. Counts do not establish runtime results; read the actual runner output for outcomes.
+> Source-declared inventory: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 2351 executors across 137 suite files. Both runners fail when these numbers drift from the docs. Counts do not establish runtime results; read the actual runner output for outcomes.
 
 **Portable test contract** — shipped tests must pass in any project layout on Windows, macOS and Linux: build a temp fixture project instead of reading this repository's config or git state; blank inherited feature switches and provider keys; point `HOME`, `USERPROFILE`, `TMPDIR`, `TEMP` and `TMP` at the temp dir; name OS differences explicitly (paths, symlinks, `py -3` vs `python3`); run the full suite twice to prove repeatability.
 

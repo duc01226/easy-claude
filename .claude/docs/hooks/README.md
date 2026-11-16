@@ -1,6 +1,6 @@
 # Hooks Reference
 
-> <!-- COUNT:hooks -->38<!-- /COUNT --> top-level `.cjs` hooks and <!-- COUNT:lib-modules -->74<!-- /COUNT --> lib modules for context-aware AI behavior (some hooks register on multiple events; the unified notification router lives under `.claude/hooks/notifications/notify.cjs`)
+> <!-- COUNT:hooks -->38<!-- /COUNT --> top-level `.cjs` hooks and <!-- COUNT:lib-modules -->77<!-- /COUNT --> lib modules for context-aware AI behavior (some hooks register on multiple events; the unified notification router lives under `.claude/hooks/notifications/notify.cjs`)
 
 ## Contents
 
@@ -237,7 +237,7 @@ Prompt hooks may warn, synchronize state, record the prompt ledger, or emit opti
 | ------------------------ | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ui-reuse-remind.cjs` | `Read\|Edit\|Write\|MultiEdit\|NotebookEdit\|apply_patch\|Bash\|exec_command\|Skill` | Advisory before frontend operations/plan activation; current design system and shared controls first. |
 | `doc-sync-gate.cjs`      | `Bash` and `Write\|Edit\|MultiEdit` | Doc⇄Code sync gate — WARN-only (every path exits 0; warnings go to stderr): warns when a `git commit` stages behavioral code in an enforced area without touching its Feature Spec, and per-edit when enforced-area code drifts past `last_synced`                                                                                                                                                                                                                    |
-| `review-commit-gate.cjs` | `Bash`                              | Review-before-commit gate — require a matching full-changeset review or low-risk/user `skip` receipt for every supported commit statement, bound to the exact repository storage, base tree, and candidate tree. Supports default staged content, `-a`/`--all`, and explicit literal `-- <files>`; unsupported Git contexts or candidate-computation errors fail closed with recovery guidance. A worktree review survives staging only when those exact trees match. Under `reviewGate.mode: enforce` it also gates `gh pr create` / `gh pr ready` on a whole-branch receipt and accepts only attested review receipts. |
+| `review-commit-gate.cjs` | `Bash`                              | Review-before-commit gate — require a matching full-changeset review or low-risk/user `skip` receipt for every supported commit statement, bound to the exact repository storage, base tree, and candidate tree. Supports default staged content, `-a`/`--all`, and explicit literal `-- <files>`; unsupported Git contexts or candidate-computation errors fail closed with recovery guidance. A worktree review survives staging only when those exact trees match. Under `reviewGate.mode: enforce` it also gates `gh pr create` / `gh pr ready` on a whole-branch receipt and accepts only attested review receipts. After the review check allows a commit, the verify check (`reviewGate.verify`, default `warn`) reads the verify receipt for the same trees: `warn` adds context naming missing proof and failures not in the committed baseline, `enforce` refuses, `off` skips; warn stays silent while no verify command is configured. |
 
 > **Plan/skill/todo enforcement is model-driven.** Edits, skills and task completion are governed by
 > the universal `task-planning-rules` protocol (delivered by the universal hook), not by a
@@ -276,7 +276,7 @@ Lessons are managed via the `/learn` skill. See `.claude/skills/learn/SKILL.md`.
 
 | Hook                     | Matcher | Purpose                                                                                                                     |
 | ------------------------ | ------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `review-commit-gate.cjs` | `Bash`  | Require a review fix-loop receipt over the exact changeset before an agent commit; a low-risk/user `skip` receipt clears it |
+| `review-commit-gate.cjs` | `Bash`  | Require a review fix-loop receipt over the exact changeset before an agent commit; a low-risk/user `skip` receipt clears it. Then check the verify receipt by `reviewGate.verify` (warn by default) |
 
 ### Context Management & Utility
 
@@ -494,7 +494,7 @@ SESSION START (13 hooks)                        DURING SESSION
 
 ## Lib Modules
 
-<!-- COUNT:lib-modules -->74<!-- /COUNT --> direct `.cjs` modules under `.claude/hooks/lib/`.
+<!-- COUNT:lib-modules -->77<!-- /COUNT --> direct `.cjs` modules under `.claude/hooks/lib/`.
 
 ### State Management
 
@@ -536,6 +536,9 @@ SESSION START (13 hooks)                        DURING SESSION
 | `path-boundary-policy.cjs`  | Pure command/path role classification helper; library module, not a registered hook                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `project-root.cjs`          | Resolve and validate the consuming project root across cwd/script/env launch shapes                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `review-receipt.cjs`        | Snapshots, issues, verifies, skips, and clears short-lived review receipts bound to the exact repository, base tree, and candidate tree; `publish-status` posts the `reviewGate.status` commit status on a pull request head from a matching whole-branch review receipt or a committed review bypass |
+| `verify-receipt.cjs`        | Verify runner and receipt: runs the `testing.commands` verify keys (`verify`, else `lint`, `typecheck`, `affected`, plus opted-in `build`) with a time budget each, sorts failures into known (in `.verify-baseline.json`) or new, and writes a short-lived receipt bound to the review receipt's trees; CLI `plan`, `run`, `check`, `skip`, `prune`, `baseline-init`; `verifyGateFinding` is the commit gate's check. A missing, invalid, unrunnable or timed-out command is never passing |
+| `verify-baseline.cjs`       | The committed verify baseline: per command its hash and known failures (items with counts, or one output fingerprint), no timestamps; deterministic atomic writes; compare, prune and ratchet rules |
+| `verify-output-parsers.cjs` | Failure items from verify output: eslint JSON, JUnit XML, TAP, jest, pytest and `file:line` diagnostics, combined across formats and keyed by what failed (never line numbers or message text), scrubbed of secrets where they are born, in linear time; plus the strict command-level fingerprint fallback |
 | `sensitive-path-policy.cjs` | Pure sensitive-path classification shared by sensitive-path consumers                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 ### Context / Prompt Support
@@ -867,12 +870,12 @@ Doc paths in this file are defaults resolved against the project-reference docs 
 
 ## Testing
 
-The primary runner declares 133 tests. The aggregate runner `run-all-tests.cjs` discovers 2307 tests declared across 135 suite files. Source inventory is not an execution result; read the runner output for observed discovery, outcomes and skips. The aggregate includes eighteen task-tracking suites with 591 declared executors.
+The primary runner declares 133 tests. The aggregate runner `run-all-tests.cjs` discovers 2351 tests declared across 137 suite files. Source inventory is not an execution result; read the runner output for observed discovery, outcomes and skips. The aggregate includes eighteen task-tracking suites with 591 declared executors.
 
 | Test Surface          | Count | File/Location                                                     |
 | --------------------- | ----- | ----------------------------------------------------------------- |
 | Primary hook runner   | 133   | `.claude/hooks/tests/test-all-hooks.cjs`                          |
-| Aggregate runner      | 2307 | `.claude/hooks/tests/run-all-tests.cjs` (all suites, declared)  |
+| Aggregate runner      | 2351 | `.claude/hooks/tests/run-all-tests.cjs` (all suites, declared)  |
 | Standalone test files | TODO  | `tests/test-*.cjs/.js` excluding runner (re-verify before citing) |
 | Lib unit tests        | TODO  | `lib/__tests__/*.test.cjs` (re-verify before citing)              |
 
