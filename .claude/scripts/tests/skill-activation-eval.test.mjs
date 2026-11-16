@@ -209,7 +209,9 @@ const NOT_FRAMEWORK_SWITCHES = new Map([
     // installer trust: an operator decision for dependency installs, never set for a measurement run
     ['CK_STARTUP_INSTALL_TRUST', 'installer trust'],
     // test seam: replaces a spawned graph process in hook tests
-    ['CK_GRAPH_SPAWN_STUB', 'test seam']
+    ['CK_GRAPH_SPAWN_STUB', 'test seam'],
+    // test-run coordination: set by a test runner holding the checkout's test-run lock for its children
+    ['CK_TEST_RUN_LOCK_HELD', 'test-run lock marker']
 ]);
 
 /** Every `.cjs`/`.mjs`/`.js` file under `dir`, skipping test folders and installed packages. */

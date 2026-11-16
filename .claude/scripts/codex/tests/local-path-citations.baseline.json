@@ -1,0 +1,28 @@
+{
+  "//": "Frozen local-only citations in tracked docs (see local-path-citations.test.mjs). Remove an entry when its citation is fixed; never add one.",
+  "citations": [
+    ".claude/docs/development-rules.md :: tmp/reports/research-abstraction-naming-260820.md",
+    ".claude/skills/workflow-end/references/review-report-evidence.md :: tmp/reports/review.md",
+    "docs/adr/0001-skill-lifecycle.md :: plans/260514-1407-harness-quality-refactor/phase-02a-deprecation-policy.md",
+    "docs/adr/0001-skill-lifecycle.md :: plans/260514-1407-harness-quality-refactor/phase-02b-gc-script-and-poc.md",
+    "docs/adr/0001-skill-lifecycle.md :: plans/260514-1407-harness-quality-refactor/plan.md",
+    "docs/adr/0001-skill-lifecycle.md :: tmp/reports/council-260514-1407-harness-quality-refactor.md",
+    "docs/adr/0002-canonical-count-metrics.md :: plans/260514-1407-harness-quality-refactor/phase-04-docgen-tooling.md",
+    "docs/adr/0002-canonical-count-metrics.md :: plans/260514-1407-harness-quality-refactor/research/researcher-02-deprecation-and-docgen.md",
+    "docs/adr/0002-canonical-count-metrics.md :: plans/260514-1407-harness-quality-refactor/scout/scout-01-imperatives-and-mirrors.md",
+    "docs/adr/0003-config-driven-doc-and-spec-roots.md :: plans/260917-0521-config-driven-docs-spec-roots/goal.md",
+    "docs/adr/0003-config-driven-doc-and-spec-roots.md :: plans/260917-0521-config-driven-docs-spec-roots/phase-04-adr-and-spec-system-reference.md",
+    "docs/adr/0003-config-driven-doc-and-spec-roots.md :: plans/260917-0521-config-driven-docs-spec-roots/plan.md",
+    "docs/adr/0004-protocol-delivery-hybrid.md :: plans/260924-1548-framework-lean-guided-refactor/goal.md",
+    "docs/adr/0004-protocol-delivery-hybrid.md :: plans/260924-1548-framework-lean-guided-refactor/option-coverage.md",
+    "docs/adr/0004-protocol-delivery-hybrid.md :: plans/260924-1548-framework-lean-guided-refactor/phase-21-spec-protocol-delivery.md",
+    "docs/adr/0005-work-tracker-vocabulary-and-migration.md :: plans/261007-work-tracker-vocabulary/plan.md",
+    "docs/adr/0005-work-tracker-vocabulary-and-migration.md :: plans/261008-0935-task-track-report-and-taxonomy/plan.md",
+    "docs/adr/0005-work-tracker-vocabulary-and-migration.md :: plans/goals/261007-task-track-vocabulary/goal.md",
+    "docs/specs/WorkTracking/README.TaskTracking.md :: plans/261003-task-pbi-tracking/plan.md",
+    "team-artifacts/design-specs/task-tracking.md :: plans/261003-task-pbi-tracking/ui-ux-gates.md",
+    "team-artifacts/design-specs/task-tracking.md :: tmp/design/261006-task-tracking/direction-a.html",
+    "team-artifacts/design-specs/task-tracking.md :: tmp/design/261006-task-tracking/direction-approved.md",
+    "team-artifacts/design-specs/task-tracking.md :: tmp/design/261006-task-tracking/journey-report.md"
+  ]
+}

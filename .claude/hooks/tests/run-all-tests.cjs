@@ -263,12 +263,36 @@ function listSuites(suites) {
 }
 
 // Main entry point
+function loadTestRunLock(file) {
+    try {
+        return require(file);
+    } catch (error) {
+        if (error && error.code === 'MODULE_NOT_FOUND' && String(error.message).includes('test-run-lock')) return null;
+        throw error;
+    }
+}
+
 async function main() {
     const flags = parseArgs();
 
     if (flags.help) {
         showHelp();
         process.exit(0);
+    }
+
+    // A full run shares the live tree with the Codex/scripts tests: hold the checkout's test-run
+    // lock so the two never run at once (false ENOENT). A --filter run is a nested or targeted
+    // selection (the sync pipeline's own hook stages) and a --list run executes nothing, so neither
+    // takes the lock. A runner copied without .claude/scripts/lib (a scaffold fixture) runs unlocked.
+    const lockLib = flags.filter || flags.list ? null : loadTestRunLock(path.join(__dirname, '..', '..', 'scripts', 'lib', 'test-run-lock.cjs'));
+    if (lockLib) {
+        const { acquireTestRunLock, conflictMessage } = lockLib;
+        const lock = acquireTestRunLock({ rootDir: path.resolve(__dirname, '..', '..', '..'), command: 'run-all-tests' });
+        if (!lock.acquired && !lock.nested) {
+            console.error(conflictMessage(lock));
+            process.exit(2);
+        }
+        process.on('exit', lock.release);
     }
 
     const suitesDir = path.join(__dirname, 'suites');

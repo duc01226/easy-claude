@@ -267,7 +267,7 @@ $LASTEXITCODE  # Verify exit code
 - Every hook must have observable test coverage in `hooks/tests/`
 - Export helpers when a unit seam is useful; process-test entrypoints when exported helpers would be artificial
 - Tests must run before push — DO NOT ignore failed tests to pass CI
-- Use the repository formatting/tooling contract; no standalone lint command is configured in `package.json`. Preserve syntax checks and required source/mirror verifiers.
+- Run the same checks as CI and the pre-commit hook: `npx eslint .` (existing violations are frozen in `eslint-suppressions.json`; new code must be clean, and after fixing frozen ones run `npx eslint . --prune-suppressions`) and `npx prettier --check "**/*.{cjs,mjs,js}"`. Never add suppression entries by hand. Preserve syntax checks and required source/mirror verifiers.
 - Batch code-changing verification after the settled static review; read `.claude/skills/shared/protocols/verify-last-order.md` when organizing implementation verification
 - New hooks: add manual test command in extending-hooks pattern
 

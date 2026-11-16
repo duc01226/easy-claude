@@ -1,9 +1,12 @@
 {
-  "//": "The .claude/ and .codex/ framework is PORTABLE, SELF-RUNNING and SELF-TESTING: it carries every sync, verify, check, fix and test entrypoint inside the bundle and must never be driven through a host package.json script. Invoke tooling by its in-framework path — `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --list-stages` prints the roster. This file exists only for the repo's own dev dependencies (prettier / commitlint / husky).",
+  "//": "The .claude/ and .codex/ framework is PORTABLE, SELF-RUNNING and SELF-TESTING: it carries every sync, verify, check, fix and test entrypoint inside the bundle and must never be driven through a host package.json script. Invoke tooling by its in-framework path — `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --list-stages` prints the roster. This file exists only for the repo's own dev tooling (prettier, ESLint, commitlint, husky and lint-staged: `npx eslint .`, `npx prettier --check \"**/*.{cjs,mjs,js}\"`).",
   "description": "Repository-wide tooling for the easy-claude framework",
   "devDependencies": {
     "@commitlint/cli": "^19.0.0",
     "@commitlint/config-conventional": "^19.0.0",
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.15.0",
+    "globals": "^17.14.0",
     "husky": "^9.0.0",
     "lint-staged": "^15.0.0",
     "prettier": "^3.0.0",
@@ -13,10 +16,15 @@
     "node": ">=18.0.0"
   },
   "lint-staged": {
-    "*.{js,jsx,ts,tsx,json,css,scss,html,md}": "prettier --write"
+    "*.{cjs,mjs,js}": [
+      "prettier --check",
+      "eslint --no-warn-ignored --max-warnings=0"
+    ]
   },
   "name": "easy-claude-tooling",
   "private": true,
-  "scripts": {},
+  "scripts": {
+    "prepare": "husky"
+  },
   "version": "1.0.0"
 }

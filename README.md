@@ -424,6 +424,8 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=tests,scripts-t
 
 CI (`.github/workflows/ci.yml`) runs the local gate on every pull request on Linux, macOS and Windows: the full hook suite (`node .claude/hooks/tests/run-all-tests.cjs`) and the Codex mirror, tooling and scripts tests (`node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --verify-only`). The local full run and CI are the same gate; the `ci-required` check passes only when every leg is green. The job layout is pinned by `.claude/hooks/tests/suites/startup-install.test.cjs`, so change the two together.
 
+Code quality checks run the same way locally, in the pre-commit hook and in CI: `npx eslint .` (existing violations are frozen in `eslint-suppressions.json`, so new code must be clean and the baseline only shrinks; after fixing frozen ones, run `npx eslint . --prune-suppressions`), `npx prettier --check "**/*.{cjs,mjs,js}"` and `npm audit --audit-level=high`. `npm install` sets up the check-only pre-commit hook (husky and lint-staged lint and format-check the staged JavaScript files; nothing is rewritten at commit). Run the hook suite and the Codex sync one after another: they share the checkout, so a second full run stops with a message while one is active.
+
 ## Further Reading
 
 | Document                                                              | Description                                 |

@@ -16,7 +16,7 @@
  * Optional setup gates may route to their setup skills or accept a dismissal.
  *
  * Exit Codes:
- *   0 - Prompt allowed, or blocked through the UserPromptSubmit JSON decision.
+ *   0 - Always. The hook only adds context; it never blocks a prompt.
  */
 'use strict';
 

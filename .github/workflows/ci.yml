@@ -58,6 +58,10 @@ jobs:
         with:
           node-version: "24"
       - run: npm ci --ignore-scripts
+      - name: Lint (ESLint; existing violations frozen in eslint-suppressions.json)
+        run: npx eslint . --max-warnings=0
+      - name: Format check (prettier)
+        run: npx prettier --check "**/*.{cjs,mjs,js}"
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: "3.12"
@@ -65,6 +69,10 @@ jobs:
         run: python -m pip install -r .claude/scripts/requirements.txt
       - name: Codex mirror and tooling gates
         run: node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --verify-only
+      # Runs last so a new advisory never hides the test results above; once, since it is OS-independent.
+      - name: Dependency audit (HIGH and CRITICAL fail)
+        if: matrix.os == 'ubuntu-latest'
+        run: npm audit --audit-level=high
 
   unit-tests:
     name: unit-tests (${{ matrix.os }})
