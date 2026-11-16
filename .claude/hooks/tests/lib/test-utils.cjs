@@ -284,7 +284,18 @@ function createDaysAgoTimestamp(daysAgo = 0) {
   return date.toISOString();
 }
 
+/**
+ * A file identity (stat.ino) that always differs from the given one, for simulating a file swap.
+ * `ino + 1` does not: Windows file IDs can exceed 2^53, where a Number rounds `ino + 1` back
+ * to `ino` and the simulated swap silently disappears. Works for Number and BigInt stats.
+ */
+function otherInode(ino) {
+  if (typeof ino === 'bigint') return ino === 1n ? 2n : 1n;
+  return ino === 1 ? 2 : 1;
+}
+
 module.exports = {
+  otherInode,
   createTempDir,
   cleanupTempDir,
   setupMockConfig,
