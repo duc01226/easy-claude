@@ -119,7 +119,13 @@ node .claude/hooks/tests/test-all-hooks.cjs
 
 # Suite-name substring filter; a zero-match filter exits non-zero
 node .claude/hooks/tests/run-all-tests.cjs --filter=integration --verbose
+
+# CI lanes, as GitHub runs them: every lane (merge evidence) or only what the change affects (advisory)
+node .claude/scripts/framework-ci.cjs --scope=full
+node .claude/scripts/framework-ci.cjs --scope=changed --plan
 ```
+
+`framework-ci.cjs` runs the Codex sync verify, `test-all-hooks.cjs` and the hook suites one after another, never in parallel (the families share the checkout). Its changed scope maps each changed file to suites that name it or a module that requires it, plus suites that scan the same area; it escalates to the full scope for shared harness files (`tests/lib/`, `tests/helpers/`, the runner), manifests, the CI workflow, a hook no suite names, an added or removed suite, or a selection over half the suites. The changed scope never runs the aggregate count guard. GitHub CI is manual only (`.github/workflows/ci.yml`); `CLAUDE.md` → CI and merging names the merge rule.
 
 The filter selects suite names and runs every test in each selected suite; a non-matching explicit filter in a nonempty discovered corpus exits `1` to prevent a vacuous green (`.claude/hooks/tests/run-all-tests.cjs:168-174,271-306`). An empty scaffold or `--list` is informational and may exit `0`; it proves no assertions ran. A complete, clean run exits `1` for a second, non-test reason: a post-summary count guard compares the tests it discovered against aggregate counts documented in `.claude/docs/hooks/README.md` and `.claude/docs/claude-ai-agent-framework-guide.md` and fails the process on drift, so the summary can read `All N tests passed` while the exit code is still `1` (`.claude/hooks/tests/run-all-tests.cjs:421-501`). It keys on the DISCOVERED total (passed + failed + skipped) rather than the pass count, because host-gated tests move the passed/skipped split per machine, and it stays silent under `--filter` or after any failure — neither total is the canonical figure. The runner exposes no parallel option and awaits selected suites sequentially (`.claude/hooks/tests/run-all-tests.cjs:66-95,309-318`).
 
