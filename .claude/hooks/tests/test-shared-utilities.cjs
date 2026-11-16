@@ -270,9 +270,11 @@ async function testTempOwnership() {
         const loadOwner = (remove = fs.rmSync) => {
             const module = { exports: {} };
             const nativeRequire = createRequire(helperPath);
-            const sandbox = { module, exports: module.exports, require: name => name === 'os'
-                ? { ...os, tmpdir: () => sandboxRoot }
-                : name === 'fs' ? { ...fs, rmSync: remove } : nativeRequire(name) };
+            const sandbox = {
+                module,
+                exports: module.exports,
+                require: name => (name === 'os' ? { ...os, tmpdir: () => sandboxRoot } : name === 'fs' ? { ...fs, rmSync: remove } : nativeRequire(name))
+            };
             vm.runInNewContext(fs.readFileSync(helperPath, 'utf8'), sandbox, { filename: helperPath });
             return module.exports;
         };

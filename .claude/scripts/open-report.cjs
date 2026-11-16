@@ -100,13 +100,10 @@ function resolveReport(target, rootDir, platform) {
  * Open a report. All effects are injectable so tests never launch a viewer.
  * @returns {{opened: boolean, file?: string, reason?: string, command?: string, args?: string[]}}
  */
-function openReport(target, {
-    platform = process.platform,
-    env = process.env,
-    cwd = process.cwd(),
-    spawn = childProcess.spawn,
-    log = line => process.stdout.write(`${line}\n`)
-} = {}) {
+function openReport(
+    target,
+    { platform = process.platform, env = process.env, cwd = process.cwd(), spawn = childProcess.spawn, log = line => process.stdout.write(`${line}\n`) } = {}
+) {
     try {
         const { rootDir } = resolveProjectRoot({ cwd, env, scriptPath: __filename });
         const { file, reason: invalid } = resolveReport(target, rootDir, platform);
@@ -116,10 +113,11 @@ function openReport(target, {
         }
         const skip = skipReason(platform, env);
         const cmd = openCommand(platform, file, env);
-        const reason = skip
-            || (!cmd && `no opener for platform ${platform}`)
-            || (platform === 'win32' && CMD_UNSAFE.test(file) && 'path has characters cmd cannot pass safely')
-            || null;
+        const reason =
+            skip ||
+            (!cmd && `no opener for platform ${platform}`) ||
+            (platform === 'win32' && CMD_UNSAFE.test(file) && 'path has characters cmd cannot pass safely') ||
+            null;
         if (reason) {
             log(`Report: ${file} (not opened: ${reason})`);
             return { opened: false, file, reason };
@@ -131,7 +129,11 @@ function openReport(target, {
         return { opened: true, file, command: cmd.command, args: cmd.args };
     } catch (error) {
         const reason = `open failed: ${error && error.message ? error.message : String(error)}`;
-        try { log(`open-report: not opened (${reason}): ${target || ''}`); } catch { /* never throw */ }
+        try {
+            log(`open-report: not opened (${reason}): ${target || ''}`);
+        } catch {
+            /* never throw */
+        }
         return { opened: false, reason };
     }
 }

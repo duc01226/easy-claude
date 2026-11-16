@@ -15,18 +15,9 @@
 
 const path = require('path');
 const fs = require('fs');
-const {
-    runHook,
-    getHookPath,
-    createSessionStartInput,
-    createSessionEndInput
-} = require('../lib/hook-runner.cjs');
+const { runHook, getHookPath, createSessionStartInput, createSessionEndInput } = require('../lib/hook-runner.cjs');
 const { assertEqual, assertAllowed, assertTrue, assertFalse } = require('../lib/assertions.cjs');
-const {
-    createTempDir,
-    cleanupTempDir,
-    createMockFile
-} = require('../lib/test-utils.cjs');
+const { createTempDir, cleanupTempDir, createMockFile } = require('../lib/test-utils.cjs');
 
 // Hook paths
 const SESSION_INIT = getHookPath('session-init.cjs');
@@ -167,14 +158,8 @@ const sessionInitTests = [
 
                 // Then BOTH plans-derived vars resolve through the relocated root — no default leak
                 const env = fs.readFileSync(envFile, 'utf8');
-                assertTrue(
-                    /export CK_PLANS_PATH="work\/plans"/.test(env),
-                    `CK_PLANS_PATH must honour docsRoots.plans.path. Got:\n${env}`
-                );
-                assertTrue(
-                    /export CK_REPORTS_PATH="work\/plans\/reports\/"/.test(env),
-                    `CK_REPORTS_PATH must honour the relocated root. Got:\n${env}`
-                );
+                assertTrue(/export CK_PLANS_PATH="work\/plans"/.test(env), `CK_PLANS_PATH must honour docsRoots.plans.path. Got:\n${env}`);
+                assertTrue(/export CK_REPORTS_PATH="work\/plans\/reports\/"/.test(env), `CK_REPORTS_PATH must honour the relocated root. Got:\n${env}`);
             } finally {
                 cleanupTempDir(tmpDir);
             }
@@ -350,14 +335,19 @@ const todoStateConcurrencyTests = [
         async fn() {
             const sessionId = 'sess-051-concurrent';
             // Write initial state
-            const written = setTodoState(sessionId, { hasTodos: true, pendingCount: 3, completedCount: 1, inProgressCount: 0, lastTodos: [], bypasses: [], taskSubjects: {} });
+            const written = setTodoState(sessionId, {
+                hasTodos: true,
+                pendingCount: 3,
+                completedCount: 1,
+                inProgressCount: 0,
+                lastTodos: [],
+                bypasses: [],
+                taskSubjects: {}
+            });
             assertTrue(written, 'setTodoState must succeed');
 
             // Simulate two concurrent reads
-            const [state1, state2] = await Promise.all([
-                Promise.resolve(getTodoState(sessionId)),
-                Promise.resolve(getTodoState(sessionId))
-            ]);
+            const [state1, state2] = await Promise.all([Promise.resolve(getTodoState(sessionId)), Promise.resolve(getTodoState(sessionId))]);
 
             assertEqual(state1.hasTodos, true, 'state1.hasTodos must be true');
             assertEqual(state2.hasTodos, true, 'state2.hasTodos must be true');
@@ -371,15 +361,25 @@ const todoStateConcurrencyTests = [
 
             // Write #1: initial state
             const ok1 = setTodoState(sessionId, {
-                hasTodos: true, pendingCount: 2, completedCount: 0,
-                inProgressCount: 1, lastTodos: [], bypasses: [], taskSubjects: {}
+                hasTodos: true,
+                pendingCount: 2,
+                completedCount: 0,
+                inProgressCount: 1,
+                lastTodos: [],
+                bypasses: [],
+                taskSubjects: {}
             });
             assertTrue(ok1, 'First setTodoState must succeed');
 
             // Write #2: update state (simulates second concurrent write overwriting #1 result)
             const ok2 = setTodoState(sessionId, {
-                hasTodos: true, pendingCount: 1, completedCount: 1,
-                inProgressCount: 0, lastTodos: [], bypasses: [], taskSubjects: {}
+                hasTodos: true,
+                pendingCount: 1,
+                completedCount: 1,
+                inProgressCount: 0,
+                lastTodos: [],
+                bypasses: [],
+                taskSubjects: {}
             });
             assertTrue(ok2, 'Second setTodoState must succeed (Windows-safe fallback)');
 
@@ -468,7 +468,9 @@ const stateIsolationTests = [
                 assertEqual(finalState.pendingCount, 1, 'pendingCount from last write must be 1');
                 assertEqual(finalState.completedCount, 9, 'completedCount from last write must be 9');
             } finally {
-                try { clearTodoState(sessionId); } catch (_) {}
+                try {
+                    clearTodoState(sessionId);
+                } catch (_) {}
             }
         }
     },
@@ -478,14 +480,24 @@ const stateIsolationTests = [
             const sessionId = 'sess-072-wf-rename';
             try {
                 const ok1 = saveState(sessionId, {
-                    workflowType: 'bugfix', workflowSteps: ['investigate', 'fix'], currentStepIndex: 0,
-                    completedSteps: [], activePlan: null, todos: [], metadata: {}
+                    workflowType: 'bugfix',
+                    workflowSteps: ['investigate', 'fix'],
+                    currentStepIndex: 0,
+                    completedSteps: [],
+                    activePlan: null,
+                    todos: [],
+                    metadata: {}
                 });
                 assertTrue(ok1, 'First saveState must succeed');
 
                 const ok2 = saveState(sessionId, {
-                    workflowType: 'bugfix', workflowSteps: ['investigate', 'fix'], currentStepIndex: 1,
-                    completedSteps: ['investigate'], activePlan: null, todos: [], metadata: {}
+                    workflowType: 'bugfix',
+                    workflowSteps: ['investigate', 'fix'],
+                    currentStepIndex: 1,
+                    completedSteps: ['investigate'],
+                    activePlan: null,
+                    todos: [],
+                    metadata: {}
                 });
                 assertTrue(ok2, 'Second saveState must succeed (Windows-safe fallback)');
 
@@ -495,7 +507,9 @@ const stateIsolationTests = [
                 assertEqual(finalState.currentStepIndex, 1, 'currentStepIndex from second write must win');
                 assertEqual(finalState.completedSteps.length, 1, 'completedSteps from second write must be preserved');
             } finally {
-                try { clearState(sessionId); } catch (_) {}
+                try {
+                    clearState(sessionId);
+                } catch (_) {}
             }
         }
     },
@@ -515,7 +529,9 @@ const stateIsolationTests = [
                 assertEqual(finalState.phase, 'active', 'phase from second write must win');
                 assertEqual(finalState.count, 2, 'count from second write must be preserved');
             } finally {
-                try { deleteSessionState(sessionId); } catch (_) {}
+                try {
+                    deleteSessionState(sessionId);
+                } catch (_) {}
             }
         }
     }

@@ -22,8 +22,9 @@ function fixture(t) {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'skill-artifacts-'));
     t.after(() => fs.rmSync(root, { recursive: true, force: true }));
     fs.mkdirSync(path.join(root, '.claude'), { recursive: true });
-    const env = Object.fromEntries(Object.entries(process.env).filter(([key]) =>
-        !/^(?:CK_|CLAUDE_|CODEX_|ANTHROPIC_|OPENAI_|AZURE_|GOOGLE_|GEMINI_|AWS_)/i.test(key)));
+    const env = Object.fromEntries(
+        Object.entries(process.env).filter(([key]) => !/^(?:CK_|CLAUDE_|CODEX_|ANTHROPIC_|OPENAI_|AZURE_|GOOGLE_|GEMINI_|AWS_)/i.test(key))
+    );
     Object.assign(env, { HOME: root, USERPROFILE: root, TMPDIR: root, TEMP: root, TMP: root, CLAUDE_PROJECT_DIR: root });
     return { root, env };
 }
@@ -82,7 +83,11 @@ test('D4 every documented map handoff consumes one resolved file list; explicit 
     fs.writeFileSync(path.join(root, 'docs/project-config.json'), JSON.stringify({ name: 'fixture', modules: [] }));
     fs.writeFileSync(path.join(root, 'unrelated.js'), 'unrelated dirty work');
     const requested = 'src/requested file.js';
-    const result = spawnSync(process.execPath, [path.join(frameworkRoot, 'scripts/doc-impact-map.cjs'), '--json', requested], { cwd: root, env, encoding: 'utf8' });
+    const result = spawnSync(process.execPath, [path.join(frameworkRoot, 'scripts/doc-impact-map.cjs'), '--json', requested], {
+        cwd: root,
+        env,
+        encoding: 'utf8'
+    });
     assert.equal(result.status, 0, result.stderr);
     const map = JSON.parse(result.stdout);
     assert.equal(map.source, 'explicit file list');

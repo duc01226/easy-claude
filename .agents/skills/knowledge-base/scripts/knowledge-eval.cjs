@@ -29,7 +29,8 @@ function readJson(file) {
 /** Evaluation packs as delivery entries (id, plane, triggers). */
 function loadPacks(dir = path.join(EVAL_DIR, 'packs')) {
     const packLib = require(path.join(LIB, 'knowledge-pack.cjs'));
-    return fs.readdirSync(dir)
+    return fs
+        .readdirSync(dir)
         .filter(name => name.endsWith('.md'))
         .sort()
         .map(name => {
@@ -67,7 +68,11 @@ function score(packs, set) {
             falseDelivery: others.length ? round(falseHits / others.length) : null
         };
     }
-    const passed = subjects.length > 0 && subjects.every(subject => figures[subject].recall !== null && figures[subject].recall >= BAR.recall && figures[subject].falseDelivery <= BAR.falseDelivery);
+    const passed =
+        subjects.length > 0 &&
+        subjects.every(
+            subject => figures[subject].recall !== null && figures[subject].recall >= BAR.recall && figures[subject].falseDelivery <= BAR.falseDelivery
+        );
     const misses = predictions
         .filter(entry => entry.item.expected.slice().sort().join(',') !== entry.got.join(','))
         .map(entry => ({ id: entry.item.id, kind: entry.item.kind, expected: entry.item.expected, got: entry.got }));
@@ -85,8 +90,14 @@ function evaluate(root, deps = {}) {
     const held = score(packs, heldOut);
     const development = score(packs, dev);
     const record = {
-        description: 'Held-out evaluation of knowledge prompt triggers. Regenerate with `node .claude/skills/knowledge-base/scripts/knowledge-base.cjs eval --write`; never edit by hand.',
-        heldOut: { file: '.claude/skills/knowledge-base/evaluation/held-out.json', frozenAt: heldOut.frozenAt || null, author: heldOut.author || null, prompts: held.prompts },
+        description:
+            'Held-out evaluation of knowledge prompt triggers. Regenerate with `node .claude/skills/knowledge-base/scripts/knowledge-base.cjs eval --write`; never edit by hand.',
+        heldOut: {
+            file: '.claude/skills/knowledge-base/evaluation/held-out.json',
+            frozenAt: heldOut.frozenAt || null,
+            author: heldOut.author || null,
+            prompts: held.prompts
+        },
         bar: { recall: BAR.recall, falseDelivery: BAR.falseDelivery },
         subjects: held.figures,
         passed: held.passed,

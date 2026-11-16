@@ -64,7 +64,15 @@ async function withFixture(fn) {
 }
 
 function toolEvent(fx, extra = {}) {
-    return { hook_event_name: 'PostToolUse', session_id: SESSION, transcript_path: fx.main, cwd: fx.project, tool_name: 'Bash', tool_input: { command: 'ls' }, ...extra };
+    return {
+        hook_event_name: 'PostToolUse',
+        session_id: SESSION,
+        transcript_path: fx.main,
+        cwd: fx.project,
+        tool_name: 'Bash',
+        tool_input: { command: 'ls' },
+        ...extra
+    };
 }
 
 /** In-process run: project fixed, settings injected, output captured. */
@@ -85,113 +93,124 @@ function isolatedEnv(fx) {
 const tests = [
     {
         name: '[quality-skill-remind] TC-QSR-001 the first tool result of a scope delivers the digest as PostToolUse context, then stays silent',
-        fn: () => withFixture(async fx => {
-            // When the first tool result of the session arrives
-            const payload = await fire(fx, toolEvent(fx));
-            // Then the digest arrives as advisory context only
-            const parsed = JSON.parse(payload);
-            assert.deepEqual(Object.keys(parsed), ['hookSpecificOutput'], 'no decision field');
-            assert.equal(parsed.hookSpecificOutput.hookEventName, 'PostToolUse');
-            assert.ok(parsed.hookSpecificOutput.additionalContext.includes(FIXTURE_BODY));
-            assert.ok(parsed.hookSpecificOutput.additionalContext.startsWith(hook.MARKER_START));
-            // And any later tool result inside the window stays silent, whatever the tool
-            assert.equal(await fire(fx, toolEvent(fx, { tool_name: 'Read' })), '');
-        })
+        fn: () =>
+            withFixture(async fx => {
+                // When the first tool result of the session arrives
+                const payload = await fire(fx, toolEvent(fx));
+                // Then the digest arrives as advisory context only
+                const parsed = JSON.parse(payload);
+                assert.deepEqual(Object.keys(parsed), ['hookSpecificOutput'], 'no decision field');
+                assert.equal(parsed.hookSpecificOutput.hookEventName, 'PostToolUse');
+                assert.ok(parsed.hookSpecificOutput.additionalContext.includes(FIXTURE_BODY));
+                assert.ok(parsed.hookSpecificOutput.additionalContext.startsWith(hook.MARKER_START));
+                // And any later tool result inside the window stays silent, whatever the tool
+                assert.equal(await fire(fx, toolEvent(fx, { tool_name: 'Read' })), '');
+            })
     },
     {
         name: '[quality-skill-remind] TC-QSR-002 re-delivers only when the transcript has grown by 150K tokens',
-        fn: () => withFixture(async fx => {
-            assert.equal(hook.DEFAULT_REINJECT_TOKENS, 150000);
-            assert.ok(await fire(fx, toolEvent(fx)));
-            // One byte short of the window: still present
-            fs.appendFileSync(fx.main, 'x'.repeat(hook.DEFAULT_REINJECT_TOKENS * BYTES_PER_TOKEN - 1));
-            assert.equal(await fire(fx, toolEvent(fx)), '', 'inside the window');
-            // Exactly the window: delivered again, then silent
-            fs.appendFileSync(fx.main, 'x');
-            assert.ok(await fire(fx, toolEvent(fx)), 'at the window edge');
-            assert.equal(await fire(fx, toolEvent(fx)), '', 'a new window starts');
-        })
+        fn: () =>
+            withFixture(async fx => {
+                assert.equal(hook.DEFAULT_REINJECT_TOKENS, 150000);
+                assert.ok(await fire(fx, toolEvent(fx)));
+                // One byte short of the window: still present
+                fs.appendFileSync(fx.main, 'x'.repeat(hook.DEFAULT_REINJECT_TOKENS * BYTES_PER_TOKEN - 1));
+                assert.equal(await fire(fx, toolEvent(fx)), '', 'inside the window');
+                // Exactly the window: delivered again, then silent
+                fs.appendFileSync(fx.main, 'x');
+                assert.ok(await fire(fx, toolEvent(fx)), 'at the window edge');
+                assert.equal(await fire(fx, toolEvent(fx)), '', 'a new window starts');
+            })
     },
     {
         name: '[quality-skill-remind] TC-QSR-003 a compaction or a changed digest re-delivers at once; elapsed time alone never does',
-        fn: () => withFixture(async fx => {
-            const t1 = Date.parse('2026-01-01T00:00:00Z');
-            assert.ok(await fire(fx, toolEvent(fx), { now: t1 }));
-            assert.equal(await fire(fx, toolEvent(fx), { now: t1 + 3 * 24 * 60 * 60 * 1000 }), '', 'days later, no growth: silent');
-            // The primary host's compaction boundary
-            fs.appendFileSync(fx.main, boundary(t1 + 30000));
-            assert.ok(await fire(fx, toolEvent(fx), { now: t1 + 60000 }), 'compaction re-arms');
-            assert.equal(await fire(fx, toolEvent(fx), { now: t1 + 61000 }), '');
-            // The second host's top-level compaction record
-            fs.appendFileSync(fx.main, `${JSON.stringify({ timestamp: new Date(t1 + 90000).toISOString(), ordinal: 3, type: 'compacted', payload: {} })}\n`);
-            assert.ok(await fire(fx, toolEvent(fx), { now: t1 + 120000 }), 'Codex compaction re-arms');
-            // A changed digest
-            assert.ok(await fire(fx, toolEvent(fx), { now: t1 + 121000, content: 'changed digest' }), 'content change re-delivers');
-        })
+        fn: () =>
+            withFixture(async fx => {
+                const t1 = Date.parse('2026-01-01T00:00:00Z');
+                assert.ok(await fire(fx, toolEvent(fx), { now: t1 }));
+                assert.equal(await fire(fx, toolEvent(fx), { now: t1 + 3 * 24 * 60 * 60 * 1000 }), '', 'days later, no growth: silent');
+                // The primary host's compaction boundary
+                fs.appendFileSync(fx.main, boundary(t1 + 30000));
+                assert.ok(await fire(fx, toolEvent(fx), { now: t1 + 60000 }), 'compaction re-arms');
+                assert.equal(await fire(fx, toolEvent(fx), { now: t1 + 61000 }), '');
+                // The second host's top-level compaction record
+                fs.appendFileSync(
+                    fx.main,
+                    `${JSON.stringify({ timestamp: new Date(t1 + 90000).toISOString(), ordinal: 3, type: 'compacted', payload: {} })}\n`
+                );
+                assert.ok(await fire(fx, toolEvent(fx), { now: t1 + 120000 }), 'Codex compaction re-arms');
+                // A changed digest
+                assert.ok(await fire(fx, toolEvent(fx), { now: t1 + 121000, content: 'changed digest' }), 'content change re-delivers');
+            })
     },
     {
         name: '[quality-skill-remind] TC-QSR-004 each sub-agent scope gets its own delivery and its own compaction re-arms only it',
-        fn: () => withFixture(async fx => {
-            const t1 = Date.parse('2026-01-01T00:00:00Z');
-            const agent = id => toolEvent(fx, { agent_id: id });
-            assert.ok(await fire(fx, toolEvent(fx), { now: t1 }), 'main scope');
-            const transcript = fx.sub('a1');
-            assert.ok(await fire(fx, agent('a1'), { now: t1 }), 'sub-agent scope');
-            assert.equal(await fire(fx, agent('a1'), { now: t1 + 1000 }), '', 'deduplicated in that scope');
-            // When the running sub-agent compacts (no host event reports it)
-            fs.appendFileSync(transcript, boundary(t1 + 2000));
-            // Then its next tool result restores the digest, and the main scope stays silent
-            assert.ok(await fire(fx, agent('a1'), { now: t1 + 3000 }), 'sub-agent compaction re-arms it');
-            assert.equal(await fire(fx, toolEvent(fx), { now: t1 + 3000 }), '', 'main scope unaffected');
-        })
+        fn: () =>
+            withFixture(async fx => {
+                const t1 = Date.parse('2026-01-01T00:00:00Z');
+                const agent = id => toolEvent(fx, { agent_id: id });
+                assert.ok(await fire(fx, toolEvent(fx), { now: t1 }), 'main scope');
+                const transcript = fx.sub('a1');
+                assert.ok(await fire(fx, agent('a1'), { now: t1 }), 'sub-agent scope');
+                assert.equal(await fire(fx, agent('a1'), { now: t1 + 1000 }), '', 'deduplicated in that scope');
+                // When the running sub-agent compacts (no host event reports it)
+                fs.appendFileSync(transcript, boundary(t1 + 2000));
+                // Then its next tool result restores the digest, and the main scope stays silent
+                assert.ok(await fire(fx, agent('a1'), { now: t1 + 3000 }), 'sub-agent compaction re-arms it');
+                assert.equal(await fire(fx, toolEvent(fx), { now: t1 + 3000 }), '', 'main scope unaffected');
+            })
     },
     {
         name: '[quality-skill-remind] TC-QSR-005 other events, malformed input and a missing or blank session id stay silent and record nothing',
-        fn: () => withFixture(async fx => {
-            const silent = [
-                ['PreToolUse', toolEvent(fx, { hook_event_name: 'PreToolUse' })],
-                ['UserPromptSubmit', toolEvent(fx, { hook_event_name: 'UserPromptSubmit', prompt: 'review this' })],
-                ['SubagentStart', toolEvent(fx, { hook_event_name: 'SubagentStart', agent_id: 'a1' })],
-                ['missing session id', toolEvent(fx, { session_id: undefined })],
-                ['blank session id', toolEvent(fx, { session_id: '  ' })],
-                ['null', null],
-                ['array', []]
-            ];
-            for (const [label, event] of silent) assert.equal(await fire(fx, event), '', label);
-            assert.equal(fs.existsSync(fx.store), false, 'no ledger store written');
-            assert.ok(await fire(fx, toolEvent(fx)), 'the first served event still delivers');
-        })
+        fn: () =>
+            withFixture(async fx => {
+                const silent = [
+                    ['PreToolUse', toolEvent(fx, { hook_event_name: 'PreToolUse' })],
+                    ['UserPromptSubmit', toolEvent(fx, { hook_event_name: 'UserPromptSubmit', prompt: 'review this' })],
+                    ['SubagentStart', toolEvent(fx, { hook_event_name: 'SubagentStart', agent_id: 'a1' })],
+                    ['missing session id', toolEvent(fx, { session_id: undefined })],
+                    ['blank session id', toolEvent(fx, { session_id: '  ' })],
+                    ['null', null],
+                    ['array', []]
+                ];
+                for (const [label, event] of silent) assert.equal(await fire(fx, event), '', label);
+                assert.equal(fs.existsSync(fx.store), false, 'no ledger store written');
+                assert.ok(await fire(fx, toolEvent(fx)), 'the first served event still delivers');
+            })
     },
     {
         name: '[quality-skill-remind] TC-QSR-006 switched off by settings or env: prints and records nothing',
-        fn: () => withFixture(async fx => {
-            for (const value of [false, 'off', '0']) {
-                assert.equal(await fire(fx, toolEvent(fx), { rawSettings: { enabled: value } }), '', `enabled: ${JSON.stringify(value)}`);
-            }
-            assert.equal(await fire(fx, toolEvent(fx), { env: { [hook.ENV_SWITCH]: '0' } }), '', 'env switch');
-            assert.equal(fs.existsSync(fx.store), false, 'no ledger store written');
-        })
+        fn: () =>
+            withFixture(async fx => {
+                for (const value of [false, 'off', '0']) {
+                    assert.equal(await fire(fx, toolEvent(fx), { rawSettings: { enabled: value } }), '', `enabled: ${JSON.stringify(value)}`);
+                }
+                assert.equal(await fire(fx, toolEvent(fx), { env: { [hook.ENV_SWITCH]: '0' } }), '', 'env switch');
+                assert.equal(fs.existsSync(fx.store), false, 'no ledger store written');
+            })
     },
     {
         name: '[quality-skill-remind] TC-QSR-007 the real process emits the digest once and exits 0; bad input exits 0 with no stdout',
-        fn: () => withFixture(async fx => {
-            const run = input => spawnSync(process.execPath, [HOOK], { cwd: fx.project, input, encoding: 'utf8', windowsHide: true, env: isolatedEnv(fx), timeout: 20000 });
-            const first = run(JSON.stringify(toolEvent(fx)));
-            assert.equal(first.status, 0, first.stderr);
-            assert.ok(JSON.parse(first.stdout).hookSpecificOutput.additionalContext.includes(FIXTURE_BODY));
-            const repeat = run(JSON.stringify(toolEvent(fx)));
-            assert.equal(repeat.status, 0);
-            assert.equal(repeat.stdout, '', 'deduplicated across processes');
-            for (const input of ['', 'not json', '[]']) {
-                const bad = run(input);
-                assert.equal(bad.status, 0, `exit 0 for ${JSON.stringify(input)}`);
-                assert.equal(bad.stdout, '', `no stdout for ${JSON.stringify(input)}`);
-            }
-        })
+        fn: () =>
+            withFixture(async fx => {
+                const run = input =>
+                    spawnSync(process.execPath, [HOOK], { cwd: fx.project, input, encoding: 'utf8', windowsHide: true, env: isolatedEnv(fx), timeout: 20000 });
+                const first = run(JSON.stringify(toolEvent(fx)));
+                assert.equal(first.status, 0, first.stderr);
+                assert.ok(JSON.parse(first.stdout).hookSpecificOutput.additionalContext.includes(FIXTURE_BODY));
+                const repeat = run(JSON.stringify(toolEvent(fx)));
+                assert.equal(repeat.status, 0);
+                assert.equal(repeat.stdout, '', 'deduplicated across processes');
+                for (const input of ['', 'not json', '[]']) {
+                    const bad = run(input);
+                    assert.equal(bad.status, 0, `exit 0 for ${JSON.stringify(input)}`);
+                    assert.equal(bad.stdout, '', `no stdout for ${JSON.stringify(input)}`);
+                }
+            })
     },
     {
         name: '[quality-skill-remind] TC-QSR-008 the built-in digest equals the canonical reminder, which names every route (framework repo only)',
-        skip: IS_FRAMEWORK_REPO ? false : 'asserts the framework repo\'s own canonical protocol (framework-repo signal)',
+        skip: IS_FRAMEWORK_REPO ? false : "asserts the framework repo's own canonical protocol (framework-repo signal)",
         fn: () => {
             const { readCanonicalProtocol } = require(path.join(REPO_ROOT, '.claude', 'scripts', 'lib', 'canonical-protocol.cjs'));
             const reminder = readCanonicalProtocol(REPO_ROOT, hook.SYNC_TAG);
@@ -201,12 +220,23 @@ const tests = [
             const full = readCanonicalProtocol(REPO_ROOT, 'quality-skill-routing');
             for (const route of ROUTES) assert.ok(full.includes(route), `full protocol names ${route}`);
             // A pull request reaches the review workflow by the complexity of its changes; a simple one stays with changes-review.
-            for (const [label, text] of [['digest', reminder], ['full protocol', full]]) {
+            for (const [label, text] of [
+                ['digest', reminder],
+                ['full protocol', full]
+            ]) {
                 assert.match(text, /`changes-review`[^;]*simple pull request/, `${label}: a simple pull request routes to changes-review`);
                 assert.match(text, /`workflow-review-changes`[^;]*complex/, `${label}: the review workflow is tied to complex changes`);
-                assert.doesNotMatch(text, /`workflow-review-changes`[^;]*whole pull request or/, `${label}: a whole pull request alone never selects the workflow`);
+                assert.doesNotMatch(
+                    text,
+                    /`workflow-review-changes`[^;]*whole pull request or/,
+                    `${label}: a whole pull request alone never selects the workflow`
+                );
                 // An issue, failure or bug is fixed through the fix skill or the bug-fix workflow, never patched ad hoc.
-                assert.match(text, /`fix`[^.]*`workflow-bugfix`[^.]*never (by )?an ad hoc patch|never (by )?an ad hoc patch[^]*`fix`[^.]*`workflow-bugfix`/, `${label}: fixes go through fix or workflow-bugfix`);
+                assert.match(
+                    text,
+                    /`fix`[^.]*`workflow-bugfix`[^.]*never (by )?an ad hoc patch|never (by )?an ad hoc patch[^]*`fix`[^.]*`workflow-bugfix`/,
+                    `${label}: fixes go through fix or workflow-bugfix`
+                );
             }
             assert.match(full, /post-fix lesson check[^.]*`\/learn` once the user confirms/, 'the full protocol names the post-fix lesson check');
             const description = name => /^description: '(.*)'$/m.exec(fs.readFileSync(path.join(REPO_ROOT, '.claude', 'skills', name, 'SKILL.md'), 'utf8'))[1];
@@ -216,7 +246,7 @@ const tests = [
     },
     {
         name: '[quality-skill-remind] TC-QSR-009 registered on PostToolUse for every tool (framework repo only)',
-        skip: IS_FRAMEWORK_REPO ? false : 'asserts the framework repo\'s own settings (framework-repo signal)',
+        skip: IS_FRAMEWORK_REPO ? false : "asserts the framework repo's own settings (framework-repo signal)",
         fn: () => {
             const settings = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, '.claude', 'settings.json'), 'utf8'));
             const owns = group => group.hooks.some(h => h.command.includes('quality-skill-remind.cjs'));

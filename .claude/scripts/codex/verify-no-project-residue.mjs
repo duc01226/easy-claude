@@ -10,7 +10,7 @@ const { resolveProjectRoot, isInvokedAsScript } = require('../lib/project-root.c
 const rootResolution = resolveProjectRoot({
     cwd: process.cwd(),
     scriptPath: fileURLToPath(import.meta.url),
-    env: process.env,
+    env: process.env
 });
 const rootDir = rootResolution.rootDir;
 const scanRoots = ['.codex', '.agents', '.claude/scripts/codex'];
@@ -62,8 +62,8 @@ export const projectSymbolDenylist = [
     'ExecuteInjectScopedAsync',
     'ExecuteUowTask',
     // CQRS entity-event / bus-producer base classes — appear ONLY as the architecture review mode's marked
-// examples today; denylisted as future-proofing so a NEW skill/hook can't introduce them as an
-// unmarked assertion. The architecture review mode reference is allowlisted below for its documented examples.
+    // examples today; denylisted as future-proofing so a NEW skill/hook can't introduce them as an
+    // unmarked assertion. The architecture review mode reference is allowlisted below for its documented examples.
     'PlatformCqrsEntityEventApplicationHandler',
     'PlatformCqrsEventBusMessageProducer',
     // Consuming-project directory/solution name. Was hardcoded as a service-derivation

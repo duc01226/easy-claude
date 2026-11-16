@@ -45,7 +45,7 @@ const { liveSourceFiles } = require('../lib/live-source-files.cjs');
 const { resolveAllWorkflowManifests, resolveWorkflowManifest } = require('../../../scripts/lib/workflow-manifest.cjs');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
-const SKIP = isFrameworkRepo(REPO_ROOT) ? false : 'asserts the framework repo\'s own architecture skill and workflow registry (framework-repo signal)';
+const SKIP = isFrameworkRepo(REPO_ROOT) ? false : "asserts the framework repo's own architecture skill and workflow registry (framework-repo signal)";
 
 const SKILLS = path.join(REPO_ROOT, '.claude', 'skills');
 const read = (...parts) => fs.readFileSync(path.join(...parts), 'utf8').replace(/\r\n/g, '\n');
@@ -68,16 +68,13 @@ function guideTags(text) {
     return tags;
 }
 
-const fixtureDocument = (entry) => ({ version: '1', workflows: { fixture: entry } });
-const resolveFixture = (entry, modeName) => resolveWorkflowManifest(fixtureDocument(entry), 'fixture', { availableSkills: ['architecture', 'plan'], ...(modeName ? { mode: modeName } : {}) });
+const fixtureDocument = entry => ({ version: '1', workflows: { fixture: entry } });
+const resolveFixture = (entry, modeName) =>
+    resolveWorkflowManifest(fixtureDocument(entry), 'fixture', { availableSkills: ['architecture', 'plan'], ...(modeName ? { mode: modeName } : {}) });
 
 const LIVE_SOURCE_ROOTS = ['.claude', 'docs/specs', 'docs/project-reference', 'README.md'];
 // Generated catalogs are rebuilt from the skill folders; history stays in ADRs and release notes.
-const SCAN_EXCLUDED = new Set([
-    '.claude/SKILLS.yaml',
-    '.claude/scripts/skills_data.yaml',
-    '.claude/hooks/tests/suites/architecture-modes-merge.test.cjs'
-]);
+const SCAN_EXCLUDED = new Set(['.claude/SKILLS.yaml', '.claude/scripts/skills_data.yaml', '.claude/hooks/tests/suites/architecture-modes-merge.test.cjs']);
 const SCAN_EXCLUDED_DIRS = new Set(['node_modules', '.git', '.code-graph', 'tmp', 'temp', 'plans']);
 const SCAN_EXTENSIONS = new Set(['.md', '.cjs', '.mjs', '.js', '.py', '.json', '.yaml', '.yml', '.html', '.toml']);
 // A removed name counts only as a whole token: `plan-architecture-review` style workflow step ids are not the skill.
@@ -144,7 +141,14 @@ const tests = [
             assert.match(text, /## Report-Only Mode \(`--report-only`\)/);
             assert.match(text, /\*\*Run Phases 0–5 only\.\*\*/);
             assert.match(text, /read `\.claude\/skills\/workflow-review-changes\/references\/caller-mode\.md` § `--report-only` in full FIRST/);
-            for (const phase of ['## Phase 0: Load Architecture Rules', '## Phase 1: Determine Scope', '## Phase 2: Blast Radius', '## Phase 3: Architecture Review', '## Phase 4: Finalize', '## Phase 5: Why-Review Self-Validation Gate']) {
+            for (const phase of [
+                '## Phase 0: Load Architecture Rules',
+                '## Phase 1: Determine Scope',
+                '## Phase 2: Blast Radius',
+                '## Phase 3: Architecture Review',
+                '## Phase 4: Finalize',
+                '## Phase 5: Why-Review Self-Validation Gate'
+            ]) {
                 assert.ok(text.includes(phase), phase);
             }
             assert.match(text, /13 categories/);
@@ -164,7 +168,15 @@ const tests = [
             assert.match(text, /`\/20` verdict/);
             assert.match(text, /### `mode=init`/);
             assert.match(text, /### `mode=audit`/);
-            for (const gate of ['G1 Evidence Integrity', 'G2 Build & CI Scalability', 'G3 Distributed-Monolith Risk', 'G4 Boundary Enforcement', 'G5 Horizontal Scaling Bottlenecks', 'G6 Reuse Without Coupling', 'G7 Secrets And Sensitive Output']) {
+            for (const gate of [
+                'G1 Evidence Integrity',
+                'G2 Build & CI Scalability',
+                'G3 Distributed-Monolith Risk',
+                'G4 Boundary Enforcement',
+                'G5 Horizontal Scaling Bottlenecks',
+                'G6 Reuse Without Coupling',
+                'G7 Secrets And Sensitive Output'
+            ]) {
                 assert.ok(text.includes(gate), gate);
             }
             assert.match(text, /\| 17-20 \| STRONG \|/);
@@ -184,7 +196,20 @@ const tests = [
         skip: SKIP,
         fn: () => {
             const text = mode('design');
-            for (const heading of ['## Step 1: Load Context', '## Step 2: Derive Architecture Requirements', '## Step 3: Backend Architecture', '## Step 4: Frontend Architecture', '## Step 5: Library Ecosystem Research', '## Step 6: Testing Architecture', '## Step 7: CI/CD & Deployment', '## Step 8: Observability & Monitoring', '## Step 9: Code Quality & Clean Code Enforcement', '## Step 10: Dependency Risk Assessment', '## Step 11: Generate Report', '## Step 12: User Validation Interview']) {
+            for (const heading of [
+                '## Step 1: Load Context',
+                '## Step 2: Derive Architecture Requirements',
+                '## Step 3: Backend Architecture',
+                '## Step 4: Frontend Architecture',
+                '## Step 5: Library Ecosystem Research',
+                '## Step 6: Testing Architecture',
+                '## Step 7: CI/CD & Deployment',
+                '## Step 8: Observability & Monitoring',
+                '## Step 9: Code Quality & Clean Code Enforcement',
+                '## Step 10: Dependency Risk Assessment',
+                '## Step 11: Generate Report',
+                '## Step 12: User Validation Interview'
+            ]) {
                 assert.ok(text.includes(heading), heading);
             }
             assert.match(text, /\{plan-dir\}\/research\/architecture-design\.md/);
@@ -204,7 +229,11 @@ const tests = [
             for (const name of ['scalability', 'review']) assert.ok(text.includes('references/mode-' + name + '.md'));
             assert.match(text, /`production-readiness-review`/);
             // Each face brief names the reference FILE PATH to read (the architect agent preloads no mode reference)
-            for (const file of ['.claude/skills/architecture/references/mode-scalability.md', '.claude/skills/architecture/references/mode-review.md', '.claude/skills/production-readiness-review/SKILL.md']) {
+            for (const file of [
+                '.claude/skills/architecture/references/mode-scalability.md',
+                '.claude/skills/architecture/references/mode-review.md',
+                '.claude/skills/production-readiness-review/SKILL.md'
+            ]) {
                 assert.ok(text.includes('`' + file + '`'), `the face brief names the file path ${file}`);
                 assert.ok(fs.existsSync(path.join(REPO_ROOT, ...file.split('/'))), `${file} exists`);
             }
@@ -253,15 +282,22 @@ const tests = [
             for (const id of Object.keys(document.workflows)) {
                 for (const manifest of resolveAllWorkflowManifests(document, id, { rootDir: REPO_ROOT })) {
                     for (const occurrence of manifest.occurrences.filter(step => step.skill === 'architecture')) {
-                        const match = /^--mode=(design|review|scalability|full)(?: (?:--report-only|--review-only|--fix-loop|--loop-owner=caller|--defer=validate))*$/.exec(occurrence.args.trim());
+                        const match =
+                            /^--mode=(design|review|scalability|full)(?: (?:--report-only|--review-only|--fix-loop|--loop-owner=caller|--defer=validate))*$/.exec(
+                                occurrence.args.trim()
+                            );
                         assert.ok(match, `${id}/${manifest.mode}/${occurrence.id}: unsupported architecture arguments "${occurrence.args}"`);
                         assert.ok(dispatch.includes(`\`--mode=${match[1]}`), `${id}/${occurrence.id}: architecture has no --mode=${match[1]}`);
                         seen.add(match[1]);
                         // Deferring validation is a full-mode contract: only full owns the Step 5 that a later gate takes over
-                        if (/--defer=validate/.test(occurrence.args)) assert.equal(match[1], 'full', `${id}/${occurrence.id}: --defer=validate outside --mode=full`);
+                        if (/--defer=validate/.test(occurrence.args))
+                            assert.equal(match[1], 'full', `${id}/${occurrence.id}: --defer=validate outside --mode=full`);
                         // The review-changes specialist wave runs review mode as a read-only leaf
-                        if (id === 'workflow-review-changes') assert.equal(occurrence.args.trim(), manifest.mode === 'fix-loop'
-                            ? '--mode=review --fix-loop --loop-owner=caller' : '--mode=review --review-only');
+                        if (id === 'workflow-review-changes')
+                            assert.equal(
+                                occurrence.args.trim(),
+                                manifest.mode === 'fix-loop' ? '--mode=review --fix-loop --loop-owner=caller' : '--mode=review --review-only'
+                            );
                     }
                 }
             }
@@ -273,7 +309,9 @@ const tests = [
             const gate = args => [{ id: 'review-converged', satisfiedBy: [args] }];
             const plain = { id: 'a', skill: 'architecture', args: '--mode=design' };
             const full = { id: 'f', skill: 'architecture', args: '--mode=full' };
-            assert.deepEqual(resolveFixture({ sequence: [plain, full], outcomeGates: gate('architecture --mode=full') }).outcomeGates[0].satisfiedBy, ['architecture --mode=full']);
+            assert.deepEqual(resolveFixture({ sequence: [plain, full], outcomeGates: gate('architecture --mode=full') }).outcomeGates[0].satisfiedBy, [
+                'architecture --mode=full'
+            ]);
             assert.throws(() => resolveFixture({ sequence: [plain], outcomeGates: gate('architecture --mode=full') }), /names a skill not in the sequence/);
         }
     },
@@ -283,18 +321,77 @@ const tests = [
         fn: () => {
             const bodyOf = (text, tag) => text.includes(`<!-- SYNC:${tag} -->`) && text.includes(`<!-- /SYNC:${tag} -->`);
             const expected = {
-                design: ['core-engineering-principles', 'engineering-foundation-gate', 'scale-technique-gate', 'scenario-stress-eval', 'sequential-thinking-protocol', 'test-architecture-execution-contract'],
-                review: ['ai-agent-as-user-access', 'category-review-thinking', 'core-engineering-principles', 'evidence-based-reasoning', 'goal-contract-satisfaction-loop', 'graph-assisted-investigation', 'review-principle-awareness', 'scale-technique-gate', 'scenario-stress-eval', 'sequential-thinking-protocol', 'severity-rubric', 'source-test-drift-check', 'sub-agent-selection', 'systematic-review-batching', 'task-tracking-external-report', 'trade-off-interrogation-gate'],
-                scalability: ['engineering-foundation-gate', 'goal-contract-satisfaction-loop', 'review-principle-awareness', 'scale-technique-gate', 'scenario-stress-eval', 'severity-rubric', 'test-architecture-execution-contract', 'trade-off-interrogation-gate'],
-                full: ['category-review-thinking', 'engineering-foundation-gate', 'evidence-based-reasoning', 'goal-contract-satisfaction-loop', 'graph-assisted-investigation', 'review-principle-awareness', 'review-protocol-injection', 'severity-rubric', 'subagent-return-contract', 'systematic-review-batching', 'task-tracking-external-report', 'test-architecture-execution-contract', 'trade-off-interrogation-gate']
+                design: [
+                    'core-engineering-principles',
+                    'engineering-foundation-gate',
+                    'scale-technique-gate',
+                    'scenario-stress-eval',
+                    'sequential-thinking-protocol',
+                    'test-architecture-execution-contract'
+                ],
+                review: [
+                    'ai-agent-as-user-access',
+                    'category-review-thinking',
+                    'core-engineering-principles',
+                    'evidence-based-reasoning',
+                    'goal-contract-satisfaction-loop',
+                    'graph-assisted-investigation',
+                    'review-principle-awareness',
+                    'scale-technique-gate',
+                    'scenario-stress-eval',
+                    'sequential-thinking-protocol',
+                    'severity-rubric',
+                    'source-test-drift-check',
+                    'sub-agent-selection',
+                    'systematic-review-batching',
+                    'task-tracking-external-report',
+                    'trade-off-interrogation-gate'
+                ],
+                scalability: [
+                    'engineering-foundation-gate',
+                    'goal-contract-satisfaction-loop',
+                    'review-principle-awareness',
+                    'scale-technique-gate',
+                    'scenario-stress-eval',
+                    'severity-rubric',
+                    'test-architecture-execution-contract',
+                    'trade-off-interrogation-gate'
+                ],
+                full: [
+                    'category-review-thinking',
+                    'engineering-foundation-gate',
+                    'evidence-based-reasoning',
+                    'goal-contract-satisfaction-loop',
+                    'graph-assisted-investigation',
+                    'review-principle-awareness',
+                    'review-protocol-injection',
+                    'severity-rubric',
+                    'subagent-return-contract',
+                    'systematic-review-batching',
+                    'task-tracking-external-report',
+                    'test-architecture-execution-contract',
+                    'trade-off-interrogation-gate'
+                ]
             };
             const skillText = skill();
-            assert.deepEqual(guideTags(skillText), ['review-decision-autonomy', 'review-policy'], 'shared decision and mode policies are routed at entry; domain-specific protocols stay isolated');
+            assert.deepEqual(
+                guideTags(skillText),
+                ['review-decision-autonomy', 'review-policy'],
+                'shared decision and mode policies are routed at entry; domain-specific protocols stay isolated'
+            );
             assert.ok(skillText.includes('<!-- SYNC:review-decision-autonomy:reminder -->'), 'the review policy reminder remains discoverable');
             assert.ok(skillText.includes('<!-- SYNC:review-policy:reminder -->'), 'the shared modes/rounds reminder remains discoverable');
             const autonomy = fs.readFileSync(path.join(SKILLS, 'shared', 'protocols', 'review-decision-autonomy.md'), 'utf8');
-            assert.match(autonomy, /Non-review creation, interviews and implementation retain their own contracts/, 'loading the guide cannot alter non-review mode authority');
-            assert.deepEqual([...skillText.matchAll(/<!-- SYNC:([a-z-]+(?::reminder)?) -->/g)].map(match => match[1]), ['review-decision-autonomy:reminder', 'review-policy:reminder'], 'entrypoint carries shared review reminders, no domain-specific body');
+            assert.match(
+                autonomy,
+                /Non-review creation, interviews and implementation retain their own contracts/,
+                'loading the guide cannot alter non-review mode authority'
+            );
+            assert.deepEqual(
+                [...skillText.matchAll(/<!-- SYNC:([a-z-]+(?::reminder)?) -->/g)].map(match => match[1]),
+                ['review-decision-autonomy:reminder', 'review-policy:reminder'],
+                'entrypoint carries shared review reminders, no domain-specific body'
+            );
             for (const [name, tags] of Object.entries(expected)) {
                 const text = mode(name);
                 for (const tag of tags) {
@@ -333,8 +430,13 @@ const tests = [
             assert.ok(scanned > 500, `tripwire: the scan covers the framework sources (${scanned} files)`);
             assert.deepEqual(offenders, [], 'replace each with `architecture --mode=<design|review|scalability|full>`');
             // The allow-list is live: SKILL.md names the removed commands only as "formerly"
-            const named = skill().split('\n').filter(line => REMOVED.some(name => line.includes(name)));
-            assert.ok(named.every(line => allowedMention('.claude/skills/architecture/SKILL.md', line)), 'architecture/SKILL.md names the removed commands only as "formerly"');
+            const named = skill()
+                .split('\n')
+                .filter(line => REMOVED.some(name => line.includes(name)));
+            assert.ok(
+                named.every(line => allowedMention('.claude/skills/architecture/SKILL.md', line)),
+                'architecture/SKILL.md names the removed commands only as "formerly"'
+            );
         }
     },
     {
@@ -346,8 +448,7 @@ const tests = [
             const description = match[1];
             assert.match(description, /^\[Architecture\] Use when a workflow step or the user asks for \S/);
             assert.ok(description.length <= 250, `description is ${description.length} chars, over 250`);
-            const advertised = [...description.matchAll(/--mode=(?:\{([^}]+)\}|([a-z-]+))/g)]
-                .flatMap(match => (match[1] || match[2]).split('|'));
+            const advertised = [...description.matchAll(/--mode=(?:\{([^}]+)\}|([a-z-]+))/g)].flatMap(match => (match[1] || match[2]).split('|'));
             assert.deepEqual([...new Set(advertised)].sort(), [...MODES].sort(), 'all supported modes remain advertised');
             // Discovery names every task intent; implementation detail belongs to its mode reference.
             for (const intent of [/architecture design|solution architecture/, /compliance review/, /scalability grading|scale grade/, /whole-project audit/]) {

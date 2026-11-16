@@ -40,15 +40,7 @@ const { resolveProjectRoot, isInvokedAsScript } = require('../lib/project-root.c
  * framework invariants with no config key and no portability token, so tracking them here would
  * invite a future contributor to make them configurable.
  */
-export const TRACKED_LITERALS = [
-    'docs/specs',
-    'docs/project-reference',
-    'docs/adr',
-    'docs/templates',
-    'plans/',
-    'team-artifacts',
-    'docs/product-roadmap.md',
-];
+export const TRACKED_LITERALS = ['docs/specs', 'docs/project-reference', 'docs/adr', 'docs/templates', 'plans/', 'team-artifacts', 'docs/product-roadmap.md'];
 
 /**
  * The surfaces SC-7 claims: authored files an agent reads directly.
@@ -302,7 +294,7 @@ export function parseAllowlist(raw, relPath = DEFAULT_ALLOWLIST_REL) {
 
 /** Walk the scan scope and return `{ residue: Map<relPath, occurrence[]>, scanned: number }`. */
 export async function scanRepository(rootDir, { scanRoots } = {}) {
-    const roots = scanRoots ?? await resolveScanRoots(rootDir);
+    const roots = scanRoots ?? (await resolveScanRoots(rootDir));
     const residue = new Map();
     let scanned = 0;
     for (const scanRoot of roots) {
@@ -326,7 +318,7 @@ function parseCliArgs(argv) {
         emitAllowlist: false,
         allowlistPath: null,
         projectAllowlistPath: null,
-        scanRoots: null,
+        scanRoots: null
     };
     for (const argument of argv) {
         if (argument === '--strict') options.strict = true;
@@ -369,14 +361,10 @@ export async function run(options) {
 
     // Merge the OPTIONAL project-plane allowlist. Absent file = no entries, no error: the upstream
     // framework repo ships none, and an adopter that has not needed one yet must stay green.
-    const projectAllowlistRel = options.projectAllowlistPath ?? await projectAllowlistRelFor(rootDir);
-    const projectAllowlistAbs = path.isAbsolute(projectAllowlistRel)
-        ? projectAllowlistRel
-        : path.join(rootDir, projectAllowlistRel);
+    const projectAllowlistRel = options.projectAllowlistPath ?? (await projectAllowlistRelFor(rootDir));
+    const projectAllowlistAbs = path.isAbsolute(projectAllowlistRel) ? projectAllowlistRel : path.join(rootDir, projectAllowlistRel);
     const projectRaw = await fs.readFile(projectAllowlistAbs, 'utf8').catch(() => null);
-    const projectParsed = projectRaw === null
-        ? { entries: new Map(), errors: [] }
-        : parseAllowlist(projectRaw, projectAllowlistRel);
+    const projectParsed = projectRaw === null ? { entries: new Map(), errors: [] } : parseAllowlist(projectRaw, projectAllowlistRel);
     // A path declared in BOTH planes keeps the framework reason: the portable file is authoritative
     // for its own surfaces, and a project must not silently re-explain a framework suppression.
     for (const [file, reason] of projectParsed.entries) {
@@ -385,7 +373,9 @@ export async function run(options) {
         // and silently honouring it would suppress a framework violation the portable file never
         // blessed (the $contract's "FRAMEWORK PLANE ONLY" rule).
         if (isFrameworkPlaneFile(file)) {
-            errors.push(`${projectAllowlistRel}: project-plane entry targets a framework surface (${file}) — the framework plane at ${allowlistRel} is authoritative for .claude/** and CLAUDE.md; remove the project entry`);
+            errors.push(
+                `${projectAllowlistRel}: project-plane entry targets a framework surface (${file}) — the framework plane at ${allowlistRel} is authoritative for .claude/** and CLAUDE.md; remove the project entry`
+            );
             continue;
         }
         if (!entries.has(file)) entries.set(file, reason);
@@ -403,7 +393,9 @@ export async function run(options) {
     }
 
     const stale = [...entries.keys()].filter(file => !residue.has(file)).sort();
-    const staleMessages = stale.map(file => `${file} — allowlisted (${entries.get(file)}) but has ZERO remaining occurrences; delete the entry from ${ownerOf(file)}`);
+    const staleMessages = stale.map(
+        file => `${file} — allowlisted (${entries.get(file)}) but has ZERO remaining occurrences; delete the entry from ${ownerOf(file)}`
+    );
 
     return {
         residue,
@@ -411,23 +403,29 @@ export async function run(options) {
         entries,
         violations,
         errors: [...errors, ...(options.strict ? staleMessages : [])],
-        warnings: options.strict ? [] : staleMessages,
+        warnings: options.strict ? [] : staleMessages
     };
 }
 
 function report(result, options) {
     const totalOccurrences = [...result.residue.values()].reduce((sum, list) => sum + list.length, 0);
     if (options.json) {
-        console.log(JSON.stringify({
-            ok: result.violations.length === 0 && result.errors.length === 0,
-            mode: options.strict ? 'strict' : 'migrating',
-            scannedFiles: result.scanned,
-            totalOccurrences,
-            perFile: Object.fromEntries([...result.residue.entries()].map(([file, list]) => [file, list.length])),
-            violations: result.violations,
-            warnings: result.warnings,
-            errors: result.errors,
-        }, null, 2));
+        console.log(
+            JSON.stringify(
+                {
+                    ok: result.violations.length === 0 && result.errors.length === 0,
+                    mode: options.strict ? 'strict' : 'migrating',
+                    scannedFiles: result.scanned,
+                    totalOccurrences,
+                    perFile: Object.fromEntries([...result.residue.entries()].map(([file, list]) => [file, list.length])),
+                    violations: result.violations,
+                    warnings: result.warnings,
+                    errors: result.errors
+                },
+                null,
+                2
+            )
+        );
         return;
     }
 
@@ -486,9 +484,11 @@ async function main(resolvedRoot) {
 }
 
 if (isInvokedAsScript(process.argv[1], fileURLToPath(import.meta.url))) {
-    await main(resolveProjectRoot({
-        cwd: process.cwd(),
-        scriptPath: fileURLToPath(import.meta.url),
-        env: process.env,
-    }).rootDir);
+    await main(
+        resolveProjectRoot({
+            cwd: process.cwd(),
+            scriptPath: fileURLToPath(import.meta.url),
+            env: process.env
+        }).rootDir
+    );
 }

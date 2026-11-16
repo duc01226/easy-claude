@@ -412,9 +412,7 @@ async function collectFeatureSpecScopePaths(scopePath) {
     // Configured roots identify canonical parent documents. Discover beside a file root so its
     // continuation parts remain available to the canonical-path selector below. The configured
     // value remains the canonical parent path, not a directory or an arbitrary spec bucket.
-    return stats?.isFile()
-        ? collectFeatureSpecPaths(path.dirname(scopePath))
-        : collectFeatureSpecPaths(scopePath);
+    return stats?.isFile() ? collectFeatureSpecPaths(path.dirname(scopePath)) : collectFeatureSpecPaths(scopePath);
 }
 
 export async function loadFeatureRegistry({ rootDir = process.cwd(), specPaths, canonicalRootPaths } = {}) {
@@ -423,13 +421,9 @@ export async function loadFeatureRegistry({ rootDir = process.cwd(), specPaths, 
         throw new Error('Choose explicit specPaths or canonicalRootPaths; the two registry scopes cannot be combined.');
     }
 
-    const configuredScopes = canonicalRootPaths?.length
-        ? canonicalRootPaths.map(configuredPath => resolveInsideRepository(rootDir, configuredPath))
-        : [];
+    const configuredScopes = canonicalRootPaths?.length ? canonicalRootPaths.map(configuredPath => resolveInsideRepository(rootDir, configuredPath)) : [];
     // Sibling file roots share one discovery directory; dedupe so each document is parsed once.
-    const allSpecPaths = canonicalRootPaths?.length
-        ? [...new Set((await Promise.all(configuredScopes.map(collectFeatureSpecScopePaths))).flat())]
-        : null;
+    const allSpecPaths = canonicalRootPaths?.length ? [...new Set((await Promise.all(configuredScopes.map(collectFeatureSpecScopePaths))).flat())] : null;
     const absolutePaths = specPaths?.length
         ? specPaths.map(filePath => resolveInsideRepository(rootDir, filePath))
         : (allSpecPaths ?? (await collectFeatureSpecPaths(resolveInsideRepository(rootDir, path.join('docs', 'specs')))));

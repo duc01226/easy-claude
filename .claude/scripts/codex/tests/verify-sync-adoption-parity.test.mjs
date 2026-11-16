@@ -13,8 +13,7 @@ const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const verifierPath = path.resolve(thisDir, '..', 'verify-sync-adoption-parity.mjs');
 const repoRoot = path.resolve(thisDir, '..', '..', '..', '..');
 
-const { parseAdoptionMatrix, canonicalBody, blockPairs, findParityViolations } =
-    await import(pathToFileURL(verifierPath).href);
+const { parseAdoptionMatrix, canonicalBody, blockPairs, findParityViolations } = await import(pathToFileURL(verifierPath).href);
 
 // ── Fixtures ────────────────────────────────────────────────────────────────────
 // A miniature injector source in the same shape as inject_review_skill_blocks.py,
@@ -32,7 +31,7 @@ const INJECTOR_FIXTURE = [
     'MATRIX = [',
     '    ("SYNC:alpha", ALPHA),',
     '    ("SYNC:beta", BETA),',
-    ']',
+    ']'
 ].join('\n');
 
 const CANONICAL_FIXTURE = [
@@ -58,11 +57,11 @@ const CANONICAL_FIXTURE = [
     '',
     '- Beta reminder.',
     '',
-    '---',
+    '---'
 ].join('\n');
 
 /** Build a SKILL.md body carrying the given tag bodies. */
-const carrier = (parts) => ['# Skill', '', ...parts].join('\n');
+const carrier = parts => ['# Skill', '', ...parts].join('\n');
 const wrap = (tag, body) => [`<!-- ${tag} -->`, '', body, '', `<!-- /${tag} -->`].join('\n');
 
 const ALPHA_MAIN = '> Alpha body line.';
@@ -76,10 +75,18 @@ function baseSetup() {
     const matrix = parseAdoptionMatrix(INJECTOR_FIXTURE);
     const skillText = new Map([
         ['skill-a', cleanAlphaCarrier],
-        ['skill-b', carrier([
-            wrap('SYNC:alpha', ALPHA_MAIN), '', wrap('SYNC:alpha:reminder', ALPHA_REM), '',
-            wrap('SYNC:beta', BETA_MAIN), '', wrap('SYNC:beta:reminder', BETA_REM),
-        ])],
+        [
+            'skill-b',
+            carrier([
+                wrap('SYNC:alpha', ALPHA_MAIN),
+                '',
+                wrap('SYNC:alpha:reminder', ALPHA_REM),
+                '',
+                wrap('SYNC:beta', BETA_MAIN),
+                '',
+                wrap('SYNC:beta:reminder', BETA_REM)
+            ])
+        ]
     ]);
     return { matrix, canonicalMd: CANONICAL_FIXTURE, skillText };
 }
@@ -95,9 +102,7 @@ test('parseAdoptionMatrix reads tag→list pairs from Python source', () => {
 
 test('parseAdoptionMatrix resolves the list(OTHER) alias form', () => {
     // GAMMA = list(ALPHA) must resolve even though it is not referenced by MATRIX here.
-    const matrix = parseAdoptionMatrix(
-        INJECTOR_FIXTURE.replace('("SYNC:beta", BETA),', '("SYNC:beta", GAMMA),'),
-    );
+    const matrix = parseAdoptionMatrix(INJECTOR_FIXTURE.replace('("SYNC:beta", BETA),', '("SYNC:beta", GAMMA),'));
     assert.deepEqual(matrix[1].skills, ['skill-a', 'skill-b']);
 });
 
@@ -157,10 +162,7 @@ test('declared carrier missing only the :reminder is still a violation', () => {
 
 test('a duplicated block is a violation (exactly one expected)', () => {
     const s = baseSetup();
-    s.skillText.set('skill-a', carrier([
-        wrap('SYNC:alpha', ALPHA_MAIN), '', wrap('SYNC:alpha', ALPHA_MAIN), '',
-        wrap('SYNC:alpha:reminder', ALPHA_REM),
-    ]));
+    s.skillText.set('skill-a', carrier([wrap('SYNC:alpha', ALPHA_MAIN), '', wrap('SYNC:alpha', ALPHA_MAIN), '', wrap('SYNC:alpha:reminder', ALPHA_REM)]));
     const r = findParityViolations(s);
     assert.equal(r.missing.length, 1);
     assert.match(r.missing[0], /found 2/);
@@ -182,10 +184,7 @@ test('undeclared carrier is flagged — the injector would never refresh it', ()
 
 test('injected body drifting from canonical is flagged', () => {
     const s = baseSetup();
-    s.skillText.set('skill-a', carrier([
-        wrap('SYNC:alpha', '> Alpha body line EDITED BY HAND.'), '',
-        wrap('SYNC:alpha:reminder', ALPHA_REM),
-    ]));
+    s.skillText.set('skill-a', carrier([wrap('SYNC:alpha', '> Alpha body line EDITED BY HAND.'), '', wrap('SYNC:alpha:reminder', ALPHA_REM)]));
     const r = findParityViolations(s);
     assert.equal(r.drifted.length, 1);
     assert.match(r.drifted[0], /skill-a :: SYNC:alpha/);
@@ -196,16 +195,19 @@ test('injected body drifting from canonical is flagged', () => {
 // A converted skill carries the main protocol as a guide line (shared P25 writer, never a restated
 // format) plus the canonical :reminder pair, and the full text lives in the projection file.
 const guideCarrier = createRequire(import.meta.url)('../../lib/protocol-guide-carrier.cjs');
-const guideBlock = (tag) => [
-    guideCarrier.GUIDE_BLOCK_START, '',
-    guideCarrier.formatGuideLine({ tag, summary: `Summary of ${tag}`, when: `using ${tag}`, path: `.claude/skills/shared/protocols/${tag}.md` }),
-    '', guideCarrier.GUIDE_BLOCK_END,
-].join('\n');
+const guideBlock = tag =>
+    [
+        guideCarrier.GUIDE_BLOCK_START,
+        '',
+        guideCarrier.formatGuideLine({ tag, summary: `Summary of ${tag}`, when: `using ${tag}`, path: `.claude/skills/shared/protocols/${tag}.md` }),
+        '',
+        guideCarrier.GUIDE_BLOCK_END
+    ].join('\n');
 const guidedAlphaCarrier = carrier([guideBlock('alpha'), '', wrap('SYNC:alpha:reminder', ALPHA_REM)]);
 
 test('TC-PDL-065: a guide entry + reminder + projection satisfies the main-block assertion', () => {
     // Given skill-a holds a guide entry and the reminder instead of the alpha body, and the projection exists
-    const s = { ...baseSetup(), projectionExists: (tag) => tag === 'alpha' };
+    const s = { ...baseSetup(), projectionExists: tag => tag === 'alpha' };
     s.skillText.set('skill-a', guidedAlphaCarrier);
     // When the sensor runs
     const r = findParityViolations(s);
@@ -253,7 +255,11 @@ test('TC-PDL-065: the verifier CLI accepts a guide carrier only while its projec
             fsSync.mkdirSync(path.dirname(target), { recursive: true });
             fsSync.writeFileSync(target, text);
         };
-        for (const rel of ['.claude/scripts/codex/verify-sync-adoption-parity.mjs', '.claude/scripts/lib/project-root.cjs', '.claude/scripts/lib/protocol-guide-carrier.cjs']) {
+        for (const rel of [
+            '.claude/scripts/codex/verify-sync-adoption-parity.mjs',
+            '.claude/scripts/lib/project-root.cjs',
+            '.claude/scripts/lib/protocol-guide-carrier.cjs'
+        ]) {
             write(rel, fsSync.readFileSync(path.join(repoRoot, rel), 'utf8'));
         }
         write('.claude/scripts/inject_review_skill_blocks.py', 'ALPHA = ["skill-a"]\nMATRIX = [\n    ("SYNC:alpha", ALPHA),\n]\n');
@@ -262,8 +268,13 @@ test('TC-PDL-065: the verifier CLI accepts a guide carrier only while its projec
         write('.claude/skills/skill-a/SKILL.md', guidedAlphaCarrier);
         const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_')));
         Object.assign(env, { CLAUDE_PROJECT_DIR: temp, HOME: temp, USERPROFILE: temp, TMPDIR: temp, TEMP: temp, TMP: temp });
-        const run = () => spawnSync(process.execPath, [path.join(temp, '.claude/scripts/codex/verify-sync-adoption-parity.mjs')],
-            { cwd: temp, env, encoding: 'utf8', timeout: 60000 });
+        const run = () =>
+            spawnSync(process.execPath, [path.join(temp, '.claude/scripts/codex/verify-sync-adoption-parity.mjs')], {
+                cwd: temp,
+                env,
+                encoding: 'utf8',
+                timeout: 60000
+            });
 
         // Given a guided carrier with its projection, When the CLI runs, Then it passes
         const pass = run();
@@ -286,7 +297,7 @@ test('an unreadable declared carrier warns instead of failing the build', () => 
     const r = findParityViolations(s);
     assert.equal(r.missing.length, 0);
     assert.equal(r.undeclared.length, 0);
-    assert.equal(r.warnings.filter((w) => /skill-a/.test(w)).length, 1);
+    assert.equal(r.warnings.filter(w => /skill-a/.test(w)).length, 1);
 });
 
 // ── Live wiring: the sensor must actually be parsing the REAL injector ───────────
@@ -306,8 +317,7 @@ test('the sensor is registered in the runner pipeline and individually runnable 
     // A sensor that exists but is not wired is decoration. The npm half of this check is gone — no
     // host package.json drives the framework any more — so BOTH halves are now unconditional, which
     // is stronger: they hold in every adopting project, not only in this repo.
-    const runner = await fs.readFile(
-        path.join(repoRoot, '.claude', 'skills', 'sync-codex', 'scripts', 'run-codex-sync.mjs'), 'utf8');
+    const runner = await fs.readFile(path.join(repoRoot, '.claude', 'skills', 'sync-codex', 'scripts', 'run-codex-sync.mjs'), 'utf8');
     const stage = runner.match(/\{[^{}]*\bid:\s*"sync-adoption-parity"[^{}]*\}/);
     assert.ok(stage, 'runner must declare the stage');
     // No `mutate: true` ⇒ `--verify-only` selects it by derivation, so it cannot fall out of the
@@ -315,6 +325,11 @@ test('the sensor is registered in the runner pipeline and individually runnable 
     assert.doesNotMatch(stage[0], /\bmutate:\s*true\b/, 'the sensor must stay in the derived --verify-only set');
 
     const verifier = path.join(repoRoot, '.claude', 'scripts', 'codex', 'verify-sync-adoption-parity.mjs');
-    assert.ok(await fs.access(verifier).then(() => true, () => false),
-        'the verifier must exist at its in-bundle path so it is runnable standalone with plain node');
+    assert.ok(
+        await fs.access(verifier).then(
+            () => true,
+            () => false
+        ),
+        'the verifier must exist at its in-bundle path so it is runnable standalone with plain node'
+    );
 });

@@ -2,7 +2,8 @@
 
 const fs = require('node:fs');
 module.exports = async function* report(source) {
-    let passed = 0, failed = 0;
+    let passed = 0,
+        failed = 0;
     const active = value => value !== undefined && value !== false;
     for await (const event of source) {
         const data = event.data;

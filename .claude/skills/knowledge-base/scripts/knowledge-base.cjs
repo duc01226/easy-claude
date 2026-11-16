@@ -101,7 +101,8 @@ function printFindings(errors, warnings) {
 function findPack(root, id) {
     if (!packs.isValidId(id)) throw new Refusal(`${id} is not a pack identity: use 3–64 lowercase letters, digits and single hyphens, starting with a letter`);
     const planes = indexLib.resolvePlanes(root);
-    if (!planes.project.contained) throw new Refusal(`The packs directory ${rel(root, planes.project.dir)} resolves outside the project; nothing is read or written there`);
+    if (!planes.project.contained)
+        throw new Refusal(`The packs directory ${rel(root, planes.project.dir)} resolves outside the project; nothing is read or written there`);
     const result = {};
     for (const name of ['project', 'framework']) {
         const file = path.join(planes[name].dir, `${id}.md`);
@@ -122,7 +123,8 @@ function reviewStateErrors(pack, current) {
     const how = `a person marks it reviewed with \`review ${pack.id}\` after confirming the review`;
     if (current) return current.review === 'reviewed' ? [] : [`The draft marks ${pack.id} reviewed; ${how}`];
     const kinds = (Array.isArray(pack.sources) ? pack.sources : []).map(source => source && source.kind);
-    if (kinds.length && kinds.every(kind => OUTSIDE_SOURCE_KINDS.has(kind))) return [`${pack.id} is drawn only from outside documents, so it is added unreviewed; ${how}`];
+    if (kinds.length && kinds.every(kind => OUTSIDE_SOURCE_KINDS.has(kind)))
+        return [`${pack.id} is drawn only from outside documents, so it is added unreviewed; ${how}`];
     return [];
 }
 
@@ -171,7 +173,18 @@ function cmdList(root, flags) {
     const loaded = indexLib.loadForDelivery(root, { cacheFile: path.join(root, 'tmp', 'knowledge-base', 'freshness.json') });
     const usage = flags.usage ? require(path.join(LIB, 'knowledge-telemetry.cjs')).summarize(root) : null;
     if (flags.json) {
-        out(JSON.stringify({ packs: loaded.packs.map(entry => ({ ...entry, usage: usage ? usage[`${entry.plane}:${entry.id}`] || { delivered: 0, read: 0 } : undefined })) }, null, 2));
+        out(
+            JSON.stringify(
+                {
+                    packs: loaded.packs.map(entry => ({
+                        ...entry,
+                        usage: usage ? usage[`${entry.plane}:${entry.id}`] || { delivered: 0, read: 0 } : undefined
+                    }))
+                },
+                null,
+                2
+            )
+        );
         return 0;
     }
     if (!loaded.packs.length) {
@@ -180,7 +193,9 @@ function cmdList(root, flags) {
     }
     for (const entry of loaded.packs) {
         const labels = entry.labels.length ? ` [${entry.labels.join(', ')}]` : '';
-        const counts = usage ? ` — delivered ${(usage[`${entry.plane}:${entry.id}`] || {}).delivered || 0}, read ${(usage[`${entry.plane}:${entry.id}`] || {}).read || 0}` : '';
+        const counts = usage
+            ? ` — delivered ${(usage[`${entry.plane}:${entry.id}`] || {}).delivered || 0}, read ${(usage[`${entry.plane}:${entry.id}`] || {}).read || 0}`
+            : '';
         out(`${entry.id} (${entry.plane}, ${entry.kind}, ${entry.review})${labels}${counts}`);
         out(`  ${entry.title} — ${entry.description}`);
         out(`  read: ${entry.file}${entry.body ? ` (its digest says how to read ${entry.body})` : ''}`);
@@ -205,7 +220,10 @@ function cmdCheck(root) {
 function cmdBuild(root) {
     const { written, result } = indexLib.writeAll(root);
     const errors = result.built.framework.errors.concat(result.built.project.errors);
-    const warnings = result.built.framework.warnings.concat(result.built.project.warnings, indexLib.bindingCapWarnings(result.built.project.index.packs, result.built.framework.index.packs));
+    const warnings = result.built.framework.warnings.concat(
+        result.built.project.warnings,
+        indexLib.bindingCapWarnings(result.built.project.index.packs, result.built.framework.index.packs)
+    );
     out(written.length ? `Regenerated: ${written.join(', ')}` : 'Already current; nothing written.');
     printFindings(errors, warnings);
     return errors.length ? 1 : 0;
@@ -249,7 +267,10 @@ function cmdUpdate(root, flags, id) {
     if (!id) throw new Refusal('update needs the pack identity');
     const located = findPack(root, id);
     if (!located.project) {
-        if (located.framework) throw new Refusal(`${id} is a framework pack; project operations never change the framework plane. Add a project pack with the same identity to take precedence.`);
+        if (located.framework)
+            throw new Refusal(
+                `${id} is a framework pack; project operations never change the framework plane. Add a project pack with the same identity to take precedence.`
+            );
         throw new Refusal(`No project pack called ${id}`);
     }
     const text = readDraft(flags);
@@ -316,7 +337,10 @@ function markReviewed(text, date) {
 function cmdReview(root, flags, id) {
     if (!id) throw new Refusal('review needs the pack identity');
     const located = findPack(root, id);
-    if (!located.project) throw new Refusal(located.framework ? `${id} is a framework pack; project operations never change the framework plane.` : `No project pack called ${id}`);
+    if (!located.project)
+        throw new Refusal(
+            located.framework ? `${id} is a framework pack; project operations never change the framework plane.` : `No project pack called ${id}`
+        );
     const date = today(flags);
     const next = markReviewed(fs.readFileSync(located.project, 'utf8'), date);
     if (next === null) throw new Refusal(`${id} has no frontmatter to update`);
@@ -342,7 +366,8 @@ function yamlString(value) {
 /** Build an unreviewed import draft (BR-KNW-16). The digest and description are left for the assistant to write. */
 function cmdImport(root, flags) {
     if (typeof flags.from !== 'string') throw new Refusal('import needs --from <path>');
-    if (!packs.isValidId(flags.id)) throw new Refusal('import needs --id <identity> (3–64 lowercase letters, digits and single hyphens, starting with a letter)');
+    if (!packs.isValidId(flags.id))
+        throw new Refusal('import needs --id <identity> (3–64 lowercase letters, digits and single hyphens, starting with a letter)');
     const from = path.resolve(flags.from);
     let content;
     try {
@@ -360,7 +385,8 @@ function cmdImport(root, flags) {
     }
     const inResearch = relFrom.startsWith(`${loader.getKnowledgeRoot(config)}/research/`);
     const kind = typeof flags.kind === 'string' ? flags.kind : inResearch ? 'research-report' : 'file';
-    if (!packs.SOURCE_KINDS.includes(kind) || kind === 'team-decision' || kind === 'model-knowledge') throw new Refusal('--kind must be file, research-report or web-address');
+    if (!packs.SOURCE_KINDS.includes(kind) || kind === 'team-decision' || kind === 'model-knowledge')
+        throw new Refusal('--kind must be file, research-report or web-address');
     if (kind === 'web-address' && typeof flags['source-ref'] !== 'string') throw new Refusal('a web-address import needs --source-ref <address>');
     const ref = typeof flags['source-ref'] === 'string' ? flags['source-ref'] : relFrom.startsWith('..') ? path.basename(from) : relFrom;
     const firstHeading = /^#\s+(.+)$/m.exec(content);
@@ -387,13 +413,17 @@ function cmdImport(root, flags) {
         '',
         '## Imported content',
         '',
-        content.replace(/\r\n?/g, '\n').replace(/^---\n[\s\S]*?\n---\n/, '').trim(),
+        content
+            .replace(/\r\n?/g, '\n')
+            .replace(/^---\n[\s\S]*?\n---\n/, '')
+            .trim(),
         ''
     ].join('\n');
     // An import only ever writes a draft: --out must stay inside the drafts folder, never a plane (BR-KNW-15).
     const drafts = path.join(root, 'tmp', 'knowledge-base', 'drafts');
     const target = typeof flags.out === 'string' ? path.resolve(flags.out) : path.join(drafts, `${flags.id}.md`);
-    if (!require(path.join(LIB, 'path-containment.cjs')).isInside(drafts, target) || target === drafts) throw new Refusal(`--out must name a file inside ${rel(root, drafts)}/; an import writes a draft, never a pack`);
+    if (!require(path.join(LIB, 'path-containment.cjs')).isInside(drafts, target) || target === drafts)
+        throw new Refusal(`--out must name a file inside ${rel(root, drafts)}/; an import writes a draft, never a pack`);
     indexLib.writeFileAtomic(target, draft);
     const flagged = packs.findFlaggedLines(draft);
     const secrets = packs.findSecretLines(draft);
@@ -401,7 +431,9 @@ function cmdImport(root, flags) {
     out(`  source: ${kind} ${ref}`);
     for (const line of flagged) out(`  ✗ line ${line.line} reads as an instruction to the assistant — rewrite or remove it: ${line.text}`);
     for (const line of secrets) out(`  ! line ${line.line} looks like a secret (${line.kind})`);
-    out('Next: write the description and the digest, choose kind and triggers, show the draft to the person, then run `add --file <draft> --apply` after they confirm.');
+    out(
+        'Next: write the description and the digest, choose kind and triggers, show the draft to the person, then run `add --file <draft> --apply` after they confirm.'
+    );
     return 0;
 }
 
@@ -458,16 +490,26 @@ function main(argv) {
     const root = projectRoot(args.flags);
     try {
         switch (command) {
-            case 'list': return cmdList(root, args.flags);
-            case 'check': return cmdCheck(root);
-            case 'build': return cmdBuild(root);
-            case 'add': return cmdAdd(root, args.flags);
-            case 'update': return cmdUpdate(root, args.flags, rest[0]);
-            case 'delete': return cmdDelete(root, args.flags, rest[0]);
-            case 'review': return cmdReview(root, args.flags, rest[0]);
-            case 'import': return cmdImport(root, args.flags);
-            case 'search': return cmdSearch(root, args.flags, rest);
-            case 'eval': return cmdEval(root, args.flags);
+            case 'list':
+                return cmdList(root, args.flags);
+            case 'check':
+                return cmdCheck(root);
+            case 'build':
+                return cmdBuild(root);
+            case 'add':
+                return cmdAdd(root, args.flags);
+            case 'update':
+                return cmdUpdate(root, args.flags, rest[0]);
+            case 'delete':
+                return cmdDelete(root, args.flags, rest[0]);
+            case 'review':
+                return cmdReview(root, args.flags, rest[0]);
+            case 'import':
+                return cmdImport(root, args.flags);
+            case 'search':
+                return cmdSearch(root, args.flags, rest);
+            case 'eval':
+                return cmdEval(root, args.flags);
             case 'help':
             case undefined:
                 out(USAGE);

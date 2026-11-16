@@ -19,6 +19,7 @@
 /AGENTS.md
 /.codex/
 /.agents/
+/.opencode/
 /.github/copilot-instructions.md
 /.github/instructions/
 
@@ -26,3 +27,12 @@
 *.cs
 *.csx
 *.cake
+
+# The Codex sync runner keeps its stage roster as a hand-aligned table, one stage per line.
+# Pipeline-integrity tests read that table as text (stage ids, scripts and mutate flags), so
+# prettier must not re-wrap it.
+/.claude/skills/sync-codex/scripts/run-codex-sync.mjs
+
+# command-inspection's mutation harness (command-inspection.test.cjs) pins about 25 exact source
+# anchors, some spanning lines; prettier must not re-wrap the file under it.
+/.claude/hooks/lib/command-inspection.cjs

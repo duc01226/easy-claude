@@ -16,7 +16,11 @@ const skillContract = name => {
     const refs = path.join(root, '.claude', 'skills', name, 'references');
     const parts = [skill(name)];
     if (fs.existsSync(refs)) {
-        for (const file of fs.readdirSync(refs).filter(entry => entry.endsWith('.md')).sort()) parts.push(fs.readFileSync(path.join(refs, file), 'utf8'));
+        for (const file of fs
+            .readdirSync(refs)
+            .filter(entry => entry.endsWith('.md'))
+            .sort())
+            parts.push(fs.readFileSync(path.join(refs, file), 'utf8'));
     }
     return parts.join('\n');
 };
@@ -45,8 +49,18 @@ function assertAcceptance(text) {
 test('R3-PROMPT-025: visual candidates cannot redefine expectations without acceptance', () => {
     const source = read('agents/e2e-runner.md');
     assertAcceptance(source);
-    rejects(assertAcceptance, source, 'replace visual baselines ONLY after inspection and an explicit `HUMAN-ACCEPTED` record', 'ALWAYS update visual baselines when UI changes');
-    rejects(assertAcceptance, source, 'Preserve the previous accepted baseline while acceptance is missing, ambiguous, rejected, or environment-blocked', 'Replace the previous baseline immediately');
+    rejects(
+        assertAcceptance,
+        source,
+        'replace visual baselines ONLY after inspection and an explicit `HUMAN-ACCEPTED` record',
+        'ALWAYS update visual baselines when UI changes'
+    );
+    rejects(
+        assertAcceptance,
+        source,
+        'Preserve the previous accepted baseline while acceptance is missing, ambiguous, rejected, or environment-blocked',
+        'Replace the previous baseline immediately'
+    );
 });
 
 function assertSyncHandoff(text) {
@@ -66,7 +80,12 @@ test('R3-PROMPT-026: CLAUDE.md completion invokes the shared mirror runner after
     assertSyncHandoff(source);
     rejects(assertSyncHandoff, source, 'one executable pipeline', 'two unrelated pipelines');
     rejects(assertSyncHandoff, source, '--skip=claude-md', '--skip=wrong-stage');
-    rejects(assertSyncHandoff, source, 'TaskCreate: "Sync Codex mirrors from updated CLAUDE.md → invoke /sync-codex"', 'TaskCreate: "Report stale Codex mirrors → instruct user"');
+    rejects(
+        assertSyncHandoff,
+        source,
+        'TaskCreate: "Sync Codex mirrors from updated CLAUDE.md → invoke /sync-codex"',
+        'TaskCreate: "Report stale Codex mirrors → instruct user"'
+    );
     // The generated root holds project information only; the mirror handoff lives in the skill, not the template.
     const template = read('skills/ai-context-refresh/references/claude-md-template.md');
     assert.doesNotMatch(template, /sync-codex|Never auto-run/);
@@ -93,7 +112,12 @@ test('R3-PROMPT-027/031: advisory scores and category labels cannot bypass eligi
     const ui = local(read('skills/ui-design/references/mode-review.md'));
     assertReadiness(readiness);
     assertUi(ui);
-    rejects(assertReadiness, readiness, 'a failed binary gate blocks PASS at every round regardless of score or owner risk acceptance', 'an unaccepted CRITICAL/HIGH fail blocks PASS');
+    rejects(
+        assertReadiness,
+        readiness,
+        'a failed binary gate blocks PASS at every round regardless of score or owner risk acceptance',
+        'an unaccepted CRITICAL/HIGH fail blocks PASS'
+    );
     rejects(assertReadiness, readiness, 'round 2 blocks CRITICAL/HIGH/MEDIUM and defers LOW', 'round 2 blocks CRITICAL/HIGH only');
     rejects(assertUi, ui, 'WARN | MEDIUM when bounded but consequential | Blocks every round', 'WARN | Medium / Low → WARN/INFO | Review and decide');
     rejects(assertUi, ui, 'Any failed binary gate or unresolved evidence', 'Only category BLOCKED');
@@ -126,7 +150,12 @@ function assertFullReport(text) {
 test('R3-PROMPT-029: bounded nested return never limits report consumption', () => {
     const source = local(skill('start-workflow'));
     assertFullReport(source);
-    rejects(assertFullReport, source, 'Main agent reads the full `tmp/reports/` file before synthesis, acceptance, deduplication, or repair planning', 'Main agent reads `tmp/reports/` file only when resolving specific blockers');
+    rejects(
+        assertFullReport,
+        source,
+        'Main agent reads the full `tmp/reports/` file before synthesis, acceptance, deduplication, or repair planning',
+        'Main agent reads `tmp/reports/` file only when resolving specific blockers'
+    );
     rejects(assertFullReport, source, 'including every severity and all findings beyond the envelope cap', 'including only salient Critical/High findings');
 });
 
@@ -151,7 +180,12 @@ test('R3-PROMPT-030: inline teaching survives delegated transport constraints', 
     const own = skill('understand');
     const source = deliveredText(own, 'incremental-persistence');
     assertTeaching(source);
-    rejects(assertTeaching, source, "**Inline user-facing output:** Preserve the skill's requested explanation or teaching", '**At return:** Emit only the structured envelope');
+    rejects(
+        assertTeaching,
+        source,
+        "**Inline user-facing output:** Preserve the skill's requested explanation or teaching",
+        '**At return:** Emit only the structured envelope'
+    );
     const body = local(own);
     assert.match(body, /teach|explain/i);
 });
@@ -164,10 +198,23 @@ test('TC-PDL-065 R3-PROMPT-030 reads a guide carrier through its projection only
         const skillsDir = path.join(tmp, 'skills');
         const projection = path.join(skillsDir, 'shared', 'protocols', `${tag}.md`);
         fs.mkdirSync(path.dirname(projection), { recursive: true });
-        fs.writeFileSync(projection, "> 3. **Delegated return:** A sub-agent emits only the structured envelope. **Inline user-facing output:** Preserve the skill's requested explanation or teaching; the delegated transport limit does not replace that deliverable.\n");
-        const guided = ['# understand', guideCarrier.GUIDE_BLOCK_START, '',
-            guideCarrier.formatGuideLine({ tag, summary: 'Persist results per file', when: 'processing many files', path: `.claude/skills/shared/protocols/${tag}.md` }),
-            '', guideCarrier.GUIDE_BLOCK_END].join('\n');
+        fs.writeFileSync(
+            projection,
+            "> 3. **Delegated return:** A sub-agent emits only the structured envelope. **Inline user-facing output:** Preserve the skill's requested explanation or teaching; the delegated transport limit does not replace that deliverable.\n"
+        );
+        const guided = [
+            '# understand',
+            guideCarrier.GUIDE_BLOCK_START,
+            '',
+            guideCarrier.formatGuideLine({
+                tag,
+                summary: 'Persist results per file',
+                when: 'processing many files',
+                path: `.claude/skills/shared/protocols/${tag}.md`
+            }),
+            '',
+            guideCarrier.GUIDE_BLOCK_END
+        ].join('\n');
         // When the delivered text is checked, Then the guide carrier passes
         assertTeaching(deliveredText(guided, tag, skillsDir));
         // When the guide entry is removed, Then the projection is not joined and the check fails
@@ -188,7 +235,12 @@ function assertDefaultOnly(text) {
 test('R3-PROMPT-032: greenfield advertises only its resolved manifest mode', () => {
     const source = local(skill('workflow-greenfield-init'));
     assertDefaultOnly(source);
-    rejects(assertDefaultOnly, source, '**Supported mode:** use the default `workflow-greenfield-init` sequence resolved from `workflows.json`', '**Lean variant (`mode=lean`)** — a trimmed path is available');
+    rejects(
+        assertDefaultOnly,
+        source,
+        '**Supported mode:** use the default `workflow-greenfield-init` sequence resolved from `workflows.json`',
+        '**Lean variant (`mode=lean`)** — a trimmed path is available'
+    );
     const registry = JSON.parse(read('workflows.json'));
     const manifest = resolveWorkflowManifest(registry, 'workflow-greenfield-init', { rootDir: root });
     assert.equal(manifest.mode, 'default');
@@ -220,8 +272,9 @@ test('R3-PROMPT-041: final report and recap precede exact owned-run close with v
         'retain the closure task as incomplete and report each failure',
         'preserve the parent run and all sibling runs',
         'Never call `cleanup-expired` or delete a store directory',
-        'N/A — no recorded baseline run',
-    ]) rejects(assertOwnedClose, source, anchor, 'missing closure instruction');
+        'N/A — no recorded baseline run'
+    ])
+        rejects(assertOwnedClose, source, anchor, 'missing closure instruction');
 });
 
 // Each loop's own convergence signal: a review loop converges on a clear bar, the workflow loop

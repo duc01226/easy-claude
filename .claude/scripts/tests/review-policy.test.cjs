@@ -7,9 +7,23 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const {
-    MAX_ROUNDS, HARD_MAX_ROUNDS, POLICY_VERSION, blockingFindings, blockingSeverities, SEVERITY_DEFINITIONS, NON_SEVERITY_STATES,
-    grantsExtension, evaluateRound, startRun, getRun, recordRound, LOW_RESOLUTIONS,
-    acceptRun, interruptRun, resumeRun, invalidateRun
+    MAX_ROUNDS,
+    HARD_MAX_ROUNDS,
+    POLICY_VERSION,
+    blockingFindings,
+    blockingSeverities,
+    SEVERITY_DEFINITIONS,
+    NON_SEVERITY_STATES,
+    grantsExtension,
+    evaluateRound,
+    startRun,
+    getRun,
+    recordRound,
+    LOW_RESOLUTIONS,
+    acceptRun,
+    interruptRun,
+    resumeRun,
+    invalidateRun
 } = require('../lib/review-policy.cjs');
 const { resolveProjectRoot } = require('../../hooks/lib/project-root.cjs');
 
@@ -35,7 +49,10 @@ test('TC-HARNESS-044: LOW deferral is disclosed, while a scoped fix cannot bypas
     assert.throws(() => evaluateRound({ round: 1, findings: [{ ...low, resolution: 'scoped-fix-verified' }] }), /resolution/);
     const deferred = evaluateRound({ round: 1, findings: [{ ...low, resolution: 'deferred' }] });
     assert.equal(deferred.canComplete, true);
-    assert.deepEqual(deferred.deferredLow.map(f => f.id), ['L']);
+    assert.deepEqual(
+        deferred.deferredLow.map(f => f.id),
+        ['L']
+    );
     for (const severity of ['CRITICAL', 'HIGH', 'MEDIUM', 'NOT VERIFIABLE']) {
         assert.throws(() => blockingFindings(1, [{ id: 'X', severity, resolution: 'deferred' }]), /only on a LOW/);
     }
@@ -84,8 +101,11 @@ test('TC-HARNESS-006: bounded property domain keeps predicate symmetric for all 
     }
     assert.throws(() => evaluateRound({ round: 0 }), /round/);
     assert.throws(() => evaluateRound({ round: 1.5 }), /round/);
-    assert.equal(evaluateRound({ round: 4, findings: [{ id: 'h', severity: 'HIGH' }] }).status, 'ESCALATE',
-        'a review blocker past the hard cap still escalates');
+    assert.equal(
+        evaluateRound({ round: 4, findings: [{ id: 'h', severity: 'HIGH' }] }).status,
+        'ESCALATE',
+        'a review blocker past the hard cap still escalates'
+    );
 });
 
 test('TC-HARNESS-006: unresolved evidence is a blocking state, never a LOW escape hatch', () => {
@@ -154,8 +174,9 @@ test('TC-HARNESS-STATE-002: non-file records remain untouched and missing record
 test('TC-HARNESS-STATE-003: dangling symbolic records cannot be replaced', t => {
     const f = fixture(t);
     const file = path.join(f.storeDir, `${f.runId}.json`);
-    try { fs.symlinkSync('missing-target.json', file); }
-    catch (error) {
+    try {
+        fs.symlinkSync('missing-target.json', file);
+    } catch (error) {
         if (['EPERM', 'EACCES', 'ENOSYS'].includes(error.code)) return t.skip(`symlink capability unavailable: ${error.code}`);
         throw error;
     }
@@ -178,9 +199,16 @@ test('TC-HARNESS-STATE-004: unreadable metadata/content and oversized valid stat
             return fs[operation](target, ...args);
         };
         const loaded = { exports: {} };
-        require('node:vm').runInNewContext(source, {
-            require: name => name === 'node:fs' ? facade : require(name), module: loaded, process, Buffer
-        }, { filename: moduleFile });
+        require('node:vm').runInNewContext(
+            source,
+            {
+                require: name => (name === 'node:fs' ? facade : require(name)),
+                module: loaded,
+                process,
+                Buffer
+            },
+            { filename: moduleFile }
+        );
         assert.throws(() => loaded.exports.startRun(f), /invalid review run/i, operation);
         assert.throws(() => loaded.exports.getRun(f), /invalid review run/i, operation);
         assert.equal(fs.readFileSync(file, 'utf8'), original);
@@ -235,7 +263,8 @@ test('TC-HARNESS-ROUND-CAP-002: durable MEDIUM/evidence runs can use round 3 but
 });
 
 test('TC-HARNESS-TEST-LOOP-001: failed tests exhaust the same cap and cannot silently continue', t => {
-    const f = fixture(t); startRun(f);
+    const f = fixture(t);
+    startRun(f);
     for (let round = 1; round <= 3; round++) {
         const state = recordRound({ ...f, round, hardGates: [{ id: 'suite', kind: 'test', status: 'FAIL' }] });
         assert.equal(state.rounds.at(-1).evaluation.status, round < 3 ? 'CONTINUE' : 'ESCALATE');
@@ -276,11 +305,7 @@ test('TC-HARNESS-006: round-two LOWs survive in state while hard gates block acc
 });
 
 test('TC-HARNESS-006: newer evidence supersedes acceptance of an earlier clean round', t => {
-    for (const evidence of [
-        { findings: [{ id: 'new-defect', severity: 'HIGH' }] },
-        { hardGates: [{ id: 'tests', status: 'FAIL' }] },
-        { findings: [] }
-    ]) {
+    for (const evidence of [{ findings: [{ id: 'new-defect', severity: 'HIGH' }] }, { hardGates: [{ id: 'tests', status: 'FAIL' }] }, { findings: [] }]) {
         const f = fixture(t);
         startRun(f);
         recordRound({ ...f, round: 1 });
@@ -313,7 +338,8 @@ test('TC-HARNESS-006: CLI rejects injected clocks and malformed store roots', t 
     const f = fixture(t);
     const script = path.resolve(__dirname, '../lib/review-policy.cjs');
     const badClock = spawnSync(process.execPath, [script, 'start'], {
-        input: JSON.stringify({ ...f, now: 1 }), encoding: 'utf8'
+        input: JSON.stringify({ ...f, now: 1 }),
+        encoding: 'utf8'
     });
     assert.equal(badClock.status, 2);
     assert.match(badClock.stderr, /real clock/);

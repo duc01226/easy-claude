@@ -65,7 +65,10 @@ function record(projectDir, inputs, deps = {}) {
         const file = deps.file || usageFile(projectDir);
         const records = readRecords(projectDir, file).concat(list.map(item => shape(item, deps.now)));
         const kept = records.slice(-MAX_RECORDS);
-        require('./knowledge-index.cjs').writeFileAtomic(file, `${kept.map(item => JSON.stringify(shape(item, Date.parse(item.time) || deps.now))).join('\n')}\n`);
+        require('./knowledge-index.cjs').writeFileAtomic(
+            file,
+            `${kept.map(item => JSON.stringify(shape(item, Date.parse(item.time) || deps.now))).join('\n')}\n`
+        );
         return true;
     } catch {
         return false;

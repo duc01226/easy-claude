@@ -57,7 +57,7 @@ const RETIRED_COMPACTION_COMMENT = [
     '# Auto-compaction budget — 500K tokens, matching the Claude Code',
     '# CLAUDE_CODE_AUTO_COMPACT_WINDOW and the opencode model limit.context so all three',
     '# surfaces of the portable framework compact at the same point.',
-    '# Scope defaults to "total" (full active context).',
+    '# Scope defaults to "total" (full active context).'
 ];
 // The mirror marker: it names the sync as the folder's owner and records the top-level entries the
 // last sync wrote, so the next sync replaces or removes only those and keeps everything else.
@@ -113,7 +113,10 @@ export function buildAgentsMirrorGitignore(existing = '') {
     const block = [
         GITIGNORE_BLOCK_START,
         ...[...MIRROR_EXCLUDED_FILES].sort(),
-        ...[...MIRROR_EXCLUDED_DIRS].filter(dir => !VCS_DIRS.has(dir)).sort().map(dir => `${dir}/`),
+        ...[...MIRROR_EXCLUDED_DIRS]
+            .filter(dir => !VCS_DIRS.has(dir))
+            .sort()
+            .map(dir => `${dir}/`),
         GITIGNORE_BLOCK_END
     ].join('\n');
     const text = existing.replace(/\r\n/g, '\n');
@@ -217,9 +220,7 @@ function findTomlAssignmentEnd(lines, assignmentStart, scopeEnd) {
     let sawBracket = false;
 
     for (let index = assignmentStart; index < scopeEnd; index += 1) {
-        const rawLine = index === assignmentStart
-            ? lines[index].slice(lines[index].indexOf('=') + 1)
-            : lines[index];
+        const rawLine = index === assignmentStart ? lines[index].slice(lines[index].indexOf('=') + 1) : lines[index];
         const line = stripTomlStringContent(rawLine);
 
         for (const char of line) {
@@ -278,8 +279,7 @@ function retireBundledTomlKey(lines, key, bundledValue, start, end, bundledComme
 
     let removeStart = index;
     const commentStart = index - bundledComment.length;
-    if (bundledComment.length > 0 && commentStart >= start &&
-        bundledComment.every((comment, offset) => lines[commentStart + offset].trim() === comment)) {
+    if (bundledComment.length > 0 && commentStart >= start && bundledComment.every((comment, offset) => lines[commentStart + offset].trim() === comment)) {
         removeStart = commentStart;
     }
     lines.splice(removeStart, assignmentEnd - removeStart);
@@ -298,15 +298,20 @@ function removeLegacyNotifyKey(lines) {
     const index = lines.findIndex((line, lineIndex) => lineIndex < topLevelEnd && /^\s*notify\s*=/.test(line));
     if (index === -1) return;
     const end = findTomlAssignmentEnd(lines, index, topLevelEnd);
-    const assignment = lines.slice(index, end).join('\n').replace(/^\s*notify\s*=/, '').replace(/#.*$/gm, '').trim();
+    const assignment = lines
+        .slice(index, end)
+        .join('\n')
+        .replace(/^\s*notify\s*=/, '')
+        .replace(/#.*$/gm, '')
+        .trim();
     let argv;
     try {
         argv = JSON.parse(assignment.replace(/,\s*\]$/, ']'));
     } catch {
         return;
     }
-    const isLegacyHelper = Array.isArray(argv) && argv.length === LEGACY_NOTIFY_ARGV.length &&
-        argv.every((part, partIndex) => part === LEGACY_NOTIFY_ARGV[partIndex]);
+    const isLegacyHelper =
+        Array.isArray(argv) && argv.length === LEGACY_NOTIFY_ARGV.length && argv.every((part, partIndex) => part === LEGACY_NOTIFY_ARGV[partIndex]);
     if (!isLegacyHelper) return;
     // Drop the line and the one comment the bundle's own config placed above it; any other
     // comment belongs to the project and stays.
@@ -891,9 +896,7 @@ async function sanitizeSkillMirror(skillsRootDir, skillReferenceMap, inline = nu
         if (normalizedName === 'SKILL.MD') continue;
 
         const markdownText = await fs.readFile(markdownPath, 'utf8');
-        const rewrittenText = stripTrailingWhitespace(
-            rewriteClaudeToolTermsForCodex(rewriteSkillMentionsForCodex(markdownText, skillReferenceMap))
-        );
+        const rewrittenText = stripTrailingWhitespace(rewriteClaudeToolTermsForCodex(rewriteSkillMentionsForCodex(markdownText, skillReferenceMap)));
         if (rewrittenText !== markdownText) {
             await writeFileTransientSafe(markdownPath, rewrittenText, 'utf8');
         }
@@ -934,7 +937,7 @@ async function normalizeTextLineEndingsUnderDir(dirPath) {
         if (entry.isDirectory()) {
             if (MIRROR_EXCLUDED_DIRS.has(entry.name)) continue;
             normalized += await normalizeTextLineEndingsUnderDir(childPath);
-        } else if (entry.isFile() && await normalizeTextFileLineEndings(childPath)) {
+        } else if (entry.isFile() && (await normalizeTextFileLineEndings(childPath))) {
             normalized += 1;
         }
     }
@@ -1095,13 +1098,7 @@ export async function materializeSkillMirror(targetDir, skillReferenceMap, optio
     });
     await normalizeTextLineEndingsUnderDir(targetDir);
     await canonicalizeSkillManifestNames(targetDir);
-    return sanitizeSkillMirror(
-        targetDir,
-        skillReferenceMap,
-        bodyFor ? { tags: inlineTags, bodyFor } : null,
-        skillProfile,
-        options.onNotice
-    );
+    return sanitizeSkillMirror(targetDir, skillReferenceMap, bodyFor ? { tags: inlineTags, bodyFor } : null, skillProfile, options.onNotice);
 }
 
 async function setupSkills(skillProfile) {
@@ -1182,7 +1179,7 @@ async function setupCodexNotifications() {
     }
 
     // Delete the retired helper only once no kept notify command still runs it.
-    const removedLegacyScript = !updatedConfig.includes('codex-notify.mjs') && await pathExists(legacyNotificationScriptPath);
+    const removedLegacyScript = !updatedConfig.includes('codex-notify.mjs') && (await pathExists(legacyNotificationScriptPath));
     if (removedLegacyScript) {
         await fs.rm(legacyNotificationScriptPath, { force: true });
         // rmdir fails on a non-empty directory, so anything else kept there stays as it is.

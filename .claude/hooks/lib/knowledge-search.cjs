@@ -24,12 +24,54 @@ const MAX_FILE_BYTES = 512 * 1024;
 const HEADING_WEIGHT = 3;
 const SATURATION = 1.2;
 const EXCERPT_CHARS = 160;
-const STOPWORDS = new Set(['a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'can', 'do', 'does', 'for', 'from', 'how', 'i', 'in', 'is', 'it', 'its', 'may', 'of', 'on', 'or', 'our', 'should', 'that', 'the', 'their', 'this', 'to', 'we', 'what', 'when', 'where', 'which', 'who', 'why', 'with', 'you']);
+const STOPWORDS = new Set([
+    'a',
+    'an',
+    'and',
+    'are',
+    'as',
+    'at',
+    'be',
+    'by',
+    'can',
+    'do',
+    'does',
+    'for',
+    'from',
+    'how',
+    'i',
+    'in',
+    'is',
+    'it',
+    'its',
+    'may',
+    'of',
+    'on',
+    'or',
+    'our',
+    'should',
+    'that',
+    'the',
+    'their',
+    'this',
+    'to',
+    'we',
+    'what',
+    'when',
+    'where',
+    'which',
+    'who',
+    'why',
+    'with',
+    'you'
+]);
 
 /** Lowercase word tokens with a light plural/verb-ending fold, so "numbers" finds "number". */
 function tokens(text) {
     const out = [];
-    for (const raw of String(text || '').toLowerCase().match(/[\p{L}\p{N}][\p{L}\p{N}-]*/gu) || []) {
+    for (const raw of String(text || '')
+        .toLowerCase()
+        .match(/[\p{L}\p{N}][\p{L}\p{N}-]*/gu) || []) {
         if (STOPWORDS.has(raw) || raw.length < 2) continue;
         out.push(fold(raw));
     }
@@ -62,7 +104,11 @@ function readCapped(file) {
 
 /** The heading anchor a Markdown host renders: punctuation removed, each space a hyphen ("A & B" → "a--b"). */
 function slug(heading) {
-    return String(heading).trim().toLowerCase().replace(/[^\p{L}\p{N}\s_-]/gu, '').replace(/\s/g, '-');
+    return String(heading)
+        .trim()
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}\s_-]/gu, '')
+        .replace(/\s/g, '-');
 }
 
 /**
@@ -71,7 +117,9 @@ function slug(heading) {
  */
 function sectionsOf(body, lineOffset = 0) {
     const { parseHeading } = require('./knowledge-pack.cjs');
-    const lines = String(body || '').replace(/\r\n?/g, '\n').split('\n');
+    const lines = String(body || '')
+        .replace(/\r\n?/g, '\n')
+        .split('\n');
     const sections = [];
     let current = null;
     let fenced = false;
@@ -90,7 +138,9 @@ function sectionsOf(body, lineOffset = 0) {
 
 /** `{ body, offset }`: the text after the frontmatter and how many file lines precede it. */
 function bodyOf(text) {
-    const source = String(text || '').replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
+    const source = String(text || '')
+        .replace(/^\uFEFF/, '')
+        .replace(/\r\n?/g, '\n');
     const lines = source.split('\n');
     if (lines[0].trim() !== '---') return { body: source, offset: 0 };
     const close = require('./knowledge-pack.cjs').closingFenceIndex(lines);
@@ -120,7 +170,15 @@ function collectSections(projectDir) {
             }
             parts.forEach((section, position) => {
                 const clause = packLib.extractClauses(`## ${section.heading}`)[0];
-                docs.push({ entry, plane: name, position, clause: clause ? clause.id : null, ...section, headingTokens: tokens(section.heading), textTokens: tokens(section.text) });
+                docs.push({
+                    entry,
+                    plane: name,
+                    position,
+                    clause: clause ? clause.id : null,
+                    ...section,
+                    headingTokens: tokens(section.heading),
+                    textTokens: tokens(section.text)
+                });
             });
         }
     }
@@ -128,7 +186,9 @@ function collectSections(projectDir) {
 }
 
 function excerpt(text, terms) {
-    const flat = String(text || '').replace(/\s+/g, ' ').trim();
+    const flat = String(text || '')
+        .replace(/\s+/g, ' ')
+        .trim();
     if (!flat) return '';
     const lower = flat.toLowerCase();
     let at = -1;
@@ -150,10 +210,12 @@ function search(projectDir, query, { limit = DEFAULT_LIMIT } = {}) {
     if (!terms.length) return [];
     const docs = collectSections(projectDir);
     const total = docs.length || 1;
-    const idf = new Map(terms.map(term => {
-        const containing = docs.filter(doc => doc.headingTokens.includes(term) || doc.textTokens.includes(term)).length;
-        return [term, Math.log(1 + (total - containing + 0.5) / (containing + 0.5))];
-    }));
+    const idf = new Map(
+        terms.map(term => {
+            const containing = docs.filter(doc => doc.headingTokens.includes(term) || doc.textTokens.includes(term)).length;
+            return [term, Math.log(1 + (total - containing + 0.5) / (containing + 0.5))];
+        })
+    );
     const scored = [];
     for (const doc of docs) {
         let score = 0;

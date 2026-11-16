@@ -171,9 +171,7 @@ function resolveProtocolText(routing, projectDir) {
 function renderGateForMode(raw, mode) {
     const text = String(raw === undefined || raw === null ? '' : raw);
     const block = text.match(GATE_BLOCK_RE);
-    const rendered = (block ? block[0] : text)
-        .replace(MODE_FENCE_RE, (all, modes, body) => (modes.trim().split(/\s+/).includes(mode) ? body : ''))
-        .trim();
+    const rendered = (block ? block[0] : text).replace(MODE_FENCE_RE, (all, modes, body) => (modes.trim().split(/\s+/).includes(mode) ? body : '')).trim();
     return rendered.replace(GATE_MARKER, '').replace(GATE_END_MARKER, '').trim() ? rendered : '';
 }
 
@@ -188,9 +186,7 @@ function buildStateLine(mode, source) {
     } catch {
         /* the raw source name still states where the mode came from */
     }
-    const note = session && mode !== 'off'
-        ? ' — the first task after your directive counts as the session\'s first task for the rule below'
-        : '';
+    const note = session && mode !== 'off' ? " — the first task after your directive counts as the session's first task for the rule below" : '';
     return `Route mode: ${mode} (${label}${note})`;
 }
 
@@ -225,8 +221,7 @@ function buildOversizeNotice(length, protocolLength) {
 function buildInjection(projectDir, protocolText, mode = DEFAULT_MODE, source = 'default', options = {}) {
     const effectiveMode = mode === 'auto' ? 'auto' : DEFAULT_MODE;
     const context = require('./context-delivery.cjs');
-    const cue = context.conciseCore(projectDir, options)
-        ? context.readConciseProtocol(projectDir, context.ROUTE_TAG) : null;
+    const cue = context.conciseCore(projectDir, options) ? context.readConciseProtocol(projectDir, context.ROUTE_TAG) : null;
     const concise = cue ? cue.split(CATALOG_MODE_SLOT).join(CATALOG_MODE_SLOT.replace('<mode>', effectiveMode)) : null;
     const gate = concise || renderGateForMode(fs.readFileSync(path.join(projectDir, ...GATE_FILE_SEGMENTS), 'utf8'), effectiveMode);
     if (!gate) throw new Error('empty gate');
@@ -255,7 +250,8 @@ function buildCatalogInjection(projectDir, mode = DEFAULT_MODE) {
     const catalogLib = require('../../scripts/lib/workflow-skills-catalog.cjs');
     const effectiveMode = mode === 'auto' ? 'auto' : DEFAULT_MODE;
     const assemble = catalog => [CATALOG_START, catalog, CATALOG_END].join('\n');
-    const compact = (sections, hintMax) => () => catalogLib.buildWorkflowSkillsCatalog({ rootDir: projectDir, sections, compact: true, mode: effectiveMode, hintMax });
+    const compact = (sections, hintMax) => () =>
+        catalogLib.buildWorkflowSkillsCatalog({ rootDir: projectDir, sections, compact: true, mode: effectiveMode, hintMax });
     // Full whole-clause hints first; a registry too large for them keeps its compact rows with shorter whole-clause
     // hints before the catalog shrinks to an index without hints
     const forms = [
@@ -362,8 +358,11 @@ function readSessionMode(ledger, storeRoot, sessionId) {
 
 function writeSessionMode(ledger, storeRoot, sessionId, mode) {
     try {
-        return Boolean(ledger && typeof ledger.writeSessionState === 'function'
-            && ledger.writeSessionState(storeRoot, sessionId, sessionRouting().SESSION_MODE_STATE, { mode }) === true);
+        return Boolean(
+            ledger &&
+            typeof ledger.writeSessionState === 'function' &&
+            ledger.writeSessionState(storeRoot, sessionId, sessionRouting().SESSION_MODE_STATE, { mode }) === true
+        );
     } catch {
         return false;
     }
@@ -443,9 +442,8 @@ function run(input, deps = {}) {
             } catch {
                 directive = null;
             }
-            const ack = part === PART_ROUTE
-                ? applyDirective(routing, directive, { ledger, storeRoot, sessionId: input.session_id, homeDir: deps.homeDir })
-                : '';
+            const ack =
+                part === PART_ROUTE ? applyDirective(routing, directive, { ledger, storeRoot, sessionId: input.session_id, homeDir: deps.homeDir }) : '';
             const sessionMode = directive ? directive.mode : readSessionMode(ledger, storeRoot, input.session_id);
             const routeOptions = { rootDir: projectDir, env, homeDir: deps.homeDir, sessionMode };
             const { mode, source } = resolveMode(routing, routeOptions);
@@ -454,8 +452,7 @@ function run(input, deps = {}) {
             const output = text => require('./prompt-route-utils.cjs').routerOutput(input, text);
             const context = require('./context-delivery.cjs');
             const profile = context.profileOptions(deps);
-            const concise = context.conciseCore(projectDir, profile)
-                && context.readConciseProtocol(projectDir, context.ROUTE_TAG);
+            const concise = context.conciseCore(projectDir, profile) && context.readConciseProtocol(projectDir, context.ROUTE_TAG);
 
             if (part === PART_CATALOG) {
                 // The catalog serves the gate: the states that deliver no gate by design (`off`, skill auto-trigger
@@ -465,23 +462,26 @@ function run(input, deps = {}) {
                 // command. Missing concise sources retain full compatible catalog delivery.
                 if (concise) return finish('');
                 const catalog = deps.content || buildCatalogInjectionOrNotice(projectDir, mode);
-                ledger.deliverWithCompaction({
-                    root: storeRoot,
-                    input,
-                    group: CATALOG_RECORD_GROUP,
-                    hash: crypto.createHash('sha256').update(catalog, 'utf8').digest('hex'),
-                    payload: output(`${catalog}\n`),
-                    settings: SETTINGS,
-                    now,
-                    write,
-                    failOpen: true
-                }).then(finish, () => finish(''));
+                ledger
+                    .deliverWithCompaction({
+                        root: storeRoot,
+                        input,
+                        group: CATALOG_RECORD_GROUP,
+                        hash: crypto.createHash('sha256').update(catalog, 'utf8').digest('hex'),
+                        payload: output(`${catalog}\n`),
+                        settings: SETTINGS,
+                        now,
+                        write,
+                        failOpen: true
+                    })
+                    .then(finish, () => finish(''));
                 return;
             }
 
             let content;
             if (skillPolicy?.enabled === false) {
-                content = 'Framework skill auto-trigger is disabled. Do not self-route into a catalog workflow or offer the workflow-selection question. For a suitable unrequested skill/workflow candidate, follow the single skill-choice question in the skill activation policy; user confirmation authorizes that candidate. Named user requests and required hook/protocol calls remain eligible under the skill activation policy; existing workflow route restrictions still apply.';
+                content =
+                    'Framework skill auto-trigger is disabled. Do not self-route into a catalog workflow or offer the workflow-selection question. For a suitable unrequested skill/workflow candidate, follow the single skill-choice question in the skill activation policy; user confirmation authorizes that candidate. Named user requests and required hook/protocol calls remain eligible under the skill activation policy; existing workflow route restrictions still apply.';
             } else if (mode !== 'off') {
                 const protocol = deps.protocol !== undefined ? deps.protocol : resolveProtocolText(routing, projectDir);
                 content = deps.content || buildInjectionOrNotice(projectDir, protocol, mode, source, profile);
@@ -492,27 +492,35 @@ function run(input, deps = {}) {
             const hash = crypto.createHash('sha256').update(content, 'utf8').digest('hex');
             // This output is the only carrier of the route and of the off notice, so an unusable record store
             // must not silence it: failOpen delivers without a record (a duplicate is accepted over silence).
-            ledger.deliverWithCompaction({
-                root: storeRoot,
-                input,
-                group: RECORD_GROUP,
-                hash,
-                payload: output(ack ? `${content}\n${ack}\n` : `${content}\n`),
-                settings: SETTINGS,
-                now,
-                write,
-                failOpen: true
-            }).then(written => {
-                // The block is already in the conversation, so nothing was written: the directive still gets its reply line.
-                if (written === '' && ack) return new Promise(done => write(`${ack}\n`, ok => done(ok ? `${ack}\n` : '')));
-                // Mid-session (the gate is already delivered): a request for work gets the plan-offer cue.
-                const decision = written === '' && typeof routing.resolveDecisionSupportMode === 'function'
-                    ? routing.resolveDecisionSupportMode({ ...routeOptions, ...(skillPolicy ? { skillAutoTrigger: skillPolicy.enabled !== false } : {}) })
-                    : null;
-                const cue = written === '' && !directive && mode !== 'off' && skillPolicy?.enabled !== false ? planOfferCue(input, decision?.effectiveMode) : '';
-                if (cue) return new Promise(done => write(output(`${cue}\n`), ok => done(ok ? cue : '')));
-                return written;
-            }).then(finish, () => finish(''));
+            ledger
+                .deliverWithCompaction({
+                    root: storeRoot,
+                    input,
+                    group: RECORD_GROUP,
+                    hash,
+                    payload: output(ack ? `${content}\n${ack}\n` : `${content}\n`),
+                    settings: SETTINGS,
+                    now,
+                    write,
+                    failOpen: true
+                })
+                .then(written => {
+                    // The block is already in the conversation, so nothing was written: the directive still gets its reply line.
+                    if (written === '' && ack) return new Promise(done => write(`${ack}\n`, ok => done(ok ? `${ack}\n` : '')));
+                    // Mid-session (the gate is already delivered): a request for work gets the plan-offer cue.
+                    const decision =
+                        written === '' && typeof routing.resolveDecisionSupportMode === 'function'
+                            ? routing.resolveDecisionSupportMode({
+                                  ...routeOptions,
+                                  ...(skillPolicy ? { skillAutoTrigger: skillPolicy.enabled !== false } : {})
+                              })
+                            : null;
+                    const cue =
+                        written === '' && !directive && mode !== 'off' && skillPolicy?.enabled !== false ? planOfferCue(input, decision?.effectiveMode) : '';
+                    if (cue) return new Promise(done => write(output(`${cue}\n`), ok => done(ok ? cue : '')));
+                    return written;
+                })
+                .then(finish, () => finish(''));
         } catch {
             finish('');
         }
@@ -546,7 +554,15 @@ function runHook(part) {
     } catch {
         input = null;
     }
-    if (input) run(input, { part }).then(() => { process.exitCode = 0; }, () => { process.exitCode = 0; });
+    if (input)
+        run(input, { part }).then(
+            () => {
+                process.exitCode = 0;
+            },
+            () => {
+                process.exitCode = 0;
+            }
+        );
 }
 
 module.exports = {

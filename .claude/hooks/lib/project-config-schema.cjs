@@ -12,10 +12,7 @@
  */
 'use strict';
 
-const {
-    normalizeProjectRelativePath,
-    validateReferenceDocDefinition
-} = require('./project-reference-registry.cjs');
+const { normalizeProjectRelativePath, validateReferenceDocDefinition } = require('./project-reference-registry.cjs');
 const { TASK_TRACKING_SCHEMA, validateTaskTracking } = require('./task-tracking-config.cjs');
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -45,91 +42,133 @@ const SKILL_NAME_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
  * 'arrayOf' = array of objects matching a sub-schema
  */
 const SCHEMA = {
-  contextDelivery: {
-    type: "object",
-    required: false,
-    describe: "Team default for the guidance delivery profile (compatible or concise). Kept in the project config because the framework-shipped .claude/.ck.json is replaced on refresh. Order, later wins: ~/.claude/.ck.json, .claude/.ck.json, this file, checkout .claude/.ck.local.json. A malformed value resolves compatible.",
-    properties: {
-      profile: { type: "string", required: false, enumValues: ["compatible", "concise"], describe: "compatible: the full universal bundle; concise: the short universal core and route cue." },
+    contextDelivery: {
+        type: 'object',
+        required: false,
+        describe:
+            'Team default for the guidance delivery profile (compatible or concise). Kept in the project config because the framework-shipped .claude/.ck.json is replaced on refresh. Order, later wins: ~/.claude/.ck.json, .claude/.ck.json, this file, checkout .claude/.ck.local.json. A malformed value resolves compatible.',
+        properties: {
+            profile: {
+                type: 'string',
+                required: false,
+                enumValues: ['compatible', 'concise'],
+                describe: 'compatible: the full universal bundle; concise: the short universal core and route cue.'
+            }
+        }
     },
-  },
-  // Team layer for the knowledge router (knowledge-route.cjs); its help text lives in
-  // .claude/scripts/lib/config-option-describes.cjs, like the other router sections below.
-  knowledgeRoute: {
-    type: "object",
-    required: false,
-    properties: {
-      enabled: { type: "boolean", required: false },
-      promptTriggers: { type: "boolean", required: false },
+    // Team layer for the knowledge router (knowledge-route.cjs); its help text lives in
+    // .claude/scripts/lib/config-option-describes.cjs, like the other router sections below.
+    knowledgeRoute: {
+        type: 'object',
+        required: false,
+        properties: {
+            enabled: { type: 'boolean', required: false },
+            promptTriggers: { type: 'boolean', required: false }
+        }
     },
-  },
-  // Team layer for the advisory router switches (prompt-route-utils loadRouterSettings): read after the
-  // framework-shipped .claude/.ck.json and before the personal files, so a framework update never resets them.
-  // Advisory UserPromptSubmit routers. On by default; `enabled: false` (or the env switch
-  // CK_COMMIT_SKILL_ROUTE=0 / CK_JUDGEMENT_INTEGRITY_ROUTE=0) switches one off.
-  commitSkillRoute: {
-    type: "object",
-    required: false,
-    properties: {
-      enabled: { type: "boolean", required: false },
+    // Team layer for the advisory router switches (prompt-route-utils loadRouterSettings): read after the
+    // framework-shipped .claude/.ck.json and before the personal files, so a framework update never resets them.
+    // Advisory UserPromptSubmit routers. On by default; `enabled: false` (or the env switch
+    // CK_COMMIT_SKILL_ROUTE=0 / CK_JUDGEMENT_INTEGRITY_ROUTE=0) switches one off.
+    commitSkillRoute: {
+        type: 'object',
+        required: false,
+        properties: {
+            enabled: { type: 'boolean', required: false }
+        }
     },
-  },
-  judgementIntegrityRoute: {
-    type: "object",
-    required: false,
-    properties: {
-      enabled: { type: "boolean", required: false },
+    judgementIntegrityRoute: {
+        type: 'object',
+        required: false,
+        properties: {
+            enabled: { type: 'boolean', required: false }
+        }
     },
-  },
-  // AI-feature router (ai-feature-route.cjs). On by default; `enabled: false` or CK_AI_FEATURE_ROUTE=0 switches it off.
-  aiFeatureRoute: {
-    type: "object",
-    required: false,
-    properties: {
-      enabled: { type: "boolean", required: false },
+    // AI-feature router (ai-feature-route.cjs). On by default; `enabled: false` or CK_AI_FEATURE_ROUTE=0 switches it off.
+    aiFeatureRoute: {
+        type: 'object',
+        required: false,
+        properties: {
+            enabled: { type: 'boolean', required: false }
+        }
     },
-  },
-  // Quality-skill reminder after tool results (quality-skill-remind.cjs). On by default;
-  // `enabled: false` or CK_QUALITY_SKILL_REMINDER=0 switches it off.
-  qualitySkillReminder: {
-    type: "object",
-    required: false,
-    properties: {
-      enabled: { type: "boolean", required: false },
+    // Quality-skill reminder after tool results (quality-skill-remind.cjs). On by default;
+    // `enabled: false` or CK_QUALITY_SKILL_REMINDER=0 switches it off.
+    qualitySkillReminder: {
+        type: 'object',
+        required: false,
+        properties: {
+            enabled: { type: 'boolean', required: false }
+        }
     },
-  },
-  // Core engineering principles reminder (core-principles-inject.cjs). On by default;
-  // `enabled: false` or CK_CORE_PRINCIPLES_INJECT=0 switches it off.
-  corePrinciplesInject: {
-    type: "object",
-    required: false,
-    properties: {
-      enabled: { type: "boolean", required: false },
-      // Mirrors file-conventions.cjs CLASS_REINJECT_TOKENS_RANGE (parity asserted by the core-principles-inject suite).
-      // The hook accepts only integers in range; any other value falls back to its default.
-      reinjectAfterTokens: { type: "number", required: false, min: 20000, max: 2000000 },
+    // Core engineering principles reminder (core-principles-inject.cjs). On by default;
+    // `enabled: false` or CK_CORE_PRINCIPLES_INJECT=0 switches it off.
+    corePrinciplesInject: {
+        type: 'object',
+        required: false,
+        properties: {
+            enabled: { type: 'boolean', required: false },
+            // Mirrors file-conventions.cjs CLASS_REINJECT_TOKENS_RANGE (parity asserted by the core-principles-inject suite).
+            // The hook accepts only integers in range; any other value falls back to its default.
+            reinjectAfterTokens: { type: 'number', required: false, min: 20000, max: 2000000 }
+        }
     },
-  },
-  frameworkRuntime: {
-    type: "object",
-    required: false,
-    describe: "Framework on, quiet (no context injection; review checks remain), or off. Use framework-mode.cjs to reconcile Claude/Codex native skills too; personal settings never change tracked projections.",
-    properties: {
-      mode: { type: "string", required: false, enumValues: ["on", "quiet", "off"], describe: "Modes on, quiet, off (default on); later wins: project config, ~/.claude/.ck.json, checkout .claude/.ck.local.json, CK_FRAMEWORK_MODE. Hooks see changes immediately; run framework-mode.cjs apply for native skill changes, then start fresh sessions." },
-      quietProjectRules: { type: "boolean", required: false, describe: "With mode quiet, true keeps only the hooks that deliver the project's own rules: skill overlays, per-file conventions and the skill auto-trigger policy. Default false; later wins: project config, ~/.claude/.ck.json, checkout .claude/.ck.local.json, CK_QUIET_PROJECT_RULES." },
-      quietSkills: { type: "array", required: false, itemType: "string", describe: "With frameworkRuntime.quietNative restrict, framework skill names that stay model-invocable in quiet; the highest layer that sets the list wins. commit and the configured commit review skills always stay." },
-      quietNative: { type: "string", required: false, enumValues: ["none", "restrict"], describe: "What quiet does to native skill and agent visibility. none (default) leaves it; restrict makes framework skills user-invocable-only (except quietSkills and the commit gate reviews) and denies framework agents. Later wins: project config, ~/.claude/.ck.json, checkout .claude/.ck.local.json, CK_QUIET_NATIVE; framework-mode.cjs apply reconciles native settings." },
-      autoApplyNative: { type: "boolean", required: false, describe: "true lets framework-native-sync.cjs run framework-mode.cjs apply at session start in the main checkout when native settings do not match the effective mode. Default false; later wins: project config, ~/.claude/.ck.json, checkout .claude/.ck.local.json, CK_AUTO_APPLY_NATIVE." },
-      offMode: { type: "string", required: false, enumValues: ["allowed", "as-quiet"], describe: "Team policy, read from the project config only. allowed (default) keeps mode off; as-quiet reads every saved or requested off as quiet, so a personal setting never stops the commit and doc gates." },
+    frameworkRuntime: {
+        type: 'object',
+        required: false,
+        describe:
+            'Framework on, quiet (no context injection; review checks remain), or off. Use framework-mode.cjs to reconcile Claude/Codex native skills too; personal settings never change tracked projections.',
+        properties: {
+            mode: {
+                type: 'string',
+                required: false,
+                enumValues: ['on', 'quiet', 'off'],
+                describe:
+                    'Modes on, quiet, off (default on); later wins: project config, ~/.claude/.ck.json, checkout .claude/.ck.local.json, CK_FRAMEWORK_MODE. Hooks see changes immediately; run framework-mode.cjs apply for native skill changes, then start fresh sessions.'
+            },
+            quietProjectRules: {
+                type: 'boolean',
+                required: false,
+                describe:
+                    "With mode quiet, true keeps only the hooks that deliver the project's own rules: skill overlays, per-file conventions and the skill auto-trigger policy. Default false; later wins: project config, ~/.claude/.ck.json, checkout .claude/.ck.local.json, CK_QUIET_PROJECT_RULES."
+            },
+            quietSkills: {
+                type: 'array',
+                required: false,
+                itemType: 'string',
+                describe:
+                    'With frameworkRuntime.quietNative restrict, framework skill names that stay model-invocable in quiet; the highest layer that sets the list wins. commit and the configured commit review skills always stay.'
+            },
+            quietNative: {
+                type: 'string',
+                required: false,
+                enumValues: ['none', 'restrict'],
+                describe:
+                    'What quiet does to native skill and agent visibility. none (default) leaves it; restrict makes framework skills user-invocable-only (except quietSkills and the commit gate reviews) and denies framework agents. Later wins: project config, ~/.claude/.ck.json, checkout .claude/.ck.local.json, CK_QUIET_NATIVE; framework-mode.cjs apply reconciles native settings.'
+            },
+            autoApplyNative: {
+                type: 'boolean',
+                required: false,
+                describe:
+                    'true lets framework-native-sync.cjs run framework-mode.cjs apply at session start in the main checkout when native settings do not match the effective mode. Default false; later wins: project config, ~/.claude/.ck.json, checkout .claude/.ck.local.json, CK_AUTO_APPLY_NATIVE.'
+            },
+            offMode: {
+                type: 'string',
+                required: false,
+                enumValues: ['allowed', 'as-quiet'],
+                describe:
+                    'Team policy, read from the project config only. allowed (default) keeps mode off; as-quiet reads every saved or requested off as quiet, so a personal setting never stops the commit and doc gates.'
+            }
+        }
     },
-  },
     taskTracking: TASK_TRACKING_SCHEMA,
     _description: { type: 'string', required: false },
     schemaVersion: { type: 'number', required: false },
     project: {
         type: 'object',
         required: true,
-        describe: 'Required project identity. Only name is mandatory; stack, architecture, testing, UI, and other capability sections may be omitted until the adopter needs them.',
+        describe:
+            'Required project identity. Only name is mandatory; stack, architecture, testing, UI, and other capability sections may be omitted until the adopter needs them.',
         properties: {
             name: { type: 'string', required: true, describe: 'Non-empty human-readable project name.' },
             description: { type: 'string', required: false },
@@ -181,7 +220,8 @@ const SCHEMA = {
     designSystem: {
         type: 'object',
         required: false,
-        describe: 'Optional design-system capability. Omit for projects with no maintained design system; UI work then follows platform accessibility and the project UI references.',
+        describe:
+            'Optional design-system capability. Omit for projects with no maintained design system; UI work then follows platform accessibility and the project UI references.',
         properties: {
             docsPath: { type: 'string', required: true },
             modernUiNote: { type: 'string', required: false },
@@ -203,24 +243,49 @@ const SCHEMA = {
     uiReview: {
         type: 'object',
         required: false,
-        describe: 'Optional UI-review tuning. Omit to judge surface load by task and user expertise alone; declared budgets are project policy, never framework defaults.',
+        describe:
+            'Optional UI-review tuning. Omit to judge surface load by task and user expertise alone; declared budgets are project policy, never framework defaults.',
         properties: {
             complexityBudget: {
                 type: 'object',
                 required: false,
-                describe: 'Project-declared heuristic ceilings a UI review compares against (design-review-checklist B15). Exceeding one is a finding only when the excess is not justified by the primary user and task.',
+                describe:
+                    'Project-declared heuristic ceilings a UI review compares against (design-review-checklist B15). Exceeding one is a finding only when the excess is not justified by the primary user and task.',
                 properties: {
                     inputsPerStep: { type: 'number', required: false, describe: 'Maximum inputs shown in one step of an entry flow.' },
                     sectionsPerView: { type: 'number', required: false, describe: 'Maximum headed content or input sections in one view.' },
                     primaryActionsPerView: { type: 'number', required: false, describe: 'Maximum equal-weight actions competing in one view.' },
-                    dialogInputs: { type: 'number', required: false, describe: 'Maximum inputs in a dialog before the task belongs in a full view or stepped flow (checklist E9).' },
-                    textButtonsPerView: { type: 'number', required: false, describe: 'Maximum boxed text buttons (filled + outlined) in one view, dialog or screenful, excluding navigation, tabs, menus and form fields (checklist C14).' },
-                    buttonGroupWidthSpread: { type: 'number', required: false, describe: 'Maximum width spread (max - min) / max among the text buttons of one group, 0-1 (checklist C15).' },
+                    dialogInputs: {
+                        type: 'number',
+                        required: false,
+                        describe: 'Maximum inputs in a dialog before the task belongs in a full view or stepped flow (checklist E9).'
+                    },
+                    textButtonsPerView: {
+                        type: 'number',
+                        required: false,
+                        describe:
+                            'Maximum boxed text buttons (filled + outlined) in one view, dialog or screenful, excluding navigation, tabs, menus and form fields (checklist C14).'
+                    },
+                    buttonGroupWidthSpread: {
+                        type: 'number',
+                        required: false,
+                        describe: 'Maximum width spread (max - min) / max among the text buttons of one group, 0-1 (checklist C15).'
+                    },
                     rowMetaChars: { type: 'number', required: false, describe: "Maximum characters in a list row's one meta line (checklist B16)." },
-                    blockCopyChars: { type: 'number', required: false, describe: 'Maximum characters in one text block inside a row, card, table cell or dashboard tile before it moves behind disclosure (checklist B16).' }
+                    blockCopyChars: {
+                        type: 'number',
+                        required: false,
+                        describe:
+                            'Maximum characters in one text block inside a row, card, table cell or dashboard tile before it moves behind disclosure (checklist B16).'
+                    }
                 }
             },
-            representativeSurfaces: { type: 'array', required: false, describe: 'Pages/views reviewed when a global style, theme, token, or shared primitive changes (checklist 0.5). Use route or view names the project recognizes.' }
+            representativeSurfaces: {
+                type: 'array',
+                required: false,
+                describe:
+                    'Pages/views reviewed when a global style, theme, token, or shared primitive changes (checklist 0.5). Use route or view names the project recognizes.'
+            }
         }
     },
     // Omitted profiles retain the existing business-spec / section-8 / TestSpec defaults.
@@ -229,7 +294,8 @@ const SCHEMA = {
         type: 'object',
         required: false,
         freeform: true,
-        describe: 'Optional versioned native engineering-contract profile. Omit to retain business intent and legacy TC/TestSpec behavior; declared values are strictly validated.'
+        describe:
+            'Optional versioned native engineering-contract profile. Omit to retain business intent and legacy TC/TestSpec behavior; declared values are strictly validated.'
     },
     // Spec-system roots. Optional at the top level so existing project configs stay
     // valid, but every declared sub-object requires its `path` — a partially-declared
@@ -261,7 +327,11 @@ const SCHEMA = {
                 properties: {
                     path: { type: 'string', required: true, describe: 'Derived-view dir, relative to repo root (e.g. "docs/tech-specs").' },
                     authorship: { type: 'string', required: false, describe: 'Origin: "derived" (generated) for the technical tree.' },
-                    m1Policy: { type: 'string', required: false, describe: 'M1 policy: "exempt" — naming code in a generated projection is the point, not a leak.' }
+                    m1Policy: {
+                        type: 'string',
+                        required: false,
+                        describe: 'M1 policy: "exempt" — naming code in a generated projection is the point, not a leak.'
+                    }
                 }
             }
         }
@@ -275,7 +345,8 @@ const SCHEMA = {
     docsRoots: {
         type: 'object',
         required: false,
-        describe: 'Relocatable documentation roots (paths relative to the repo root). Each declared\nsub-object requires its `path`; a partially-declared docsRoots is a configuration\nerror, not a default. Omit a sub-object entirely to keep the framework default.',
+        describe:
+            'Relocatable documentation roots (paths relative to the repo root). Each declared\nsub-object requires its `path`; a partially-declared docsRoots is a configuration\nerror, not a default. Omit a sub-object entirely to keep the framework default.',
         properties: {
             projectReference: {
                 type: 'object',
@@ -329,7 +400,12 @@ const SCHEMA = {
     },
     // Free-text rationale for a DELIBERATE `techSpecScan` omission, so the absence
     // reads as a decision rather than an oversight to the next maintainer.
-    _techSpecScanNote: { type: 'string', required: false, describe: 'Free-text rationale for a DELIBERATE techSpecScan omission, so the absence\nreads as a decision, not an oversight. Set this INSTEAD of techSpecScan when\nthe project has no spec-annotation convention.' },
+    _techSpecScanNote: {
+        type: 'string',
+        required: false,
+        describe:
+            'Free-text rationale for a DELIBERATE techSpecScan omission, so the absence\nreads as a decision, not an oversight. Set this INSTEAD of techSpecScan when\nthe project has no spec-annotation convention.'
+    },
     // How the tech-spec generator discovers annotated tests. Optional: a project whose
     // stack has no such annotation convention simply omits this, and the generator exits
     // non-zero naming the missing key rather than silently reporting zero annotations.
@@ -343,11 +419,18 @@ const SCHEMA = {
     techSpecScan: {
         type: 'object',
         required: false,
-        describe: 'Enables /tech-spec generation — how it discovers annotated tests. Populate\nthis for any project that wants derived technical specs; omit it (and set\n_techSpecScanNote) ONLY if the stack has no spec-annotation convention.',
+        describe:
+            'Enables /tech-spec generation — how it discovers annotated tests. Populate\nthis for any project that wants derived technical specs; omit it (and set\n_techSpecScanNote) ONLY if the stack has no spec-annotation convention.',
         properties: {
             sourceRoot: { type: 'string', required: true, describe: 'Primary source dir the generator scans, relative to repo root (e.g. "src").' },
             fileExtensions: { type: 'array', required: true, describe: 'Source-language extensions to scan (e.g. [".cs"] | [".ts"] | [".java"]).' },
-            annotationPattern: { type: 'string', required: true, isRegex: true, describe: 'Regex matching THIS project\'s spec annotation. CONTRACT: exactly two capture\ngroups — group 1 = trait name (MUST be TestSpec or TechnicalSpec), group 2 =\nthe non-empty spec id. Validated at parse time; generator refuses on mismatch.' }
+            annotationPattern: {
+                type: 'string',
+                required: true,
+                isRegex: true,
+                describe:
+                    "Regex matching THIS project's spec annotation. CONTRACT: exactly two capture\ngroups — group 1 = trait name (MUST be TestSpec or TechnicalSpec), group 2 =\nthe non-empty spec id. Validated at parse time; generator refuses on mismatch."
+            }
         }
     },
     scss: {
@@ -393,21 +476,61 @@ const SCHEMA = {
     contextGroups: {
         type: 'arrayOf',
         required: false,
-        describe: 'Per-file convention classes: member = fileExtensions ok AND any include (pathRegexes|pathGlobs|fileNameRegexes, or a contentRegexes match in a contentExtensions file) AND no exclude; priority 100/500/900.\n' +
+        describe:
+            'Per-file convention classes: member = fileExtensions ok AND any include (pathRegexes|pathGlobs|fileNameRegexes, or a contentRegexes match in a contentExtensions file) AND no exclude; priority 100/500/900.\n' +
             'Groups with rules|skills|referenceDocs|guideDoc|patternsDoc are rendered in CLAUDE.md and delivered by the hook; detect: node .claude/hooks/lib/convention-merge.cjs --detect\n' +
             'Per-group trigger `on`: read | edit | both (default both); `edit` delivers the group on edits only, never on plain reads.',
         itemSchema: {
             name: { type: 'string', required: true, describe: 'Unique class name (kebab-case); also the convention tag name.' },
-            pathRegexes: { type: 'array', required: true, itemsAreRegex: true, describe: 'Case-insensitive regexes tested against "/" + repo-relative forward-slash path; may be [] when pathGlobs or fileNameRegexes is set.' },
-            pathGlobs: { type: 'array', required: false, describe: 'Repo-relative globs (** any segments, * within a segment, ? one char; case-insensitive, anchored).' },
-            fileNameRegexes: { type: 'array', required: false, itemsAreRegex: true, describe: 'Case-insensitive regexes tested against the file base name only.' },
-            excludePathRegexes: { type: 'array', required: false, itemsAreRegex: true, describe: 'Regexes (same path form as pathRegexes) that remove a file from this group.' },
+            pathRegexes: {
+                type: 'array',
+                required: true,
+                itemsAreRegex: true,
+                describe: 'Case-insensitive regexes tested against "/" + repo-relative forward-slash path; may be [] when pathGlobs or fileNameRegexes is set.'
+            },
+            pathGlobs: {
+                type: 'array',
+                required: false,
+                describe: 'Repo-relative globs (** any segments, * within a segment, ? one char; case-insensitive, anchored).'
+            },
+            fileNameRegexes: {
+                type: 'array',
+                required: false,
+                itemsAreRegex: true,
+                describe: 'Case-insensitive regexes tested against the file base name only.'
+            },
+            excludePathRegexes: {
+                type: 'array',
+                required: false,
+                itemsAreRegex: true,
+                describe: 'Regexes (same path form as pathRegexes) that remove a file from this group.'
+            },
             excludePathGlobs: { type: 'array', required: false, describe: 'Globs that remove a file from this group.' },
             fileExtensions: { type: 'array', required: false },
-            contentRegexes: { type: 'array', required: false, itemsAreRegex: true, describe: 'Content signals: case-insensitive regexes tested against the first 64 KiB of a file (files over 2 MiB, binary or unreadable files never match). A file matches when its extension is in contentExtensions and any regex matches, as an alternative to a path include. At most 64 regexes of up to 500 characters; needs contentExtensions. A best-effort lint rejects well-known slow shapes: back-references, a repeated group containing an open-ended repetition, an alternation with overlapping starts under repetition, back-to-back open-ended repetitions, or more than 10 optional elements. Regexes other than the framework built-ins see only the first 16 KiB and run under a hard time budget (a timeout counts as no match).' },
-            contentExtensions: { type: 'array', required: false, describe: 'Extensions (leading dot optional, case-insensitive) of the text/code files that are content-scanned for contentRegexes; at most 64. Files of other extensions match by path and name only.' },
-            contentLabel: { type: 'string', required: false, describe: 'Short human label for the content signals (up to 80 characters), shown in the generated Automatic Skill Activation table, e.g. "AI SDK use".' },
-            priority: { type: 'number', required: false, describe: 'Precedence rank, lower first and wins on conflict. Bands: 100 specific, 500 default, 900 general.' },
+            contentRegexes: {
+                type: 'array',
+                required: false,
+                itemsAreRegex: true,
+                describe:
+                    'Content signals: case-insensitive regexes tested against the first 64 KiB of a file (files over 2 MiB, binary or unreadable files never match). A file matches when its extension is in contentExtensions and any regex matches, as an alternative to a path include. At most 64 regexes of up to 500 characters; needs contentExtensions. A best-effort lint rejects well-known slow shapes: back-references, a repeated group containing an open-ended repetition, an alternation with overlapping starts under repetition, back-to-back open-ended repetitions, or more than 10 optional elements. Regexes other than the framework built-ins see only the first 16 KiB and run under a hard time budget (a timeout counts as no match).'
+            },
+            contentExtensions: {
+                type: 'array',
+                required: false,
+                describe:
+                    'Extensions (leading dot optional, case-insensitive) of the text/code files that are content-scanned for contentRegexes; at most 64. Files of other extensions match by path and name only.'
+            },
+            contentLabel: {
+                type: 'string',
+                required: false,
+                describe:
+                    'Short human label for the content signals (up to 80 characters), shown in the generated Automatic Skill Activation table, e.g. "AI SDK use".'
+            },
+            priority: {
+                type: 'number',
+                required: false,
+                describe: 'Precedence rank, lower first and wins on conflict. Bands: 100 specific, 500 default, 900 general.'
+            },
             guideDoc: { type: 'string', required: false },
             patternsDoc: { type: 'string', required: false },
             stylingDoc: { type: 'string', required: false },
@@ -415,11 +538,32 @@ const SCHEMA = {
             rules: { type: 'array', required: false, describe: 'Short, checkable rules injected verbatim (keep each under ~120 chars).' },
             skills: { type: 'array', required: false, describe: 'Skill names whose SKILL.md protocol applies when editing these files.' },
             referenceDocs: { type: 'array', required: false, describe: 'Repo-relative docs the AI must read before editing these files.' },
-            reinjectAfterTokens: { type: 'number', required: false, describe: 'Class re-arm distance in conversation tokens (20000..2000000; x22 transcript bytes per token). Omit to use conventionInjection.reinjectAfterBytes.' },
-            evidenceDocs: { type: 'array', required: false, describe: 'Repo-relative docs whose Read (ALL of them) inside the class window counts as the class being present — no digest re-delivered.' },
-            evidenceSkills: { type: 'array', required: false, describe: 'Skill names whose load (ANY of them) inside the class window counts as the class being present — they carry the protocol inline.' },
-            origin: { type: 'string', required: false, describe: '"detected" (written by setup detection; may be refreshed while unedited) or "user" (never touched by setup).' },
-            detectedFingerprint: { type: 'string', required: false, describe: 'Setup-owned fingerprint of the detected content; a mismatch marks the group as user-edited.' },
+            reinjectAfterTokens: {
+                type: 'number',
+                required: false,
+                describe:
+                    'Class re-arm distance in conversation tokens (20000..2000000; x22 transcript bytes per token). Omit to use conventionInjection.reinjectAfterBytes.'
+            },
+            evidenceDocs: {
+                type: 'array',
+                required: false,
+                describe: 'Repo-relative docs whose Read (ALL of them) inside the class window counts as the class being present — no digest re-delivered.'
+            },
+            evidenceSkills: {
+                type: 'array',
+                required: false,
+                describe: 'Skill names whose load (ANY of them) inside the class window counts as the class being present — they carry the protocol inline.'
+            },
+            origin: {
+                type: 'string',
+                required: false,
+                describe: '"detected" (written by setup detection; may be refreshed while unedited) or "user" (never touched by setup).'
+            },
+            detectedFingerprint: {
+                type: 'string',
+                required: false,
+                describe: 'Setup-owned fingerprint of the detected content; a mismatch marks the group as user-edited.'
+            },
             on: {
                 type: 'string',
                 required: false,
@@ -431,7 +575,8 @@ const SCHEMA = {
     conventionInjection: {
         type: 'object',
         required: false,
-        describe: 'Opt-in hook delivery of contextGroups (absent/enabled:false => off). Ranges: maxChars 500..10000 (4000), maxClassesPerEdit 1..10 (4), reinjectAfterBytes >=4500000 (4500000), reinjectAfterMinutes 1..1440 (30), blindReinjectAfterMinutes 1..1440 (5), onRead (true).',
+        describe:
+            'Opt-in hook delivery of contextGroups (absent/enabled:false => off). Ranges: maxChars 500..10000 (4000), maxClassesPerEdit 1..10 (4), reinjectAfterBytes >=4500000 (4500000), reinjectAfterMinutes 1..1440 (30), blindReinjectAfterMinutes 1..1440 (5), onRead (true).',
         properties: {
             enabled: { type: 'boolean', required: false },
             maxChars: { type: 'number', required: false },
@@ -440,7 +585,12 @@ const SCHEMA = {
             reinjectAfterMinutes: { type: 'number', required: false },
             blindReinjectAfterMinutes: { type: 'number', required: false },
             onRead: { type: 'boolean', required: false },
-            completeLookup: { type: 'boolean', required: false, describe: 'Require complete paged pre-action lookup of all matching classes. With inlinePathRules:false, replaces full root rules/table only when the generator supports complete lookup; bounded automatic reminders remain accelerators.' },
+            completeLookup: {
+                type: 'boolean',
+                required: false,
+                describe:
+                    'Require complete paged pre-action lookup of all matching classes. With inlinePathRules:false, replaces full root rules/table only when the generator supports complete lookup; bounded automatic reminders remain accelerators.'
+            },
             compactionMarkers: { type: 'array', required: false, itemsAreRegex: true }
         }
     },
@@ -495,14 +645,20 @@ const SCHEMA = {
     framework: {
         type: 'object',
         required: false,
-        describe: 'Optional stack and pattern metadata. Omit when the project has no single application framework or when this information is not yet known; configured consumers use neutral defaults.',
+        describe:
+            'Optional stack and pattern metadata. Omit when the project has no single application framework or when this information is not yet known; configured consumers use neutral defaults.',
         properties: {
             name: { type: 'string', required: true },
             backendPatternsDoc: { type: 'string', required: false },
             frontendPatternsDoc: { type: 'string', required: false },
             codeReviewDoc: { type: 'string', required: false },
             integrationTestDoc: { type: 'string', required: false },
-            performanceTestDoc: { type: 'string', required: false, describe: 'Optional repo-relative performance-test preference guide. Feeds configured performance file conventions and the capability-based default reference selection; an explicit referenceDocs array remains exact.' },
+            performanceTestDoc: {
+                type: 'string',
+                required: false,
+                describe:
+                    'Optional repo-relative performance-test preference guide. Feeds configured performance file conventions and the capability-based default reference selection; an explicit referenceDocs array remains exact.'
+            },
             e2eTestDoc: { type: 'string', required: false },
             searchPatternKeywords: { type: 'array', required: false }
         }
@@ -526,7 +682,8 @@ const SCHEMA = {
         type: 'object',
         required: false,
         closed: true,
-        describe: 'Optional dependency-vulnerability remediation policy, read by package-upgrade --mode=remediate and security-audit dimension D3. Omitted = the scanners, lock files and suppression files are derived from the repository.',
+        describe:
+            'Optional dependency-vulnerability remediation policy, read by package-upgrade --mode=remediate and security-audit dimension D3. Omitted = the scanners, lock files and suppression files are derived from the repository.',
         properties: {
             scanners: {
                 type: 'arrayOf',
@@ -536,8 +693,17 @@ const SCHEMA = {
                 itemSchema: {
                     name: { type: 'string', required: true, describe: 'Display name of the scanner, used in remediation reports.' },
                     command: { type: 'string', required: true, describe: 'Command that runs the scan from the project root and exits non-zero on findings.' },
-                    lockfiles: { type: 'array', required: false, itemType: 'string', describe: 'Repository-relative lock files this scanner reads; omitted = the scanner decides.' },
-                    configFile: { type: 'string', required: false, describe: 'Repository-relative scanner configuration file that holds its accepted (suppressed) advisories.' }
+                    lockfiles: {
+                        type: 'array',
+                        required: false,
+                        itemType: 'string',
+                        describe: 'Repository-relative lock files this scanner reads; omitted = the scanner decides.'
+                    },
+                    configFile: {
+                        type: 'string',
+                        required: false,
+                        describe: 'Repository-relative scanner configuration file that holds its accepted (suppressed) advisories.'
+                    }
                 }
             },
             acceptedEntries: {
@@ -546,7 +712,11 @@ const SCHEMA = {
                 closed: true,
                 describe: 'Policy for advisories the project accepts for now. Every accepted entry always needs a reason, an owner and an expiry.',
                 properties: {
-                    maxDays: { type: 'number', required: false, describe: 'Longest allowed time, in days from the day it is written, until an accepted entry expires.' }
+                    maxDays: {
+                        type: 'number',
+                        required: false,
+                        describe: 'Longest allowed time, in days from the day it is written, until an accepted entry expires.'
+                    }
                 }
             },
             deadlinesDays: {
@@ -561,12 +731,16 @@ const SCHEMA = {
                     low: { type: 'number', required: false, describe: 'Days allowed to fix a low advisory.' }
                 }
             },
-            alertOwner: { type: 'string', required: false, describe: 'Person or team who responds when a dependency scan fails; named in every remediation health report.' },
+            alertOwner: {
+                type: 'string',
+                required: false,
+                describe: 'Person or team who responds when a dependency scan fails; named in every remediation health report.'
+            },
             scheduledScan: {
                 type: 'object',
                 required: false,
                 closed: true,
-                describe: 'The scheduled full scan of the default branch, re-run at remediation close-out only with the user\'s authority.',
+                describe: "The scheduled full scan of the default branch, re-run at remediation close-out only with the user's authority.",
                 properties: {
                     workflow: { type: 'string', required: false, describe: 'CI workflow name or file that runs the scheduled scan.' },
                     issueLabel: { type: 'string', required: false, describe: 'Label of the issue a failed scheduled scan opens, if any.' }
@@ -603,19 +777,39 @@ const SCHEMA = {
             execution: {
                 type: 'object',
                 required: false,
-                describe: 'Optional E2E execution profile. Link surfaceIds to experienceVerification.surfaces; keep startup/readiness in each surface localRun recipe. Missing facts are discovered or reported ENVIRONMENT-BLOCKED, never invented.',
+                describe:
+                    'Optional E2E execution profile. Link surfaceIds to experienceVerification.surfaces; keep startup/readiness in each surface localRun recipe. Missing facts are discovered or reported ENVIRONMENT-BLOCKED, never invented.',
                 properties: {
-                    surfaceIds: { type: 'array', required: false, itemType: 'string', describe: 'IDs of observable surfaces exercised by E2E. Resolve lifecycle commands through the matching experienceVerification surface.' },
+                    surfaceIds: {
+                        type: 'array',
+                        required: false,
+                        itemType: 'string',
+                        describe: 'IDs of observable surfaces exercised by E2E. Resolve lifecycle commands through the matching experienceVerification surface.'
+                    },
                     auth: {
                         type: 'object',
                         required: false,
-                        describe: 'Authentication strategy. Store references only; never put passwords, tokens, cookies, or storage-state contents in project-config.json.',
+                        describe:
+                            'Authentication strategy. Store references only; never put passwords, tokens, cookies, or storage-state contents in project-config.json.',
                         properties: {
                             mode: { type: 'string', required: false, describe: 'One of fixture, storage-state, registration, manual, or none.' },
-                            credentialsRef: { type: 'string', required: false, describe: 'Reference to a local fixture identity or secret-manager/env source; never the secret value.' },
-                            storageStateRef: { type: 'string', required: false, describe: 'Reference/path to a project-owned browser storage-state artifact; never its JSON contents.' },
+                            credentialsRef: {
+                                type: 'string',
+                                required: false,
+                                describe: 'Reference to a local fixture identity or secret-manager/env source; never the secret value.'
+                            },
+                            storageStateRef: {
+                                type: 'string',
+                                required: false,
+                                describe: 'Reference/path to a project-owned browser storage-state artifact; never its JSON contents.'
+                            },
                             loginPath: { type: 'string', required: false, describe: 'Observed application login route when a real login journey is required.' },
-                            registrationCommand: { type: 'string', required: false, describe: 'Project-owned registration/setup command only when the repository proves it is safe and repeatable; inline credential arguments are warned, so use environment or fixture references.' }
+                            registrationCommand: {
+                                type: 'string',
+                                required: false,
+                                describe:
+                                    'Project-owned registration/setup command only when the repository proves it is safe and repeatable; inline credential arguments are warned, so use environment or fixture references.'
+                            }
                         }
                     },
                     data: {
@@ -623,43 +817,108 @@ const SCHEMA = {
                         required: false,
                         describe: 'Seed/reference-data strategy. Prefer idempotent or additive public-path setup and never reset shared state.',
                         properties: {
-                            seedCommand: { type: 'string', required: false, describe: 'Project-defined seed or fixture command; missing capability blocks E2E rather than receiving a guessed command; inline credential arguments are warned, so use environment or fixture references.' },
+                            seedCommand: {
+                                type: 'string',
+                                required: false,
+                                describe:
+                                    'Project-defined seed or fixture command; missing capability blocks E2E rather than receiving a guessed command; inline credential arguments are warned, so use environment or fixture references.'
+                            },
                             workingDir: { type: 'string', required: false, describe: 'Project-relative directory for the seed command.' },
                             mode: { type: 'string', required: false, describe: 'One of reference-only, idempotent, or additive.' },
-                            cleanupPolicy: { type: 'string', required: false, describe: 'Project-defined cleanup policy; cleanup may remove only current-run ephemeral data after evidence capture.' }
+                            cleanupPolicy: {
+                                type: 'string',
+                                required: false,
+                                describe: 'Project-defined cleanup policy; cleanup may remove only current-run ephemeral data after evidence capture.'
+                            }
                         }
                     },
                     browser: {
                         type: 'object',
                         required: false,
-                        describe: 'Optional browser runner, visibility, and action-pacing settings. Use runner-native readiness waits. Configure post-action pacing only when the project has a documented need; it never substitutes for a settle signal.',
+                        describe:
+                            'Optional browser runner, visibility, and action-pacing settings. Use runner-native readiness waits. Configure post-action pacing only when the project has a documented need; it never substitutes for a settle signal.',
                         properties: {
-                            runner: { type: 'string', required: false, describe: 'Project-configured browser runner hint, such as playwright-cli; do not infer a dependency from this field alone.' },
+                            runner: {
+                                type: 'string',
+                                required: false,
+                                describe: 'Project-configured browser runner hint, such as playwright-cli; do not infer a dependency from this field alone.'
+                            },
                             engine: { type: 'string', required: false, describe: 'Project-configured browser engine or target, such as chromium.' },
                             headed: { type: 'boolean', required: false, describe: 'Whether the browser is visible to the user during human-QC execution.' },
-                            actionDelayMs: { type: 'number', required: false, describe: 'Optional non-negative post-action delay in milliseconds for a documented project presentation/pacing need. Omit or set 0 when no delay is needed; never use it as a readiness or settle substitute.' }
+                            actionDelayMs: {
+                                type: 'number',
+                                required: false,
+                                describe:
+                                    'Optional non-negative post-action delay in milliseconds for a documented project presentation/pacing need. Omit or set 0 when no delay is needed; never use it as a readiness or settle substitute.'
+                            }
                         }
                     },
                     evidence: {
                         type: 'object',
                         required: false,
-                        describe: 'Evidence capture and redaction settings. Captures are sensitive by default and must be read, redacted, and retained under a project-owned path.',
+                        describe:
+                            'Evidence capture and redaction settings. Captures are sensitive by default and must be read, redacted, and retained under a project-owned path.',
                         properties: {
-                            root: { type: 'string', required: false, describe: 'Project-relative disposable candidate-evidence root; use tmp/ or temp/ unless explicitly versioned.' },
-                            capture: { type: 'array', required: false, itemType: 'string', describe: 'Capture kinds: screenshot, console, requests, trace, or video.' },
+                            root: {
+                                type: 'string',
+                                required: false,
+                                describe: 'Project-relative disposable candidate-evidence root; use tmp/ or temp/ unless explicitly versioned.'
+                            },
+                            capture: {
+                                type: 'array',
+                                required: false,
+                                itemType: 'string',
+                                describe: 'Capture kinds: screenshot, console, requests, trace, or video.'
+                            },
                             redaction: { type: 'string', required: false, describe: 'Project-defined redaction rule/tool reference; never a secret value.' },
                             uiStateCapture: {
                                 type: 'object',
                                 required: false,
-                                describe: 'Optional visual UI-state capture. Transition capture is opt-in and requires an evidenced shared action boundary; declared state/viewport captures use the configured runner. Contract: .claude/skills/shared/ui-state-capture-protocol.md',
+                                describe:
+                                    'Optional visual UI-state capture. Transition capture is opt-in and requires an evidenced shared action boundary; declared state/viewport captures use the configured runner. Contract: .claude/skills/shared/ui-state-capture-protocol.md',
                                 properties: {
-                                    mode: { type: 'string', required: false, describe: 'One of every-action, declared-only, or off. Default declared-only; every-action must be selected only when a verified shared action boundary can emit transition captures.' },
-                                    helper: { type: 'string', required: false, describe: 'Project-relative path/symbol of a capture integration at an evidenced shared action boundary (for example a fixture, helper, wrapper, action primitive, or page object); discover it from source.' },
-                                    manifestPath: { type: 'string', required: false, describe: 'Project-relative capture-manifest.json path under the disposable evidence root; one row per capture including deduped and capped rows.' },
-                                    maxPerTest: { type: 'number', required: false, describe: 'Positive bounded per-test capture cap; reaching it records an escalation naming the untaken captures, never a silent truncation.' },
-                                    maxPerRun: { type: 'number', required: false, describe: 'Positive bounded per-run capture cap; reaching it records an escalation naming the untaken captures, never a silent truncation.' },
-                                    fullPageWhenScrollable: { type: 'boolean', required: false, describe: 'Capture full-page in addition to viewport wherever the surface scrolls; a viewport-only capture hides the overflow defects this capture set exists to find.' },
-                                    maskSelectors: { type: 'array', required: false, itemType: 'string', describe: 'Selectors for volatile regions (clocks, GUIDs, avatars) masked so an unchanged UI yields an unchanged image.' }
+                                    mode: {
+                                        type: 'string',
+                                        required: false,
+                                        describe:
+                                            'One of every-action, declared-only, or off. Default declared-only; every-action must be selected only when a verified shared action boundary can emit transition captures.'
+                                    },
+                                    helper: {
+                                        type: 'string',
+                                        required: false,
+                                        describe:
+                                            'Project-relative path/symbol of a capture integration at an evidenced shared action boundary (for example a fixture, helper, wrapper, action primitive, or page object); discover it from source.'
+                                    },
+                                    manifestPath: {
+                                        type: 'string',
+                                        required: false,
+                                        describe:
+                                            'Project-relative capture-manifest.json path under the disposable evidence root; one row per capture including deduped and capped rows.'
+                                    },
+                                    maxPerTest: {
+                                        type: 'number',
+                                        required: false,
+                                        describe:
+                                            'Positive bounded per-test capture cap; reaching it records an escalation naming the untaken captures, never a silent truncation.'
+                                    },
+                                    maxPerRun: {
+                                        type: 'number',
+                                        required: false,
+                                        describe:
+                                            'Positive bounded per-run capture cap; reaching it records an escalation naming the untaken captures, never a silent truncation.'
+                                    },
+                                    fullPageWhenScrollable: {
+                                        type: 'boolean',
+                                        required: false,
+                                        describe:
+                                            'Capture full-page in addition to viewport wherever the surface scrolls; a viewport-only capture hides the overflow defects this capture set exists to find.'
+                                    },
+                                    maskSelectors: {
+                                        type: 'array',
+                                        required: false,
+                                        itemType: 'string',
+                                        describe: 'Selectors for volatile regions (clocks, GUIDs, avatars) masked so an unchanged UI yields an unchanged image.'
+                                    }
                                 }
                             }
                         }
@@ -670,8 +929,17 @@ const SCHEMA = {
                         describe: 'Bounded verify/fix loop controls. A cap or missing capability produces an escalation, never an infinite retry.',
                         properties: {
                             maxAttempts: { type: 'number', required: false, describe: 'Positive bounded maximum remediation attempts.' },
-                            consecutiveGreen: { type: 'number', required: false, describe: 'Fresh consecutive green runs required before E2E convergence (default 1; two consecutive runs are the integration-test rule).' },
-                            settleTimeoutSeconds: { type: 'number', required: false, describe: 'Positive bounded timeout for observable readiness/settle signals.' }
+                            consecutiveGreen: {
+                                type: 'number',
+                                required: false,
+                                describe:
+                                    'Fresh consecutive green runs required before E2E convergence (default 1; two consecutive runs are the integration-test rule).'
+                            },
+                            settleTimeoutSeconds: {
+                                type: 'number',
+                                required: false,
+                                describe: 'Positive bounded timeout for observable readiness/settle signals.'
+                            }
                         }
                     }
                 }
@@ -681,13 +949,32 @@ const SCHEMA = {
     experienceVerification: {
         type: 'object',
         required: false,
-        describe: 'Optional evidence contract for user-facing or externally observable surfaces. Configure only what the project can actually run and inspect; missing capability is recorded as ENVIRONMENT-BLOCKED, never as a successful check.',
+        describe:
+            'Optional evidence contract for user-facing or externally observable surfaces. Configure only what the project can actually run and inspect; missing capability is recorded as ENVIRONMENT-BLOCKED, never as a successful check.',
         properties: {
             enabled: { type: 'boolean', required: true, describe: 'Enable conditional experience-review routing for configured surfaces.' },
-            evidenceRoot: { type: 'string', required: true, describe: 'Project-relative disposable report/candidate-evidence root; use a project-root tmp/ or temp/ path unless the owning contract explicitly declares a versioned output.' },
-            baselineRoot: { type: 'string', required: true, describe: 'Expected-baseline root, changed only through explicit acceptance outside automatic comparison.' },
-            acceptancePolicy: { type: 'string', required: true, describe: 'Keep manual-acceptance-required unless the project documents a stricter named owner process.' },
-            reviewOn: { type: 'array', required: false, itemType: 'string', describe: 'Impact triggers such as new-surface, changed-surface, bugfix, or baseline-mismatch.' },
+            evidenceRoot: {
+                type: 'string',
+                required: true,
+                describe:
+                    'Project-relative disposable report/candidate-evidence root; use a project-root tmp/ or temp/ path unless the owning contract explicitly declares a versioned output.'
+            },
+            baselineRoot: {
+                type: 'string',
+                required: true,
+                describe: 'Expected-baseline root, changed only through explicit acceptance outside automatic comparison.'
+            },
+            acceptancePolicy: {
+                type: 'string',
+                required: true,
+                describe: 'Keep manual-acceptance-required unless the project documents a stricter named owner process.'
+            },
+            reviewOn: {
+                type: 'array',
+                required: false,
+                itemType: 'string',
+                describe: 'Impact triggers such as new-surface, changed-surface, bugfix, or baseline-mismatch.'
+            },
             surfaces: {
                 type: 'arrayOf',
                 required: true,
@@ -705,22 +992,65 @@ const SCHEMA = {
                     localRun: {
                         type: 'object',
                         required: false,
-                        describe: 'How this surface is brought up as a WHOLE running system on a developer machine, so a review can exercise it the way a person would instead of reading source. Record only commands the project actually has; a missing command is ENVIRONMENT-BLOCKED at review time, never an assumed default.',
+                        describe:
+                            'How this surface is brought up as a WHOLE running system on a developer machine, so a review can exercise it the way a person would instead of reading source. Record only commands the project actually has; a missing command is ENVIRONMENT-BLOCKED at review time, never an assumed default.',
                         properties: {
-                            dependencyCommand: { type: 'string', required: false, describe: 'Command that starts the backing services this surface needs before the app itself (database, broker, cache, emulator, stub).' },
-                            startCommand: { type: 'string', required: false, describe: 'Command that starts the surface itself. Long-running: the reviewer runs it in the background and tears it down afterwards.' },
-                            workingDir: { type: 'string', required: false, describe: 'Directory the start/dependency commands run from, relative to the project root, when it is not the root.' },
-                            readyCheck: { type: 'string', required: false, describe: 'Observable readiness signal — a health command/URL to poll or a log line to wait for. Readiness is polled, never assumed from a sleep or from process start.' },
-                            readyTimeoutSeconds: { type: 'number', required: false, describe: 'How long readiness may take before the surface is recorded ENVIRONMENT-BLOCKED.' },
-                            teardownCommand: { type: 'string', required: false, describe: 'Command that stops what startCommand/dependencyCommand started, so a review leaves no running process behind.' },
-                            logSources: { type: 'array', required: false, itemType: 'string', describe: 'Runtime log channels to capture and read besides the surface itself — log file paths or container/service log commands. Browser console/page-error capture is inherent to a web surface and needs no entry.' },
-                            credentialsRef: { type: 'string', required: false, describe: 'Pointer to the local fixture identity or credential source used to sign in (env var name, secret-manager key, setup doc). NEVER the secret value itself.' }
+                            dependencyCommand: {
+                                type: 'string',
+                                required: false,
+                                describe:
+                                    'Command that starts the backing services this surface needs before the app itself (database, broker, cache, emulator, stub).'
+                            },
+                            startCommand: {
+                                type: 'string',
+                                required: false,
+                                describe:
+                                    'Command that starts the surface itself. Long-running: the reviewer runs it in the background and tears it down afterwards.'
+                            },
+                            workingDir: {
+                                type: 'string',
+                                required: false,
+                                describe: 'Directory the start/dependency commands run from, relative to the project root, when it is not the root.'
+                            },
+                            readyCheck: {
+                                type: 'string',
+                                required: false,
+                                describe:
+                                    'Observable readiness signal — a health command/URL to poll or a log line to wait for. Readiness is polled, never assumed from a sleep or from process start.'
+                            },
+                            readyTimeoutSeconds: {
+                                type: 'number',
+                                required: false,
+                                describe: 'How long readiness may take before the surface is recorded ENVIRONMENT-BLOCKED.'
+                            },
+                            teardownCommand: {
+                                type: 'string',
+                                required: false,
+                                describe: 'Command that stops what startCommand/dependencyCommand started, so a review leaves no running process behind.'
+                            },
+                            logSources: {
+                                type: 'array',
+                                required: false,
+                                itemType: 'string',
+                                describe:
+                                    'Runtime log channels to capture and read besides the surface itself — log file paths or container/service log commands. Browser console/page-error capture is inherent to a web surface and needs no entry.'
+                            },
+                            credentialsRef: {
+                                type: 'string',
+                                required: false,
+                                describe:
+                                    'Pointer to the local fixture identity or credential source used to sign in (env var name, secret-manager key, setup doc). NEVER the secret value itself.'
+                            }
                         }
                     },
                     notes: { type: 'string', required: false }
                 }
             },
-            notApplicableReason: { type: 'string', required: false, describe: 'Evidence-backed reason when this repository has no applicable observable surface or the block is intentionally disabled.' }
+            notApplicableReason: {
+                type: 'string',
+                required: false,
+                describe: 'Evidence-backed reason when this repository has no applicable observable surface or the block is intentionally disabled.'
+            }
         }
     },
     databases: { type: 'object', required: false, freeform: true },
@@ -777,8 +1107,18 @@ const SCHEMA = {
             purpose: { type: 'string', required: true },
             sections: { type: 'array', required: false },
             templatePath: { type: 'string', required: false },
-            scanTarget: { type: 'string', required: false, describe: 'Optional custom-doc owner: generic for an evidence-based scan, manual for curated project ownership. Built-in docs keep their framework-owned target.' },
-            notApplicable: { type: 'boolean', required: false, describe: 'True when this stack/doc does not apply to the project; generated root context names it once as N/A and never routes agents to it, and the freshness check never reports it as stale. A purpose that starts with, or parenthesizes, "N/A" / "Not applicable" is read the same way.' }
+            scanTarget: {
+                type: 'string',
+                required: false,
+                describe:
+                    'Optional custom-doc owner: generic for an evidence-based scan, manual for curated project ownership. Built-in docs keep their framework-owned target.'
+            },
+            notApplicable: {
+                type: 'boolean',
+                required: false,
+                describe:
+                    'True when this stack/doc does not apply to the project; generated root context names it once as N/A and never routes agents to it, and the freshness check never reports it as stale. A purpose that starts with, or parenthesizes, "N/A" / "Not applicable" is read the same way.'
+            }
         }
     },
     graphConnectors: {
@@ -906,7 +1246,8 @@ const SCHEMA = {
                 properties: {
                     enabled: { type: 'boolean', required: false },
                     enforcedAreas: {
-                        type: 'arrayOf', required: false,
+                        type: 'arrayOf',
+                        required: false,
                         itemSchema: {
                             name: { type: 'string', required: true },
                             codePathPrefixes: { type: 'array', required: true, itemType: 'string' },
@@ -941,19 +1282,22 @@ const SCHEMA = {
                 type: 'string',
                 required: false,
                 enumValues: WORKFLOW_ROUTE_MODES,
-                describe: 'Team default for the workflow route mode: ask (default; the workflow question is asked only when the route is to start a catalog workflow; direct and custom-simple routes ask nothing) | auto (the same question, recommending the full workflow first) | off (no workflow is started without an explicit request). A person overrides it in ~/.claude/.ck.json, .claude/.ck.local.json or env CK_WORKFLOW_ROUTE_MODE.'
+                describe:
+                    'Team default for the workflow route mode: ask (default; the workflow question is asked only when the route is to start a catalog workflow; direct and custom-simple routes ask nothing) | auto (the same question, recommending the full workflow first) | off (no workflow is started without an explicit request). A person overrides it in ~/.claude/.ck.json, .claude/.ck.local.json or env CK_WORKFLOW_ROUTE_MODE.'
             },
             // The team default for the per-person decision-support mode: ask (default) | suggest | auto | off.
             decisionSupportMode: {
                 type: 'string',
                 required: false,
                 enumValues: DECISION_SUPPORT_MODES,
-                describe: 'Decision-support mode for the assistant\'s own consequential answers (a recommendation, design, plan, verdict or chosen approach the user will act on) and for the mid-session plan question: ask (default; one question offering a fitting deeper check such as /grill or /why-review, or a plan before non-trivial work) | suggest (one closing line naming those skills, no question; nothing runs unless typed) | auto (runs why-review report-only on the draft before replying, then asks about /grill when choices stay open; read as ask while skillAutoTrigger is false) | off (no offer; the inline self-check stays). Layers, later wins: team project config, ~/.claude/.ck.json, .claude/.ck.local.json, env CK_DECISION_SUPPORT_MODE; invalid values express no opinion.'
+                describe:
+                    "Decision-support mode for the assistant's own consequential answers (a recommendation, design, plan, verdict or chosen approach the user will act on) and for the mid-session plan question: ask (default; one question offering a fitting deeper check such as /grill or /why-review, or a plan before non-trivial work) | suggest (one closing line naming those skills, no question; nothing runs unless typed) | auto (runs why-review report-only on the draft before replying, then asks about /grill when choices stay open; read as ask while skillAutoTrigger is false) | off (no offer; the inline self-check stays). Layers, later wins: team project config, ~/.claude/.ck.json, .claude/.ck.local.json, env CK_DECISION_SUPPORT_MODE; invalid values express no opinion."
             },
             skillAutoTrigger: {
                 type: 'boolean',
                 required: false,
-                describe: 'Default true. false asks whether to run a suitable matched framework skill or skip it and execute directly; no match proceeds directly. Commit, pull-request and lightweight framework-config help keep normal triggers. Named user requests, hook-required calls and required steps of an authorized skill remain allowed. Runtime prompt policy, not a host permission block. Personal overrides: ~/.claude/.ck.json, .claude/.ck.local.json, CK_SKILL_AUTO_TRIGGER.'
+                describe:
+                    'Default true. false asks whether to run a suitable matched framework skill or skip it and execute directly; no match proceeds directly. Commit, pull-request and lightweight framework-config help keep normal triggers. Named user requests, hook-required calls and required steps of an authorized skill remain allowed. Runtime prompt policy, not a host permission block. Personal overrides: ~/.claude/.ck.json, .claude/.ck.local.json, CK_SKILL_AUTO_TRIGGER.'
             },
             // false = the generated golden-rules section names each context group and points to the
             // file-conventions hook + `--lookup` CLI instead of inlining every rule (root byte budget).
@@ -963,7 +1307,12 @@ const SCHEMA = {
             inlinePathRules: { type: 'boolean', required: false },
             // false = the project owns CLAUDE.md: the generator, its sync-codex preflight and the
             // root-editing skills never write it. Default true.
-            generateClaudeMd: { type: 'boolean', required: false, describe: 'Default true. false = the project owns CLAUDE.md: the generator never writes it (every mode reports or refuses), the sync-codex claude-md stage leaves it alone, and ai-context-refresh, learn and harness-setup propose text instead of editing it.' },
+            generateClaudeMd: {
+                type: 'boolean',
+                required: false,
+                describe:
+                    'Default true. false = the project owns CLAUDE.md: the generator never writes it (every mode reports or refuses), the sync-codex claude-md stage leaves it alone, and ai-context-refresh, learn and harness-setup propose text instead of editing it.'
+            },
             // Optional custom protocol appended to the runtime workflow-route reminder on
             // UserPromptSubmit. A string is inline markdown; an object carries inline `text`
             // and/or a repo-relative `path` to a markdown file read at runtime. The value here
@@ -973,7 +1322,8 @@ const SCHEMA = {
             workflowRouteProtocol: {
                 type: 'union',
                 required: false,
-                describe: 'Optional custom workflow-route protocol appended to the runtime route reminder. Inline string, or an object { text?, path? } where `path` is a repo-relative markdown file read at runtime. Team value lives here; a developer overrides it in git-ignored .claude/.ck.local.json (local replaces team). Never stamped into tracked context.',
+                describe:
+                    'Optional custom workflow-route protocol appended to the runtime route reminder. Inline string, or an object { text?, path? } where `path` is a repo-relative markdown file read at runtime. Team value lives here; a developer overrides it in git-ignored .claude/.ck.local.json (local replaces team). Never stamped into tracked context.',
                 oneOf: [
                     { type: 'string' },
                     {
@@ -992,7 +1342,8 @@ const SCHEMA = {
             workflowActivation: {
                 type: 'object',
                 required: false,
-                describe: 'Workflow activation tiers (auto < confirm < manual). default: floor raised onto every workflow\'s framework tier (only tightens); overrides: { <workflowId>: tier } pins one workflow and may loosen it. Omitted = framework tiers. Local override: .claude/.ck.local.json.',
+                describe:
+                    "Workflow activation tiers (auto < confirm < manual). default: floor raised onto every workflow's framework tier (only tightens); overrides: { <workflowId>: tier } pins one workflow and may loosen it. Omitted = framework tiers. Local override: .claude/.ck.local.json.",
                 properties: {
                     default: {
                         type: 'string',
@@ -1041,22 +1392,48 @@ const SCHEMA = {
         describe: 'Optional hook behavior settings. Omitted properties keep the framework defaults.',
         properties: {
             uiReuseReminder: {
-                type: 'object', required: false,
+                type: 'object',
+                required: false,
                 describe: 'Default-on concise frontend reuse reminder on prompts and before UI file operations/plan loads. Default interval 100000 tokens.',
                 properties: {
                     enabled: { type: 'boolean', required: false, describe: 'Default true. false disables the UI reuse reminder on every event.' },
-                    reinjectAfterTokens: { type: 'number', required: false, describe: 'Default 100000. Integer from 20000 to 2000000; transcript-growth window shared by prompt and tool reminders.' },
-                    useDefaultMatchers: { type: 'boolean', required: false, describe: 'Default true. false replaces built-in frontend includes with pathGlobs; dependency, build and generated-mirror exclusions remain active.' },
-                    pathGlobs: { type: 'array', itemType: 'string', required: false, describe: 'Additional repository-relative frontend globs, or the only includes when useDefaultMatchers is false.' },
-                    excludePathGlobs: { type: 'array', itemType: 'string', required: false, describe: 'Additional repository-relative exclusions; built-in dependency, build and generated-mirror exclusions always apply.' }
+                    reinjectAfterTokens: {
+                        type: 'number',
+                        required: false,
+                        describe: 'Default 100000. Integer from 20000 to 2000000; transcript-growth window shared by prompt and tool reminders.'
+                    },
+                    useDefaultMatchers: {
+                        type: 'boolean',
+                        required: false,
+                        describe:
+                            'Default true. false replaces built-in frontend includes with pathGlobs; dependency, build and generated-mirror exclusions remain active.'
+                    },
+                    pathGlobs: {
+                        type: 'array',
+                        itemType: 'string',
+                        required: false,
+                        describe: 'Additional repository-relative frontend globs, or the only includes when useDefaultMatchers is false.'
+                    },
+                    excludePathGlobs: {
+                        type: 'array',
+                        itemType: 'string',
+                        required: false,
+                        describe: 'Additional repository-relative exclusions; built-in dependency, build and generated-mirror exclusions always apply.'
+                    }
                 }
             },
             failureInvestigationReminder: {
-                type: 'object', required: false,
-                describe: 'Default-on conditional root-cause skill reminder before shell work and on supported native tool failures. Default interval 150000 approximate transcript tokens; transcriptless hosts re-arm on session/reset changes.',
+                type: 'object',
+                required: false,
+                describe:
+                    'Default-on conditional root-cause skill reminder before shell work and on supported native tool failures. Default interval 150000 approximate transcript tokens; transcriptless hosts re-arm on session/reset changes.',
                 properties: {
                     enabled: { type: 'boolean', required: false, describe: 'Default true. false disables every failure investigation reminder event.' },
-                    reinjectAfterTokens: { type: 'number', required: false, describe: 'Default 150000. Integer from 20000 to 2000000; one transcript-growth window shared across reminder events.' }
+                    reinjectAfterTokens: {
+                        type: 'number',
+                        required: false,
+                        describe: 'Default 150000. Integer from 20000 to 2000000; one transcript-growth window shared across reminder events.'
+                    }
                 }
             },
             // Consumed by .claude/hooks/lib/startup-install.cjs through the single
@@ -1068,7 +1445,8 @@ const SCHEMA = {
             startupInstall: {
                 type: 'object',
                 required: false,
-                describe: 'Startup dependency installation. Defaults: enabled true, packageManager "auto", allowLifecycleScripts false. Disabling installation never disables .claude integrity verification.',
+                describe:
+                    'Startup dependency installation. Defaults: enabled true, packageManager "auto", allowLifecycleScripts false. Disabling installation never disables .claude integrity verification.',
                 properties: {
                     enabled: {
                         type: 'boolean',
@@ -1079,12 +1457,14 @@ const SCHEMA = {
                         type: 'string',
                         required: false,
                         enumValues: ['auto', 'npm', 'pnpm', 'yarn', 'bun'],
-                        describe: 'Default "auto". A non-auto value is one manager SIGNAL, never an override: it must agree with every other available signal or the install fails closed.'
+                        describe:
+                            'Default "auto". A non-auto value is one manager SIGNAL, never an override: it must agree with every other available signal or the install fails closed.'
                     },
                     allowLifecycleScripts: {
                         type: 'boolean',
                         required: false,
-                        describe: 'Default false. Only explicit true removes the hook\'s own script-suppression argument; manager-native policy (e.g. Bun trustedDependencies) still applies.'
+                        describe:
+                            "Default false. Only explicit true removes the hook's own script-suppression argument; manager-native policy (e.g. Bun trustedDependencies) still applies."
                     }
                 }
             },
@@ -1094,7 +1474,8 @@ const SCHEMA = {
             windowsGit: {
                 type: 'object',
                 required: false,
-                describe: 'Windows native Git/Git Bash capability. Defaults: enabled true, autoRepair true. Invalid project config disables repair only; integrity verification remains active.',
+                describe:
+                    'Windows native Git/Git Bash capability. Defaults: enabled true, autoRepair true. Invalid project config disables repair only; integrity verification remains active.',
                 properties: {
                     enabled: {
                         type: 'boolean',
@@ -1117,14 +1498,16 @@ const SCHEMA = {
                         type: 'string',
                         required: false,
                         enumValues: ['auto', 'on', 'off'],
-                        describe: 'Default "auto" (active only when .code-graph/graph.db exists). "on" = always active; "off" = graph hooks stay silent and the graph CLI refuses to run.'
+                        describe:
+                            'Default "auto" (active only when .code-graph/graph.db exists). "on" = always active; "off" = graph hooks stay silent and the graph CLI refuses to run.'
                     }
                 }
             },
             tokenBudget: {
                 type: 'object',
                 required: false,
-                describe: 'Advisory token checkpoint at task/plan step boundaries, read by the token-budget-checkpoint hook (PostToolUse on task/plan tools, Claude transcripts); never blocks. Defaults: enabled true, checkpointTokens 500000 (non-cached tokens). A malformed section keeps the checkpoint off until fixed.',
+                describe:
+                    'Advisory token checkpoint at task/plan step boundaries, read by the token-budget-checkpoint hook (PostToolUse on task/plan tools, Claude transcripts); never blocks. Defaults: enabled true, checkpointTokens 500000 (non-cached tokens). A malformed section keeps the checkpoint off until fixed.',
                 properties: {
                     enabled: {
                         type: 'boolean',
@@ -1134,7 +1517,8 @@ const SCHEMA = {
                     checkpointTokens: {
                         type: 'number',
                         required: false,
-                        describe: 'Integer 50000..20000000, default 500000: one note each time the session\'s non-cached tokens (input + cache creation + output) cross the next multiple.'
+                        describe:
+                            "Integer 50000..20000000, default 500000: one note each time the session's non-cached tokens (input + cache creation + output) cross the next multiple."
                     }
                 }
             }
@@ -1150,12 +1534,14 @@ const SCHEMA = {
                 type: 'string',
                 required: false,
                 enumValues: ['lightweight', 'risk-based'],
-                describe: 'Default lightweight: automatically run commit-review --fix-loop for commits at every risk tier, at most three rounds. risk-based restores Low skip / Medium why-review / High changes-review. Does not change PR whole-branch reviews, tests, receipts or Git authority. Later overrides: ~/.claude/.ck.json, .claude/.ck.local.json, CK_COMMIT_REVIEW_MODE.'
+                describe:
+                    'Default lightweight: automatically run commit-review --fix-loop for commits at every risk tier, at most three rounds. risk-based restores Low skip / Medium why-review / High changes-review. Does not change PR whole-branch reviews, tests, receipts or Git authority. Later overrides: ~/.claude/.ck.json, .claude/.ck.local.json, CK_COMMIT_REVIEW_MODE.'
             },
             fixOriginTrailer: {
                 type: 'boolean',
                 required: false,
-                describe: 'Default false. true = the commit skill writes the author-declared Fix-Origin trailer (feedback | regression | not-applicable) on new commits only; existing commits are never reworded to add it.'
+                describe:
+                    'Default false. true = the commit skill writes the author-declared Fix-Origin trailer (feedback | regression | not-applicable) on new commits only; existing commits are never reworded to add it.'
             }
         }
     },
@@ -1163,16 +1549,47 @@ const SCHEMA = {
     workTracking: {
         type: 'object',
         required: false,
-        describe: 'Optional claim-first work tracking: remind an agent to claim work (a tracker-only claim commit and a draft pull request, made by the project\'s claim command) before changing tracked files, and let that claim commit through the commit review gate. Omitted = off. Personal layers may set mode and autoMerge.',
+        describe:
+            "Optional claim-first work tracking: remind an agent to claim work (a tracker-only claim commit and a draft pull request, made by the project's claim command) before changing tracked files, and let that claim commit through the commit review gate. Omitted = off. Personal layers may set mode and autoMerge.",
         properties: {
-            mode: { type: 'string', required: false, enumValues: ['off', 'remind'], describe: 'Default off. remind = prompt and first-edit reminders while the branch has no claim, one status line once it has, and the claim-commit exemption in the commit gate. Later overrides (personal): ~/.claude/.ck.json, .claude/.ck.local.json, CK_WORK_TRACKING_MODE.' },
-            claimCommand: { type: 'string', required: false, describe: 'The command that claims work, named in reminders (for example a package script). It records the claim in the branch\'s Git configuration: workClaim, workClaimPr, workClaimDeclined.' },
-            statusCommand: { type: 'string', required: false, describe: 'The command that reports the branch\'s claim and work in flight.' },
-            declineCommand: { type: 'string', required: false, describe: 'The command that records why a branch is not tracked, so reminders stay quiet for it.' },
-            trackerPaths: { type: 'array', required: false, describe: 'Globs of the tracker files a claim commit may change (no default; required for remind); edits to them never trigger the first-edit reminder.' },
+            mode: {
+                type: 'string',
+                required: false,
+                enumValues: ['off', 'remind'],
+                describe:
+                    'Default off. remind = prompt and first-edit reminders while the branch has no claim, one status line once it has, and the claim-commit exemption in the commit gate. Later overrides (personal): ~/.claude/.ck.json, .claude/.ck.local.json, CK_WORK_TRACKING_MODE.'
+            },
+            claimCommand: {
+                type: 'string',
+                required: false,
+                describe:
+                    "The command that claims work, named in reminders (for example a package script). It records the claim in the branch's Git configuration: workClaim, workClaimPr, workClaimDeclined."
+            },
+            statusCommand: { type: 'string', required: false, describe: "The command that reports the branch's claim and work in flight." },
+            declineCommand: {
+                type: 'string',
+                required: false,
+                describe: 'The command that records why a branch is not tracked, so reminders stay quiet for it.'
+            },
+            trackerPaths: {
+                type: 'array',
+                required: false,
+                describe:
+                    'Globs of the tracker files a claim commit may change (no default; required for remind); edits to them never trigger the first-edit reminder.'
+            },
             claimCommitPrefix: { type: 'string', required: false, describe: 'The message prefix of a claim commit (default "chore(trackers): start ").' },
-            staleDraftDays: { type: 'number', required: false, describe: 'Days without an update after which a claimed draft pull request reads as stale (default 5).' },
-            autoMerge: { type: 'string', required: false, enumValues: ['ask', 'when-green'], describe: 'Default ask: list the Ready checklist and wait for a yes before merging. when-green (usually a personal setting): merge once the required statuses pass for the current head. Later overrides: ~/.claude/.ck.json, .claude/.ck.local.json, CK_WORK_TRACKING_AUTO_MERGE.' }
+            staleDraftDays: {
+                type: 'number',
+                required: false,
+                describe: 'Days without an update after which a claimed draft pull request reads as stale (default 5).'
+            },
+            autoMerge: {
+                type: 'string',
+                required: false,
+                enumValues: ['ask', 'when-green'],
+                describe:
+                    'Default ask: list the Ready checklist and wait for a yes before merging. when-green (usually a personal setting): merge once the required statuses pass for the current head. Later overrides: ~/.claude/.ck.json, .claude/.ck.local.json, CK_WORK_TRACKING_AUTO_MERGE.'
+            }
         }
     },
     // Optional pull-request-skill policy. Every property is optional; omitted keeps the default.
@@ -1184,7 +1601,8 @@ const SCHEMA = {
             targetBranch: {
                 type: 'string',
                 required: false,
-                describe: 'Default "main". The base branch the pull-request skill branches from and opens PRs into. A base branch named in the request, or the base of an already-open PR for the current branch, takes precedence.'
+                describe:
+                    'Default "main". The base branch the pull-request skill branches from and opens PRs into. A base branch named in the request, or the base of an already-open PR for the current branch, takes precedence.'
             },
             // Default merge keeps every adopter's pushed history untouched; rebase is an opt-in
             // because it rewrites commits a collaborator may already hold.
@@ -1192,7 +1610,8 @@ const SCHEMA = {
                 type: 'string',
                 required: false,
                 enumValues: ['merge', 'rebase'],
-                describe: 'Default "merge": the pull-request skill brings an already-pushed PR branch up to date by merging the target in and never rewrites a pushed commit. "rebase": it rebases that branch onto the target and pushes with an explicit --force-with-lease, only when every replayed commit is the current git user\'s and the local branch contains the remote one; otherwise it merges. The target branch is never force-pushed.'
+                describe:
+                    'Default "merge": the pull-request skill brings an already-pushed PR branch up to date by merging the target in and never rewrites a pushed commit. "rebase": it rebases that branch onto the target and pushes with an explicit --force-with-lease, only when every replayed commit is the current git user\'s and the local branch contains the remote one; otherwise it merges. The target branch is never force-pushed.'
             }
         }
     },
@@ -1207,18 +1626,33 @@ const SCHEMA = {
                 type: 'string',
                 required: false,
                 enumValues: ['off', 'enforce'],
-                describe: 'Default "off". "enforce": (1) gh pr create (except a draft) and gh pr ready are refused unless the committed branch head has a whole-branch receipt (review or recorded skip) against its merge-base with the PR base; (2) a review receipt, for commits and pull requests alike, counts only when the review protocol hook attested that a review skill of that kind started before the reviewed snapshot, so a receipt cannot be minted by hand. Skip receipts stay explicit, recorded overrides. An unparseable project config counts as off; an invalid reviewGate value counts as enforce. A bounded speedbump against forgetting, not a security boundary.'
+                describe:
+                    'Default "off". "enforce": (1) gh pr create (except a draft) and gh pr ready are refused unless the committed branch head has a whole-branch receipt (review or recorded skip) against its merge-base with the PR base; (2) a review receipt, for commits and pull requests alike, counts only when the review protocol hook attested that a review skill of that kind started before the reviewed snapshot, so a receipt cannot be minted by hand. Skip receipts stay explicit, recorded overrides. An unparseable project config counts as off; an invalid reviewGate value counts as enforce. A bounded speedbump against forgetting, not a security boundary.'
             },
             // The CI-visible half of the gate: a command posts a commit status that branch
             // protection can require, so no hook has to run on the developer's host.
             status: {
                 type: 'object',
                 required: false,
-                describe: 'Optional "Review validation" commit status. `node .claude/hooks/lib/review-receipt.cjs publish-status --pr=<n>` posts state=success on the pull request head when a whole-branch review receipt (not a skip) matches the committed head against its merge-base with the PR base, or when the last commit is an explicit review bypass (Review-Bypass trailers). Require the context in branch protection. Statuses are per commit: every new commit needs a fresh review or bypass.',
+                describe:
+                    'Optional "Review validation" commit status. `node .claude/hooks/lib/review-receipt.cjs publish-status --pr=<n>` posts state=success on the pull request head when a whole-branch review receipt (not a skip) matches the committed head against its merge-base with the PR base, or when the last commit is an explicit review bypass (Review-Bypass trailers). Require the context in branch protection. Statuses are per commit: every new commit needs a fresh review or bypass.',
                 properties: {
-                    enabled: { type: 'boolean', required: false, describe: 'Default false. true = publish-status may post the status; false = it refuses and posts nothing.' },
-                    context: { type: 'string', required: false, describe: 'Default "Review validation". The status name branch protection requires (1-100 printable characters).' },
-                    requireAttestation: { type: 'boolean', required: false, describe: 'Default false. true = only a review receipt backed by an attested review skill start counts (needs the review protocol hook to run). reviewGate.mode "enforce" implies it.' }
+                    enabled: {
+                        type: 'boolean',
+                        required: false,
+                        describe: 'Default false. true = publish-status may post the status; false = it refuses and posts nothing.'
+                    },
+                    context: {
+                        type: 'string',
+                        required: false,
+                        describe: 'Default "Review validation". The status name branch protection requires (1-100 printable characters).'
+                    },
+                    requireAttestation: {
+                        type: 'boolean',
+                        required: false,
+                        describe:
+                            'Default false. true = only a review receipt backed by an attested review skill start counts (needs the review protocol hook to run). reviewGate.mode "enforce" implies it.'
+                    }
                 }
             }
         }
@@ -1229,36 +1663,41 @@ const SCHEMA = {
     skillProfile: {
         type: 'object',
         required: false,
-        describe: 'Team skill visibility profile. Applied by `node .claude/scripts/sync-skill-profile.cjs` into .claude/settings.json skillOverrides (only the keys it wrote; personal choices go in .claude/settings.local.json). Omitted = every skill keeps its default visibility.',
+        describe:
+            'Team skill visibility profile. Applied by `node .claude/scripts/sync-skill-profile.cjs` into .claude/settings.json skillOverrides (only the keys it wrote; personal choices go in .claude/settings.local.json). Omitted = every skill keeps its default visibility.',
         properties: {
             preset: {
                 type: 'string',
                 required: false,
                 enumValues: SKILL_PROFILE_PRESETS,
-                describe: 'Starting point: full = no overrides; standard = the skills other skills or hooks start become name-only; minimal = only start-workflow, commit and the setup skills stay listed, every other skill becomes name-only. Presets live in .claude/config/skill-profiles.json.'
+                describe:
+                    'Starting point: full = no overrides; standard = the skills other skills or hooks start become name-only; minimal = only start-workflow, commit and the setup skills stay listed, every other skill becomes name-only. Presets live in .claude/config/skill-profiles.json.'
             },
             nameOnly: {
                 type: 'array',
                 required: false,
                 itemType: 'string',
-                describe: 'Skills hidden from the model\'s skill list but still callable by name (Claude name-only). Allowed for any skill.'
+                describe: "Skills hidden from the model's skill list but still callable by name (Claude name-only). Allowed for any skill."
             },
             commandOnly: {
                 type: 'array',
                 required: false,
                 itemType: 'string',
-                describe: 'Skills only a user can start with /name (Claude user-invocable-only). Refused for a skill a workflow, agent, skill or hook starts, unless allowHidingCalledSkills is true.'
+                describe:
+                    'Skills only a user can start with /name (Claude user-invocable-only). Refused for a skill a workflow, agent, skill or hook starts, unless allowHidingCalledSkills is true.'
             },
             off: {
                 type: 'array',
                 required: false,
                 itemType: 'string',
-                describe: 'Skills turned off (Claude off; a call by full name fails). Refused for a skill a workflow, agent, skill or hook starts, unless allowHidingCalledSkills is true.'
+                describe:
+                    'Skills turned off (Claude off; a call by full name fails). Refused for a skill a workflow, agent, skill or hook starts, unless allowHidingCalledSkills is true.'
             },
             allowHidingCalledSkills: {
                 type: 'boolean',
                 required: false,
-                describe: 'Default false. true lets commandOnly/off hide a skill that a workflow, agent, skill or hook starts; each one is still named in a warning line.'
+                describe:
+                    'Default false. true lets commandOnly/off hide a skill that a workflow, agent, skill or hook starts; each one is still named in a warning line.'
             }
         }
     }
@@ -1456,28 +1895,38 @@ function validateField(value, fieldSchema, path, errors, warnings) {
  */
 function validateExperienceVerificationSemantics(config, errors, warnings) {
     const experience = config.experienceVerification;
-    if (experience === undefined || experience === null ||
-        typeof experience !== 'object' || Array.isArray(experience)) return;
+    if (experience === undefined || experience === null || typeof experience !== 'object' || Array.isArray(experience)) return;
 
     if (typeof experience.enabled !== 'boolean' || !Array.isArray(experience.surfaces)) return;
 
     if (experience.enabled && experience.surfaces.length === 0) {
-        errors.push('experienceVerification.surfaces: at least one observable surface is required when experienceVerification.enabled is true; disable it with an evidence-backed notApplicableReason until a surface exists');
+        errors.push(
+            'experienceVerification.surfaces: at least one observable surface is required when experienceVerification.enabled is true; disable it with an evidence-backed notApplicableReason until a surface exists'
+        );
     }
 
-    if (!experience.enabled && experience.surfaces.length === 0 &&
-        (typeof experience.notApplicableReason !== 'string' || experience.notApplicableReason.trim().length === 0)) {
-        errors.push('experienceVerification.notApplicableReason: required when experienceVerification is disabled with no surfaces; provide an evidence-backed NOT-APPLICABLE or pending-capability reason');
+    if (
+        !experience.enabled &&
+        experience.surfaces.length === 0 &&
+        (typeof experience.notApplicableReason !== 'string' || experience.notApplicableReason.trim().length === 0)
+    ) {
+        errors.push(
+            'experienceVerification.notApplicableReason: required when experienceVerification is disabled with no surfaces; provide an evidence-backed NOT-APPLICABLE or pending-capability reason'
+        );
     }
 
     if (!experience.enabled && experience.surfaces.length > 0) {
-        warnings.push('experienceVerification: surfaces are configured while the contract is disabled; conditional experience review routing is off until enabled');
+        warnings.push(
+            'experienceVerification: surfaces are configured while the contract is disabled; conditional experience review routing is off until enabled'
+        );
     }
 
     experience.surfaces.forEach((surface, index) => {
         const credentialsRef = surface && surface.localRun && surface.localRun.credentialsRef;
         if (typeof credentialsRef === 'string' && appearsToContainSecretLiteral(credentialsRef)) {
-            warnings.push(`experienceVerification.surfaces[${index}].localRun.credentialsRef: appears to contain a credential/token literal; store a reference, not the secret value`);
+            warnings.push(
+                `experienceVerification.surfaces[${index}].localRun.credentialsRef: appears to contain a credential/token literal; store a reference, not the secret value`
+            );
         }
     });
 }
@@ -1492,10 +1941,12 @@ function isAbsoluteProjectPath(value) {
 }
 
 function appearsToContainSecretLiteral(value) {
-    return /\b(?:bearer|basic)\s+[A-Za-z0-9+/=_-]{12,}/i.test(value) ||
+    return (
+        /\b(?:bearer|basic)\s+[A-Za-z0-9+/=_-]{12,}/i.test(value) ||
         /\b(?:password|passwd|token|secret|cookie)\s*[:=]/i.test(value) ||
         /(?:^|\s)--?(?:password|passwd|token|secret|cookie)(?:[-_a-z]*)\s+(?!\$\{?[\w-]+\}?|%[\w-]+%|(?:env|secret|fixture):)[^\s]+/i.test(value) ||
-        /^eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(value);
+        /^eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(value)
+    );
 }
 
 function isNonEmptyString(value) {
@@ -1514,8 +1965,10 @@ function validateE2eExecutionSemantics(config, errors, warnings) {
         ['e2eTesting.execution.evidence.root', execution.evidence && execution.evidence.root],
         // The manifest indexes screenshots; outside the project-relative evidence root they can
         // escape the gitignored disposable tmp/ tree. `helper` stays out: it may name a symbol.
-        ['e2eTesting.execution.evidence.uiStateCapture.manifestPath',
-            execution.evidence && execution.evidence.uiStateCapture && execution.evidence.uiStateCapture.manifestPath]
+        [
+            'e2eTesting.execution.evidence.uiStateCapture.manifestPath',
+            execution.evidence && execution.evidence.uiStateCapture && execution.evidence.uiStateCapture.manifestPath
+        ]
     ];
     for (const [path, value] of pathFields) {
         if (typeof value === 'string' && isAbsoluteProjectPath(value)) {
@@ -1545,12 +1998,10 @@ function validateE2eExecutionSemantics(config, errors, warnings) {
     }
 
     const data = execution.data;
-    if (data && typeof data === 'object' && !Array.isArray(data) &&
-        typeof data.mode === 'string' && !E2E_DATA_MODES.has(data.mode)) {
+    if (data && typeof data === 'object' && !Array.isArray(data) && typeof data.mode === 'string' && !E2E_DATA_MODES.has(data.mode)) {
         errors.push(`e2eTesting.execution.data.mode: unsupported mode "${data.mode}"; expected one of ${Array.from(E2E_DATA_MODES).join(', ')}`);
     }
-    if (data && typeof data === 'object' && !Array.isArray(data) &&
-        ['idempotent', 'additive'].includes(data.mode) && !isNonEmptyString(data.seedCommand)) {
+    if (data && typeof data === 'object' && !Array.isArray(data) && ['idempotent', 'additive'].includes(data.mode) && !isNonEmptyString(data.seedCommand)) {
         warnings.push('e2eTesting.execution.data.seedCommand: required before an idempotent/additive data run can be APPLICABLE');
     }
     for (const [path, value] of [
@@ -1558,14 +2009,15 @@ function validateE2eExecutionSemantics(config, errors, warnings) {
         ['e2eTesting.execution.data.seedCommand', data && data.seedCommand]
     ]) {
         if (typeof value === 'string' && appearsToContainSecretLiteral(value)) {
-            warnings.push(`${path}: appears to contain a credential/token literal; use an environment, fixture, or secret-manager reference instead of an inline value`);
+            warnings.push(
+                `${path}: appears to contain a credential/token literal; use an environment, fixture, or secret-manager reference instead of an inline value`
+            );
         }
     }
 
     const browser = execution.browser;
     if (browser && typeof browser === 'object' && !Array.isArray(browser)) {
-        if (typeof browser.actionDelayMs === 'number' &&
-            (!Number.isSafeInteger(browser.actionDelayMs) || browser.actionDelayMs < 0)) {
+        if (typeof browser.actionDelayMs === 'number' && (!Number.isSafeInteger(browser.actionDelayMs) || browser.actionDelayMs < 0)) {
             errors.push('e2eTesting.execution.browser.actionDelayMs: expected a non-negative safe integer in milliseconds');
         }
     }
@@ -1575,11 +2027,15 @@ function validateE2eExecutionSemantics(config, errors, warnings) {
         if (Array.isArray(evidence.capture)) {
             evidence.capture.forEach((kind, index) => {
                 if (typeof kind === 'string' && !E2E_CAPTURE_KINDS.has(kind)) {
-                    errors.push(`e2eTesting.execution.evidence.capture[${index}]: unsupported capture "${kind}"; expected one of ${Array.from(E2E_CAPTURE_KINDS).join(', ')}`);
+                    errors.push(
+                        `e2eTesting.execution.evidence.capture[${index}]: unsupported capture "${kind}"; expected one of ${Array.from(E2E_CAPTURE_KINDS).join(', ')}`
+                    );
                 }
             });
             if (evidence.capture.some(kind => E2E_CAPTURE_KINDS.has(kind)) && !isNonEmptyString(evidence.redaction)) {
-                warnings.push('e2eTesting.execution.evidence.redaction: configure redaction before persisting screenshot, console, request, trace, or video evidence');
+                warnings.push(
+                    'e2eTesting.execution.evidence.redaction: configure redaction before persisting screenshot, console, request, trace, or video evidence'
+                );
             }
         }
 
@@ -1588,27 +2044,39 @@ function validateE2eExecutionSemantics(config, errors, warnings) {
             // Any string, including blank, is checked: a blank mode would otherwise read as active
             // capture instead of an error (same convention as auth.mode).
             if (typeof uiStateCapture.mode === 'string' && !E2E_UI_STATE_CAPTURE_MODES.has(uiStateCapture.mode)) {
-                errors.push(`e2eTesting.execution.evidence.uiStateCapture.mode: unsupported mode "${uiStateCapture.mode}"; expected one of ${Array.from(E2E_UI_STATE_CAPTURE_MODES).join(', ')}`);
+                errors.push(
+                    `e2eTesting.execution.evidence.uiStateCapture.mode: unsupported mode "${uiStateCapture.mode}"; expected one of ${Array.from(E2E_UI_STATE_CAPTURE_MODES).join(', ')}`
+                );
             }
             // Caps bound the capture set; a non-positive cap would silently disable capture
             // instead of producing the escalation record the protocol requires.
-            [['maxPerTest', 1, 1000], ['maxPerRun', 1, 20000]].forEach(([field, min, max]) => {
+            [
+                ['maxPerTest', 1, 1000],
+                ['maxPerRun', 1, 20000]
+            ].forEach(([field, min, max]) => {
                 const value = uiStateCapture[field];
                 if (value === undefined || value === null) return;
                 if (typeof value !== 'number' || !Number.isInteger(value) || value < min || value > max) {
                     errors.push(`e2eTesting.execution.evidence.uiStateCapture.${field}: expected an integer from ${min} through ${max}`);
                 }
             });
-            if (typeof uiStateCapture.maxPerTest === 'number' && typeof uiStateCapture.maxPerRun === 'number' &&
-                uiStateCapture.maxPerTest > uiStateCapture.maxPerRun) {
+            if (
+                typeof uiStateCapture.maxPerTest === 'number' &&
+                typeof uiStateCapture.maxPerRun === 'number' &&
+                uiStateCapture.maxPerTest > uiStateCapture.maxPerRun
+            ) {
                 errors.push('e2eTesting.execution.evidence.uiStateCapture.maxPerTest: cannot exceed uiStateCapture.maxPerRun');
             }
             // `off` still captures and indexes the declared matrix, so every mode needs the manifest path.
             if (!isNonEmptyString(uiStateCapture.manifestPath)) {
-                warnings.push('e2eTesting.execution.evidence.uiStateCapture.manifestPath: configure the capture-manifest.json path; an unindexed capture set cannot be reconciled case by case and reads as UNVERIFIED');
+                warnings.push(
+                    'e2eTesting.execution.evidence.uiStateCapture.manifestPath: configure the capture-manifest.json path; an unindexed capture set cannot be reconciled case by case and reads as UNVERIFIED'
+                );
             }
             if (uiStateCapture.mode === 'every-action' && !isNonEmptyString(uiStateCapture.helper)) {
-                warnings.push('e2eTesting.execution.evidence.uiStateCapture.helper: name the source-verified capture boundary used for every-action transition capture');
+                warnings.push(
+                    'e2eTesting.execution.evidence.uiStateCapture.helper: name the source-verified capture boundary used for every-action transition capture'
+                );
             }
         }
     }
@@ -1625,19 +2093,23 @@ function validateE2eExecutionSemantics(config, errors, warnings) {
                 errors.push(`e2eTesting.execution.convergence.${field}: expected an integer from ${min} through ${max}`);
             }
         }
-        if (typeof convergence.maxAttempts === 'number' && typeof convergence.consecutiveGreen === 'number' && convergence.consecutiveGreen > convergence.maxAttempts) {
+        if (
+            typeof convergence.maxAttempts === 'number' &&
+            typeof convergence.consecutiveGreen === 'number' &&
+            convergence.consecutiveGreen > convergence.maxAttempts
+        ) {
             errors.push('e2eTesting.execution.convergence.consecutiveGreen: cannot exceed convergence.maxAttempts');
         }
     }
 
     if (Array.isArray(execution.surfaceIds)) {
-        const surfaces = config.experienceVerification && Array.isArray(config.experienceVerification.surfaces)
-            ? config.experienceVerification.surfaces
-            : [];
+        const surfaces = config.experienceVerification && Array.isArray(config.experienceVerification.surfaces) ? config.experienceVerification.surfaces : [];
         const knownIds = new Set(surfaces.filter(surface => surface && typeof surface.id === 'string').map(surface => surface.id));
         execution.surfaceIds.forEach((surfaceId, index) => {
             if (typeof surfaceId === 'string' && !knownIds.has(surfaceId)) {
-                warnings.push(`e2eTesting.execution.surfaceIds[${index}]: no matching experienceVerification.surfaces[].id; setup must discover or configure the surface before E2E can be APPLICABLE`);
+                warnings.push(
+                    `e2eTesting.execution.surfaceIds[${index}]: no matching experienceVerification.surfaces[].id; setup must discover or configure the surface before E2E can be APPLICABLE`
+                );
             }
         });
     }
@@ -1807,17 +2279,22 @@ function validateContentSignals(group, path, label, errors, warnings) {
         group.contentRegexes.forEach((source, index) => {
             if (typeof source !== 'string') return;
             if (source.trim().length === 0) errors.push(`${path}${label}.contentRegexes[${index}]: must not be blank`);
-            else if (source.length > limits.maxRegexLength) errors.push(`${path}${label}.contentRegexes[${index}]: at most ${limits.maxRegexLength} characters, got ${source.length}`);
+            else if (source.length > limits.maxRegexLength)
+                errors.push(`${path}${label}.contentRegexes[${index}]: at most ${limits.maxRegexLength} characters, got ${source.length}`);
             else {
                 // An uncompilable source is reported by the structural pass; only a compilable one can be unsafe.
                 const unsafe = validateRegex(source, path) === null ? contentRegexLintReason(source) : null;
                 if (unsafe) {
-                    errors.push(`${path}${label}.contentRegexes[${index}]: unsafe content regex (${unsafe}); use a bounded repetition such as {0,80} and no nested or back-to-back open-ended repetition, or the pattern can stall every read of a matching file`);
+                    errors.push(
+                        `${path}${label}.contentRegexes[${index}]: unsafe content regex (${unsafe}); use a bounded repetition such as {0,80} and no nested or back-to-back open-ended repetition, or the pattern can stall every read of a matching file`
+                    );
                 }
             }
         });
         if (group.contentRegexes.length > 0 && !nonEmptyArray(group.contentExtensions)) {
-            errors.push(`${path}${label}.contentRegexes: needs contentExtensions (the text/code file types to scan); without them no file is ever content-matched`);
+            errors.push(
+                `${path}${label}.contentRegexes: needs contentExtensions (the text/code file types to scan); without them no file is ever content-matched`
+            );
         }
     }
     if (Array.isArray(group.contentExtensions)) {
@@ -1870,7 +2347,9 @@ function validateContextGroupSemantics(config, errors, warnings) {
         }
         const hasContentInclude = nonEmptyArray(group.contentRegexes) && nonEmptyArray(group.contentExtensions);
         if (!nonEmptyArray(group.pathRegexes) && !nonEmptyArray(group.pathGlobs) && !nonEmptyArray(group.fileNameRegexes) && !hasContentInclude) {
-            errors.push(`${path}${label}: needs at least one include matcher (pathRegexes, pathGlobs, fileNameRegexes, or contentRegexes with contentExtensions)`);
+            errors.push(
+                `${path}${label}: needs at least one include matcher (pathRegexes, pathGlobs, fileNameRegexes, or contentRegexes with contentExtensions)`
+            );
         }
         validateContentSignals(group, path, label, errors, warnings);
         for (const key of Object.keys(group)) {
@@ -2089,9 +2568,7 @@ function validateReferenceDocsSemantics(config, errors, warnings) {
         try {
             validateReferenceDocDefinition(doc, index);
         } catch (error) {
-            errors.push(error && typeof error.message === 'string'
-                ? error.message
-                : `referenceDocs[${index}]: invalid reference-doc definition`);
+            errors.push(error && typeof error.message === 'string' ? error.message : `referenceDocs[${index}]: invalid reference-doc definition`);
         }
     });
 }
@@ -2105,9 +2582,7 @@ function validateFeatureDocTemplateSemantics(config, errors) {
     try {
         normalizeProjectRelativePath(destination, 'workflowPatterns.featureDocTemplate');
     } catch (error) {
-        errors.push(error && typeof error.message === 'string'
-            ? error.message
-            : 'workflowPatterns.featureDocTemplate: invalid project-relative path');
+        errors.push(error && typeof error.message === 'string' ? error.message : 'workflowPatterns.featureDocTemplate: invalid project-relative path');
     }
 }
 
@@ -2124,13 +2599,17 @@ function validatePortabilitySemantics(config, errors, warnings) {
     const refPath = protocol.path;
     if (typeof refPath !== 'string' || !refPath.trim()) return;
     if (isAbsoluteProjectPath(refPath)) {
-        errors.push('portability.workflowRouteProtocol.path: must be a repo-relative path without parent traversal (absolute paths and ".." segments are rejected)');
+        errors.push(
+            'portability.workflowRouteProtocol.path: must be a repo-relative path without parent traversal (absolute paths and ".." segments are rejected)'
+        );
         return;
     }
     try {
         const { isPrivacySensitive } = require('./sensitive-path-policy.cjs');
         if (isPrivacySensitive(refPath)) {
-            errors.push('portability.workflowRouteProtocol.path: points at a privacy-sensitive file (.env / credentials / secret / key) that the runtime refuses to inject into model context; declare a non-sensitive protocol document');
+            errors.push(
+                'portability.workflowRouteProtocol.path: points at a privacy-sensitive file (.env / credentials / secret / key) that the runtime refuses to inject into model context; declare a non-sensitive protocol document'
+            );
             return;
         }
     } catch {
@@ -2303,9 +2782,7 @@ function generateExampleItem(itemSchema) {
     for (const [field, def] of Object.entries(itemSchema)) {
         const req = def.required ? 'required' : 'optional';
         if (def.type === 'string') {
-            obj[field] = def.isRegex
-                ? `<regex> (${req})`
-                : Array.isArray(def.enumValues) ? `<${def.enumValues.join('|')}> (${req})` : `<string> (${req})`;
+            obj[field] = def.isRegex ? `<regex> (${req})` : Array.isArray(def.enumValues) ? `<${def.enumValues.join('|')}> (${req})` : `<string> (${req})`;
         } else if (def.type === 'number') {
             obj[field] = `<number> (${req})`;
         } else if (def.type === 'array') {
@@ -2349,11 +2826,7 @@ function describeField(name, schema, depth, lines) {
     const req = schema.required ? 'required' : 'optional';
 
     if (schema.type === 'string' || schema.type === 'number' || schema.type === 'boolean') {
-        const extra = schema.isRegex
-            ? ', regex'
-            : Array.isArray(schema.enumValues)
-                ? `, one of ${schema.enumValues.join('|')}`
-                : '';
+        const extra = schema.isRegex ? ', regex' : Array.isArray(schema.enumValues) ? `, one of ${schema.enumValues.join('|')}` : '';
         lines.push(`${indent}${name} (${schema.type}, ${req}${extra})${depr}`);
         emitDescribe(schema, depth + 1, lines);
     } else if (schema.type === 'array') {
@@ -2361,11 +2834,7 @@ function describeField(name, schema, depth, lines) {
         lines.push(`${indent}${name} (array${extra}, ${req})${depr}`);
         emitDescribe(schema, depth + 1, lines);
     } else if (schema.type === 'map') {
-        const extra = schema.valuesAreRegex
-            ? ', values are regexes'
-            : Array.isArray(schema.valuesEnum)
-                ? `, values one of ${schema.valuesEnum.join('|')}`
-                : '';
+        const extra = schema.valuesAreRegex ? ', values are regexes' : Array.isArray(schema.valuesEnum) ? `, values one of ${schema.valuesEnum.join('|')}` : '';
         lines.push(`${indent}${name} (map${extra}, ${req})${depr}`);
         emitDescribe(schema, depth + 1, lines);
     } else if (schema.type === 'object') {
@@ -2389,10 +2858,10 @@ function describeField(name, schema, depth, lines) {
             lines.push(`${indent}  }`);
         }
     } else if (Array.isArray(schema.oneOf)) {
-        const shapes = schema.oneOf.map((alt) => alt.type || 'value').join(' | ');
+        const shapes = schema.oneOf.map(alt => alt.type || 'value').join(' | ');
         lines.push(`${indent}${name} (${shapes}, ${req})${depr}`);
         emitDescribe(schema, depth + 1, lines);
-        const objectAlt = schema.oneOf.find((alt) => alt.type === 'object' && alt.properties);
+        const objectAlt = schema.oneOf.find(alt => alt.type === 'object' && alt.properties);
         if (objectAlt) {
             for (const [prop, propSchema] of Object.entries(objectAlt.properties)) {
                 describeField(prop, propSchema, depth + 1, lines);

@@ -73,8 +73,11 @@ const tests = [
             assert.match(plan, /After every implementation phase: run static\/type\/compile checks only when useful; no test suite, mutation run, or review/);
             assert.match(plan, /After all implementation: run one whole-change static review with tests deferred/);
             assert.match(plan, /Then run the full affected test suite once plus required mutation\/red proof/);
-            assert.equal(fs.existsSync(path.join(SKILLS_DIR, 'plan', 'references', 'engine-plan-organization.md')), false,
-                'the removed implementation-heavy plan engine must not return');
+            assert.equal(
+                fs.existsSync(path.join(SKILLS_DIR, 'plan', 'references', 'engine-plan-organization.md')),
+                false,
+                'the removed implementation-heavy plan engine must not return'
+            );
         }
     },
     {
@@ -87,14 +90,20 @@ const tests = [
             assert.match(text, /\*\*Multi-phase run\*\*[^\n]*per phase, run only type-check\/compile — no test run of any kind/);
             // And Step 3 (static review) and Step 4 (the one verify) run once after the last wave over the whole changeset
             assert.match(text, /Step 3 and Step 4 run ONCE after the last wave, over the whole changeset/);
-            assert.match(section(text, 'Step 3: Code Review (static)'), /multi-phase run: once, after the last wave, over the whole changeset[\s\S]*runs NO test suite/);
+            assert.match(
+                section(text, 'Step 3: Code Review (static)'),
+                /multi-phase run: once, after the last wave, over the whole changeset[\s\S]*runs NO test suite/
+            );
             const verify = section(text, 'Step 4: Verify (tests + mutation check, once)');
             assert.match(verify, /ONCE over the whole changeset \(multi-phase run: once, after Step 3\)/);
             // And the verify owns the mutation check and re-runs the review only when it edited something
             assert.match(verify, /main session runs the mutation check[^\n]*on every changed core-logic line/);
             assert.match(verify, /if fixing in this step edited ANY source or test file, re-run Step 3/);
             // And the review comes before the verify in the file's own order
-            assert.ok(text.indexOf('## Step 3: Code Review (static)') < text.indexOf('## Step 4: Verify (tests + mutation check, once)'), 'Step 3 review precedes Step 4 verify');
+            assert.ok(
+                text.indexOf('## Step 3: Code Review (static)') < text.indexOf('## Step 4: Verify (tests + mutation check, once)'),
+                'Step 3 review precedes Step 4 verify'
+            );
             // And the --approval=off flag bullet carries the same batching
             assert.match(text, /`--approval=off` → Step 5[^\n]*after the last phase, run Step 3 and Step 4 once over the whole changeset/);
             // And a one-phase run keeps its per-phase gates
@@ -124,7 +133,10 @@ const tests = [
             // Given the shipped protocol projection
             const protocol = read('shared/protocols/verify-last-order.md');
             // Then it orders build, static review, one verify with mutation check, fix-and-re-run, conditional re-review
-            assert.match(protocol, /Build[\s\S]*Review and fix, static[\s\S]*Verify once[\s\S]*Fix and re-run until green[\s\S]*Re-review only if step 4 edited anything/);
+            assert.match(
+                protocol,
+                /Build[\s\S]*Review and fix, static[\s\S]*Verify once[\s\S]*Fix and re-run until green[\s\S]*Re-review only if step 4 edited anything/
+            );
             assert.match(protocol, /Green counts only on the final tree/);
             // And the verify <-> re-review alternation is bounded, and the mutation check never uses destructive git
             assert.match(protocol, /alternation is capped at 3 turns[^\n]*escalates via `ask user question tool`/);
@@ -133,16 +145,31 @@ const tests = [
             assert.match(read('integration-test/SKILL.md'), /Verify-last exception[\s\S]*WRITES the tests and does NOT run them/);
             assert.match(read('code-simplifier/SKILL.md'), /verify statically instead[\s\S]*run none/);
             // And every owner skill carries it (guide line or inline body)
-            for (const skill of ['plan', 'feature-implement', 'fix', 'test', 'integration-test',
-                'workflow-review-changes', 'workflow-feature', 'workflow-bugfix', 'workflow-refactor',
-                'workflow-implement-spec', 'workflow-big-feature', 'workflow-greenfield-init', 'start-workflow']) {
+            for (const skill of [
+                'plan',
+                'feature-implement',
+                'fix',
+                'test',
+                'integration-test',
+                'workflow-review-changes',
+                'workflow-feature',
+                'workflow-bugfix',
+                'workflow-refactor',
+                'workflow-implement-spec',
+                'workflow-big-feature',
+                'workflow-greenfield-init',
+                'start-workflow'
+            ]) {
                 assert.match(read(`${skill}/SKILL.md`), /verify-last-order/, `${skill} must reference the verify-last protocol`);
             }
             // And the plan skill's execute mode keeps the verify-last order in its own reference
             assert.match(read('plan/references/mode-execute.md'), /SYNC:verify-last-order/, 'plan --mode=execute must reference the verify-last protocol');
             // And the review workflow can defer its own test run to the parent's single verify
             assert.match(read('workflow-review-changes/SKILL.md'), /`--tests=prove` is default for standalone review/);
-            assert.match(read('workflow-review-changes/SKILL.md'), /`--tests=defer` keeps this review static and assigns execution to the parent's later verification step; propagate it to child reviews/);
+            assert.match(
+                read('workflow-review-changes/SKILL.md'),
+                /`--tests=defer` keeps this review static and assigns execution to the parent's later verification step; propagate it to child reviews/
+            );
             // And the close refuses a green run older than the last edit
             assert.match(read('workflow-end/SKILL.md'), /green run must be on the final tree/);
         }
@@ -160,7 +187,10 @@ const tests = [
             // And the main session owns the mutation check when no editing verify step runs
             assert.match(protocol, /the main session when no such step runs/);
             // And integration-test carries the same characterization exception
-            assert.match(read('integration-test/SKILL.md'), /characterization tests written BEFORE a refactor moves code are proven green on the unrefactored tree before it moves — inside `workflow-refactor` by its one baseline run \(this skill does not run them again\), elsewhere by ONE targeted run/);
+            assert.match(
+                read('integration-test/SKILL.md'),
+                /characterization tests written BEFORE a refactor moves code are proven green on the unrefactored tree before it moves — inside `workflow-refactor` by its one baseline run \(this skill does not run them again\), elsewhere by ONE targeted run/
+            );
             // And the mutation result is part of the verify report and of the close evidence
             assert.match(read('integration-test/references/mode-verify.md'), /mutation-check result \(mutants killed n\/n/);
             assert.match(read('workflow-end/SKILL.md'), /cite the mutation-check result/);
@@ -172,9 +202,17 @@ const tests = [
             assert.match(fixLine(/^- \*\*No-flag spine:\*\*/), /verify once/, 'fix no-flag spine states the verify-once step');
             assert.match(fixLine(/\*\*Final standalone order:\*\*/), /verify once/, 'fix final standalone order states the verify-once step');
             assert.match(fixLine(/^> \*\*Standalone Review Gate/), /verify once/, 'fix standalone review gate states the verify-once step');
-            assert.match(fixLine(/standalone \(not `nested=true`[^)]*\) self-assembles the spine/), /verify once/, 'fix closing reminder states the verify-once step');
+            assert.match(
+                fixLine(/standalone \(not `nested=true`[^)]*\) self-assembles the spine/),
+                /verify once/,
+                'fix closing reminder states the verify-once step'
+            );
             // And the numbered standalone todo spine ends with the verify-once item after the reviews
-            assert.match(fixLine(/^> 6\. \*\*Verify once\*\*/), /final todo, after every review[^\n]*regression tests once, then the mutation check/, 'fix numbered spine has a verify-once item');
+            assert.match(
+                fixLine(/^> 6\. \*\*Verify once\*\*/),
+                /final todo, after every review[^\n]*regression tests once, then the mutation check/,
+                'fix numbered spine has a verify-once item'
+            );
             // And the review-fix step re-runs its tests only when no later verify step exists
             assert.match(fix, /NOT run here when the caller has a later verify step or passes `--tests=defer`[^\n]*re-run the affected tests/);
             // And the custom-simple route examples put the review before the test

@@ -13,26 +13,26 @@ const path = require('path');
  * @returns {string} Resolved absolute output path
  */
 function resolveOutputPath(inputPath, outputPath, extension = '.md') {
-  if (!outputPath) {
-    const dir = path.dirname(inputPath);
-    const base = path.basename(inputPath, path.extname(inputPath));
-    return path.join(dir, base + extension);
-  }
+    if (!outputPath) {
+        const dir = path.dirname(inputPath);
+        const base = path.basename(inputPath, path.extname(inputPath));
+        return path.join(dir, base + extension);
+    }
 
-  const absoluteOutput = path.resolve(outputPath);
+    const absoluteOutput = path.resolve(outputPath);
 
-  // Check if output is a directory
-  if (fs.existsSync(absoluteOutput) && fs.statSync(absoluteOutput).isDirectory()) {
-    const base = path.basename(inputPath, path.extname(inputPath));
-    return path.join(absoluteOutput, base + extension);
-  }
+    // Check if output is a directory
+    if (fs.existsSync(absoluteOutput) && fs.statSync(absoluteOutput).isDirectory()) {
+        const base = path.basename(inputPath, path.extname(inputPath));
+        return path.join(absoluteOutput, base + extension);
+    }
 
-  // Add extension if missing
-  if (!absoluteOutput.endsWith(extension)) {
-    return absoluteOutput + extension;
-  }
+    // Add extension if missing
+    if (!absoluteOutput.endsWith(extension)) {
+        return absoluteOutput + extension;
+    }
 
-  return absoluteOutput;
+    return absoluteOutput;
 }
 
 module.exports = { resolveOutputPath };

@@ -86,7 +86,12 @@ const weakUnlessAsked = re => ({ re, weak: true, asked: false, keptWhenAsked: tr
 
 // Gap hunt: "any gaps?", "does it have issues", "find bugs in", "what's wrong with", "anything missing".
 const PROBLEM_PATTERNS = [
-    strong(new RegExp(`\\b(?:find|finds|finding|review|reviewing|spot|identify|list|look for|hunt for|detect|audit for|scan for|are there|is there)\\b[^.?!\\n]{0,48}\\b${FAULT_NOUNS}`, 'i')),
+    strong(
+        new RegExp(
+            `\\b(?:find|finds|finding|review|reviewing|spot|identify|list|look for|hunt for|detect|audit for|scan for|are there|is there)\\b[^.?!\\n]{0,48}\\b${FAULT_NOUNS}`,
+            'i'
+        )
+    ),
     strong(new RegExp(`\\b(?:does|do|did|has|have) (?:this|it|that|these|those|the|my|our|your)\\b[^.?!\\n]{0,48}\\b${FAULT_NOUNS}`, 'i')),
     weak(new RegExp(`\\b(?:any|anything|some|check|checking|has|have|having|see)\\b[^.?!\\n]{0,48}\\b${FAULT_NOUNS}`, 'i')),
     strong(/\bwhat(?:'s| is| are)? (?:wrong|missing|broken|off)\b/i),
@@ -109,7 +114,9 @@ const CONFIRMATION_PATTERNS = [
 // Evaluation / verdict: "evaluate", "is this good/correct/safe", "should we", "which is better", "root cause".
 const EVALUATION_PATTERNS = [
     weak(/\b(?:evaluate|evaluation|assess|assessment|judge|judgement|judgment|critique|verdict|appraise|sanity[- ]check|double[- ]check)\b/i),
-    strong(/\b(?:is|are|was|were) (?:this|it|that|these|those|the|my|our)(?: [\w-]+){0,2} (?:good|bad|correct|right|wrong|safe|ok|okay|valid|sound|better|worse|enough|sufficient|necessary|worth it|a good idea|the right)\b/i),
+    strong(
+        /\b(?:is|are|was|were) (?:this|it|that|these|those|the|my|our)(?: [\w-]+){0,2} (?:good|bad|correct|right|wrong|safe|ok|okay|valid|sound|better|worse|enough|sufficient|necessary|worth it|a good idea|the right)\b/i
+    ),
     strong(/\bshould (?:i|we|it|this)\b/i),
     strong(/\b(?:which (?:one )?is better|better than|pros and cons|trade-?offs?|worth it)\b/i),
     strong(/\b(?:root cause|is (?:this|that|it) (?:the|a) cause)\b/i),
@@ -133,7 +140,10 @@ const VERDICT_WORDS = String.raw`(?:best|better|worse|right|ideal|recommended|pr
 // "is less risky?", "is the best fit"); "which strategy are most of the hooks using?" and "what design is safe mode built
 // on?" name what is in use.
 const VERDICT_CLOSE = String.raw`(?=\s*(?:[?.!,;:]|$)|\s+(?:ones?|options?|choices?|ways?|approach(?:es)?|designs?|strateg(?:y|ies)|solutions?|pick|bet|fit|here|now|for|to|than|enough|overall|suited|placed|in|with|when|if|given)\b)`;
-const DECISION_ASK = new RegExp(String.raw`\b(?:what|which) (?:approach(?:es)?|strateg(?:y|ies)|architectures?|designs?|solutions?)\b(?:\s+[\w-]+){0,2}?\s+(?:should|would|could|ought|might|fits?|suits?|works?\s+(?:best|better|well|for)|makes?\s+(?:[\w-]+\s+){0,2}?(?:sense|easier|simpler|safer|faster|cheaper)|(?:is|are|seems?)\s+(?:(?!the\b)[\w-]+\s+)?(?!the\b)${VERDICT_WORDS}${VERDICT_CLOSE}|(?:is|are|seems?)\s+(?:[\w-]+\s+)?the\s+${VERDICT_WORDS}${VERDICT_CLOSE}|(?:is|are)\s+there\b|has\s+the\s+(?:fewest|least|best)|do\s+(?:you|i|we)\s+(?:recommend|suggest|propose|prefer|advise|take|pick|choose|go\s+with)|do\s+i\s+(?:use|follow)|do\s+you\s+think|(?:does|do)\s+(?:[\w-]+\s+){1,3}?(?:need|require|call\s+for|deserve|warrant))\b`, 'i');
+const DECISION_ASK = new RegExp(
+    String.raw`\b(?:what|which) (?:approach(?:es)?|strateg(?:y|ies)|architectures?|designs?|solutions?)\b(?:\s+[\w-]+){0,2}?\s+(?:should|would|could|ought|might|fits?|suits?|works?\s+(?:best|better|well|for)|makes?\s+(?:[\w-]+\s+){0,2}?(?:sense|easier|simpler|safer|faster|cheaper)|(?:is|are|seems?)\s+(?:(?!the\b)[\w-]+\s+)?(?!the\b)${VERDICT_WORDS}${VERDICT_CLOSE}|(?:is|are|seems?)\s+(?:[\w-]+\s+)?the\s+${VERDICT_WORDS}${VERDICT_CLOSE}|(?:is|are)\s+there\b|has\s+the\s+(?:fewest|least|best)|do\s+(?:you|i|we)\s+(?:recommend|suggest|propose|prefer|advise|take|pick|choose|go\s+with)|do\s+i\s+(?:use|follow)|do\s+you\s+think|(?:does|do)\s+(?:[\w-]+\s+){1,3}?(?:need|require|call\s+for|deserve|warrant))\b`,
+    'i'
+);
 
 // Advice / solution ask: "what's the best way to", "how would you", "recommend an approach", "what strategy fits".
 // Only an ask routes. A stated plan ("I suggest we move the cache") is an instruction, build work that names a
@@ -141,16 +151,28 @@ const DECISION_ASK = new RegExp(String.raw`\b(?:what|which) (?:approach(?:es)?|s
 // the tests?", "how could I see the logs?", "what strategy do we use?", "what approach did you use?") asks for a fact.
 // "What approach do you recommend?" and "what approach do I take?" still ask.
 const ADVICE_PATTERNS = [
-    weakUnlessAsked(/\b(?:best|right|recommended|cleanest|simplest|safest|smartest) (?:way|approach|option|practice|strategy|design|solution|pattern|tool|library|structure)\b/i),
+    weakUnlessAsked(
+        /\b(?:best|right|recommended|cleanest|simplest|safest|smartest) (?:way|approach|option|practice|strategy|design|solution|pattern|tool|library|structure)\b/i
+    ),
     strong(/\b(?:how|what) would you\b/i),
     asked(/\bany (?:suggestions|recommendations|advice)\b/i),
     // An approach or design question asks for advice only when a decision marker follows the noun (DECISION_ASK).
     weakUnlessAsked(DECISION_ASK),
     // An open choice asked as its own sentence ("Which approach to use for retries?"), never inside a clause
     // ("explain how the router decides which strategy to use").
-    weakUnlessAsked(new RegExp(`${ITEM_START}(?:what|which) (?:approach(?:es)?|strateg(?:y|ies)|architectures?|designs?|solutions?)\\s+to\\s+(?:use|take|pick|choose|adopt|follow)\\b`, 'i')),
+    weakUnlessAsked(
+        new RegExp(
+            `${ITEM_START}(?:what|which) (?:approach(?:es)?|strateg(?:y|ies)|architectures?|designs?|solutions?)\\s+to\\s+(?:use|take|pick|choose|adopt|follow)\\b`,
+            'i'
+        )
+    ),
     // Sentence- or item-initial imperative, a "can you" request, "what do you recommend" or "your advice" — never "I suggest we …".
-    strong(new RegExp(`${ITEM_START}(?:recommend|suggest|propose|advise)\\b|\\b(?:can|could|would|will) you (?:please )?(?:recommend|suggest|propose|advise)\\b|\\bwhat (?:do|would) you (?:recommend|suggest|propose|advise)\\b`, 'i')),
+    strong(
+        new RegExp(
+            `${ITEM_START}(?:recommend|suggest|propose|advise)\\b|\\b(?:can|could|would|will) you (?:please )?(?:recommend|suggest|propose|advise)\\b|\\bwhat (?:do|would) you (?:recommend|suggest|propose|advise)\\b`,
+            'i'
+        )
+    ),
     // "your advice" asks as a question, or after "I'd like" / "want" / "need": "try your suggestion and run the tests" is a
     // go-ahead, and so is "go with your suggestion" even with a question mark later.
     strong(/\b(?:'d like|would like|want|need|get|hear|seek|give me|share)\s+your (?:recommendation|advice|suggestion)s?\b/i),
@@ -160,7 +182,8 @@ const ADVICE_PATTERNS = [
 // An explicit review or grill invocation already carries its own adversarial protocol.
 const EXPLICIT_REVIEW_INVOCATION = /^\s*[/$](?:[\w-]+:)?(?:why-review|grill)\b/i;
 // "Implement / add / create ..." with no question is a build request, not a verdict request.
-const QUESTION_OR_VERDICT_CUE = /\?|\b(?:check|evaluate|assess|judge|review|confirm|verify|validate|audit|critique|am i|is it|is this|is the|is anything|is there|are there|does it|what do you think|thoughts on|should|which|why|what(?:'s| is)? wrong|any \w+|recommend|advise|suggest|propose|your (?:recommendation|advice|suggestion)|best (?:way|approach|option|practice)|how would you|what would you|what (?:approach|strategy|architecture|design|solution))\b/i;
+const QUESTION_OR_VERDICT_CUE =
+    /\?|\b(?:check|evaluate|assess|judge|review|confirm|verify|validate|audit|critique|am i|is it|is this|is the|is anything|is there|are there|does it|what do you think|thoughts on|should|which|why|what(?:'s| is)? wrong|any \w+|recommend|advise|suggest|propose|your (?:recommendation|advice|suggestion)|best (?:way|approach|option|practice)|how would you|what would you|what (?:approach|strategy|architecture|design|solution))\b/i;
 // A fix/build request (ACTION_REQUEST, shared): its fault nouns describe work to do, not a verdict to give.
 
 /** Return the list of leans the prompt carries; empty when it does not ask for a verdict. */
@@ -188,12 +211,9 @@ function isJudgementRequest(prompt) {
 const LEAN_GUIDANCE = {
     [LEANS.PROBLEM_PRESUMED]:
         'Gap hunt: "no material issues found" is a valid answer; non-empty list not the goal. Keep only findings you would still report had user asked to confirm none exist.',
-    [LEANS.CONFIRMATION_SOUGHT]:
-        "User's theory/expected answer = hypothesis: hunt hardest for refuting evidence; say plainly if it fails.",
-    [LEANS.EVALUATION]:
-        'Verdict: weigh option/cause user did NOT name with same evidence bar as named one.',
-    [LEANS.ADVICE]:
-        'Advice: name the constraints you assumed; weigh at least one real alternative with the same evidence bar before recommending.'
+    [LEANS.CONFIRMATION_SOUGHT]: "User's theory/expected answer = hypothesis: hunt hardest for refuting evidence; say plainly if it fails.",
+    [LEANS.EVALUATION]: 'Verdict: weigh option/cause user did NOT name with same evidence bar as named one.',
+    [LEANS.ADVICE]: 'Advice: name the constraints you assumed; weigh at least one real alternative with the same evidence bar before recommending.'
 };
 
 function loadCanonicalReminder() {
@@ -209,7 +229,8 @@ function loadCanonicalReminder() {
 }
 
 // The checks a closing offer can name, best fit first, at most two per offer.
-const DS_CHECKS = '`/grill` (interview: the user decides the open choices) · `/why-review` (you attack your own reasoning, no interview) · `/plan --mode=validate` (a saved plan) · `/wayfinder` (decisions span sessions) · `/llm-council` (irreversible, high stakes)';
+const DS_CHECKS =
+    '`/grill` (interview: the user decides the open choices) · `/why-review` (you attack your own reasoning, no interview) · `/plan --mode=validate` (a saved plan) · `/wayfinder` (decisions span sessions) · `/llm-council` (irreversible, high stakes)';
 const DS_CLOSE = {
     ask: 'Close such an answer with ONE question via the host question tool (plain text when it has none): the 1–2 fitting checks + skip.',
     suggest: 'Close such an answer with ONE line naming the 1–2 fitting checks; ask nothing, run nothing (the user types a check to start it).',
@@ -259,9 +280,13 @@ function buildDirective(leans, reminder = loadCanonicalReminder(), allowSkillRou
         allowSkillRouting
             ? 'Default = INLINE self-check (steps above; why-review the draft mentally) — no skill call: skill is heavy, everyday answers stay inline. Escalate to `why-review --validate-findings` only for formal review/audit/gap-hunt deliverable or MEDIUM+/consequential issue the inline pass cannot settle: Claude Code → Skill tool `why-review`; Codex → `$why-review` (`.agents/skills/why-review/SKILL.md`); OpenCode → `.claude/skills/why-review/SKILL.md`. Not a verdict or advice ask → ignore.'
             : 'Skill auto-trigger is disabled: keep this verdict self-check INLINE. This prompt classifier does not authorize a heavy review skill. Named user requests and required calls in an already authorized operation still follow the skill activation policy.',
-        ...(decisionSupportMode ? [decisionSupportMode === 'off'
-            ? 'Active decision-support mode: `off` — make no grill / why-review offer; the inline self-check above still applies.'
-            : `Active decision-support mode: \`${decisionSupportMode}\` — close a consequential answer in that form.`] : []),
+        ...(decisionSupportMode
+            ? [
+                  decisionSupportMode === 'off'
+                      ? 'Active decision-support mode: `off` — make no grill / why-review offer; the inline self-check above still applies.'
+                      : `Active decision-support mode: \`${decisionSupportMode}\` — close a consequential answer in that form.`
+              ]
+            : []),
         MARKER_END
     ].join('\n');
 }
@@ -353,16 +378,21 @@ function run(input, deps = {}) {
             const env = deps.env || process.env;
             const ledger = deps.ledger || require('./lib/convention-ledger.cjs');
             const combined = `${directive}${rule.text}\n`;
-            ledger.deliverWithCompaction({
-                root: deps.storeRoot || ledger.storeRoot(env),
-                input: ledger.agentStartInput(input),
-                group: DS_RECORD_GROUP,
-                hash: rule.hash,
-                payload: routerOutput(input, combined),
-                settings: ledgerSettings(ledger),
-                now: typeof deps.now === 'number' ? deps.now : Date.now(),
-                write
-            }).then(written => (written ? resolve(combined) : writeText(directive)), () => writeText(directive));
+            ledger
+                .deliverWithCompaction({
+                    root: deps.storeRoot || ledger.storeRoot(env),
+                    input: ledger.agentStartInput(input),
+                    group: DS_RECORD_GROUP,
+                    hash: rule.hash,
+                    payload: routerOutput(input, combined),
+                    settings: ledgerSettings(ledger),
+                    now: typeof deps.now === 'number' ? deps.now : Date.now(),
+                    write
+                })
+                .then(
+                    written => (written ? resolve(combined) : writeText(directive)),
+                    () => writeText(directive)
+                );
         } catch (error) {
             debugError(HOOK_NAME, error); // fail open: an advisory hook never blocks a prompt
             writeText(directive);
@@ -395,7 +425,15 @@ if (isHookEntryPoint(module)) {
     try {
         const { parseStdinSync } = require('./lib/stdin-parser.cjs');
         const input = parseStdinSync({ defaultValue: null, throwOnError: true, context: HOOK_NAME });
-        if (input) run(input).then(() => { process.exitCode = 0; }, () => { process.exitCode = 0; });
+        if (input)
+            run(input).then(
+                () => {
+                    process.exitCode = 0;
+                },
+                () => {
+                    process.exitCode = 0;
+                }
+            );
     } catch (error) {
         debugError(HOOK_NAME, error); // fail open: an advisory hook never blocks a prompt
     }

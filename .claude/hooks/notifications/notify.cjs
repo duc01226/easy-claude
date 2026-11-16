@@ -109,9 +109,8 @@ function isDelegatedConversation(input) {
 function countAwaitedTasks(input) {
     if (!Array.isArray(input.background_tasks)) return 0;
     const lower = value => (typeof value === 'string' ? value.toLowerCase() : '');
-    return input.background_tasks.filter(task => task &&
-        AWAITED_TASK_TYPES.includes(lower(task.type)) &&
-        !SETTLED_TASK_STATUSES.includes(lower(task.status))).length;
+    return input.background_tasks.filter(task => task && AWAITED_TASK_TYPES.includes(lower(task.type)) && !SETTLED_TASK_STATUSES.includes(lower(task.status)))
+        .length;
 }
 
 /**
@@ -122,8 +121,7 @@ function countAwaitedTasks(input) {
  * @returns {boolean}
  */
 function hasPendingWakeup(input) {
-    return Array.isArray(input.session_crons) &&
-        input.session_crons.some(cron => cron && cron.recurring === false);
+    return Array.isArray(input.session_crons) && input.session_crons.some(cron => cron && cron.recurring === false);
 }
 
 /**
@@ -338,8 +336,7 @@ async function sendWithProvider(providerName, provider, input, env) {
  * @returns {Promise<Object[]>} One result per enabled provider
  */
 function dispatchToProviders(input, env) {
-    return Promise.all(getEnabledProviders(env).map(([providerName, provider]) =>
-        sendWithProvider(providerName, provider, input, env)));
+    return Promise.all(getEnabledProviders(env).map(([providerName, provider]) => sendWithProvider(providerName, provider, input, env)));
 }
 
 /**

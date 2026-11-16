@@ -68,18 +68,34 @@ function describeLayers(resolved, sessionMode) {
 function main(argv = process.argv.slice(2), env = process.env) {
     const args = parseArgs(argv);
     if (args.invalid.length > 0) {
-        process.stderr.write(`workflow-mode: unknown argument(s): ${args.invalid.join(' ')} (expected ask | auto | off | --save | --local | --show | --json | --set-session | --reset-session | --session=<id>)\n`);
+        process.stderr.write(
+            `workflow-mode: unknown argument(s): ${args.invalid.join(' ')} (expected ask | auto | off | --save | --local | --show | --json | --set-session | --reset-session | --session=<id>)\n`
+        );
         return 1;
     }
     const rootDir = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env }).rootDir;
     const sessionId = args.session || routing.readSessionIdFromEnv(env);
     if (args.setSession || args.resetSession) {
-        if ((args.setSession && !args.mode) || !sessionId || args.save || args.local || (args.setSession && args.resetSession) || (args.resetSession && args.mode)) {
+        if (
+            (args.setSession && !args.mode) ||
+            !sessionId ||
+            args.save ||
+            args.local ||
+            (args.setSession && args.resetSession) ||
+            (args.resetSession && args.mode)
+        ) {
             process.stderr.write('workflow-mode: --set-session needs a mode and real session id; it cannot be combined with persistence flags.\n');
             return 1;
         }
         const ledger = require('../hooks/lib/convention-ledger.cjs');
-        if (!ledger.writeSessionState(routing.resolveSessionStoreRoot(rootDir), sessionId, routing.SESSION_MODE_STATE, args.resetSession ? {} : { mode: args.mode })) {
+        if (
+            !ledger.writeSessionState(
+                routing.resolveSessionStoreRoot(rootDir),
+                sessionId,
+                routing.SESSION_MODE_STATE,
+                args.resetSession ? {} : { mode: args.mode }
+            )
+        ) {
             process.stderr.write('workflow-mode: session preference NOT saved; no persistent configuration was changed.\n');
             return 1;
         }
@@ -89,7 +105,9 @@ function main(argv = process.argv.slice(2), env = process.env) {
         const target = args.local ? 'local' : 'user';
         const localFile = routing.resolveLocalOverridePath(rootDir);
         if (target === 'local' && !isGitIgnored(rootDir, localFile)) {
-            process.stderr.write(`workflow-mode: refused — ${localFile} is not git-ignored, so it could be committed. Use the user file (omit --local) or add the ignore rule first.\n`);
+            process.stderr.write(
+                `workflow-mode: refused — ${localFile} is not git-ignored, so it could be committed. Use the user file (omit --local) or add the ignore rule first.\n`
+            );
             return 1;
         }
         written = routing.writeWorkflowRouteMode({ mode: args.mode, target, rootDir });
@@ -111,11 +129,14 @@ function main(argv = process.argv.slice(2), env = process.env) {
         layers: describeLayers(resolved, sessionMode),
         saved: written ? written.file : null,
         requested: args.mode,
-        note: args.setSession || args.resetSession ? 'Applied for this session only; no personal or team file written.' : args.mode && !args.save
-            ? 'Nothing written. A session-only mode is set by sending `workflow-mode: <mode>` as the first line of a prompt; add --save to persist.'
-            : (args.mode && resolved.mode !== args.mode
-                ? `Saved, but the effective mode stays ${resolved.mode}: a higher-precedence source (${routing.describeRouteModeSource(resolved.source)}) wins.`
-                : null),
+        note:
+            args.setSession || args.resetSession
+                ? 'Applied for this session only; no personal or team file written.'
+                : args.mode && !args.save
+                  ? 'Nothing written. A session-only mode is set by sending `workflow-mode: <mode>` as the first line of a prompt; add --save to persist.'
+                  : args.mode && resolved.mode !== args.mode
+                    ? `Saved, but the effective mode stays ${resolved.mode}: a higher-precedence source (${routing.describeRouteModeSource(resolved.source)}) wins.`
+                    : null,
         sessionNote
     };
     if (args.json) {
@@ -125,7 +146,7 @@ function main(argv = process.argv.slice(2), env = process.env) {
     const lines = [`Route mode: ${out.mode} (${out.label})`];
     if (out.saved) lines.push(`Saved: ${out.saved}`);
     for (const layer of out.layers) lines.push(`  ${layer.layer}${layer.path ? ` [${layer.path}]` : ''}: ${layer.mode}`);
-    lines.push('  precedence, later wins: default < project config < user file < checkout file < env < this session\'s prompt directive');
+    lines.push("  precedence, later wins: default < project config < user file < checkout file < env < this session's prompt directive");
     if (out.note) lines.push(out.note);
     if (out.sessionNote) lines.push(out.sessionNote);
     process.stdout.write(`${lines.join('\n')}\n`);

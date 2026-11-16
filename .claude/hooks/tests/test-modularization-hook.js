@@ -24,51 +24,51 @@ const shortContent = Array(50).fill('// Test line').join('\n');
 fs.writeFileSync(shortFilePath, shortContent);
 
 const testCases = [
-  {
-    name: 'Write tool with file exceeding LOC threshold',
-    input: {
-      tool_name: 'Write',
-      tool_input: {
-        file_path: testFilePath,
-        content: longContent
-      }
+    {
+        name: 'Write tool with file exceeding LOC threshold',
+        input: {
+            tool_name: 'Write',
+            tool_input: {
+                file_path: testFilePath,
+                content: longContent
+            }
+        },
+        expectSuggestion: true
     },
-    expectSuggestion: true
-  },
-  {
-    name: 'Edit tool with file exceeding LOC threshold',
-    input: {
-      tool_name: 'Edit',
-      tool_input: {
-        file_path: testFilePath,
-        old_string: '// Test line',
-        new_string: '// Modified line'
-      }
+    {
+        name: 'Edit tool with file exceeding LOC threshold',
+        input: {
+            tool_name: 'Edit',
+            tool_input: {
+                file_path: testFilePath,
+                old_string: '// Test line',
+                new_string: '// Modified line'
+            }
+        },
+        expectSuggestion: true
     },
-    expectSuggestion: true
-  },
-  {
-    name: 'Write tool with short file (under threshold)',
-    input: {
-      tool_name: 'Write',
-      tool_input: {
-        file_path: shortFilePath,
-        content: shortContent
-      }
+    {
+        name: 'Write tool with short file (under threshold)',
+        input: {
+            tool_name: 'Write',
+            tool_input: {
+                file_path: shortFilePath,
+                content: shortContent
+            }
+        },
+        expectSuggestion: false
     },
-    expectSuggestion: false
-  },
-  {
-    name: 'Write tool with non-existent file',
-    input: {
-      tool_name: 'Write',
-      tool_input: {
-        file_path: '/tmp/non-existent-file.js',
-        content: 'test'
-      }
-    },
-    expectSuggestion: false
-  }
+    {
+        name: 'Write tool with non-existent file',
+        input: {
+            tool_name: 'Write',
+            tool_input: {
+                file_path: '/tmp/non-existent-file.js',
+                content: 'test'
+            }
+        },
+        expectSuggestion: false
+    }
 ];
 
 console.log('Testing modularization-hook.js...\n');
@@ -78,45 +78,47 @@ let passed = 0;
 let failed = 0;
 
 for (const test of testCases) {
-  try {
-    const input = JSON.stringify(test.input);
-    const result = execSync(`node "${scriptPath}"`, {
-      input,
-      encoding: 'utf-8',
-      stdio: ['pipe', 'pipe', 'pipe'],
-      env: { ...process.env, MODULARIZATION_HOOK_DEBUG: 'false' }
-    });
+    try {
+        const input = JSON.stringify(test.input);
+        const result = execSync(`node "${scriptPath}"`, {
+            input,
+            encoding: 'utf-8',
+            stdio: ['pipe', 'pipe', 'pipe'],
+            env: { ...process.env, MODULARIZATION_HOOK_DEBUG: 'false' }
+        });
 
-    let hasSuggestion = false;
-    if (result && result.trim()) {
-      try {
-        const output = JSON.parse(result.trim());
-        hasSuggestion = output.hookSpecificOutput?.additionalContext?.includes('LOC');
-      } catch (e) {
-        // Not valid JSON or no output
-      }
-    }
+        let hasSuggestion = false;
+        if (result && result.trim()) {
+            try {
+                const output = JSON.parse(result.trim());
+                hasSuggestion = output.hookSpecificOutput?.additionalContext?.includes('LOC');
+            } catch (e) {
+                // Not valid JSON or no output
+            }
+        }
 
-    const success = hasSuggestion === test.expectSuggestion;
+        const success = hasSuggestion === test.expectSuggestion;
 
-    if (success) {
-      console.log(`✓ ${test.name}: ${hasSuggestion ? 'suggestion shown' : 'no suggestion'}`);
-      passed++;
-    } else {
-      console.log(`✗ ${test.name}: expected ${test.expectSuggestion ? 'suggestion' : 'no suggestion'}, got ${hasSuggestion ? 'suggestion' : 'no suggestion'}`);
-      if (result) {
-        console.log(`  Output: ${result.trim()}`);
-      }
-      failed++;
+        if (success) {
+            console.log(`✓ ${test.name}: ${hasSuggestion ? 'suggestion shown' : 'no suggestion'}`);
+            passed++;
+        } else {
+            console.log(
+                `✗ ${test.name}: expected ${test.expectSuggestion ? 'suggestion' : 'no suggestion'}, got ${hasSuggestion ? 'suggestion' : 'no suggestion'}`
+            );
+            if (result) {
+                console.log(`  Output: ${result.trim()}`);
+            }
+            failed++;
+        }
+    } catch (error) {
+        console.log(`✗ ${test.name}: error executing hook`);
+        console.log(`  Error: ${error.message}`);
+        if (error.stderr) {
+            console.log(`  Stderr: ${error.stderr.toString()}`);
+        }
+        failed++;
     }
-  } catch (error) {
-    console.log(`✗ ${test.name}: error executing hook`);
-    console.log(`  Error: ${error.message}`);
-    if (error.stderr) {
-      console.log(`  Stderr: ${error.stderr.toString()}`);
-    }
-    failed++;
-  }
 }
 
 // Cleanup

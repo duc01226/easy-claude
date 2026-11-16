@@ -92,13 +92,22 @@ export function toEvent(raw, cwd) {
 
 /** Usage and model from a `--output-format stream-json` transcript. Pure. */
 export function readStream(text) {
-    let model = ''; let usage = null; let ok = false;
+    let model = '';
+    let usage = null;
+    let ok = false;
     for (const line of String(text).split(/\r?\n/)) {
         if (!line.trim().startsWith('{')) continue;
         let event;
-        try { event = JSON.parse(line); } catch { continue; }
+        try {
+            event = JSON.parse(line);
+        } catch {
+            continue;
+        }
         if (event.type === 'system' && event.subtype === 'init' && typeof event.model === 'string') model = event.model;
-        if (event.type === 'result') { usage = event.usage || null; ok = event.subtype === 'success'; }
+        if (event.type === 'result') {
+            usage = event.usage || null;
+            ok = event.subtype === 'success';
+        }
     }
     const inputTokens = usage ? (usage.input_tokens || 0) + (usage.cache_creation_input_tokens || 0) + (usage.cache_read_input_tokens || 0) : 0;
     return { model, ok, inputTokens, outputTokens: usage?.output_tokens || 0 };
@@ -122,7 +131,10 @@ export function runSettings(command, secretNames = []) {
     return {
         hooks: { PostToolUse: [{ matcher: '*', hooks: [hook] }], PostToolUseFailure: [{ matcher: '*', hooks: [hook] }] },
         sandbox: {
-            enabled: true, failIfUnavailable: true, allowUnsandboxedCommands: false, autoAllowBashIfSandboxed: true,
+            enabled: true,
+            failIfUnavailable: true,
+            allowUnsandboxedCommands: false,
+            autoAllowBashIfSandboxed: true,
             network: { allowedDomains: [], strictAllowlist: true },
             credentials: { envVars: names.map(name => ({ name, mode: 'deny' })) }
         }
@@ -131,7 +143,10 @@ export function runSettings(command, secretNames = []) {
 
 /** Names listed in CTX_EVAL_PASS_ENV. Pure. */
 export function passNames(value) {
-    return String(value || '').split(',').map(name => name.trim()).filter(Boolean);
+    return String(value || '')
+        .split(',')
+        .map(name => name.trim())
+        .filter(Boolean);
 }
 
 /** Why this machine or world cannot run a contained evaluation, or null. */
@@ -146,16 +161,36 @@ export function preflight(platform, env, world) {
 
 /** The host argv for one job. Pure. */
 export function runArgs(job, model, settingsFile) {
-    return ['-p', job.prompt, '--output-format', 'stream-json', '--verbose', '--model', model, '--setting-sources', 'project,local',
-        '--strict-mcp-config', '--permission-mode', 'acceptEdits', '--disallowedTools', 'WebFetch,WebSearch',
-        '--settings', settingsFile, '--append-system-prompt', String(job.policy ?? '')];
+    return [
+        '-p',
+        job.prompt,
+        '--output-format',
+        'stream-json',
+        '--verbose',
+        '--model',
+        model,
+        '--setting-sources',
+        'project,local',
+        '--strict-mcp-config',
+        '--permission-mode',
+        'acceptEdits',
+        '--disallowedTools',
+        'WebFetch,WebSearch',
+        '--settings',
+        settingsFile,
+        '--append-system-prompt',
+        String(job.policy ?? '')
+    ];
 }
 
 /** The child's environment for one job. Pure. */
 export function runEnv(env, state, world) {
     return {
         ...childEnv(env, env.CTX_EVAL_PASS_ENV),
-        CLAUDE_PROJECT_DIR: world, CTX_EVAL_STATE_DIR: state, CTX_EVAL_WORLD_DIR: world, GIT_CEILING_DIRECTORIES: path.dirname(world)
+        CLAUDE_PROJECT_DIR: world,
+        CTX_EVAL_STATE_DIR: state,
+        CTX_EVAL_WORLD_DIR: world,
+        GIT_CEILING_DIRECTORIES: path.dirname(world)
     };
 }
 
@@ -182,32 +217,49 @@ function main() {
         const stream = readStream(result.stdout);
         if (result.error || !stream.ok) {
             // Optional diagnostics: the evaluator discards adapter stderr, so a failed job can leave its reason here.
-            if (process.env.CTX_EVAL_DEBUG_DIR) fs.writeFileSync(path.join(process.env.CTX_EVAL_DEBUG_DIR, `${path.basename(cwd)}.log`), `${result.error?.message || ''}\nstatus ${result.status} signal ${result.signal}\n${String(result.stderr).slice(-4000)}\n${String(result.stdout).slice(-4000)}`);
+            if (process.env.CTX_EVAL_DEBUG_DIR)
+                fs.writeFileSync(
+                    path.join(process.env.CTX_EVAL_DEBUG_DIR, `${path.basename(cwd)}.log`),
+                    `${result.error?.message || ''}\nstatus ${result.status} signal ${result.signal}\n${String(result.stderr).slice(-4000)}\n${String(result.stdout).slice(-4000)}`
+                );
             throw new Error(result.error ? result.error.message : `claude run did not complete (status ${result.status})`);
         }
         // Claude Code stages atomic writes in `.claude/.cc-writes` and leaves the folder behind; it is host
         // scratch, not the run's output, so an empty one is removed before the grader inspects the world.
         removeHostScratch(cwd);
         const log = path.join(state, 'events.jsonl');
-        const raw = fs.existsSync(log) ? fs.readFileSync(log, 'utf8').split('\n').filter(Boolean).map(line => JSON.parse(line)) : [];
+        const raw = fs.existsSync(log)
+            ? fs
+                  .readFileSync(log, 'utf8')
+                  .split('\n')
+                  .filter(Boolean)
+                  .map(line => JSON.parse(line))
+            : [];
         const toolEvents = raw.map(row => toEvent(row, cwd));
         const version = String(spawnSync(bin, ['--version'], { encoding: 'utf8', env, timeout: 15000 }).stdout || '').trim();
         // The identity covers every fixed flag and the sandbox, never the per-job prompt, policy or paths.
         const fixed = runArgs({ prompt: '', policy: '' }, model, '');
-        process.stdout.write(JSON.stringify({
-            toolEvents,
-            model: stream.model || model,
-            settingsHash: sha256(JSON.stringify({ fixed, version, observer: 'post-tool-use-v3', sandbox: runSettings('', secrets).sandbox })),
-            host: 'claude',
-            attempts: 1,
-            inputTokens: stream.inputTokens,
-            outputTokens: stream.outputTokens
-        }));
+        process.stdout.write(
+            JSON.stringify({
+                toolEvents,
+                model: stream.model || model,
+                settingsHash: sha256(JSON.stringify({ fixed, version, observer: 'post-tool-use-v3', sandbox: runSettings('', secrets).sandbox })),
+                host: 'claude',
+                attempts: 1,
+                inputTokens: stream.inputTokens,
+                outputTokens: stream.outputTokens
+            })
+        );
     } finally {
         fs.rmSync(state, { recursive: true, force: true });
     }
 }
 
 if (isInvokedAsScript(process.argv[1], fileURLToPath(import.meta.url))) {
-    try { main(); } catch (error) { process.stderr.write(`[claude-code-adapter] ${error.message}\n`); process.exitCode = 1; }
+    try {
+        main();
+    } catch (error) {
+        process.stderr.write(`[claude-code-adapter] ${error.message}\n`);
+        process.exitCode = 1;
+    }
 }

@@ -46,7 +46,8 @@ const tagsOf = text => Array.from(String(text).matchAll(TAG_RE), m => m[1]);
 function trackedFiles() {
     try {
         return execFileSync('git', ['ls-files'], { cwd: repoRoot, encoding: 'utf8', maxBuffer: 1 << 28 })
-            .split('\n').filter(Boolean);
+            .split('\n')
+            .filter(Boolean);
     } catch {
         return null;
     }
@@ -96,7 +97,10 @@ test('TC-CONV-CONFIG-002: enabled convention settings resolve as written and eve
         // Content regexes run over file text on every read of a matching file: each must compile and pass the shared safety lint.
         for (const source of group.contentRegexes || []) {
             assert.doesNotThrow(() => new RegExp(source, 'i'), `${name}.contentRegexes does not compile: ${source}`);
-            assert.ok(conventions.isSafeContentRegex(source), `${name}.contentRegexes is unsafe (${conventions.contentRegexLintReason(source)}): ${source.slice(0, 60)}`);
+            assert.ok(
+                conventions.isSafeContentRegex(source),
+                `${name}.contentRegexes is unsafe (${conventions.contentRegexLintReason(source)}): ${source.slice(0, 60)}`
+            );
         }
         for (const doc of docs) assert.ok(fs.existsSync(path.join(repoRoot, doc)), `${name} references a missing doc: ${doc}`);
         for (const skill of skills) {
@@ -124,14 +128,22 @@ test('TC-CONV-CONFIG-003: every class matches at least one tracked file and rend
     }
 });
 
-test('TC-CONV-CONFIG-004: project example paths receive exactly the expected classes', { skip: conventionsOn && expectations ? false : 'no enabled config or no convention-expectations.json' }, () => {
-    for (const { path: rel, classes } of expectations.cases) {
-        const result = conventions.lookup(realConfig, rel, { projectDir: repoRoot, cwd: repoRoot });
-        assert.deepEqual(result.entries.map(e => e.name), classes, rel);
-        // The digest names each class once — no repeated class section inside one reminder.
-        assert.deepEqual(tagsOf(result.text), classes, `${rel}: class sections repeated or missing`);
+test(
+    'TC-CONV-CONFIG-004: project example paths receive exactly the expected classes',
+    { skip: conventionsOn && expectations ? false : 'no enabled config or no convention-expectations.json' },
+    () => {
+        for (const { path: rel, classes } of expectations.cases) {
+            const result = conventions.lookup(realConfig, rel, { projectDir: repoRoot, cwd: repoRoot });
+            assert.deepEqual(
+                result.entries.map(e => e.name),
+                classes,
+                rel
+            );
+            // The digest names each class once — no repeated class section inside one reminder.
+            assert.deepEqual(tagsOf(result.text), classes, `${rel}: class sections repeated or missing`);
+        }
     }
-});
+);
 
 test('TC-CONV-CONFIG-005: auto-detection merge leaves the maintained classes untouched', { skip: skipConventions }, () => {
     const detected = merge.detectGroups(realConfig, { projectDir: repoRoot });
@@ -148,8 +160,28 @@ test('TC-CONV-CONFIG-006: the hook never re-delivers a class still present; it r
         const transcript = path.join(store, 'transcript.jsonl');
         fs.writeFileSync(transcript, '{"type":"user"}\n');
         let now = Date.now();
-        const deps = () => ({ env: { CK_CONVENTIONS_DIR: path.join(store, 'ledger') }, config: realConfig, projectDir: repoRoot, now: (now += 1000), write: (text, done) => done(true), isDirectory: () => false });
-        const edit = (file, extra = {}) => conventionHook.run({ hook_event_name: 'PostToolUse', tool_name: 'Edit', session_id: 's-1', transcript_path: transcript, cwd: repoRoot, tool_input: { file_path: path.join(repoRoot, file) }, tool_response: {}, ...extra }, deps());
+        const deps = () => ({
+            env: { CK_CONVENTIONS_DIR: path.join(store, 'ledger') },
+            config: realConfig,
+            projectDir: repoRoot,
+            now: (now += 1000),
+            write: (text, done) => done(true),
+            isDirectory: () => false
+        });
+        const edit = (file, extra = {}) =>
+            conventionHook.run(
+                {
+                    hook_event_name: 'PostToolUse',
+                    tool_name: 'Edit',
+                    session_id: 's-1',
+                    transcript_path: transcript,
+                    cwd: repoRoot,
+                    tool_input: { file_path: path.join(repoRoot, file) },
+                    tool_response: {},
+                    ...extra
+                },
+                deps()
+            );
         const delivered = async (file, extra) => {
             const out = await edit(file, extra);
             return out ? tagsOf(JSON.parse(out).hookSpecificOutput.additionalContext) : [];
@@ -178,10 +210,11 @@ test('TC-CONV-CONFIG-007: real prompt-ledger settings record every prompt but re
         const transcript = path.join(store, 'transcript.jsonl');
         fs.writeFileSync(transcript, '{"type":"user"}\n');
         let now = Date.now();
-        const submit = text => promptHook.run(
-            { hook_event_name: 'UserPromptSubmit', session_id: 's-1', transcript_path: transcript, cwd: repoRoot, prompt: text },
-            { env: { CK_PROMPT_LEDGER_DIR: store }, projectDir: repoRoot, now: (now += 1000), write: (t, done) => done(true) }
-        );
+        const submit = text =>
+            promptHook.run(
+                { hook_event_name: 'UserPromptSubmit', session_id: 's-1', transcript_path: transcript, cwd: repoRoot, prompt: text },
+                { env: { CK_PROMPT_LEDGER_DIR: store }, projectDir: repoRoot, now: (now += 1000), write: (t, done) => done(true) }
+            );
         assert.notEqual(await submit('first goal'), '', 'original goal is pinned');
         assert.equal(await submit('second prompt'), '', 'reminder still present: no duplicate');
         fs.truncateSync(transcript, fs.statSync(transcript).size + settings.reinjectAfterBytes);

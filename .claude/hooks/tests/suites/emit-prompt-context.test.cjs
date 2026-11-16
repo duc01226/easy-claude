@@ -27,7 +27,9 @@ const { emitPromptContext } = require(path.resolve(__dirname, '../../init-prompt
 function captureLog(fn) {
     const lines = [];
     const original = console.log;
-    console.log = (...args) => { lines.push(args.length ? String(args[0]) : ''); };
+    console.log = (...args) => {
+        lines.push(args.length ? String(args[0]) : '');
+    };
     try {
         fn();
     } finally {
@@ -45,7 +47,7 @@ module.exports = {
                 const out = captureLog(() => emitPromptContext('{"decision":"block"}'));
                 assertEqual(out.length, 1, 'expected exactly one stdout write');
                 assertEqual(out[0], 'Hook context:\n{"decision":"block"}', 'brace-leading message must be prefixed');
-            },
+            }
         },
         {
             name: 'TC-EPC-002: bracket-leading message gets Hook context: prefix',
@@ -54,7 +56,7 @@ module.exports = {
                 const out = captureLog(() => emitPromptContext(msg));
                 assertEqual(out.length, 1, 'expected exactly one stdout write');
                 assertEqual(out[0], `Hook context:\n${msg}`, 'bracket-leading message must be prefixed');
-            },
+            }
         },
         {
             name: 'TC-EPC-003: plain text message is emitted verbatim (no prefix)',
@@ -64,7 +66,7 @@ module.exports = {
                 assertEqual(out.length, 1, 'expected exactly one stdout write');
                 assertEqual(out[0], msg, 'plain message must be emitted unchanged');
                 assertTrue(!out[0].startsWith('Hook context:'), 'plain message must NOT be prefixed');
-            },
+            }
         },
         {
             name: 'TC-EPC-004: leading whitespace before brace/bracket still triggers prefix (trimStart)',
@@ -72,7 +74,7 @@ module.exports = {
                 const out = captureLog(() => emitPromptContext('\n  [stale] docs'));
                 assertEqual(out.length, 1, 'expected exactly one stdout write');
                 assertEqual(out[0], 'Hook context:\n[stale] docs', 'whitespace-then-bracket must trim and prefix');
-            },
+            }
         },
         {
             name: 'TC-EPC-005: empty / nullish message emits nothing',
@@ -81,7 +83,7 @@ module.exports = {
                 assertEqual(captureLog(() => emitPromptContext(null)).length, 0, 'null must emit nothing');
                 assertEqual(captureLog(() => emitPromptContext(undefined)).length, 0, 'undefined must emit nothing');
                 assertEqual(captureLog(() => emitPromptContext('   ')).length, 1, 'whitespace-only is non-empty -> emitted verbatim');
-            },
-        },
-    ],
+            }
+        }
+    ]
 };

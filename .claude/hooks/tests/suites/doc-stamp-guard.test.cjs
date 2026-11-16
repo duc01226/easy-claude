@@ -28,14 +28,7 @@ const { assertEqual, assertTrue } = require('../lib/assertions.cjs');
 
 const REPO = path.resolve(__dirname, '..', '..', '..', '..');
 const GUARD_PATH = path.join(REPO, '.claude', 'hooks', 'lib', 'doc-stamp-guard.cjs');
-const {
-    normalizeDocContent,
-    hasMeaningfulChange,
-    isStampOnlyDiff,
-    contentHash,
-    writeDocIfChanged,
-    findStampOnlyStagedDocs
-} = require(GUARD_PATH);
+const { normalizeDocContent, hasMeaningfulChange, isStampOnlyDiff, contentHash, writeDocIfChanged, findStampOnlyStagedDocs } = require(GUARD_PATH);
 
 const STAMPED_DOC = [
     '# Backend Patterns Reference',
@@ -62,87 +55,88 @@ const tests = [
     {
         // Invariant: newer user guidance must survive stale compression candidates.
         name: '[doc-stamp-guard] stale candidates preserve edits, creation and deletion',
-        fn: () => withTempDir(dir => {
-            // Given an exact snapshot and a candidate based on it.
-            const doc = path.join(dir, 'guide.md');
-            const candidate = STAMPED_DOC + '\nCandidate guidance.\n';
-            for (const live of [STAMPED_DOC + '\nNew exception.\n',
-                STAMPED_DOC.replace('2026-01-01', '2026-02-01'),
-                STAMPED_DOC.replace(/\n/g, '\r\n'), null]) {
-                if (live === null) { if (fs.existsSync(doc)) fs.unlinkSync(doc); }
-                else fs.writeFileSync(doc, live);
-                // When a stale writer attempts application.
-                const result = writeDocIfChanged(doc, candidate, { baselineContent: STAMPED_DOC });
-                // Then even stamp/format edits and deletion are preserved.
-                assertEqual(result.written, false);
-                assertTrue(result.reason.includes('conflict'));
-                assertEqual(fs.existsSync(doc) ? fs.readFileSync(doc, 'utf8') : null, live);
-            }
-            fs.writeFileSync(doc, 'Newly created user guide.');
-            assertEqual(writeDocIfChanged(doc, candidate, { baselineContent: null }).written, false);
-            assertEqual(fs.readFileSync(doc, 'utf8'), 'Newly created user guide.');
-            // A reconciled snapshot permits real updates, and retains no-op semantics.
-            assertEqual(writeDocIfChanged(doc, candidate, { baselineContent: 'Newly created user guide.' }).written, true);
-            assertEqual(writeDocIfChanged(doc, candidate, { baselineContent: candidate }).written, false);
-            fs.unlinkSync(doc);
-            assertEqual(writeDocIfChanged(doc, candidate, { baselineContent: null }).written, true);
-        })
+        fn: () =>
+            withTempDir(dir => {
+                // Given an exact snapshot and a candidate based on it.
+                const doc = path.join(dir, 'guide.md');
+                const candidate = STAMPED_DOC + '\nCandidate guidance.\n';
+                for (const live of [
+                    STAMPED_DOC + '\nNew exception.\n',
+                    STAMPED_DOC.replace('2026-01-01', '2026-02-01'),
+                    STAMPED_DOC.replace(/\n/g, '\r\n'),
+                    null
+                ]) {
+                    if (live === null) {
+                        if (fs.existsSync(doc)) fs.unlinkSync(doc);
+                    } else fs.writeFileSync(doc, live);
+                    // When a stale writer attempts application.
+                    const result = writeDocIfChanged(doc, candidate, { baselineContent: STAMPED_DOC });
+                    // Then even stamp/format edits and deletion are preserved.
+                    assertEqual(result.written, false);
+                    assertTrue(result.reason.includes('conflict'));
+                    assertEqual(fs.existsSync(doc) ? fs.readFileSync(doc, 'utf8') : null, live);
+                }
+                fs.writeFileSync(doc, 'Newly created user guide.');
+                assertEqual(writeDocIfChanged(doc, candidate, { baselineContent: null }).written, false);
+                assertEqual(fs.readFileSync(doc, 'utf8'), 'Newly created user guide.');
+                // A reconciled snapshot permits real updates, and retains no-op semantics.
+                assertEqual(writeDocIfChanged(doc, candidate, { baselineContent: 'Newly created user guide.' }).written, true);
+                assertEqual(writeDocIfChanged(doc, candidate, { baselineContent: candidate }).written, false);
+                fs.unlinkSync(doc);
+                assertEqual(writeDocIfChanged(doc, candidate, { baselineContent: null }).written, true);
+            })
     },
     {
         // Invariant: the portable CLI detects conflicts before reporting a no-op.
         name: '[doc-stamp-guard] baseline CLI rejects concurrent edits before no-op comparison',
-        fn: () => withTempDir(dir => {
-            // Given separate baseline/candidate/live documents in an isolated directory.
-            const doc = path.join(dir, 'guide.md');
-            const baseline = path.join(dir, 'baseline.md');
-            const candidate = path.join(dir, 'candidate.md');
-            fs.writeFileSync(baseline, STAMPED_DOC);
-            fs.writeFileSync(candidate, STAMPED_DOC);
-            const live = STAMPED_DOC.replace(/\n/g, '\r\n');
-            fs.writeFileSync(doc, live);
-            const run = baselineArg => spawnSync(process.execPath,
-                [GUARD_PATH, '--check', doc, '--candidate', candidate, '--baseline', baselineArg],
-                { cwd: dir, encoding: 'utf8', windowsHide: true });
-            // When live formatting changes after the snapshot, normalization cannot authorize it.
-            const conflict = run(baseline);
-            // Then return a distinguishable conflict and leave every document untouched.
-            assertEqual(conflict.status, 4, conflict.stderr);
-            assertTrue(conflict.stdout.includes('CONFLICT'));
-            assertEqual(fs.readFileSync(doc, 'utf8'), live);
-            fs.writeFileSync(doc, STAMPED_DOC);
-            assertEqual(run(baseline).status, 3);
-            fs.writeFileSync(candidate, STAMPED_DOC + '\nA necessary condition.\n');
-            assertEqual(run(baseline).status, 0);
-            assertEqual(run(path.join(dir, 'absent-baseline.md')).status, 4);
-            fs.unlinkSync(doc);
-            assertEqual(run(baseline).status, 4);
-            assertEqual(run(path.join(dir, 'absent-baseline.md')).status, 0);
-            assertEqual(run('--not-a-baseline').status, 1);
-        })
+        fn: () =>
+            withTempDir(dir => {
+                // Given separate baseline/candidate/live documents in an isolated directory.
+                const doc = path.join(dir, 'guide.md');
+                const baseline = path.join(dir, 'baseline.md');
+                const candidate = path.join(dir, 'candidate.md');
+                fs.writeFileSync(baseline, STAMPED_DOC);
+                fs.writeFileSync(candidate, STAMPED_DOC);
+                const live = STAMPED_DOC.replace(/\n/g, '\r\n');
+                fs.writeFileSync(doc, live);
+                const run = baselineArg =>
+                    spawnSync(process.execPath, [GUARD_PATH, '--check', doc, '--candidate', candidate, '--baseline', baselineArg], {
+                        cwd: dir,
+                        encoding: 'utf8',
+                        windowsHide: true
+                    });
+                // When live formatting changes after the snapshot, normalization cannot authorize it.
+                const conflict = run(baseline);
+                // Then return a distinguishable conflict and leave every document untouched.
+                assertEqual(conflict.status, 4, conflict.stderr);
+                assertTrue(conflict.stdout.includes('CONFLICT'));
+                assertEqual(fs.readFileSync(doc, 'utf8'), live);
+                fs.writeFileSync(doc, STAMPED_DOC);
+                assertEqual(run(baseline).status, 3);
+                fs.writeFileSync(candidate, STAMPED_DOC + '\nA necessary condition.\n');
+                assertEqual(run(baseline).status, 0);
+                assertEqual(run(path.join(dir, 'absent-baseline.md')).status, 4);
+                fs.unlinkSync(doc);
+                assertEqual(run(baseline).status, 4);
+                assertEqual(run(path.join(dir, 'absent-baseline.md')).status, 0);
+                assertEqual(run('--not-a-baseline').status, 1);
+            })
     },
     {
         name: '[doc-stamp-guard] G1 a date-stamp-only rewrite is not a meaningful change',
         fn: () => {
-            const restamped = STAMPED_DOC
-                .replace(/Last scanned: 2026-01-01 -->/, 'Last scanned: 2026-09-17 -->')
+            const restamped = STAMPED_DOC.replace(/Last scanned: 2026-01-01 -->/, 'Last scanned: 2026-09-17 -->')
                 .replace(/Last verified: 2026-01-01/, 'Last verified: 2026-09-17')
                 .replace(/Last scanned: 2026-01-01\./, 'Last scanned: 2026-09-17.');
 
-            assertTrue(
-                restamped !== STAMPED_DOC,
-                'Test setup is vacuous: the restamped doc must differ byte-wise, or G1 proves nothing.'
-            );
+            assertTrue(restamped !== STAMPED_DOC, 'Test setup is vacuous: the restamped doc must differ byte-wise, or G1 proves nothing.');
             assertEqual(
                 hasMeaningfulChange(STAMPED_DOC, restamped),
                 false,
                 'A rewrite that moves only date stamps was treated as a real change. That is exactly ' +
                     'the churn that makes two branches conflict over a value neither of them decided.'
             );
-            assertEqual(
-                isStampOnlyDiff(STAMPED_DOC, restamped),
-                true,
-                'The commit-side predicate must flag a date-only staged diff as churn.'
-            );
+            assertEqual(isStampOnlyDiff(STAMPED_DOC, restamped), true, 'The commit-side predicate must flag a date-only staged diff as churn.');
         }
     },
     {
@@ -213,25 +207,12 @@ const tests = [
     {
         name: '[doc-stamp-guard] G4 the predicate is non-vacuous',
         fn: () => {
-            assertEqual(
-                hasMeaningfulChange(null, STAMPED_DOC),
-                true,
-                'A file that does not exist yet must always be written.'
-            );
-            assertEqual(
-                hasMeaningfulChange(STAMPED_DOC, `${STAMPED_DOC}\nA new documented rule.\n`),
-                true,
-                'Appended content is a real change.'
-            );
-            assertEqual(
-                isStampOnlyDiff(STAMPED_DOC, STAMPED_DOC),
-                false,
-                'Identical versions are not "churn to unstage" — there is no diff to report.'
-            );
+            assertEqual(hasMeaningfulChange(null, STAMPED_DOC), true, 'A file that does not exist yet must always be written.');
+            assertEqual(hasMeaningfulChange(STAMPED_DOC, `${STAMPED_DOC}\nA new documented rule.\n`), true, 'Appended content is a real change.');
+            assertEqual(isStampOnlyDiff(STAMPED_DOC, STAMPED_DOC), false, 'Identical versions are not "churn to unstage" — there is no diff to report.');
             assertTrue(
                 normalizeDocContent(STAMPED_DOC).includes('Handlers live under'),
-                'Normalization must preserve prose; a normalizer that empties the doc would make every ' +
-                    'comparison equal and silently disable every write.'
+                'Normalization must preserve prose; a normalizer that empties the doc would make every ' + 'comparison equal and silently disable every write.'
             );
         }
     },
@@ -247,16 +228,8 @@ const tests = [
                 const result = writeDocIfChanged(docPath, restamped);
 
                 assertEqual(result.written, false, 'A stamp-only candidate must not be written.');
-                assertEqual(
-                    fs.readFileSync(docPath, 'utf-8'),
-                    STAMPED_DOC,
-                    'The on-disk doc must be byte-identical after a suppressed write.'
-                );
-                assertEqual(
-                    fs.statSync(docPath).mtimeMs,
-                    before.mtimeMs,
-                    'mtime must not move either — a touched file is a dirty file to downstream tooling.'
-                );
+                assertEqual(fs.readFileSync(docPath, 'utf-8'), STAMPED_DOC, 'The on-disk doc must be byte-identical after a suppressed write.');
+                assertEqual(fs.statSync(docPath).mtimeMs, before.mtimeMs, 'mtime must not move either — a touched file is a dirty file to downstream tooling.');
 
                 const real = writeDocIfChanged(docPath, STAMPED_DOC.replace('src/handlers', 'src/app/handlers'));
                 assertEqual(real.written, true, 'A real content change must still be written.');
@@ -297,26 +270,17 @@ const tests = [
                 fs.mkdirSync(path.dirname(fixtureDocPath), { recursive: true });
                 fs.writeFileSync(fixtureDocPath, fixtureDocContent, 'utf-8');
 
-                const cliResult = spawnSync(
-                    process.execPath,
-                    [GUARD_PATH, '--record-verified', fixtureDocName],
-                    {
-                        cwd: dir,
-                        env: { ...process.env, CLAUDE_PROJECT_DIR: dir },
-                        encoding: 'utf8',
-                        windowsHide: true
-                    }
-                );
-                assertEqual(
-                    cliResult.error?.message ?? null,
-                    null,
-                    `The isolated verification CLI could not start: ${cliResult.error?.message || ''}`
-                );
+                const cliResult = spawnSync(process.execPath, [GUARD_PATH, '--record-verified', fixtureDocName], {
+                    cwd: dir,
+                    env: { ...process.env, CLAUDE_PROJECT_DIR: dir },
+                    encoding: 'utf8',
+                    windowsHide: true
+                });
+                assertEqual(cliResult.error?.message ?? null, null, `The isolated verification CLI could not start: ${cliResult.error?.message || ''}`);
                 assertEqual(
                     cliResult.status,
                     0,
-                    `The isolated verification CLI must succeed for a readable doc. ` +
-                        `stdout=${cliResult.stdout || ''} stderr=${cliResult.stderr || ''}`
+                    `The isolated verification CLI must succeed for a readable doc. ` + `stdout=${cliResult.stdout || ''} stderr=${cliResult.stderr || ''}`
                 );
                 assertTrue(
                     cliResult.stdout.includes(`Recorded no-change verification for ${fixtureDocName}`),
@@ -343,9 +307,7 @@ const tests = [
             withTempDir(dir => {
                 // The ledger is the ONLY thing keeping the 60-day gate honest once no-op
                 // scans stop restamping docs, so every way it can lie must be closed.
-                const { resolveVerifiedDate } = require(path.join(
-                    REPO, '.claude', 'hooks', 'lib', 'session-init-helpers.cjs'
-                ));
+                const { resolveVerifiedDate } = require(path.join(REPO, '.claude', 'hooks', 'lib', 'session-init-helpers.cjs'));
                 const docPath = path.join(dir, 'reference.md');
                 fs.writeFileSync(docPath, STAMPED_DOC, 'utf-8');
                 const hash = contentHash(STAMPED_DOC);
@@ -367,8 +329,7 @@ const tests = [
                     assertEqual(
                         resolveVerifiedDate(entry, docPath),
                         null,
-                        `An entry that is ${why} must NOT extend freshness — it would suppress the ` +
-                            'rescan net with no proof the doc was ever verified.'
+                        `An entry that is ${why} must NOT extend freshness — it would suppress the ` + 'rescan net with no proof the doc was ever verified.'
                     );
                 }
                 assertEqual(
@@ -385,10 +346,7 @@ const tests = [
             // If the whole line were masked, deleting a retired `Last verified` stamp would
             // read as a no-op and the cleanup could never be written.
             const withStamp = STAMPED_DOC;
-            const withoutStamp = STAMPED_DOC.replace(
-                '<!-- Last verified: 2026-01-01 (docs-manager, impact-scoped) -->\n',
-                ''
-            );
+            const withoutStamp = STAMPED_DOC.replace('<!-- Last verified: 2026-01-01 (docs-manager, impact-scoped) -->\n', '');
             assertTrue(withStamp !== withoutStamp, 'Test setup is vacuous — the stamp line was not removed.');
             assertEqual(
                 hasMeaningfulChange(withStamp, withoutStamp),
@@ -436,8 +394,7 @@ const tests = [
                 // Exercised against a REAL git index, not a simulated one: the commit-time
                 // half of this guard is git plumbing, and a predicate that is correct on
                 // strings but wrong on `git show :<path>` protects nothing.
-                const git = (...args) =>
-                    execFileSync('git', args, { cwd: dir, encoding: 'utf-8', windowsHide: true });
+                const git = (...args) => execFileSync('git', args, { cwd: dir, encoding: 'utf-8', windowsHide: true });
 
                 git('init', '--quiet');
                 git('config', 'user.email', 'test@example.invalid');

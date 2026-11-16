@@ -15,14 +15,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const {
-    loadConfig,
-    loadConfigFromPath,
-    DEFAULT_PORTABILITY,
-    LOCAL_OVERRIDE_PATH,
-    LOCAL_CONFIG_PATH,
-    GLOBAL_CONFIG_PATH
-} = require('./ck-config-loader.cjs');
+const { loadConfig, loadConfigFromPath, DEFAULT_PORTABILITY, LOCAL_OVERRIDE_PATH, LOCAL_CONFIG_PATH, GLOBAL_CONFIG_PATH } = require('./ck-config-loader.cjs');
 const { resolveProjectRoot } = require('./project-root.cjs');
 const { normalizeRootPath, escapesRepoRoot, isPathWithinRoot, joinRoot, sanitizePath } = require('./ck-path-utils.cjs');
 const { validateConfig } = require('./project-config-schema.cjs');
@@ -223,10 +216,16 @@ function readProjectConfigAt(rootDir) {
     // loadConfig() replaces an unusable selection with the default path. An explicit-checkout reader must refuse
     // that selection instead: the default file is not the config the checkout selected.
     const requested = [GLOBAL_CONFIG_PATH, path.join(root, '.claude', '.ck.json'), path.join(root, '.claude', '.ck.local.json')]
-        .map(loadConfigFromPath).reduce((value, layer) => layer?.portability?.projectConfigPath ?? value, undefined);
+        .map(loadConfigFromPath)
+        .reduce((value, layer) => layer?.portability?.projectConfigPath ?? value, undefined);
     if (requested !== undefined && !sanitizePath(requested, root)) {
-        return { state: 'invalid', config: {}, errors: ['Selected project config escapes the selected checkout'], warnings: [],
-            filePath: path.resolve(root, String(requested)) };
+        return {
+            state: 'invalid',
+            config: {},
+            errors: ['Selected project config escapes the selected checkout'],
+            warnings: [],
+            filePath: path.resolve(root, String(requested))
+        };
     }
     const ckConfig = loadConfig({ projectRoot: root, includeProject: false, includeAssertions: false, includeLocale: false });
     const declared = ckConfig.portability?.projectConfigPath || DEFAULT_PORTABILITY.projectConfigPath;
@@ -398,9 +397,7 @@ function resolvePortabilityTokens(text, config) {
     if (!text.includes('{')) return text;
     const cfg = config || loadProjectConfig();
     return text.replace(/\{([A-Z][A-Z0-9_]*)\}/g, (match, token) =>
-        Object.prototype.hasOwnProperty.call(PORTABILITY_TOKENS, token)
-            ? resolvePortabilityToken(token, cfg)
-            : match
+        Object.prototype.hasOwnProperty.call(PORTABILITY_TOKENS, token) ? resolvePortabilityToken(token, cfg) : match
     );
 }
 
@@ -671,9 +668,7 @@ const KNOWLEDGE_DIR_NAME = 'knowledge';
  */
 function getKnowledgeRoot(config) {
     const referenceRoot = normalizeRootPath(getDocsRoot('projectReference', config));
-    const parent = referenceRoot.includes('/')
-        ? referenceRoot.slice(0, referenceRoot.lastIndexOf('/'))
-        : '';
+    const parent = referenceRoot.includes('/') ? referenceRoot.slice(0, referenceRoot.lastIndexOf('/')) : '';
     if (!parent) return `docs/${KNOWLEDGE_DIR_NAME}`;
     return `${parent}/${KNOWLEDGE_DIR_NAME}`;
 }

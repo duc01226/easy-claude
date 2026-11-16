@@ -23,10 +23,7 @@ const ROOT_FILES = Object.freeze([
 ]);
 
 /** File names under the configured project-reference root (`docsRoots.projectReference.path`). */
-const REFERENCE_FILES = Object.freeze([
-    'project-structure-reference.md',
-    'docs-index-reference.md'
-]);
+const REFERENCE_FILES = Object.freeze(['project-structure-reference.md', 'docs-index-reference.md']);
 
 /** The project-reference root as a project-relative, forward-slash path; the loader owns the default. */
 function referenceRoot(projectDir) {

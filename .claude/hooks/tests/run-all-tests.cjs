@@ -21,61 +21,61 @@ const path = require('path');
 // the env), producing false-negative test failures (e.g. fixture path doesn't
 // match real config regex; transcript-window math doesn't match real file size).
 if (!process.env.CLAUDE_PROJECT_DIR) {
-  process.env.CLAUDE_PROJECT_DIR = path.resolve(__dirname, '..', '..', '..');
+    process.env.CLAUDE_PROJECT_DIR = path.resolve(__dirname, '..', '..', '..');
 }
 
 // ANSI color codes
 const COLORS = {
-  reset: '\x1b[0m',
-  bright: '\x1b[1m',
-  dim: '\x1b[2m',
-  red: '\x1b[31m',
-  green: '\x1b[32m',
-  yellow: '\x1b[33m',
-  blue: '\x1b[34m',
-  magenta: '\x1b[35m',
-  cyan: '\x1b[36m',
-  white: '\x1b[37m',
-  bgRed: '\x1b[41m',
-  bgGreen: '\x1b[42m'
+    reset: '\x1b[0m',
+    bright: '\x1b[1m',
+    dim: '\x1b[2m',
+    red: '\x1b[31m',
+    green: '\x1b[32m',
+    yellow: '\x1b[33m',
+    blue: '\x1b[34m',
+    magenta: '\x1b[35m',
+    cyan: '\x1b[36m',
+    white: '\x1b[37m',
+    bgRed: '\x1b[41m',
+    bgGreen: '\x1b[42m'
 };
 
 // Symbols
 const SYMBOLS = {
-  pass: process.platform === 'win32' ? '√' : '✓',
-  fail: process.platform === 'win32' ? '×' : '✗',
-  skip: process.platform === 'win32' ? '-' : '○',
-  bullet: process.platform === 'win32' ? '*' : '•'
+    pass: process.platform === 'win32' ? '√' : '✓',
+    fail: process.platform === 'win32' ? '×' : '✗',
+    skip: process.platform === 'win32' ? '-' : '○',
+    bullet: process.platform === 'win32' ? '*' : '•'
 };
 
 // Failure-log hygiene: what the persisted failure log may contain, and how long
 // it survives. In tests/lib rather than inline here so the suite that asserts
 // those rules can require them without requiring this runner mid-run.
 const {
-  redact,
-  pruneFailureLogs,
-  MAX_LOGGED_FAILURES,
-  MAX_ERROR_CHARS,
-  MAX_STACK_CHARS,
-  RETAINED_FAILURE_LOGS,
-  buildRedactionPatterns
+    redact,
+    pruneFailureLogs,
+    MAX_LOGGED_FAILURES,
+    MAX_ERROR_CHARS,
+    MAX_STACK_CHARS,
+    RETAINED_FAILURE_LOGS,
+    buildRedactionPatterns
 } = require('./lib/failure-log.cjs');
 
 // Parse CLI arguments
 function parseArgs() {
-  const args = process.argv.slice(2);
-  return {
-    help: args.includes('--help') || args.includes('-h'),
-    verbose: args.includes('--verbose') || args.includes('-v'),
-    filter: args.find(a => a.startsWith('--filter='))?.split('=')[1] || null,
-    bail: args.includes('--bail'),
-    list: args.includes('--list')
-  };
+    const args = process.argv.slice(2);
+    return {
+        help: args.includes('--help') || args.includes('-h'),
+        verbose: args.includes('--verbose') || args.includes('-v'),
+        filter: args.find(a => a.startsWith('--filter='))?.split('=')[1] || null,
+        bail: args.includes('--bail'),
+        list: args.includes('--list')
+    };
 }
 
 // Show help message
 function showHelp() {
-  console.log(`
+    console.log(`
 ${COLORS.bright}Claude Hooks Test Runner${COLORS.reset}
 
 ${COLORS.cyan}Usage:${COLORS.reset}
@@ -98,416 +98,431 @@ ${COLORS.cyan}Examples:${COLORS.reset}
 
 // Discover test suites
 function discoverSuites(suitesDir) {
-  if (!fs.existsSync(suitesDir)) {
-    return [];
-  }
+    if (!fs.existsSync(suitesDir)) {
+        return [];
+    }
 
-  return fs.readdirSync(suitesDir)
-    .filter(file => file.endsWith('.test.cjs'))
-    .map(file => ({
-      name: file.replace('.test.cjs', ''),
-      path: path.join(suitesDir, file)
-    }));
+    return fs
+        .readdirSync(suitesDir)
+        .filter(file => file.endsWith('.test.cjs'))
+        .map(file => ({
+            name: file.replace('.test.cjs', ''),
+            path: path.join(suitesDir, file)
+        }));
 }
 
 // Format duration
 function formatDuration(ms) {
-  if (ms < 1000) return `${ms}ms`;
-  return `${(ms / 1000).toFixed(2)}s`;
+    if (ms < 1000) return `${ms}ms`;
+    return `${(ms / 1000).toFixed(2)}s`;
 }
 
 // Run a single test
 async function runTest(test, verbose) {
-  const start = Date.now();
+    const start = Date.now();
 
-  try {
-    // Always await: a plain function may RETURN a promise (fn: () => withFixture(...)); not
-    // awaiting it recorded a pass before its assertions ran (runner-await-contract suite).
-    await test.fn();
-    const duration = Date.now() - start;
-    return {
-      name: test.name,
-      passed: true,
-      duration,
-      error: null
-    };
-  } catch (error) {
-    const duration = Date.now() - start;
-    return {
-      name: test.name,
-      passed: false,
-      duration,
-      error: error.message || String(error),
-      stack: verbose ? error.stack : null
-    };
-  }
+    try {
+        // Always await: a plain function may RETURN a promise (fn: () => withFixture(...)); not
+        // awaiting it recorded a pass before its assertions ran (runner-await-contract suite).
+        await test.fn();
+        const duration = Date.now() - start;
+        return {
+            name: test.name,
+            passed: true,
+            duration,
+            error: null
+        };
+    } catch (error) {
+        const duration = Date.now() - start;
+        return {
+            name: test.name,
+            passed: false,
+            duration,
+            error: error.message || String(error),
+            stack: verbose ? error.stack : null
+        };
+    }
 }
 
 // Run a test suite
 async function runSuite(suite, flags) {
-  const start = Date.now();
-  const results = {
-    name: suite.module.name || suite.name,
-    tests: [],
-    passed: 0,
-    failed: 0,
-    skipped: 0,
-    duration: 0
-  };
+    const start = Date.now();
+    const results = {
+        name: suite.module.name || suite.name,
+        tests: [],
+        passed: 0,
+        failed: 0,
+        skipped: 0,
+        duration: 0
+    };
 
-  const tests = suite.module.tests || [];
+    const tests = suite.module.tests || [];
 
-  for (const test of tests) {
-    // Check if test should be skipped
-    if (test.skip) {
-      results.skipped++;
-      results.tests.push({ name: test.name, skipped: true });
-      continue;
+    for (const test of tests) {
+        // Check if test should be skipped
+        if (test.skip) {
+            results.skipped++;
+            results.tests.push({ name: test.name, skipped: true });
+            continue;
+        }
+
+        // NOTE: `--filter` is a SUITE selector — main() already narrowed `suites` to those whose
+        // NAME matches the filter, so any suite reaching here was selected on purpose and must run
+        // in FULL. A per-test name filter here would silently skip every test whose name uses a
+        // different prefix than the suite (e.g. suite `protocol-text-parity` with `TC-CTXP-*`
+        // tests → 0 tests run → false green). Run the whole selected suite.
+
+        const result = await runTest(test, flags.verbose);
+        results.tests.push(result);
+
+        if (result.passed) {
+            results.passed++;
+        } else {
+            results.failed++;
+            if (flags.bail) {
+                break;
+            }
+        }
     }
 
-    // NOTE: `--filter` is a SUITE selector — main() already narrowed `suites` to those whose
-    // NAME matches the filter, so any suite reaching here was selected on purpose and must run
-    // in FULL. A per-test name filter here would silently skip every test whose name uses a
-    // different prefix than the suite (e.g. suite `protocol-text-parity` with `TC-CTXP-*`
-    // tests → 0 tests run → false green). Run the whole selected suite.
-
-    const result = await runTest(test, flags.verbose);
-    results.tests.push(result);
-
-    if (result.passed) {
-      results.passed++;
-    } else {
-      results.failed++;
-      if (flags.bail) {
-        break;
-      }
-    }
-  }
-
-  results.duration = Date.now() - start;
-  return results;
+    results.duration = Date.now() - start;
+    return results;
 }
 
 // Print test result
 function printTestResult(result, verbose) {
-  if (result.skipped) {
-    console.log(`    ${COLORS.yellow}${SYMBOLS.skip}${COLORS.reset} ${COLORS.dim}${result.name} (skipped)${COLORS.reset}`);
-    return;
-  }
-
-  if (result.passed) {
-    console.log(`    ${COLORS.green}${SYMBOLS.pass}${COLORS.reset} ${result.name} ${COLORS.dim}(${formatDuration(result.duration)})${COLORS.reset}`);
-  } else {
-    console.log(`    ${COLORS.red}${SYMBOLS.fail}${COLORS.reset} ${result.name} ${COLORS.dim}(${formatDuration(result.duration)})${COLORS.reset}`);
-    console.log(`      ${COLORS.red}${result.error}${COLORS.reset}`);
-    if (verbose && result.stack) {
-      console.log(`      ${COLORS.dim}${result.stack.split('\n').slice(1, 4).join('\n      ')}${COLORS.reset}`);
+    if (result.skipped) {
+        console.log(`    ${COLORS.yellow}${SYMBOLS.skip}${COLORS.reset} ${COLORS.dim}${result.name} (skipped)${COLORS.reset}`);
+        return;
     }
-  }
+
+    if (result.passed) {
+        console.log(`    ${COLORS.green}${SYMBOLS.pass}${COLORS.reset} ${result.name} ${COLORS.dim}(${formatDuration(result.duration)})${COLORS.reset}`);
+    } else {
+        console.log(`    ${COLORS.red}${SYMBOLS.fail}${COLORS.reset} ${result.name} ${COLORS.dim}(${formatDuration(result.duration)})${COLORS.reset}`);
+        console.log(`      ${COLORS.red}${result.error}${COLORS.reset}`);
+        if (verbose && result.stack) {
+            console.log(`      ${COLORS.dim}${result.stack.split('\n').slice(1, 4).join('\n      ')}${COLORS.reset}`);
+        }
+    }
 }
 
 // Print suite results
 function printSuiteResults(suiteResult, verbose) {
-  const statusColor = suiteResult.failed > 0 ? COLORS.red : COLORS.green;
-  console.log(`\n  ${COLORS.bright}${suiteResult.name}${COLORS.reset} ${statusColor}(${suiteResult.passed}/${suiteResult.passed + suiteResult.failed})${COLORS.reset}`);
+    const statusColor = suiteResult.failed > 0 ? COLORS.red : COLORS.green;
+    console.log(
+        `\n  ${COLORS.bright}${suiteResult.name}${COLORS.reset} ${statusColor}(${suiteResult.passed}/${suiteResult.passed + suiteResult.failed})${COLORS.reset}`
+    );
 
-  for (const test of suiteResult.tests) {
-    printTestResult(test, verbose);
-  }
+    for (const test of suiteResult.tests) {
+        printTestResult(test, verbose);
+    }
 }
 
 // Print summary
 function printSummary(allResults, totalDuration) {
-  const totals = allResults.reduce((acc, r) => ({
-    passed: acc.passed + r.passed,
-    failed: acc.failed + r.failed,
-    skipped: acc.skipped + r.skipped
-  }), { passed: 0, failed: 0, skipped: 0 });
+    const totals = allResults.reduce(
+        (acc, r) => ({
+            passed: acc.passed + r.passed,
+            failed: acc.failed + r.failed,
+            skipped: acc.skipped + r.skipped
+        }),
+        { passed: 0, failed: 0, skipped: 0 }
+    );
 
-  console.log('\n' + '═'.repeat(50));
+    console.log('\n' + '═'.repeat(50));
 
-  if (totals.failed === 0) {
-    console.log(`${COLORS.bgGreen}${COLORS.bright} PASSED ${COLORS.reset} ${COLORS.green}All ${totals.passed} tests passed${COLORS.reset}`);
-  } else {
-    console.log(`${COLORS.bgRed}${COLORS.bright} FAILED ${COLORS.reset} ${COLORS.red}${totals.failed} of ${totals.passed + totals.failed} tests failed${COLORS.reset}`);
-  }
+    if (totals.failed === 0) {
+        console.log(`${COLORS.bgGreen}${COLORS.bright} PASSED ${COLORS.reset} ${COLORS.green}All ${totals.passed} tests passed${COLORS.reset}`);
+    } else {
+        console.log(
+            `${COLORS.bgRed}${COLORS.bright} FAILED ${COLORS.reset} ${COLORS.red}${totals.failed} of ${totals.passed + totals.failed} tests failed${COLORS.reset}`
+        );
+    }
 
-  if (totals.skipped > 0) {
-    console.log(`${COLORS.yellow}  ${totals.skipped} tests skipped${COLORS.reset}`);
-  }
+    if (totals.skipped > 0) {
+        console.log(`${COLORS.yellow}  ${totals.skipped} tests skipped${COLORS.reset}`);
+    }
 
-  console.log(`${COLORS.dim}  Duration: ${formatDuration(totalDuration)}${COLORS.reset}`);
-  console.log('═'.repeat(50) + '\n');
+    console.log(`${COLORS.dim}  Duration: ${formatDuration(totalDuration)}${COLORS.reset}`);
+    console.log('═'.repeat(50) + '\n');
 }
 
 // List available suites
 function listSuites(suites) {
-  console.log(`\n${COLORS.bright}Available Test Suites:${COLORS.reset}\n`);
-  if (suites.length === 0) {
-    console.log(`  ${COLORS.dim}No test suites found${COLORS.reset}`);
-    console.log(`  ${COLORS.dim}Create .test.cjs files in the suites/ directory${COLORS.reset}`);
-  } else {
-    for (const suite of suites) {
-      console.log(`  ${COLORS.cyan}${SYMBOLS.bullet}${COLORS.reset} ${suite.name}`);
+    console.log(`\n${COLORS.bright}Available Test Suites:${COLORS.reset}\n`);
+    if (suites.length === 0) {
+        console.log(`  ${COLORS.dim}No test suites found${COLORS.reset}`);
+        console.log(`  ${COLORS.dim}Create .test.cjs files in the suites/ directory${COLORS.reset}`);
+    } else {
+        for (const suite of suites) {
+            console.log(`  ${COLORS.cyan}${SYMBOLS.bullet}${COLORS.reset} ${suite.name}`);
+        }
     }
-  }
-  console.log('');
+    console.log('');
 }
 
 // Main entry point
 async function main() {
-  const flags = parseArgs();
+    const flags = parseArgs();
 
-  if (flags.help) {
-    showHelp();
-    process.exit(0);
-  }
-
-  const suitesDir = path.join(__dirname, 'suites');
-  let suites = discoverSuites(suitesDir);
-  const discoveredCount = suites.length;
-
-  // Filter suites by name if specified
-  if (flags.filter) {
-    suites = suites.filter(s =>
-      s.name.toLowerCase().includes(flags.filter.toLowerCase())
-    );
-  }
-
-  if (flags.list) {
-    listSuites(suites);
-    process.exit(0);
-  }
-
-  console.log(`\n${COLORS.bright}${COLORS.cyan}Claude Hooks Test Runner${COLORS.reset}`);
-  console.log(`${COLORS.dim}Found ${suites.length} test suite(s)${COLORS.reset}`);
-
-  // An explicit `--filter` that selects NOTHING is a caller error, not a clean run. Suites are
-  // discovered by filename and matched by SUBSTRING, so renaming a suite silently empties any
-  // selector that named it — and an automated caller (the codex pipeline invokes this runner with
-  // `--filter=count-drift|parity|doc-sync-gate`) would then report a green stage having executed
-  // zero assertions. Exit 1 so a vacuous selection can never masquerade as a pass.
-  // The genuinely-empty-suites-dir case below keeps exit 0: nothing was requested and nothing exists,
-  // which is the fresh-scaffold state, not a false green. `--list` above also stays exit 0 — listing
-  // an empty selection is informational, not a verification claim.
-  if (suites.length === 0 && flags.filter && discoveredCount > 0) {
-    console.log(`\n${COLORS.yellow}No test suite name matched --filter=${flags.filter}${COLORS.reset}`);
-    console.log(`${COLORS.dim}${discoveredCount} suite(s) exist; run with --list to see their names.${COLORS.reset}\n`);
-    process.exit(1);
-  }
-
-  if (suites.length === 0) {
-    console.log(`\n${COLORS.yellow}No test suites found${COLORS.reset}`);
-    console.log(`${COLORS.dim}Create .test.cjs files in: ${suitesDir}${COLORS.reset}\n`);
-    process.exit(0);
-  }
-
-  // A developer's personal framework settings (~/.claude/.ck.json, e.g. quiet mode) and a
-  // CK_FRAMEWORK_MODE override switch hooks off, so a suite that spawns or calls a hook would
-  // pass or fail by whose machine runs it. Every suite gets an empty home of its own instead.
-  const isolatedHome = fs.mkdtempSync(path.join(os.tmpdir(), 'hook-tests-home-'));
-  process.env.HOME = isolatedHome;
-  process.env.USERPROFILE = isolatedHome;
-  delete process.env.CK_FRAMEWORK_MODE;
-  process.on('exit', () => fs.rmSync(isolatedHome, { recursive: true, force: true }));
-
-  const start = Date.now();
-  const allResults = [];
-
-  // Load and run suites
-  for (const suite of suites) {
-    try {
-      const module = require(suite.path);
-      const result = await runSuite({ ...suite, module }, flags);
-      allResults.push(result);
-      printSuiteResults(result, flags.verbose);
-
-      if (flags.bail && result.failed > 0) {
-        break;
-      }
-    } catch (error) {
-      console.log(`\n  ${COLORS.red}${SYMBOLS.fail} Failed to load suite: ${suite.name}${COLORS.reset}`);
-      console.log(`    ${COLORS.red}${error.message}${COLORS.reset}`);
-      if (flags.verbose) {
-        console.log(`    ${COLORS.dim}${error.stack}${COLORS.reset}`);
-      }
-      allResults.push({
-        name: suite.name,
-        tests: [],
-        passed: 0,
-        failed: 1,
-        skipped: 0,
-        duration: 0,
-        loadError: error.message
-      });
+    if (flags.help) {
+        showHelp();
+        process.exit(0);
     }
-  }
 
-  const totalDuration = Date.now() - start;
-  printSummary(allResults, totalDuration);
+    const suitesDir = path.join(__dirname, 'suites');
+    let suites = discoverSuites(suitesDir);
+    const discoveredCount = suites.length;
 
-  // Exit with error code if any tests failed
-  const hasFailures = allResults.some(r => r.failed > 0);
+    // Filter suites by name if specified
+    if (flags.filter) {
+        suites = suites.filter(s => s.name.toLowerCase().includes(flags.filter.toLowerCase()));
+    }
 
-  // Persist a failure log. This suite is INTERMITTENTLY flaky under load — a
-  // review observed 1 failure in 6 identical runs — and the failing test's
-  // identity was lost because the only record was terminal scrollback that a
-  // background run or CI step discards. A flaky gate whose failures cannot be
-  // named trains everyone to re-run until green, and a real regression then
-  // reads as "just the flake". Naming the test is the prerequisite for fixing
-  // it, so the log is written before any attribution is attempted.
-  //
-  // The log is diagnostic only: it never changes the pass/fail verdict, and a
-  // failure to write it is reported without becoming a second failure.
-  if (hasFailures) {
-    const failures = allResults.flatMap(suite => {
-      // A suite that fails to LOAD contributes failed:1 with an EMPTY tests
-      // array, so aggregating only per-test records wrote `"failures": []`
-      // alongside a non-zero failure count — silent in exactly the case this
-      // log exists for. A load error destroys a whole suite's coverage, which
-      // is strictly worse than one failing assertion, so it is named first.
-      if (suite.loadError) {
-        return [{
-          suite: suite.name,
-          test: '(suite failed to load)',
-          durationMs: suite.duration,
-          error: suite.loadError,
-          stack: null
-        }];
-      }
-      return suite.tests
-        .filter(test => !test.passed && !test.skipped)
-        .map(test => ({
-          suite: suite.name,
-          test: test.name,
-          durationMs: test.duration,
-          error: test.error,
-          stack: test.stack
+    if (flags.list) {
+        listSuites(suites);
+        process.exit(0);
+    }
+
+    console.log(`\n${COLORS.bright}${COLORS.cyan}Claude Hooks Test Runner${COLORS.reset}`);
+    console.log(`${COLORS.dim}Found ${suites.length} test suite(s)${COLORS.reset}`);
+
+    // An explicit `--filter` that selects NOTHING is a caller error, not a clean run. Suites are
+    // discovered by filename and matched by SUBSTRING, so renaming a suite silently empties any
+    // selector that named it — and an automated caller (the codex pipeline invokes this runner with
+    // `--filter=count-drift|parity|doc-sync-gate`) would then report a green stage having executed
+    // zero assertions. Exit 1 so a vacuous selection can never masquerade as a pass.
+    // The genuinely-empty-suites-dir case below keeps exit 0: nothing was requested and nothing exists,
+    // which is the fresh-scaffold state, not a false green. `--list` above also stays exit 0 — listing
+    // an empty selection is informational, not a verification claim.
+    if (suites.length === 0 && flags.filter && discoveredCount > 0) {
+        console.log(`\n${COLORS.yellow}No test suite name matched --filter=${flags.filter}${COLORS.reset}`);
+        console.log(`${COLORS.dim}${discoveredCount} suite(s) exist; run with --list to see their names.${COLORS.reset}\n`);
+        process.exit(1);
+    }
+
+    if (suites.length === 0) {
+        console.log(`\n${COLORS.yellow}No test suites found${COLORS.reset}`);
+        console.log(`${COLORS.dim}Create .test.cjs files in: ${suitesDir}${COLORS.reset}\n`);
+        process.exit(0);
+    }
+
+    // A developer's personal framework settings (~/.claude/.ck.json, e.g. quiet mode) and a
+    // CK_FRAMEWORK_MODE override switch hooks off, so a suite that spawns or calls a hook would
+    // pass or fail by whose machine runs it. Every suite gets an empty home of its own instead.
+    const isolatedHome = fs.mkdtempSync(path.join(os.tmpdir(), 'hook-tests-home-'));
+    process.env.HOME = isolatedHome;
+    process.env.USERPROFILE = isolatedHome;
+    delete process.env.CK_FRAMEWORK_MODE;
+    process.on('exit', () => fs.rmSync(isolatedHome, { recursive: true, force: true }));
+
+    const start = Date.now();
+    const allResults = [];
+
+    // Load and run suites
+    for (const suite of suites) {
+        try {
+            const module = require(suite.path);
+            const result = await runSuite({ ...suite, module }, flags);
+            allResults.push(result);
+            printSuiteResults(result, flags.verbose);
+
+            if (flags.bail && result.failed > 0) {
+                break;
+            }
+        } catch (error) {
+            console.log(`\n  ${COLORS.red}${SYMBOLS.fail} Failed to load suite: ${suite.name}${COLORS.reset}`);
+            console.log(`    ${COLORS.red}${error.message}${COLORS.reset}`);
+            if (flags.verbose) {
+                console.log(`    ${COLORS.dim}${error.stack}${COLORS.reset}`);
+            }
+            allResults.push({
+                name: suite.name,
+                tests: [],
+                passed: 0,
+                failed: 1,
+                skipped: 0,
+                duration: 0,
+                loadError: error.message
+            });
+        }
+    }
+
+    const totalDuration = Date.now() - start;
+    printSummary(allResults, totalDuration);
+
+    // Exit with error code if any tests failed
+    const hasFailures = allResults.some(r => r.failed > 0);
+
+    // Persist a failure log. This suite is INTERMITTENTLY flaky under load — a
+    // review observed 1 failure in 6 identical runs — and the failing test's
+    // identity was lost because the only record was terminal scrollback that a
+    // background run or CI step discards. A flaky gate whose failures cannot be
+    // named trains everyone to re-run until green, and a real regression then
+    // reads as "just the flake". Naming the test is the prerequisite for fixing
+    // it, so the log is written before any attribution is attempted.
+    //
+    // The log is diagnostic only: it never changes the pass/fail verdict, and a
+    // failure to write it is reported without becoming a second failure.
+    if (hasFailures) {
+        const failures = allResults.flatMap(suite => {
+            // A suite that fails to LOAD contributes failed:1 with an EMPTY tests
+            // array, so aggregating only per-test records wrote `"failures": []`
+            // alongside a non-zero failure count — silent in exactly the case this
+            // log exists for. A load error destroys a whole suite's coverage, which
+            // is strictly worse than one failing assertion, so it is named first.
+            if (suite.loadError) {
+                return [
+                    {
+                        suite: suite.name,
+                        test: '(suite failed to load)',
+                        durationMs: suite.duration,
+                        error: suite.loadError,
+                        stack: null
+                    }
+                ];
+            }
+            return suite.tests
+                .filter(test => !test.passed && !test.skipped)
+                .map(test => ({
+                    suite: suite.name,
+                    test: test.name,
+                    durationMs: test.duration,
+                    error: test.error,
+                    stack: test.stack
+                }));
+        });
+        // Redaction and bounding are applied to the PERSISTED copy only. The console
+        // list below stays verbatim: it goes to the operator running the suite, who
+        // already has the paths, and truncating what they can see would defeat the
+        // point of naming the failure.
+        const persistedFailures = failures.slice(0, MAX_LOGGED_FAILURES).map(failure => ({
+            ...failure,
+            error: redact(failure.error, MAX_ERROR_CHARS),
+            stack: redact(failure.stack, MAX_STACK_CHARS)
         }));
-    });
-    // Redaction and bounding are applied to the PERSISTED copy only. The console
-    // list below stays verbatim: it goes to the operator running the suite, who
-    // already has the paths, and truncating what they can see would defeat the
-    // point of naming the failure.
-    const persistedFailures = failures.slice(0, MAX_LOGGED_FAILURES).map(failure => ({
-      ...failure,
-      error: redact(failure.error, MAX_ERROR_CHARS),
-      stack: redact(failure.stack, MAX_STACK_CHARS)
-    }));
-    // `Date.now()` alone collided: concurrent runs finishing in the same
-    // millisecond overwrote each other's log, and nothing bound a file back to the
-    // invocation that produced it — which is the attribution this log exists for.
-    const logDir = path.join(os.tmpdir(), 'ck');
-    const logPath = path.join(logDir, `hook-test-failures-${Date.now()}-${process.pid}.json`);
-    try {
-      fs.mkdirSync(logDir, { recursive: true });
-      fs.writeFileSync(logPath, `${JSON.stringify({
-        startedAt: new Date(start).toISOString(),
-        durationMs: totalDuration,
-        node: process.version,
-        platform: process.platform,
-        pid: process.pid,
-        argv: process.argv.slice(2),
-        // Stated in the file, so a reader never mistakes a redacted or truncated
-        // record for the whole story.
-        redacted: buildRedactionPatterns().length > 0,
-        failureCount: failures.length,
-        recordedFailures: persistedFailures.length,
-        failures: persistedFailures
-      }, null, 2)}\n`);
-      pruneFailureLogs(logDir, RETAINED_FAILURE_LOGS);
-      console.log(`${COLORS.yellow}Failure log:${COLORS.reset} ${logPath}`);
-    } catch (error) {
-      console.log(`${COLORS.yellow}Failure log could not be written:${COLORS.reset} ${error.message}`);
-    }
-    console.log(`${COLORS.red}Failing tests:${COLORS.reset}`);
-    for (const failure of failures) {
-      console.log(`  ${COLORS.red}${SYMBOLS.fail}${COLORS.reset} [${failure.suite}] ${failure.test} — ${failure.error}`);
-    }
-    console.log('');
-  }
-
-  // Aggregate-test count drift guard. Mirrors the primary runner's guard
-  // (test-all-hooks.cjs, "Hook-test count drift guard") and lives here for the same
-  // reason it lives there rather than in a suite: a counted test cannot see the parent
-  // runner's live total from inside its own subprocess, and one that read `allResults`
-  // would read the tally before its own increment. So this is a post-summary hard
-  // assertion, deliberately NOT a counted test.
-  //
-  // It asserts the DISCOVERED total (passed + failed + skipped), never the pass count.
-  // Several tests gate on host capability (`git` availability in doc-impact-map) and on
-  // repo state (an empty protocol registry in project-protocol-drift), so the
-  // passed/skipped SPLIT legitimately differs per machine while the discovered total
-  // does not. Guarding the split would fire on a git-less host and train readers to
-  // ignore the guard — the failure mode a drift guard exists to prevent.
-  //
-  // Only meaningful on a COMPLETE, clean run: `--filter` executes a subset, `--bail`
-  // stops early, and a suite that fails to LOAD contributes failed:1 in place of its
-  // real test count. In each of those cases the total is not the canonical figure, so
-  // stay silent instead of reporting a drift that isn't one.
-  let countGuardFailed = false;
-  if (!flags.filter && !hasFailures) {
-    const liveTotal = allResults.reduce((sum, r) => sum + r.passed + r.failed + r.skipped, 0);
-    const docsDir = path.join(__dirname, '..', '..', 'docs');
-    const countTargets = [
-      {
-        file: path.join(docsDir, 'hooks', 'README.md'),
-        label: 'docs/hooks/README.md "discovers N tests" prose',
-        pattern: /run-all-tests\.cjs\` discovers (\d+) tests/
-      },
-      {
-        file: path.join(docsDir, 'hooks', 'README.md'),
-        label: 'docs/hooks/README.md "Aggregate runner" row',
-        pattern: /\|\s*Aggregate runner\s*\|\s*(\d+)\s*\|/
-      },
-      // The framework guide carried the SAME aggregate figure with no guard on it,
-      // and drifted to 300 against a live 523 while the two rows above stayed green.
-      // A count claim nobody asserts is a claim that will be wrong.
-      {
-        file: path.join(docsDir, 'claude-ai-agent-framework-guide.md'),
-        label: 'framework guide "run-all-tests.cjs (full aggregate)" row',
-        pattern: /\|\s*`run-all-tests\.cjs`\s*\(full aggregate\)\s*\|\s*\*\*(\d+)\*\*\s*\|/
-      },
-      {
-        file: path.join(docsDir, 'claude-ai-agent-framework-guide.md'),
-        label: 'framework guide live-verified prose',
-        pattern: /`run-all-tests\.cjs` = (\d+)/
-      }
-    ];
-
-    const mismatches = [];
-    for (const target of countTargets) {
-      let content;
-      try {
-        content = fs.readFileSync(target.file, 'utf8');
-      } catch (err) {
-        mismatches.push(`${target.label}: cannot read (${err.code || err.message})`);
-        continue;
-      }
-      const match = content.match(target.pattern);
-      if (!match) {
-        mismatches.push(`${target.label}: no count matching ${target.pattern} found`);
-        continue;
-      }
-      const documented = Number(match[1]);
-      if (documented !== liveTotal) {
-        mismatches.push(`${target.label}: documents ${documented}, runner discovered ${liveTotal}`);
-      }
+        // `Date.now()` alone collided: concurrent runs finishing in the same
+        // millisecond overwrote each other's log, and nothing bound a file back to the
+        // invocation that produced it — which is the attribution this log exists for.
+        const logDir = path.join(os.tmpdir(), 'ck');
+        const logPath = path.join(logDir, `hook-test-failures-${Date.now()}-${process.pid}.json`);
+        try {
+            fs.mkdirSync(logDir, { recursive: true });
+            fs.writeFileSync(
+                logPath,
+                `${JSON.stringify(
+                    {
+                        startedAt: new Date(start).toISOString(),
+                        durationMs: totalDuration,
+                        node: process.version,
+                        platform: process.platform,
+                        pid: process.pid,
+                        argv: process.argv.slice(2),
+                        // Stated in the file, so a reader never mistakes a redacted or truncated
+                        // record for the whole story.
+                        redacted: buildRedactionPatterns().length > 0,
+                        failureCount: failures.length,
+                        recordedFailures: persistedFailures.length,
+                        failures: persistedFailures
+                    },
+                    null,
+                    2
+                )}\n`
+            );
+            pruneFailureLogs(logDir, RETAINED_FAILURE_LOGS);
+            console.log(`${COLORS.yellow}Failure log:${COLORS.reset} ${logPath}`);
+        } catch (error) {
+            console.log(`${COLORS.yellow}Failure log could not be written:${COLORS.reset} ${error.message}`);
+        }
+        console.log(`${COLORS.red}Failing tests:${COLORS.reset}`);
+        for (const failure of failures) {
+            console.log(`  ${COLORS.red}${SYMBOLS.fail}${COLORS.reset} [${failure.suite}] ${failure.test} — ${failure.error}`);
+        }
+        console.log('');
     }
 
-    if (mismatches.length > 0) {
-      countGuardFailed = true;
-      console.log(`${COLORS.red}Aggregate-test count drift:${COLORS.reset}`);
-      for (const m of mismatches) {
-        console.log(`  ${COLORS.red}${SYMBOLS.fail}${COLORS.reset} ${m}`);
-      }
-      console.log(`  ${COLORS.dim}Fix: set the count to ${liveTotal} in the file(s) above.${COLORS.reset}\n`);
-    } else {
-      console.log(`${COLORS.green}Count guard:${COLORS.reset} docs agree (${liveTotal} tests discovered)\n`);
-    }
-  }
+    // Aggregate-test count drift guard. Mirrors the primary runner's guard
+    // (test-all-hooks.cjs, "Hook-test count drift guard") and lives here for the same
+    // reason it lives there rather than in a suite: a counted test cannot see the parent
+    // runner's live total from inside its own subprocess, and one that read `allResults`
+    // would read the tally before its own increment. So this is a post-summary hard
+    // assertion, deliberately NOT a counted test.
+    //
+    // It asserts the DISCOVERED total (passed + failed + skipped), never the pass count.
+    // Several tests gate on host capability (`git` availability in doc-impact-map) and on
+    // repo state (an empty protocol registry in project-protocol-drift), so the
+    // passed/skipped SPLIT legitimately differs per machine while the discovered total
+    // does not. Guarding the split would fire on a git-less host and train readers to
+    // ignore the guard — the failure mode a drift guard exists to prevent.
+    //
+    // Only meaningful on a COMPLETE, clean run: `--filter` executes a subset, `--bail`
+    // stops early, and a suite that fails to LOAD contributes failed:1 in place of its
+    // real test count. In each of those cases the total is not the canonical figure, so
+    // stay silent instead of reporting a drift that isn't one.
+    let countGuardFailed = false;
+    if (!flags.filter && !hasFailures) {
+        const liveTotal = allResults.reduce((sum, r) => sum + r.passed + r.failed + r.skipped, 0);
+        const docsDir = path.join(__dirname, '..', '..', 'docs');
+        const countTargets = [
+            {
+                file: path.join(docsDir, 'hooks', 'README.md'),
+                label: 'docs/hooks/README.md "discovers N tests" prose',
+                pattern: /run-all-tests\.cjs\` discovers (\d+) tests/
+            },
+            {
+                file: path.join(docsDir, 'hooks', 'README.md'),
+                label: 'docs/hooks/README.md "Aggregate runner" row',
+                pattern: /\|\s*Aggregate runner\s*\|\s*(\d+)\s*\|/
+            },
+            // The framework guide carried the SAME aggregate figure with no guard on it,
+            // and drifted to 300 against a live 523 while the two rows above stayed green.
+            // A count claim nobody asserts is a claim that will be wrong.
+            {
+                file: path.join(docsDir, 'claude-ai-agent-framework-guide.md'),
+                label: 'framework guide "run-all-tests.cjs (full aggregate)" row',
+                pattern: /\|\s*`run-all-tests\.cjs`\s*\(full aggregate\)\s*\|\s*\*\*(\d+)\*\*\s*\|/
+            },
+            {
+                file: path.join(docsDir, 'claude-ai-agent-framework-guide.md'),
+                label: 'framework guide live-verified prose',
+                pattern: /`run-all-tests\.cjs` = (\d+)/
+            }
+        ];
 
-  process.exit(hasFailures || countGuardFailed ? 1 : 0);
+        const mismatches = [];
+        for (const target of countTargets) {
+            let content;
+            try {
+                content = fs.readFileSync(target.file, 'utf8');
+            } catch (err) {
+                mismatches.push(`${target.label}: cannot read (${err.code || err.message})`);
+                continue;
+            }
+            const match = content.match(target.pattern);
+            if (!match) {
+                mismatches.push(`${target.label}: no count matching ${target.pattern} found`);
+                continue;
+            }
+            const documented = Number(match[1]);
+            if (documented !== liveTotal) {
+                mismatches.push(`${target.label}: documents ${documented}, runner discovered ${liveTotal}`);
+            }
+        }
+
+        if (mismatches.length > 0) {
+            countGuardFailed = true;
+            console.log(`${COLORS.red}Aggregate-test count drift:${COLORS.reset}`);
+            for (const m of mismatches) {
+                console.log(`  ${COLORS.red}${SYMBOLS.fail}${COLORS.reset} ${m}`);
+            }
+            console.log(`  ${COLORS.dim}Fix: set the count to ${liveTotal} in the file(s) above.${COLORS.reset}\n`);
+        } else {
+            console.log(`${COLORS.green}Count guard:${COLORS.reset} docs agree (${liveTotal} tests discovered)\n`);
+        }
+    }
+
+    process.exit(hasFailures || countGuardFailed ? 1 : 0);
 }
 
 // Exported before main() starts: main() loads the suites synchronously, and a suite that
@@ -516,8 +531,8 @@ module.exports = { runSuite, runTest, discoverSuites };
 
 // Run if executed directly
 if (require.main === module) {
-  main().catch(error => {
-    console.error(`${COLORS.red}Fatal error: ${error.message}${COLORS.reset}`);
-    process.exit(1);
-  });
+    main().catch(error => {
+        console.error(`${COLORS.red}Fatal error: ${error.message}${COLORS.reset}`);
+        process.exit(1);
+    });
 }

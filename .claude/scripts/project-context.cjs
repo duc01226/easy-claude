@@ -38,6 +38,10 @@ function main(argv) {
 
 module.exports = { projectContext, main };
 if (require.main === module) {
-    try { main(process.argv.slice(2)); }
-    catch (error) { process.stderr.write(error.message + '\n'); process.exitCode = 1; }
+    try {
+        main(process.argv.slice(2));
+    } catch (error) {
+        process.stderr.write(error.message + '\n');
+        process.exitCode = 1;
+    }
 }

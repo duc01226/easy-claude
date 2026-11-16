@@ -92,7 +92,7 @@ const { resolveProjectRoot, isInvokedAsScript } = require('../lib/project-root.c
 const rootResolution = resolveProjectRoot({
     cwd: process.cwd(),
     scriptPath: fileURLToPath(import.meta.url),
-    env: process.env,
+    env: process.env
 });
 
 // readTreeFiles' default exclusion. The skills check passes its own: it writes the expected sentinel
@@ -271,8 +271,14 @@ function reportSkillsResult(diffs, fenceProblems) {
 
 async function checkSkillsMirror() {
     const {
-        materializeSkillMirror, isLocalInstallArtifact, buildSkillMirrorSentinel, readRecordedSkillEntries,
-        classifySkillMirrorEntries, skillMirrorSentinel, claudeSkillsDir, agentsSkillsDir
+        materializeSkillMirror,
+        isLocalInstallArtifact,
+        buildSkillMirrorSentinel,
+        readRecordedSkillEntries,
+        classifySkillMirrorEntries,
+        skillMirrorSentinel,
+        claudeSkillsDir,
+        agentsSkillsDir
     } = await loadSyncModules();
     if (!(await pathExists(claudeSkillsDir))) {
         return { skip: 'no .claude/skills source to mirror' };
@@ -281,9 +287,7 @@ async function checkSkillsMirror() {
         return { skip: 'no .agents/skills mirror yet — run the standalone runner to create it' };
     }
 
-    const skillDirNames = (await fs.readdir(claudeSkillsDir, { withFileTypes: true }))
-        .filter(entry => entry.isDirectory())
-        .map(entry => entry.name);
+    const skillDirNames = (await fs.readdir(claudeSkillsDir, { withFileTypes: true })).filter(entry => entry.isDirectory()).map(entry => entry.name);
     const skillReferenceMap = buildSkillReferenceMap(skillDirNames);
 
     const staging = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-sync-check-'));
@@ -481,7 +485,9 @@ async function main() {
     // leaving "FAIL — out of sync" on stderr and exit 0. A gate that reports a
     // failure and exits clean is worse than no gate: the commit sails through
     // while the message scrolls past.
-    const markFailed = () => { process.exitCode = 1; };
+    const markFailed = () => {
+        process.exitCode = 1;
+    };
 
     const skills = await checkSkillsMirror();
     if (skills.skip) {
@@ -558,7 +564,6 @@ async function main() {
             console.error(`- [${diff.kind}] ${diff.relPath}`);
         }
     }
-
 }
 
 const invokedAsScript = isInvokedAsScript(process.argv[1], fileURLToPath(import.meta.url));

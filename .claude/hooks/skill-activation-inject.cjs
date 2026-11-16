@@ -24,7 +24,8 @@ function isPolicyEvent(input) {
 }
 
 function buildPolicy(resolved) {
-    if (resolved.enabled) return `${MARKER}\nFramework skill auto-trigger is enabled (${resolved.source}). This replaces the earlier restricted selection policy; normal descriptions and workflow routing apply. Existing user-only skills, permissions and Git authorization still apply.\n`;
+    if (resolved.enabled)
+        return `${MARKER}\nFramework skill auto-trigger is enabled (${resolved.source}). This replaces the earlier restricted selection policy; normal descriptions and workflow routing apply. Existing user-only skills, permissions and Git authorization still apply.\n`;
     return [
         MARKER,
         `**Framework skill auto-trigger is DISABLED (${resolved.source}).** This policy takes precedence over automatic skill activation tables, task-description matches and suggestions to self-start a workflow.`,
@@ -41,10 +42,14 @@ function buildPolicy(resolved) {
     ].join('\n');
 }
 
-
 function defaultWrite(text, done) {
     let settled = false;
-    const finish = ok => { if (!settled) { settled = true; done(ok); } };
+    const finish = ok => {
+        if (!settled) {
+            settled = true;
+            done(ok);
+        }
+    };
     const onError = () => finish(false);
     process.stdout.once('error', onError);
     process.stdout.write(text, error => {
@@ -65,8 +70,8 @@ async function run(input, deps = {}) {
         const resolved = require('./lib/prompt-route-utils.cjs').resolveHookSkillAutoTrigger({ projectDir: rootDir, env, homeDir: deps.homeDir });
         const store = routing.resolveSessionStoreRoot(rootDir);
         // A host without agent IDs still starts an isolated context; never mark the main scope present.
-        const scoped = input.hook_event_name === 'SubagentStart' && !input.agent_id
-            ? { ...input, agent_id: `start-${crypto.randomBytes(6).toString('hex')}` } : input;
+        const scoped =
+            input.hook_event_name === 'SubagentStart' && !input.agent_id ? { ...input, agent_id: `start-${crypto.randomBytes(6).toString('hex')}` } : input;
         const stateName = `${HOOK_NAME}-${ledger.scopeFor(scoped)}`;
         const hasSession = typeof input.session_id === 'string' && input.session_id.trim() !== '';
         const previous = hasSession ? ledger.readSessionState(store, input.session_id, stateName) : null;
@@ -75,9 +80,14 @@ async function run(input, deps = {}) {
         const write = deps.write || defaultWrite;
         const fullText = buildPolicy(resolved);
         const payload = envelope(fullText);
-        const send = text => new Promise(resolve => {
-            try { write(text, ok => resolve(ok === false ? '' : text)); } catch { resolve(''); }
-        });
+        const send = text =>
+            new Promise(resolve => {
+                try {
+                    write(text, ok => resolve(ok === false ? '' : text));
+                } catch {
+                    resolve('');
+                }
+            });
         const delivered = await send(payload);
         if (delivered && hasSession) ledger.writeSessionState(store, input.session_id, stateName, { enabled: resolved.enabled });
         return delivered;

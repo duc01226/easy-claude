@@ -21,11 +21,19 @@
 const fs = require('fs');
 
 function readStdin() {
-    try { return fs.readFileSync(0, 'utf-8'); } catch { return ''; }
+    try {
+        return fs.readFileSync(0, 'utf-8');
+    } catch {
+        return '';
+    }
 }
 
 function parseJsonSafe(s) {
-    try { return JSON.parse(s); } catch { return null; }
+    try {
+        return JSON.parse(s);
+    } catch {
+        return null;
+    }
 }
 
 // Last non-empty path segment, splitting on either separator. Trailing
@@ -53,7 +61,11 @@ function main() {
 }
 
 if (require.main === module) {
-    try { main(); } catch { /* never throw */ }
+    try {
+        main();
+    } catch {
+        /* never throw */
+    }
 }
 
 module.exports = { basenameOf, projectFolderName };

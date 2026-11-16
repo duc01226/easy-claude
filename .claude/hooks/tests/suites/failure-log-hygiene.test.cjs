@@ -19,12 +19,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-const {
-    redact,
-    pruneFailureLogs,
-    MAX_ERROR_CHARS,
-    RETAINED_FAILURE_LOGS
-} = require('../lib/failure-log.cjs');
+const { redact, pruneFailureLogs, MAX_ERROR_CHARS, RETAINED_FAILURE_LOGS } = require('../lib/failure-log.cjs');
 
 const tests = [
     {
@@ -40,10 +35,7 @@ const tests = [
                 [`at Object.<anonymous> (${path.join(repo, '.claude', 'hooks', 'x.cjs')}:12:3)`, repo]
             ]) {
                 const cleaned = redact(raw, MAX_ERROR_CHARS);
-                assert.ok(
-                    !cleaned.toLowerCase().includes(forbidden.toLowerCase()),
-                    `a persisted record still contains ${forbidden}: ${cleaned}`
-                );
+                assert.ok(!cleaned.toLowerCase().includes(forbidden.toLowerCase()), `a persisted record still contains ${forbidden}: ${cleaned}`);
                 assert.match(cleaned, /<(repo|tmp|home)>/, 'the removed prefix must be replaced by a named placeholder');
             }
 

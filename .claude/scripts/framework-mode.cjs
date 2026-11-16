@@ -6,7 +6,14 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { randomUUID } = require('node:crypto');
-const { MODES, resolveFrameworkMode, resolveQuietProjectRules, resolveQuietNative, resolveAutoApplyNative, resolveOffMode } = require('../hooks/lib/framework-runtime.cjs');
+const {
+    MODES,
+    resolveFrameworkMode,
+    resolveQuietProjectRules,
+    resolveQuietNative,
+    resolveAutoApplyNative,
+    resolveOffMode
+} = require('../hooks/lib/framework-runtime.cjs');
 const { decodeConfigText } = require('./lib/workflow-routing-config.cjs');
 const { resolveMutationProjectRoot } = require('./lib/project-root.cjs');
 const { planNativeSkills, applyNativeSkills, nativeStatus, withNativeLock, assertSettingsPath } = require('./lib/framework-native-skills.cjs');
@@ -16,9 +23,13 @@ function run(args) {
     const scope = scopes[0]?.slice('--scope='.length) || 'checkout';
     const commands = args.filter(arg => !arg.startsWith('--'));
     const command = commands[0] || 'show';
-    if (commands.length > 1 || scopes.length > 1 || !['checkout', 'user', 'team'].includes(scope) ||
+    if (
+        commands.length > 1 ||
+        scopes.length > 1 ||
+        !['checkout', 'user', 'team'].includes(scope) ||
         !['show', 'apply', 'reset', ...MODES].includes(command) ||
-        args.some(arg => arg !== command && arg !== `--scope=${scope}` && arg !== '--json')) {
+        args.some(arg => arg !== command && arg !== `--scope=${scope}` && arg !== '--json')
+    ) {
         throw new Error('Usage: node .claude/scripts/framework-mode.cjs [show|apply|on|quiet|off|reset] [--scope=checkout|user|team] [--json]');
     }
     const { rootDir } = resolveMutationProjectRoot({ scriptPath: __filename });
@@ -34,19 +45,24 @@ function run(args) {
             if (ignored.status !== 0) throw new Error('Checkout settings must be git-ignored before saving.');
         }
         let config = {};
-        try { config = JSON.parse(decodeConfigText(fs.readFileSync(file))); }
-        catch (error) { if (error.code !== 'ENOENT') throw new Error(`Cannot read valid settings at ${file}: ${error.message}`); }
+        try {
+            config = JSON.parse(decodeConfigText(fs.readFileSync(file)));
+        } catch (error) {
+            if (error.code !== 'ENOENT') throw new Error(`Cannot read valid settings at ${file}: ${error.message}`);
+        }
         if (!config || typeof config !== 'object' || Array.isArray(config)) throw new Error(`Settings must be an object: ${file}`);
-        if (config.frameworkRuntime !== undefined && (!config.frameworkRuntime || typeof config.frameworkRuntime !== 'object' || Array.isArray(config.frameworkRuntime))) {
+        if (
+            config.frameworkRuntime !== undefined &&
+            (!config.frameworkRuntime || typeof config.frameworkRuntime !== 'object' || Array.isArray(config.frameworkRuntime))
+        ) {
             throw new Error(`frameworkRuntime must be an object: ${file}`);
         }
         const candidate = { ...config, frameworkRuntime: { ...config.frameworkRuntime } };
         if (command === 'reset') delete candidate.frameworkRuntime.mode;
         else candidate.frameworkRuntime.mode = command;
         if (Object.keys(candidate.frameworkRuntime).length === 0) delete candidate.frameworkRuntime;
-        const validate = scope === 'team'
-            ? require('../hooks/lib/project-config-schema.cjs').validateConfig
-            : require('../hooks/lib/ck-config-schema.cjs').validateCkConfig;
+        const validate =
+            scope === 'team' ? require('../hooks/lib/project-config-schema.cjs').validateConfig : require('../hooks/lib/ck-config-schema.cjs').validateCkConfig;
         const result = validate(candidate);
         if (!result.valid) throw new Error(result.errors.join('\n'));
         // Preflight every native target before saving the preference. No team
@@ -74,18 +90,32 @@ function run(args) {
     const quietNative = resolveQuietNative({ rootDir });
     const autoApply = resolveAutoApplyNative({ rootDir });
     const offMode = resolveOffMode({ rootDir });
-    const result = { ...effective, quietProjectRules: { enabled: projectRules.enabled, source: projectRules.source },
-        quietNative: { value: quietNative.value, source: quietNative.source }, autoApplyNative: { enabled: autoApply.enabled, source: autoApply.source },
-        offMode: { value: offMode.value, source: offMode.source }, ...(saved ? { saved } : {}), nativeSkills, ...(nativeApplied ? { nativeApplied } : {}) };
-    const nativeLabel = nativeSkills.skillsDisabled ? 'disabled' : nativeSkills.restricted ? 'quiet profile (framework skills on command only, framework agents denied)' : 'normal profile';
-    process.stdout.write(args.includes('--json') ? `${JSON.stringify(result, null, 2)}\n` :
-        `${saved ? `Saved ${saved.mode ?? 'reset'} in ${saved.file}\n` : ''}Framework mode: ${effective.mode} (${effective.source})${effective.offReadAsQuiet ? ' — off is read as quiet (team frameworkRuntime.offMode: as-quiet)' : ''}\n` +
-        `${effective.mode === 'quiet' ? `Project rules in quiet (overlays, file conventions, auto-trigger policy): ${projectRules.enabled ? 'kept' : 'off'} (${projectRules.source})\n` : ''}` +
-        `${effective.mode === 'quiet' ? `Native restriction in quiet (frameworkRuntime.quietNative): ${quietNative.value} (${quietNative.source})\n` : ''}` +
-        `Native Claude/Codex skills and agents: ${nativeLabel}${nativeSkills.registered ? '' : ' (run apply to register this checkout)'}\n` +
-        `Apply native settings at session start (frameworkRuntime.autoApplyNative): ${autoApply.enabled ? 'on' : 'off'} (${autoApply.source})\n` +
-        `${nativeSkills.needsApply ? 'Native settings need reconciliation: run apply.\n' : ''}` +
-        `${nativeApplied ? 'Start fresh Claude/Codex sessions to load native settings. User scope covers registered checkouts; run apply once in each new checkout.\n' : ''}`);
+    const result = {
+        ...effective,
+        quietProjectRules: { enabled: projectRules.enabled, source: projectRules.source },
+        quietNative: { value: quietNative.value, source: quietNative.source },
+        autoApplyNative: { enabled: autoApply.enabled, source: autoApply.source },
+        offMode: { value: offMode.value, source: offMode.source },
+        ...(saved ? { saved } : {}),
+        nativeSkills,
+        ...(nativeApplied ? { nativeApplied } : {})
+    };
+    const nativeLabel = nativeSkills.skillsDisabled
+        ? 'disabled'
+        : nativeSkills.restricted
+          ? 'quiet profile (framework skills on command only, framework agents denied)'
+          : 'normal profile';
+    process.stdout.write(
+        args.includes('--json')
+            ? `${JSON.stringify(result, null, 2)}\n`
+            : `${saved ? `Saved ${saved.mode ?? 'reset'} in ${saved.file}\n` : ''}Framework mode: ${effective.mode} (${effective.source})${effective.offReadAsQuiet ? ' — off is read as quiet (team frameworkRuntime.offMode: as-quiet)' : ''}\n` +
+                  `${effective.mode === 'quiet' ? `Project rules in quiet (overlays, file conventions, auto-trigger policy): ${projectRules.enabled ? 'kept' : 'off'} (${projectRules.source})\n` : ''}` +
+                  `${effective.mode === 'quiet' ? `Native restriction in quiet (frameworkRuntime.quietNative): ${quietNative.value} (${quietNative.source})\n` : ''}` +
+                  `Native Claude/Codex skills and agents: ${nativeLabel}${nativeSkills.registered ? '' : ' (run apply to register this checkout)'}\n` +
+                  `Apply native settings at session start (frameworkRuntime.autoApplyNative): ${autoApply.enabled ? 'on' : 'off'} (${autoApply.source})\n` +
+                  `${nativeSkills.needsApply ? 'Native settings need reconciliation: run apply.\n' : ''}` +
+                  `${nativeApplied ? 'Start fresh Claude/Codex sessions to load native settings. User scope covers registered checkouts; run apply once in each new checkout.\n' : ''}`
+    );
     return result;
 }
 
@@ -95,6 +125,11 @@ function main(args = process.argv.slice(2)) {
 }
 
 if (require.main === module) {
-    try { main(); } catch (error) { process.stderr.write(`${error.message}\n`); process.exitCode = 1; }
+    try {
+        main();
+    } catch (error) {
+        process.stderr.write(`${error.message}\n`);
+        process.exitCode = 1;
+    }
 }
 module.exports = { main };

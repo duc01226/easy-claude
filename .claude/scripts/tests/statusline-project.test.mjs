@@ -26,8 +26,7 @@ const repoRoot = path.join(thisDir, '..', '..', '..');
 function statuslineProjectWidget() {
     const cfg = JSON.parse(fs.readFileSync(ccPath, 'utf8'));
     const widgets = (cfg.lines || []).flat();
-    return widgets.find(w => w && w.type === 'custom-command' &&
-        typeof w.commandPath === 'string' && w.commandPath.includes('statusline-project.cjs'));
+    return widgets.find(w => w && w.type === 'custom-command' && typeof w.commandPath === 'string' && w.commandPath.includes('statusline-project.cjs'));
 }
 
 test('ccstatusline.json: wires statusline-project.cjs as a custom-command widget', () => {
@@ -54,11 +53,7 @@ test('settings.json: statusLine pins an exact ccstatusline version (never @lates
     const command = settings.statusLine?.command;
     assert.equal(typeof command, 'string', 'statusLine.command must be a string');
     assert.doesNotMatch(command, /ccstatusline@latest/, 'statusLine.command must not float on @latest');
-    assert.match(
-        command,
-        /ccstatusline@\d+\.\d+\.\d+(?![\w.-])/,
-        'statusLine.command must pin ccstatusline to an exact x.y.z version'
-    );
+    assert.match(command, /ccstatusline@\d+\.\d+\.\d+(?![\w.-])/, 'statusLine.command must pin ccstatusline to an exact x.y.z version');
 });
 
 // ── settings.json: ccstatusline must run from the project root, never the session cwd ──
@@ -98,13 +93,14 @@ test('settings.json: statusLine never resolves the ccstatusline config against t
 test('settings.json: statusLine anchors cwd when a ccstatusline widget runs a repo-relative command', () => {
     const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
     const cfg = JSON.parse(fs.readFileSync(ccPath, 'utf8'));
-    const relativeWidgets = (cfg.lines || []).flat().filter(w => w && w.type === 'custom-command' &&
-        typeof w.commandPath === 'string' && /(^|\s)\.claude[\\/]/.test(w.commandPath));
+    const relativeWidgets = (cfg.lines || [])
+        .flat()
+        .filter(w => w && w.type === 'custom-command' && typeof w.commandPath === 'string' && /(^|\s)\.claude[\\/]/.test(w.commandPath));
     assert.ok(relativeWidgets.length > 0, 'tripwire: the wired widgets use repo-relative .claude/ paths');
     assert.match(
         settings.statusLine.command,
         CWD_ANCHOR,
-        'widget commands run in ccstatusline\'s cwd (cmd.exe on Windows, sh on POSIX — no portable env ' +
+        "widget commands run in ccstatusline's cwd (cmd.exe on Windows, sh on POSIX — no portable env " +
             'spelling inside the widget string), so the statusLine command must cd to the project root first'
     );
 });

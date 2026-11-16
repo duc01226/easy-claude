@@ -28,7 +28,10 @@ export function shellReadPaths(command, cwd) {
     const out = [];
     for (const statement of innerCommand(command).split(/\s*(?:;|&&|\|\||\n)\s*/)) {
         if (!statement || /[|<>`$()]/.test(statement)) continue;
-        const words = statement.trim().split(/\s+/).map(word => word.replace(/^['"]|['"]$/g, ''));
+        const words = statement
+            .trim()
+            .split(/\s+/)
+            .map(word => word.replace(/^['"]|['"]$/g, ''));
         if (!SHELL_READERS.has(path.basename(words[0] || ''))) continue;
         for (const word of words.slice(1)) {
             if (!word || word.startsWith('-')) continue;
@@ -42,11 +45,17 @@ export function shellReadPaths(command, cwd) {
 }
 
 /** Environment variables a run may inherit; everything else (tokens, cloud keys) is dropped. */
-const ENV_ALLOW = /^(PATH|PATHEXT|HOME|USER|USERNAME|LOGNAME|SHELL|LANG|LC_[A-Z_]+|TERM|TZ|TMPDIR|TEMP|TMP|SYSTEMROOT|WINDIR|COMSPEC|APPDATA|LOCALAPPDATA|USERPROFILE|HOMEDRIVE|HOMEPATH|XDG_[A-Z_]+|HTTPS?_PROXY|NO_PROXY|NODE_EXTRA_CA_CERTS|SSL_CERT_FILE|SSL_CERT_DIR|ANTHROPIC_[A-Z0-9_]+|CLAUDE_CONFIG_DIR|CLAUDE_CODE_[A-Z0-9_]+)$/i;
+const ENV_ALLOW =
+    /^(PATH|PATHEXT|HOME|USER|USERNAME|LOGNAME|SHELL|LANG|LC_[A-Z_]+|TERM|TZ|TMPDIR|TEMP|TMP|SYSTEMROOT|WINDIR|COMSPEC|APPDATA|LOCALAPPDATA|USERPROFILE|HOMEDRIVE|HOMEPATH|XDG_[A-Z_]+|HTTPS?_PROXY|NO_PROXY|NODE_EXTRA_CA_CERTS|SSL_CERT_FILE|SSL_CERT_DIR|ANTHROPIC_[A-Z0-9_]+|CLAUDE_CONFIG_DIR|CLAUDE_CODE_[A-Z0-9_]+)$/i;
 
 /** The child's environment: allowlisted names plus `extra` names (comma list). Pure. */
 export function childEnv(env, extra = '') {
-    const names = new Set(String(extra).split(',').map(name => name.trim()).filter(Boolean));
+    const names = new Set(
+        String(extra)
+            .split(',')
+            .map(name => name.trim())
+            .filter(Boolean)
+    );
     const out = {};
     for (const [key, value] of Object.entries(env)) if (ENV_ALLOW.test(key) || names.has(key)) out[key] = value;
     return out;
@@ -73,8 +82,13 @@ export function removeHostScratch(world) {
     for (const relative of HOST_SCRATCH) {
         const dir = path.join(world, relative);
         try {
-            if (fs.lstatSync(dir).isDirectory() && fs.readdirSync(dir).length === 0) { fs.rmdirSync(dir); removed.push(relative.split(path.sep).join('/')); }
-        } catch { /* absent or unreadable: nothing to remove */ }
+            if (fs.lstatSync(dir).isDirectory() && fs.readdirSync(dir).length === 0) {
+                fs.rmdirSync(dir);
+                removed.push(relative.split(path.sep).join('/'));
+            }
+        } catch {
+            /* absent or unreadable: nothing to remove */
+        }
     }
     return removed;
 }
@@ -103,6 +117,7 @@ export function runTimeout(clock, now = Date.now()) {
  * temp directory. */
 export function makeTempDir(job, prefix) {
     const scratch = job?.scratchDir;
-    const base = typeof scratch === 'string' && path.isAbsolute(scratch) && fs.existsSync(scratch) && fs.statSync(scratch).isDirectory() ? scratch : os.tmpdir();
+    const base =
+        typeof scratch === 'string' && path.isAbsolute(scratch) && fs.existsSync(scratch) && fs.statSync(scratch).isDirectory() ? scratch : os.tmpdir();
     return fs.mkdtempSync(path.join(base, prefix));
 }

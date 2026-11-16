@@ -52,11 +52,13 @@ const EXTENSION_SEVERITIES = Object.freeze(['CRITICAL', 'HIGH']);
 const TEST_GATE_KIND = 'test';
 const HARD_GATE_KINDS = Object.freeze(['binary', TEST_GATE_KIND]);
 const SEVERITY_DEFINITIONS = Object.freeze({
-    CRITICAL: 'Immediate material risk: security/authorization bypass, data loss or corruption, unsafe destructive action, or (as a separate hard-gate condition) a failed gate that makes the result untrustworthy.',
+    CRITICAL:
+        'Immediate material risk: security/authorization bypass, data loss or corruption, unsafe destructive action, or (as a separate hard-gate condition) a failed gate that makes the result untrustworthy.',
     HIGH: 'Material correctness or contract risk: wrong behavior on a supported path, a violated invariant, a meaningful privacy/authority gap, or a defect likely to harm users or downstream systems.',
     MEDIUM: 'Bounded but consequential quality risk: an edge case, resilience/maintainability gap, or likely future defect with a credible impact but no immediate material loss.',
     LOW: 'Non-blocking polish: wording, formatting, minor documentation or defensive improvement with no credible present correctness, security, privacy, authority, or data-integrity impact.',
-    'NOT VERIFIABLE': 'Unresolved evidence state: the available proof is insufficient to choose a consequence tier; it remains open and blocking until verified or explicitly owner-accepted with documented residual risk.'
+    'NOT VERIFIABLE':
+        'Unresolved evidence state: the available proof is insufficient to choose a consequence tier; it remains open and blocking until verified or explicitly owner-accepted with documented residual risk.'
 });
 const RUN_ID = /^[a-z0-9][a-z0-9._-]{0,127}$/i;
 const FINGERPRINT = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,255}$/;
@@ -71,8 +73,7 @@ function requireObject(value, label) {
 }
 
 function boundedText(value, label, max = 512) {
-    if (typeof value !== 'string' || value.length === 0 || value.length > max ||
-        value.trim() !== value || /[\x00-\x1f\x7f]/.test(value)) {
+    if (typeof value !== 'string' || value.length === 0 || value.length > max || value.trim() !== value || /[\x00-\x1f\x7f]/.test(value)) {
         throw new Error(`${label} must be a bounded printable string`);
     }
     return value;
@@ -147,8 +148,7 @@ function gatePassed(gate) {
     if (gate === true) return true;
     if (gate === false || gate === null || gate === undefined) return false;
     if (typeof gate === 'string') return gate.toUpperCase() === 'PASS' || gate.toUpperCase() === 'PASSED';
-    if (isObject(gate)) return gate.ok === true || gate.passed === true ||
-        ['PASS', 'PASSED', 'OK', 'GREEN'].includes(String(gate.status || '').toUpperCase());
+    if (isObject(gate)) return gate.ok === true || gate.passed === true || ['PASS', 'PASSED', 'OK', 'GREEN'].includes(String(gate.status || '').toUpperCase());
     return false;
 }
 
@@ -163,8 +163,8 @@ function normalizeHardGates(gates) {
         const id = gate.id === undefined ? `hard-gate-${index + 1}` : boundedText(gate.id, `hardGates[${index}].id`, 128);
         const kind = gate.kind === undefined ? 'binary' : String(gate.kind).toLowerCase();
         if (!HARD_GATE_KINDS.includes(kind)) throw new Error(`hardGates[${index}].kind must be one of ${HARD_GATE_KINDS.join(', ')}`);
-        const status = gate.status === undefined ? (gatePassed(gate) ? 'PASS' : 'FAIL') :
-            boundedText(String(gate.status).toUpperCase(), `hardGates[${index}].status`, 32);
+        const status =
+            gate.status === undefined ? (gatePassed(gate) ? 'PASS' : 'FAIL') : boundedText(String(gate.status).toUpperCase(), `hardGates[${index}].status`, 32);
         return { id, kind, status, ...(gate.reason === undefined ? {} : { reason: boundedText(String(gate.reason), `hardGates[${index}].reason`, 1024) }) };
     });
 }
@@ -187,15 +187,16 @@ function blockingFindings(round, findings = [], hardGates = []) {
     validateRound(round);
     const normalized = normalizeFindings(findings);
     const allowed = new Set(blockingSeverities(round));
-    const blockers = normalized.filter(finding => (allowed.has(finding.severity) && !finding.resolution) ||
-        NON_SEVERITY_STATES.includes(finding.severity));
-    const failedGates = normalizeHardGates(hardGates).filter(gate => !gatePassed(gate.status)).map(gate => ({
-        id: gate.id,
-        severity: 'CRITICAL',
-        kind: 'hard-gate',
-        gateKind: gate.kind,
-        summary: gate.reason || `Binary gate ${gate.id} did not pass`
-    }));
+    const blockers = normalized.filter(finding => (allowed.has(finding.severity) && !finding.resolution) || NON_SEVERITY_STATES.includes(finding.severity));
+    const failedGates = normalizeHardGates(hardGates)
+        .filter(gate => !gatePassed(gate.status))
+        .map(gate => ({
+            id: gate.id,
+            severity: 'CRITICAL',
+            kind: 'hard-gate',
+            gateKind: gate.kind,
+            summary: gate.reason || `Binary gate ${gate.id} did not pass`
+        }));
     return [...blockers, ...failedGates];
 }
 
@@ -222,8 +223,9 @@ function evaluateRound({ round, findings = [], hardGates = [], minRounds } = {})
     const normalizedGates = normalizeHardGates(hardGates);
     const minimum = validateMinRounds(minRounds).value;
     const blocking = blockingFindings(round, normalizedFindings, normalizedGates);
-    const deferredLow = normalizedFindings.filter(finding => finding.severity === 'LOW' &&
-        (round >= LOW_FINDING_FLOOR_ROUND || finding.resolution === 'deferred'));
+    const deferredLow = normalizedFindings.filter(
+        finding => finding.severity === 'LOW' && (round >= LOW_FINDING_FLOOR_ROUND || finding.resolution === 'deferred')
+    );
     const scopedClosedLow = []; // Retained return shape; scoped checks never replace fresh review.
     const minimumMet = round >= minimum;
     const canComplete = round <= MAX_ROUNDS && minimumMet && blocking.length === 0;
@@ -244,21 +246,23 @@ function evaluateRound({ round, findings = [], hardGates = [], minRounds } = {})
         deferredLow,
         scopedClosedLow,
         extensionGranted,
-        extensionFindings: extensionGranted
-            ? bounded.filter(finding => EXTENSION_SEVERITIES.includes(finding.severity))
-            : [],
+        extensionFindings: extensionGranted ? bounded.filter(finding => EXTENSION_SEVERITIES.includes(finding.severity)) : [],
         failingTestGates,
         testLoopContinues: failingTestGates.length > 0 && !mustEscalate,
         roundBudget,
         mustEscalate,
         canComplete,
-        status: canComplete ? 'PASS' : (mustEscalate ? 'ESCALATE' : 'CONTINUE')
+        status: canComplete ? 'PASS' : mustEscalate ? 'ESCALATE' : 'CONTINUE'
     };
 }
 
 function stableJson(value) {
     if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
-    if (isObject(value)) return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(',')}}`;
+    if (isObject(value))
+        return `{${Object.keys(value)
+            .sort()
+            .map(key => `${JSON.stringify(key)}:${stableJson(value[key])}`)
+            .join(',')}}`;
     return JSON.stringify(value);
 }
 
@@ -308,23 +312,40 @@ function readState(context) {
 }
 
 function validState(state) {
-    return isObject(state) && state.schemaVersion === SCHEMA_VERSION && state.policyVersion === POLICY_VERSION &&
-        RUN_ID.test(state.runId) && FINGERPRINT.test(state.targetFingerprint) &&
-        Number.isSafeInteger(state.minRounds) && state.minRounds >= 1 && state.minRounds <= MAX_ROUNDS &&
-        Number.isSafeInteger(state.maxRounds) && state.maxRounds >= MAX_ROUNDS && state.maxRounds <= HARD_MAX_ROUNDS &&
-        Number.isSafeInteger(state.roundsCompleted) && state.roundsCompleted >= 0 &&
-        Array.isArray(state.rounds) && state.roundsCompleted === state.rounds.length &&
+    return (
+        isObject(state) &&
+        state.schemaVersion === SCHEMA_VERSION &&
+        state.policyVersion === POLICY_VERSION &&
+        RUN_ID.test(state.runId) &&
+        FINGERPRINT.test(state.targetFingerprint) &&
+        Number.isSafeInteger(state.minRounds) &&
+        state.minRounds >= 1 &&
+        state.minRounds <= MAX_ROUNDS &&
+        Number.isSafeInteger(state.maxRounds) &&
+        state.maxRounds >= MAX_ROUNDS &&
+        state.maxRounds <= HARD_MAX_ROUNDS &&
+        Number.isSafeInteger(state.roundsCompleted) &&
+        state.roundsCompleted >= 0 &&
+        Array.isArray(state.rounds) &&
+        state.roundsCompleted === state.rounds.length &&
         state.rounds.every(record => isObject(record) && validateRecordShape(record)) &&
         (state.status === 'in_progress' || state.status === 'interrupted' || state.status === 'ready' || state.status === 'accepted') &&
-        Number.isSafeInteger(state.targetRevision) && state.targetRevision >= 0;
+        Number.isSafeInteger(state.targetRevision) &&
+        state.targetRevision >= 0
+    );
 }
 
 function validateRecordShape(record) {
     try {
         validateRound(record.round);
-        return record.targetFingerprint && FINGERPRINT.test(record.targetFingerprint) &&
-            typeof record.valid === 'boolean' && isObject(record.evaluation) &&
-            Array.isArray(record.evaluation.findings) && Array.isArray(record.evaluation.blocking);
+        return (
+            record.targetFingerprint &&
+            FINGERPRINT.test(record.targetFingerprint) &&
+            typeof record.valid === 'boolean' &&
+            isObject(record.evaluation) &&
+            Array.isArray(record.evaluation.findings) &&
+            Array.isArray(record.evaluation.blocking)
+        );
     } catch (_) {
         return false;
     }
@@ -339,7 +360,11 @@ function acquire(context) {
 }
 
 function release(context) {
-    try { fs.rmdirSync(context.lock); } catch (_) { /* lock owner already disappeared */ }
+    try {
+        fs.rmdirSync(context.lock);
+    } catch (_) {
+        /* lock owner already disappeared */
+    }
 }
 
 function writeState(context, state) {
@@ -352,7 +377,11 @@ function writeState(context, state) {
         // Rename replaces the destination atomically on supported Node hosts.
         fs.renameSync(temporary, context.file);
     } finally {
-        try { fs.unlinkSync(temporary); } catch (_) { /* already renamed */ }
+        try {
+            fs.unlinkSync(temporary);
+        } catch (_) {
+            /* already renamed */
+        }
     }
 }
 
@@ -431,8 +460,7 @@ function recordRound(options) {
         const targetFingerprint = validateFingerprint(options.targetFingerprint);
         const round = validateRound(options.round);
         const evaluation = evaluateRound({ round, findings: options.findings, hardGates: options.hardGates, minRounds: state.minRounds });
-        const reviewedFingerprint = options.reviewedFingerprint === undefined
-            ? null : validateFingerprint(options.reviewedFingerprint, 'reviewedFingerprint');
+        const reviewedFingerprint = options.reviewedFingerprint === undefined ? null : validateFingerprint(options.reviewedFingerprint, 'reviewedFingerprint');
         if (reviewedFingerprint !== null && reviewedFingerprint !== targetFingerprint) {
             throw new Error('reviewedFingerprint must match targetFingerprint; fresh review is required after every fix');
         }
@@ -486,8 +514,10 @@ function acceptRun(options) {
         const round = options.round === undefined ? state.roundsCompleted : validateRound(options.round);
         if (round !== state.roundsCompleted) throw new Error('Only the latest completed round is eligible for acceptance');
         const record = state.rounds.find(item => item.valid && item.round === round && item.targetFingerprint === targetFingerprint);
-        if (!record || !evaluateRound({ round, findings: record.evaluation.findings,
-            hardGates: record.evaluation.hardGates, minRounds: state.minRounds }).canComplete) {
+        if (
+            !record ||
+            !evaluateRound({ round, findings: record.evaluation.findings, hardGates: record.evaluation.hardGates, minRounds: state.minRounds }).canComplete
+        ) {
             throw new Error('Review round is not eligible for acceptance');
         }
         state.acceptedRound = round;
@@ -538,8 +568,15 @@ function runCli() {
         if (process.argv.length !== 3 || !allowed.has(command)) throw new Error('Use start|record|accept|interrupt|resume|invalidate|check with JSON stdin');
         const options = JSON.parse(fs.readFileSync(0, 'utf8'));
         if (own(options, 'now')) throw new Error('CLI uses the real clock');
-        const actions = { start: startRun, record: recordRound, accept: acceptRun, interrupt: interruptRun,
-            resume: resumeRun, invalidate: invalidateRun, check: getRun };
+        const actions = {
+            start: startRun,
+            record: recordRound,
+            accept: acceptRun,
+            interrupt: interruptRun,
+            resume: resumeRun,
+            invalidate: invalidateRun,
+            check: getRun
+        };
         const result = actions[command](options);
         process.stdout.write(`${JSON.stringify(result)}\n`);
         process.exitCode = 0;

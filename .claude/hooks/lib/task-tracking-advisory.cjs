@@ -28,7 +28,10 @@ function unquotedPrompt(prompt) {
     if (typeof prompt !== 'string' || prompt.length > MAX_PROMPT_CHARS) return '';
     const prose = readUserPrompt(prompt);
     if (!prose) return '';
-    const text = prose.split(/\r\n|\r|\n/).filter(line => !/^\s*>/.test(line)).join('\n');
+    const text = prose
+        .split(/\r\n|\r|\n/)
+        .filter(line => !/^\s*>/.test(line))
+        .join('\n');
     const quotes = { '"': '"', '“': '”', '‘': '’', "'": "'" };
     let closing = null;
     let result = '';
@@ -56,26 +59,35 @@ function relevantPrompt(prompt) {
     const hierarchy = HIERARCHY;
     const intent = /\b(?:status|progress|report|delivery)\b/i;
     const negatedRead = /\b(?:do not|don't|never|avoid|skip)\s+(?:\w+\s+){0,2}(?:show|inspect|check|open|list|report)\b/i;
-    return text && text.split(/[.!?;]/).some(clause => readAction.test(clause) && hierarchy.test(clause)
-        && intent.test(clause) && !negatedRead.test(clause)) ? text : '';
+    return text && text.split(/[.!?;]/).some(clause => readAction.test(clause) && hierarchy.test(clause) && intent.test(clause) && !negatedRead.test(clause))
+        ? text
+        : '';
 }
 
 function notice(context, automatic) {
     const selection = automatic
         ? 'Use task-track only when eligible under the actual request and permissions.'
         : 'Automatic skill selection is restricted: keep the single actual Run/Skip choice and wait for its answer; Skip keeps direct work.';
-    const upkeep = context.mode === 'observe'
-        ? 'Observe permits guidance without optional item saves.'
-        : 'Linked upkeep requires exact separately authorized checkpoints; item opt-out still applies.';
+    const upkeep =
+        context.mode === 'observe'
+            ? 'Observe permits guidance without optional item saves.'
+            : 'Linked upkeep requires exact separately authorized checkpoints; item opt-out still applies.';
     return `${MARKER}\nTask tracking guidance (${context.mode}): inspect selected work and exact related concerns before publication using the available task-track instructions. ${selection} Pending choices and same-task Skip remain authoritative through follow-up and recovery; native permissions still apply. ${upkeep} This notice saves no work, starts no procedure and supplies no verification proof or acceptance.\n`;
 }
 
 /** No work scan or store writer: this checks only genuine prompt intent and selected controls. */
 function eligibleNotice(input, options = {}) {
-    if (!input || typeof input !== 'object' || Array.isArray(input)
-        || input.hook_event_name !== 'UserPromptSubmit'
-        || typeof input.session_id !== 'string' || !input.session_id.trim() || input.session_id.length > MAX_ID_CHARS
-        || (input.agent_id !== undefined && (typeof input.agent_id !== 'string' || input.agent_id.length > MAX_ID_CHARS))) return null;
+    if (
+        !input ||
+        typeof input !== 'object' ||
+        Array.isArray(input) ||
+        input.hook_event_name !== 'UserPromptSubmit' ||
+        typeof input.session_id !== 'string' ||
+        !input.session_id.trim() ||
+        input.session_id.length > MAX_ID_CHARS ||
+        (input.agent_id !== undefined && (typeof input.agent_id !== 'string' || input.agent_id.length > MAX_ID_CHARS))
+    )
+        return null;
     const prompt = relevantPrompt(input.prompt);
     if (!prompt) return null;
     const env = options.env || process.env;
@@ -86,8 +98,7 @@ function eligibleNotice(input, options = {}) {
     // A missing, linked, unreadable or oversized instruction asset is unavailable guidance.
     const instruction = files.readBytes(context.root, '.claude/skills/task-track/SKILL.md', 65536).toString('utf8');
     if (!/^name:\s*task-track\s*$/m.test(instruction)) return null;
-    const control = routing.resolveSkillAutoTrigger({ rootDir: context.root, configPath: context.configPath, env,
-        homeDir: env.HOME || env.USERPROFILE });
+    const control = routing.resolveSkillAutoTrigger({ rootDir: context.root, configPath: context.configPath, env, homeDir: env.HOME || env.USERPROFILE });
     const payload = notice(context, control.enabled);
     if (payload.length > MAX_NOTICE_CHARS) return null;
     return { context, payload, contextHash: files.hash(Buffer.from(prompt.toLocaleLowerCase('en-US'))) };
@@ -109,29 +120,45 @@ function deliveryPaths(context, input) {
 
 function readDeliveryState(context, paths) {
     let bytes;
-    try { bytes = files.readBytes(context.root, paths.relative, MAX_STATE_BYTES); }
-    catch (error) {
+    try {
+        bytes = files.readBytes(context.root, paths.relative, MAX_STATE_BYTES);
+    } catch (error) {
         if (error.code === 'ENOENT') return { version: 1, contexts: [] };
         throw error;
     }
     const state = JSON.parse(bytes.toString('utf8'));
-    if (!state || state.version !== 1 || !Array.isArray(state.contexts) || state.contexts.length > MAX_CONTEXTS
-        || Object.keys(state).some(key => !['version', 'contexts'].includes(key))
-        || state.contexts.some(entry => !entry || Object.keys(entry).some(key => !['hash', 'status'].includes(key))
-            || typeof entry.hash !== 'string' || !/^[a-f0-9]{64}$/.test(entry.hash) || !['pending', 'delivered'].includes(entry.status))
-        || new Set(state.contexts.map(entry => entry.hash)).size !== state.contexts.length) throw new Error('Unavailable advisory receipt state');
+    if (
+        !state ||
+        state.version !== 1 ||
+        !Array.isArray(state.contexts) ||
+        state.contexts.length > MAX_CONTEXTS ||
+        Object.keys(state).some(key => !['version', 'contexts'].includes(key)) ||
+        state.contexts.some(
+            entry =>
+                !entry ||
+                Object.keys(entry).some(key => !['hash', 'status'].includes(key)) ||
+                typeof entry.hash !== 'string' ||
+                !/^[a-f0-9]{64}$/.test(entry.hash) ||
+                !['pending', 'delivered'].includes(entry.status)
+        ) ||
+        new Set(state.contexts.map(entry => entry.hash)).size !== state.contexts.length
+    )
+        throw new Error('Unavailable advisory receipt state');
     return state;
 }
 
 function writeDeliveryState(context, input, paths, state) {
     files.scopedPath(context.root, paths.relative);
-    if (Buffer.byteLength(JSON.stringify(state)) > MAX_STATE_BYTES
-        || !ledger.writeSessionState(paths.root, input.session_id, paths.stateName, state)) throw new Error('Unavailable advisory receipt store');
+    if (Buffer.byteLength(JSON.stringify(state)) > MAX_STATE_BYTES || !ledger.writeSessionState(paths.root, input.session_id, paths.stateName, state))
+        throw new Error('Unavailable advisory receipt store');
 }
 
 function defaultWrite(text, done) {
-    try { process.stdout.write(text, error => done(!error)); }
-    catch { done(false); }
+    try {
+        process.stdout.write(text, error => done(!error));
+    } catch {
+        done(false);
+    }
 }
 
 /** Optional context only. A pending receipt after a crash is unavailable, never authority or delivery proof. */
@@ -153,9 +180,17 @@ async function deliverAdvisory(input, options = {}) {
         writeDeliveryState(context, input, paths, state);
         const written = await new Promise(resolve => {
             let settled = false;
-            const done = ok => { if (!settled) { settled = true; resolve(ok !== false); } };
-            try { (options.write || defaultWrite)(payload, done); }
-            catch { done(false); }
+            const done = ok => {
+                if (!settled) {
+                    settled = true;
+                    resolve(ok !== false);
+                }
+            };
+            try {
+                (options.write || defaultWrite)(payload, done);
+            } catch {
+                done(false);
+            }
         });
         if (written) entry.status = 'delivered';
         else state.contexts.pop();
@@ -169,5 +204,15 @@ async function deliverAdvisory(input, options = {}) {
     }
 }
 
-module.exports = { MAX_PROMPT_CHARS, MAX_CONTEXTS, MAX_STATE_BYTES, MAX_NOTICE_CHARS, MARKER,
-    unquotedPrompt, relevantPrompt, eligibleNotice, deliveryPaths, deliverAdvisory };
+module.exports = {
+    MAX_PROMPT_CHARS,
+    MAX_CONTEXTS,
+    MAX_STATE_BYTES,
+    MAX_NOTICE_CHARS,
+    MARKER,
+    unquotedPrompt,
+    relevantPrompt,
+    eligibleNotice,
+    deliveryPaths,
+    deliverAdvisory
+};

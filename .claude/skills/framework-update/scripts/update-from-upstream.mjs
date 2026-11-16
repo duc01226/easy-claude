@@ -37,7 +37,8 @@ export const CACHE_DIR = 'tmp/framework-update/upstream.git';
 const ENGINE_PATH = '.claude/scripts/framework-update.mjs';
 const LOCK_PATH = '.claude/framework-lock.json';
 const PASS_THROUGH_FLAGS = new Set(['--dry-run', '--json', '--no-sync', '--record-only', '--working-tree', '--allow-dirty-project']);
-const USAGE = 'Usage: node .claude/skills/framework-update/scripts/update-from-upstream.mjs [--upstream=<git-url|dir>] [--ref=<rev>] [--project=<dir>] [--engine=upstream|local] [--dry-run] [--json] [--no-sync] [--record-only] [--working-tree] [--allow-dirty-project] [--base=<rev>|auto]';
+const USAGE =
+    'Usage: node .claude/skills/framework-update/scripts/update-from-upstream.mjs [--upstream=<git-url|dir>] [--ref=<rev>] [--project=<dir>] [--engine=upstream|local] [--dry-run] [--json] [--no-sync] [--record-only] [--working-tree] [--allow-dirty-project] [--base=<rev>|auto]';
 
 function git(cwd, args, { allowFail = false } = {}) {
     const result = spawnSync('git', args, { cwd, maxBuffer: 1 << 30, windowsHide: true });
@@ -62,8 +63,10 @@ export function parseArgs(argv) {
         else if (arg.startsWith('--ref=')) options.ref = value(arg, 'ref');
         else if (arg.startsWith('--project=')) options.project = value(arg, 'project');
         else if (arg.startsWith('--engine=')) options.engine = value(arg, 'engine');
-        else if (arg.startsWith('--base=')) { options.base = value(arg, 'base'); options.pass.push(`--base=${options.base}`); }
-        else if (PASS_THROUGH_FLAGS.has(arg)) options.pass.push(arg);
+        else if (arg.startsWith('--base=')) {
+            options.base = value(arg, 'base');
+            options.pass.push(`--base=${options.base}`);
+        } else if (PASS_THROUGH_FLAGS.has(arg)) options.pass.push(arg);
         else throw new Error(`Unknown option ${arg}\n${USAGE}`);
     }
     if (!['upstream', 'local'].includes(options.engine)) throw new Error(`--engine is upstream or local\n${USAGE}`);
@@ -136,7 +139,7 @@ export function selectEngine({ project, upstreamDir, commit, engine, workingTree
             fs.writeFileSync(target, text);
             return target;
         }
-        log('The upstream version has no engine that can update another folder; using the project\'s engine.');
+        log("The upstream version has no engine that can update another folder; using the project's engine.");
     }
     if (!fs.existsSync(local)) throw new Error(`No merge engine: neither the upstream version nor ${ENGINE_PATH} in the project can run this update.`);
     return local;
@@ -146,7 +149,8 @@ export function main(argv = process.argv.slice(2), defaultProject = path.resolve
     const options = parseArgs(argv);
     const log = line => process.stderr.write(`[framework-update] ${line}\n`);
     const project = path.resolve(options.project || defaultProject);
-    if (git(project, ['rev-parse', '--is-inside-work-tree'], { allowFail: true }).status !== 0) throw new Error(`${project} is not a Git working tree; the update needs Git to show and undo its changes.`);
+    if (git(project, ['rev-parse', '--is-inside-work-tree'], { allowFail: true }).status !== 0)
+        throw new Error(`${project} is not a Git working tree; the update needs Git to show and undo its changes.`);
     const lock = readLock(project);
     const source = options.upstream || lock?.source?.url || DEFAULT_UPSTREAM;
     if (!options.upstream && lock?.source?.url && lock.source.url !== DEFAULT_UPSTREAM) {
@@ -169,5 +173,10 @@ export function main(argv = process.argv.slice(2), defaultProject = path.resolve
 }
 
 if (process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpathSync(url.fileURLToPath(import.meta.url))) {
-    try { process.exitCode = main(); } catch (error) { process.stderr.write(`${error.message}\n`); process.exitCode = 1; }
+    try {
+        process.exitCode = main();
+    } catch (error) {
+        process.stderr.write(`${error.message}\n`);
+        process.exitCode = 1;
+    }
 }

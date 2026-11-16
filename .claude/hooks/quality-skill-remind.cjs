@@ -109,21 +109,23 @@ function run(input, deps = {}) {
             const content = deps.content || buildContent(projectDir);
             const ledger = require('./lib/convention-ledger.cjs');
             const { BYTES_PER_TOKEN } = require('./lib/file-conventions.cjs');
-            ledger.deliverOnce({
-                root: deps.storeRoot || path.join(projectDir, 'tmp', 'protocol-delivery'),
-                input,
-                group: HOOK_NAME,
-                hash: require('node:crypto').createHash('sha256').update(content, 'utf8').digest('hex'),
-                payload: JSON.stringify({ hookSpecificOutput: { hookEventName: 'PostToolUse', additionalContext: content } }),
-                settings: {
-                    reinjectAfterBytes: DEFAULT_REINJECT_TOKENS * BYTES_PER_TOKEN,
-                    reinjectAfterMinutes: null,
-                    blindReinjectAfterMinutes: null,
-                    compactionMarkers: [ledger.CODEX_COMPACTION_MARKER]
-                },
-                now: typeof deps.now === 'number' ? deps.now : Date.now(),
-                write: deps.write || defaultWrite
-            }).then(resolve, () => resolve(''));
+            ledger
+                .deliverOnce({
+                    root: deps.storeRoot || path.join(projectDir, 'tmp', 'protocol-delivery'),
+                    input,
+                    group: HOOK_NAME,
+                    hash: require('node:crypto').createHash('sha256').update(content, 'utf8').digest('hex'),
+                    payload: JSON.stringify({ hookSpecificOutput: { hookEventName: 'PostToolUse', additionalContext: content } }),
+                    settings: {
+                        reinjectAfterBytes: DEFAULT_REINJECT_TOKENS * BYTES_PER_TOKEN,
+                        reinjectAfterMinutes: null,
+                        blindReinjectAfterMinutes: null,
+                        compactionMarkers: [ledger.CODEX_COMPACTION_MARKER]
+                    },
+                    now: typeof deps.now === 'number' ? deps.now : Date.now(),
+                    write: deps.write || defaultWrite
+                })
+                .then(resolve, () => resolve(''));
         } catch (error) {
             debug(error); // fail open: an advisory hook never blocks a tool result
             resolve('');

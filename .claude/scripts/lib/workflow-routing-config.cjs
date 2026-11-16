@@ -141,7 +141,10 @@ function normalizeRouteMode(value) {
 function normalizeEnvRouteMode(value) {
     if (typeof value !== 'string') return undefined;
     // `set NAME="auto"` in cmd.exe keeps the quotes in the value.
-    const text = value.trim().replace(/^(["'])(.*)\1$/, '$2').trim();
+    const text = value
+        .trim()
+        .replace(/^(["'])(.*)\1$/, '$2')
+        .trim();
     const mode = normalizeRouteMode(text);
     if (mode) return mode;
     return ROUTE_MODE_ENV_OFF_ALIASES.includes(text.toLowerCase()) ? 'off' : undefined;
@@ -181,7 +184,7 @@ const FRAMEWORK_DIRECTIVE_RE = /^[/$]framework-config[ \t]+--mode=workflow[ \t]+
 function parseRouteModeDirective(prompt) {
     if (typeof prompt !== 'string') return null;
     const first = prompt.split(/\r?\n/).find(line => line.trim() !== '');
-    const match = first === undefined ? null : (DIRECTIVE_RE.exec(first.trim()) || FRAMEWORK_DIRECTIVE_RE.exec(first.trim()));
+    const match = first === undefined ? null : DIRECTIVE_RE.exec(first.trim()) || FRAMEWORK_DIRECTIVE_RE.exec(first.trim());
     return match ? { mode: match[1].toLowerCase(), save: Boolean(match[2]) } : null;
 }
 
@@ -195,9 +198,7 @@ function parseRouteModeDirective(prompt) {
 function writeWorkflowRouteMode(options = {}) {
     const mode = normalizeRouteMode(options.mode);
     if (!mode) return { ok: false, reason: 'invalid-mode' };
-    const file = options.target === 'local'
-        ? resolveLocalOverridePath(options.rootDir || process.cwd())
-        : resolveUserConfigPath(options.homeDir);
+    const file = options.target === 'local' ? resolveLocalOverridePath(options.rootDir || process.cwd()) : resolveUserConfigPath(options.homeDir);
     if (!file) return { ok: false, reason: 'no-home' };
     let temp = null;
     try {
@@ -207,9 +208,7 @@ function writeWorkflowRouteMode(options = {}) {
             if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return { ok: false, file, reason: 'unreadable-config' };
             current = parsed;
         }
-        const portability = current.portability && typeof current.portability === 'object' && !Array.isArray(current.portability)
-            ? current.portability
-            : {};
+        const portability = current.portability && typeof current.portability === 'object' && !Array.isArray(current.portability) ? current.portability : {};
         current.portability = { ...portability, workflowRouteMode: mode };
         fs.mkdirSync(path.dirname(file), { recursive: true });
         temp = `${file}.${process.pid}.tmp`;
@@ -218,7 +217,11 @@ function writeWorkflowRouteMode(options = {}) {
         return { ok: true, file };
     } catch {
         if (temp) {
-            try { fs.unlinkSync(temp); } catch { /* never created */ }
+            try {
+                fs.unlinkSync(temp);
+            } catch {
+                /* never created */
+            }
         }
         return { ok: false, file, reason: 'unreadable-config' };
     }
@@ -262,12 +265,18 @@ function readSessionIdFromEnv(env = process.env) {
 /** A short human label for the layer that decided the mode (shown in the injected state line). */
 function describeRouteModeSource(source) {
     switch (source) {
-        case SOURCE_PROJECT_CONFIG: return 'project config';
-        case SOURCE_USER_CONFIG: return '~/.claude/.ck.json';
-        case SOURCE_LOCAL_OVERRIDE: return '.claude/.ck.local.json';
-        case SOURCE_ENVIRONMENT: return `env ${ROUTE_MODE_ENV}`;
-        case SOURCE_SESSION: return 'set by your prompt this session';
-        default: return 'default';
+        case SOURCE_PROJECT_CONFIG:
+            return 'project config';
+        case SOURCE_USER_CONFIG:
+            return '~/.claude/.ck.json';
+        case SOURCE_LOCAL_OVERRIDE:
+            return '.claude/.ck.local.json';
+        case SOURCE_ENVIRONMENT:
+            return `env ${ROUTE_MODE_ENV}`;
+        case SOURCE_SESSION:
+            return 'set by your prompt this session';
+        default:
+            return 'default';
     }
 }
 
@@ -283,7 +292,7 @@ function describeRouteModeSource(source) {
  *   (undefined = no opinion); `teamMode` is the mode after the framework default and the project layer.
  */
 function resolveWorkflowRouteMode(source) {
-    const options = typeof source === 'string' ? { rootDir: source } : (source || {});
+    const options = typeof source === 'string' ? { rootDir: source } : source || {};
     const rootDir = options.rootDir || process.cwd();
     const scope = options.scope === SCOPE_TEAM ? SCOPE_TEAM : SCOPE_EFFECTIVE;
     const env = options.env || process.env;
@@ -373,7 +382,11 @@ function resolveSkillAutoTrigger(options = {}) {
         apply(readJson(localPath)?.portability?.skillAutoTrigger, SOURCE_LOCAL_OVERRIDE);
         const raw = env.CK_SKILL_AUTO_TRIGGER;
         if (typeof raw === 'string') {
-            const value = raw.trim().replace(/^(["'])(.*)\1$/, '$2').trim().toLowerCase();
+            const value = raw
+                .trim()
+                .replace(/^(["'])(.*)\1$/, '$2')
+                .trim()
+                .toLowerCase();
             if (['1', 'true', 'on', 'yes', 'enabled'].includes(value)) apply(true, SOURCE_ENVIRONMENT);
             if (['0', 'false', 'off', 'no', 'disabled'].includes(value)) apply(false, SOURCE_ENVIRONMENT);
         }
@@ -384,7 +397,11 @@ function resolveSkillAutoTrigger(options = {}) {
 /** A decision-support mode name, or undefined for anything else (an invalid value expresses no opinion). */
 function normalizeDecisionSupportMode(value) {
     if (typeof value !== 'string') return undefined;
-    const name = value.trim().replace(/^(["'])(.*)\1$/, '$2').trim().toLowerCase();
+    const name = value
+        .trim()
+        .replace(/^(["'])(.*)\1$/, '$2')
+        .trim()
+        .toLowerCase();
     return DECISION_SUPPORT_MODES.includes(name) ? name : undefined;
 }
 
@@ -416,9 +433,10 @@ function resolveDecisionSupportMode(options = {}) {
         apply(readJson(localPath)?.portability?.decisionSupportMode, SOURCE_LOCAL_OVERRIDE);
         apply(env.CK_DECISION_SUPPORT_MODE, SOURCE_ENVIRONMENT);
     }
-    const skillAutoTrigger = typeof options.skillAutoTrigger === 'boolean'
-        ? options.skillAutoTrigger
-        : resolveSkillAutoTrigger({ ...options, rootDir, env, configPath, userPath, localPath }).enabled;
+    const skillAutoTrigger =
+        typeof options.skillAutoTrigger === 'boolean'
+            ? options.skillAutoTrigger
+            : resolveSkillAutoTrigger({ ...options, rootDir, env, configPath, userPath, localPath }).enabled;
     const effectiveMode = mode === 'auto' && !skillAutoTrigger ? 'ask' : mode;
     return { mode, effectiveMode, source, configPath, localPath, userPath };
 }
@@ -499,9 +517,7 @@ function readProtocolFile(rootDir, relativePath) {
         if (!stat.isFile()) return null;
         if (stat.size > MAX_PROTOCOL_FILE_BYTES) {
             const body = fs.readFileSync(physicalCandidate, 'utf8').slice(0, MAX_PROTOCOL_FILE_BYTES).trim();
-            return body
-                ? `${body}\n\n[workflowRouteProtocol: truncated at ${MAX_PROTOCOL_FILE_BYTES} bytes]`
-                : null;
+            return body ? `${body}\n\n[workflowRouteProtocol: truncated at ${MAX_PROTOCOL_FILE_BYTES} bytes]` : null;
         }
         const body = fs.readFileSync(physicalCandidate, 'utf8').trim();
         return body || null;
@@ -533,7 +549,7 @@ function readProtocolLayer(filePath, rootDir) {
  * @returns {{text: string|null, source: string, scope: string, configPath: string, localPath: string, teamText: string|null, overriddenLocally: boolean}}
  */
 function resolveWorkflowRouteProtocol(source) {
-    const options = typeof source === 'string' ? { rootDir: source } : (source || {});
+    const options = typeof source === 'string' ? { rootDir: source } : source || {};
     const rootDir = options.rootDir || process.cwd();
     const scope = options.scope === SCOPE_TEAM ? SCOPE_TEAM : SCOPE_EFFECTIVE;
     const configPath = options.configPath || resolveProjectConfigPath(rootDir);
@@ -619,7 +635,7 @@ function readWorkflowActivation(config) {
  * @returns {{default: string|null, overrides: Record<string, string>, defaultSource: string, scope: string, configPath: string|null, localPath: string|null}}
  */
 function resolveWorkflowActivation(source) {
-    const options = typeof source === 'string' ? { rootDir: source } : (source || {});
+    const options = typeof source === 'string' ? { rootDir: source } : source || {};
     if (options.config !== undefined && options.config !== null) {
         const team = readWorkflowActivation(options.config);
         return {
@@ -684,7 +700,7 @@ function resolveActivationTier(options = {}) {
 }
 
 function isWorkflowAutoDetectEnabled(source) {
-    const options = typeof source === 'string' ? { rootDir: source } : (source || {});
+    const options = typeof source === 'string' ? { rootDir: source } : source || {};
     if (options.config !== undefined && options.config !== null) {
         return readWorkflowAutoDetect(options.config);
     }

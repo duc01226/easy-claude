@@ -16,8 +16,8 @@ const fs = require('fs');
  * @returns {string} Escaped string
  */
 function escapeShellValue(str) {
-  if (typeof str !== 'string') return str;
-  return str.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\$/g, '\\$');
+    if (typeof str !== 'string') return str;
+    return str.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\$/g, '\\$');
 }
 
 /**
@@ -27,13 +27,13 @@ function escapeShellValue(str) {
  * @param {*} value - Value to write
  */
 function writeEnv(envFile, key, value) {
-  if (envFile && value !== null && value !== undefined) {
-    const escaped = escapeShellValue(String(value));
-    fs.appendFileSync(envFile, `export ${key}="${escaped}"\n`);
-  }
+    if (envFile && value !== null && value !== undefined) {
+        const escaped = escapeShellValue(String(value));
+        fs.appendFileSync(envFile, `export ${key}="${escaped}"\n`);
+    }
 }
 
 module.exports = {
-  escapeShellValue,
-  writeEnv
+    escapeShellValue,
+    writeEnv
 };

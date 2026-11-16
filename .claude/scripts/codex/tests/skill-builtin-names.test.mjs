@@ -26,29 +26,142 @@ const frameworkOnly = { skip: isFrameworkRepo(repo) ? false : "asserts the frame
 // https://code.claude.com/docs/en/commands as of 2026-09-28. Built-ins added later are not
 // caught until they are listed here; refresh the list from that page when Claude Code adds one.
 const BUILTIN_NAMES = new Set([
-    'add-dir', 'advisor', 'agents', 'allowed-tools', 'android', 'app', 'artifacts', 'auto-mode-setup',
-    'autocompact', 'autofix-pr', 'background', 'batch', 'bg', 'branch', 'btw', 'bug', 'cd', 'checkpoint',
-    'checkup', 'chrome', 'claude-api', 'clear', 'code-review', 'color', 'compact', 'config', 'context',
-    'continue', 'copy', 'cost', 'dataviz', 'debug', 'deep-research', 'design', 'design-login',
-    'design-sync', 'desktop', 'diff', 'doctor', 'effort', 'exit', 'export', 'fast', 'feedback',
-    'fewer-permission-prompts', 'focus', 'fork', 'goal', 'heapdump', 'help', 'hooks', 'ide', 'import',
-    'init', 'insights', 'install-github-app', 'install-slack-app', 'ios', 'keybindings', 'list-agents',
-    'login', 'logout', 'loop', 'mcp', 'memory', 'mobile', 'model', 'new', 'output-style', 'passes',
-    'permissions', 'plan', 'plugin', 'powerup', 'pr-comments', 'privacy-settings', 'proactive', 'quit',
-    'radio', 'rate-limit-options', 'rc', 'recap', 'release-notes', 'reload-plugins', 'reload-skills',
-    'remote-control', 'remote-env', 'rename', 'reset', 'resume', 'review', 'rewind', 'routines', 'run',
-    'run-skill-generator', 'sandbox', 'schedule', 'scroll-speed', 'security-review', 'settings',
-    'setup-bedrock', 'setup-vertex', 'share', 'simplify', 'skill-doctor', 'skills', 'stats', 'status',
-    'statusline', 'stickers', 'stop', 'subtask', 'tasks', 'team-onboarding', 'teleport',
-    'terminal-setup', 'theme', 'tui', 'ultraplan', 'ultrareview', 'undo', 'update-config', 'upgrade',
-    'usage', 'usage-credits', 'verify', 'vim', 'voice', 'web-setup', 'workflow-authoring', 'workflows',
+    'add-dir',
+    'advisor',
+    'agents',
+    'allowed-tools',
+    'android',
+    'app',
+    'artifacts',
+    'auto-mode-setup',
+    'autocompact',
+    'autofix-pr',
+    'background',
+    'batch',
+    'bg',
+    'branch',
+    'btw',
+    'bug',
+    'cd',
+    'checkpoint',
+    'checkup',
+    'chrome',
+    'claude-api',
+    'clear',
+    'code-review',
+    'color',
+    'compact',
+    'config',
+    'context',
+    'continue',
+    'copy',
+    'cost',
+    'dataviz',
+    'debug',
+    'deep-research',
+    'design',
+    'design-login',
+    'design-sync',
+    'desktop',
+    'diff',
+    'doctor',
+    'effort',
+    'exit',
+    'export',
+    'fast',
+    'feedback',
+    'fewer-permission-prompts',
+    'focus',
+    'fork',
+    'goal',
+    'heapdump',
+    'help',
+    'hooks',
+    'ide',
+    'import',
+    'init',
+    'insights',
+    'install-github-app',
+    'install-slack-app',
+    'ios',
+    'keybindings',
+    'list-agents',
+    'login',
+    'logout',
+    'loop',
+    'mcp',
+    'memory',
+    'mobile',
+    'model',
+    'new',
+    'output-style',
+    'passes',
+    'permissions',
+    'plan',
+    'plugin',
+    'powerup',
+    'pr-comments',
+    'privacy-settings',
+    'proactive',
+    'quit',
+    'radio',
+    'rate-limit-options',
+    'rc',
+    'recap',
+    'release-notes',
+    'reload-plugins',
+    'reload-skills',
+    'remote-control',
+    'remote-env',
+    'rename',
+    'reset',
+    'resume',
+    'review',
+    'rewind',
+    'routines',
+    'run',
+    'run-skill-generator',
+    'sandbox',
+    'schedule',
+    'scroll-speed',
+    'security-review',
+    'settings',
+    'setup-bedrock',
+    'setup-vertex',
+    'share',
+    'simplify',
+    'skill-doctor',
+    'skills',
+    'stats',
+    'status',
+    'statusline',
+    'stickers',
+    'stop',
+    'subtask',
+    'tasks',
+    'team-onboarding',
+    'teleport',
+    'terminal-setup',
+    'theme',
+    'tui',
+    'ultraplan',
+    'ultrareview',
+    'undo',
+    'update-config',
+    'upgrade',
+    'usage',
+    'usage-credits',
+    'verify',
+    'vim',
+    'voice',
+    'web-setup',
+    'workflow-authoring',
+    'workflows'
 ]);
 
 // Collisions the framework owner chose to keep. Each entry needs a reason; an entry that no longer
 // collides fails (framework repo only).
-const ACCEPTED = new Map([
-    ['plan', 'owner decision 2026-09-28: /plan is the project planning skill on purpose, and the built-in plan mode stays reachable'],
-]);
+const ACCEPTED = new Map([['plan', 'owner decision 2026-09-28: /plan is the project planning skill on purpose, and the built-in plan mode stays reachable']]);
 
 // Claude Code compares command names case-insensitively.
 const key = name => name.trim().toLowerCase();
@@ -79,16 +192,22 @@ function skillFiles(root, env = process.env) {
     // `__golden__` is the sibling `skill-layout-golden` test's scratch skill, created and removed
     // in the live tree while this suite runs; reading it races that test's cleanup.
     const top = fs.existsSync(skillsDir)
-        ? fs.readdirSync(skillsDir, { withFileTypes: true })
-            .filter(entry => entry.isDirectory() && entry.name !== '__golden__' && fs.existsSync(path.join(skillsDir, entry.name, 'SKILL.md')))
-            .map(entry => path.posix.join('.claude/skills', entry.name, 'SKILL.md'))
+        ? fs
+              .readdirSync(skillsDir, { withFileTypes: true })
+              .filter(entry => entry.isDirectory() && entry.name !== '__golden__' && fs.existsSync(path.join(skillsDir, entry.name, 'SKILL.md')))
+              .map(entry => path.posix.join('.claude/skills', entry.name, 'SKILL.md'))
         : [];
     const listed = isOwnGitRoot(root, env)
-        ? spawnSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard', '--', ':(glob)**/.claude/skills/*/SKILL.md'], { cwd: root, encoding: 'utf8', env })
+        ? spawnSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard', '--', ':(glob)**/.claude/skills/*/SKILL.md'], {
+              cwd: root,
+              encoding: 'utf8',
+              env
+          })
         : null;
-    const nested = listed && listed.status === 0
-        ? listed.stdout.split('\0').filter(file => file && !file.startsWith('.claude/') && fs.existsSync(path.join(root, file)))
-        : [];
+    const nested =
+        listed && listed.status === 0
+            ? listed.stdout.split('\0').filter(file => file && !file.startsWith('.claude/') && fs.existsSync(path.join(root, file)))
+            : [];
     return [...new Set([...top, ...nested])];
 }
 
@@ -109,7 +228,8 @@ function collisions(skills) {
     return skills.flatMap(({ dir, file, name }) =>
         [...new Set([key(dir), key(name)])]
             .filter(candidate => BUILTIN_NAMES.has(candidate) && !ACCEPTED.has(candidate))
-            .map(candidate => `${file}/ (${candidate === key(dir) ? 'folder' : 'name:'} "${candidate}") hides the built-in /${candidate}`));
+            .map(candidate => `${file}/ (${candidate === key(dir) ? 'folder' : 'name:'} "${candidate}") hides the built-in /${candidate}`)
+    );
 }
 
 test('the skill scan finds project skills, so the collision check cannot pass vacuously', () => {
@@ -117,7 +237,9 @@ test('the skill scan finds project skills, so the collision check cannot pass va
 });
 
 test('the skill scan finds the framework skills it must police', frameworkOnly, () => {
-    const dirs = projectSkills(repo).filter(skill => skill.file.startsWith('.claude/skills/')).map(skill => skill.dir);
+    const dirs = projectSkills(repo)
+        .filter(skill => skill.file.startsWith('.claude/skills/'))
+        .map(skill => skill.dir);
     assert.ok(dirs.length > 50, `expected the full skill set, found ${dirs.length}`);
     for (const known of ['code-quality-review', 'security-audit', 'ui-design', 'plan']) assert.ok(dirs.includes(known), `scan missed ${known}`);
 });
@@ -139,44 +261,70 @@ test('every accepted collision still exists and is still a built-in name', frame
 // The real tree has no nested skill folders and every skill's `name:` equals its folder, so the
 // frontmatter parser and the nested git discovery above are proven on a fixture project instead.
 const gitMissing = spawnSync('git', ['--version'], { encoding: 'utf8' }).status !== 0;
-test('the scan reads name: overrides, folder names, any case, nested skill folders, and skips ignored ones', { skip: gitMissing ? 'git is not available' : false }, () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'skill-builtin-names-'));
-    const write = (rel, text) => {
-        fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true });
-        fs.writeFileSync(path.join(root, rel), text);
-    };
-    try {
-        write('.claude/skills/probe/SKILL.md', '---\nname: simplify # probe\ndescription: x\n---\n');
-        write('.claude/skills/blank/SKILL.md', '---\nname:\ndescription: design\n---\n');
-        write('.claude/skills/stats/SKILL.md', '---\nname: other-name\n---\n');
-        write('.claude/skills/mixed/SKILL.md', '---\nname: Code-Review\n---\n');
-        write('packages/app/.claude/skills/review/SKILL.md', '---\nname: review\n---\n');
-        write('node_modules/dep/.claude/skills/debug/SKILL.md', '---\nname: debug\n---\n');
-        write('.gitignore', 'node_modules/\n');
-        // Isolated from the developer's git config (hooks, templates) per the portable test contract.
-        // Every inherited GIT_* key goes (repo redirection, `git -c` GIT_CONFIG_PARAMETERS/COUNT), and
-        // XDG_CONFIG_HOME too: git reads its default ignore file from there whatever GIT_CONFIG_GLOBAL
-        // says. Names compare case-insensitively because Windows env names do.
-        const overrides = { HOME: root, USERPROFILE: root, TMPDIR: root, TEMP: root, TMP: root, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: path.join(root, '.gitconfig-none') };
-        const replaced = new Set([...Object.keys(overrides), 'XDG_CONFIG_HOME']);
-        const env = Object.fromEntries(Object.entries(process.env).filter(([name]) => !name.toUpperCase().startsWith('GIT_') && !replaced.has(name.toUpperCase())));
-        Object.assign(env, overrides);
-        assert.equal(spawnSync('git', ['init', '-q'], { cwd: root, env }).status, 0, 'git init failed');
+test(
+    'the scan reads name: overrides, folder names, any case, nested skill folders, and skips ignored ones',
+    { skip: gitMissing ? 'git is not available' : false },
+    () => {
+        const root = fs.mkdtempSync(path.join(os.tmpdir(), 'skill-builtin-names-'));
+        const write = (rel, text) => {
+            fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true });
+            fs.writeFileSync(path.join(root, rel), text);
+        };
+        try {
+            write('.claude/skills/probe/SKILL.md', '---\nname: simplify # probe\ndescription: x\n---\n');
+            write('.claude/skills/blank/SKILL.md', '---\nname:\ndescription: design\n---\n');
+            write('.claude/skills/stats/SKILL.md', '---\nname: other-name\n---\n');
+            write('.claude/skills/mixed/SKILL.md', '---\nname: Code-Review\n---\n');
+            write('packages/app/.claude/skills/review/SKILL.md', '---\nname: review\n---\n');
+            write('node_modules/dep/.claude/skills/debug/SKILL.md', '---\nname: debug\n---\n');
+            write('.gitignore', 'node_modules/\n');
+            // Isolated from the developer's git config (hooks, templates) per the portable test contract.
+            // Every inherited GIT_* key goes (repo redirection, `git -c` GIT_CONFIG_PARAMETERS/COUNT), and
+            // XDG_CONFIG_HOME too: git reads its default ignore file from there whatever GIT_CONFIG_GLOBAL
+            // says. Names compare case-insensitively because Windows env names do.
+            const overrides = {
+                HOME: root,
+                USERPROFILE: root,
+                TMPDIR: root,
+                TEMP: root,
+                TMP: root,
+                GIT_CONFIG_NOSYSTEM: '1',
+                GIT_CONFIG_GLOBAL: path.join(root, '.gitconfig-none')
+            };
+            const replaced = new Set([...Object.keys(overrides), 'XDG_CONFIG_HOME']);
+            const env = Object.fromEntries(
+                Object.entries(process.env).filter(([name]) => !name.toUpperCase().startsWith('GIT_') && !replaced.has(name.toUpperCase()))
+            );
+            Object.assign(env, overrides);
+            assert.equal(spawnSync('git', ['init', '-q'], { cwd: root, env }).status, 0, 'git init failed');
 
-        const skills = projectSkills(root, env);
-        const byDir = Object.fromEntries(skills.map(skill => [skill.dir, skill]));
-        assert.equal(byDir.probe?.name, 'simplify', 'a trailing YAML comment must not become part of name:');
-        assert.equal(byDir.blank?.name, 'blank', 'a blank name: falls back to the folder, never the next line');
-        assert.equal(byDir.review?.file, 'packages/app/.claude/skills/review', 'nested .claude/skills folders are scanned');
-        assert.equal(byDir.debug, undefined, 'git-ignored folders are not scanned');
+            const skills = projectSkills(root, env);
+            const byDir = Object.fromEntries(skills.map(skill => [skill.dir, skill]));
+            assert.equal(byDir.probe?.name, 'simplify', 'a trailing YAML comment must not become part of name:');
+            assert.equal(byDir.blank?.name, 'blank', 'a blank name: falls back to the folder, never the next line');
+            assert.equal(byDir.review?.file, 'packages/app/.claude/skills/review', 'nested .claude/skills folders are scanned');
+            assert.equal(byDir.debug, undefined, 'git-ignored folders are not scanned');
 
-        const found = collisions(skills);
-        assert.ok(found.some(line => line.includes('"simplify"')), 'a name: override that hides a built-in is reported');
-        assert.ok(found.some(line => line.includes('/review')), 'a nested skill that hides a built-in is reported');
-        assert.ok(!found.some(line => line.includes('"design"')), 'a blank name: must not read the next frontmatter line');
-        assert.ok(found.some(line => line.includes('(folder "stats")')), 'a folder named like a built-in is reported even when name: differs');
-        assert.ok(found.some(line => line.includes('mixed/ (name: "code-review")')), 'a name: that differs from a built-in only in case is reported');
-    } finally {
-        fs.rmSync(root, { recursive: true, force: true });
+            const found = collisions(skills);
+            assert.ok(
+                found.some(line => line.includes('"simplify"')),
+                'a name: override that hides a built-in is reported'
+            );
+            assert.ok(
+                found.some(line => line.includes('/review')),
+                'a nested skill that hides a built-in is reported'
+            );
+            assert.ok(!found.some(line => line.includes('"design"')), 'a blank name: must not read the next frontmatter line');
+            assert.ok(
+                found.some(line => line.includes('(folder "stats")')),
+                'a folder named like a built-in is reported even when name: differs'
+            );
+            assert.ok(
+                found.some(line => line.includes('mixed/ (name: "code-review")')),
+                'a name: that differs from a built-in only in case is reported'
+            );
+        } finally {
+            fs.rmSync(root, { recursive: true, force: true });
+        }
     }
-});
+);

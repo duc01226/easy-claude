@@ -213,7 +213,10 @@ function runPromptHook({ unchanged = false, available = true, locked = false, ca
         `;
         const child = spawnSync(process.execPath, ['-e', script], {
             input: JSON.stringify({ hook_event_name: 'UserPromptSubmit', prompt: 'test', cwd: root }),
-            encoding: 'utf8', timeout: 10000, cwd: root, windowsHide: true,
+            encoding: 'utf8',
+            timeout: 10000,
+            cwd: root,
+            windowsHide: true,
             env: { ...process.env, CLAUDE_PROJECT_DIR: root, CK_DEBUG: '0', CLAUDE_HOOK_DEBUG: '0', NODE_OPTIONS: '' },
             stdio: ['pipe', 'pipe', 'pipe']
         });
@@ -222,8 +225,14 @@ function runPromptHook({ unchanged = false, available = true, locked = false, ca
         assertEqual(child.stdout, '', 'graph-prompt-sync must never inject into the prompt');
         assertEqual(child.stderr, '', 'controlled graph outcomes must not report runtime errors');
         return {
-            head, initial, marker: fs.readFileSync(marker, 'utf8'),
-            calls: fs.readFileSync(calls, 'utf8').split('\n').filter(Boolean).map(line => JSON.parse(line))
+            head,
+            initial,
+            marker: fs.readFileSync(marker, 'utf8'),
+            calls: fs
+                .readFileSync(calls, 'utf8')
+                .split('\n')
+                .filter(Boolean)
+                .map(line => JSON.parse(line))
         };
     } finally {
         fs.rmSync(root, { recursive: true, force: true });
@@ -243,7 +252,7 @@ function runPromptHook({ unchanged = false, available = true, locked = false, ca
  * @returns {Array<Array>} Same list with sync timeouts collapsed to 'BUDGETED'
  */
 function shapeOf(calls) {
-    return calls.map((call) => {
+    return calls.map(call => {
         if (call[0] !== 'sync') return call;
         const timeout = call[3];
         assertTrue(
@@ -278,15 +287,21 @@ const hookTests = [
             for (const reason of ['synced', 'graph_ahead_skipped']) {
                 const r = runPromptHook({ result: { reason } });
                 assertEqual(r.marker, r.head, `${reason}: a decided sync must record the evaluated HEAD`);
-                assertEqual(JSON.stringify(shapeOf(r.calls)), JSON.stringify([
-                    ['cached?'], ['available'], ['clear'], ['acquire'], ['sync', 'sync', [], 'BUDGETED'], ['write', r.head], ['release']
-                ]), `${reason}: sync must hold its lock, write once and release`);
+                assertEqual(
+                    JSON.stringify(shapeOf(r.calls)),
+                    JSON.stringify([['cached?'], ['available'], ['clear'], ['acquire'], ['sync', 'sync', [], 'BUDGETED'], ['write', r.head], ['release']]),
+                    `${reason}: sync must hold its lock, write once and release`
+                );
             }
             for (const scenario of [
                 { options: { available: false }, calls: [['cached?'], ['available'], ['mark']], label: 'unavailable dependencies' },
                 { options: { cachedUnavailable: true }, calls: [['cached?']], label: 'cached-unavailable verdict' },
                 { options: { locked: true }, calls: [['cached?'], ['available'], ['clear'], ['acquire']], label: 'held lock' },
-                { options: { result: null }, calls: [['cached?'], ['available'], ['clear'], ['acquire'], ['sync', 'sync', [], 'BUDGETED'], ['release']], label: 'failed sync' }
+                {
+                    options: { result: null },
+                    calls: [['cached?'], ['available'], ['clear'], ['acquire'], ['sync', 'sync', [], 'BUDGETED'], ['release']],
+                    label: 'failed sync'
+                }
             ]) {
                 const r = runPromptHook(scenario.options);
                 assertEqual(r.marker, r.initial, `${scenario.label}: retain stale marker so the next prompt can retry`);
@@ -304,7 +319,8 @@ const hookTests = [
             // literally every prompt to rediscover the same missing package.
             const r = runPromptHook({ cachedUnavailable: true });
             assertEqual(
-                JSON.stringify(r.calls), JSON.stringify([['cached?']]),
+                JSON.stringify(r.calls),
+                JSON.stringify([['cached?']]),
                 'a cached negative verdict must short-circuit BEFORE isGraphAvailable, or it saves nothing'
             );
             assertEqual(r.marker, r.initial, 'a skipped probe must never claim the graph is synced');
@@ -316,24 +332,12 @@ const hookTests = [
             // Recording without clearing would be worse than no cache at all: a repaired
             // install would stay suppressed for the whole TTL.
             const unavailable = runPromptHook({ available: false });
-            assertContains(
-                JSON.stringify(unavailable.calls), '["mark"]',
-                'an unavailable toolchain must be recorded so the next prompt skips the probe'
-            );
-            assertEqual(
-                JSON.stringify(unavailable.calls).includes('"clear"'), false,
-                'an unavailable toolchain must never clear the verdict'
-            );
+            assertContains(JSON.stringify(unavailable.calls), '["mark"]', 'an unavailable toolchain must be recorded so the next prompt skips the probe');
+            assertEqual(JSON.stringify(unavailable.calls).includes('"clear"'), false, 'an unavailable toolchain must never clear the verdict');
 
             const available = runPromptHook({});
-            assertContains(
-                JSON.stringify(available.calls), '["clear"]',
-                'observing a working toolchain must drop any recorded verdict immediately'
-            );
-            assertEqual(
-                JSON.stringify(available.calls).includes('"mark"'), false,
-                'a working toolchain must never record itself unavailable'
-            );
+            assertContains(JSON.stringify(available.calls), '["clear"]', 'observing a working toolchain must drop any recorded verdict immediately');
+            assertEqual(JSON.stringify(available.calls).includes('"mark"'), false, 'a working toolchain must never record itself unavailable');
         }
     },
     {
@@ -383,7 +387,10 @@ const hookTests = [
                     console.log(JSON.stringify(out));
                 `;
                 const child = spawnSync(process.execPath, ['-e', script], {
-                    encoding: 'utf8', timeout: 20000, cwd: root, windowsHide: true,
+                    encoding: 'utf8',
+                    timeout: 20000,
+                    cwd: root,
+                    windowsHide: true,
                     env: { ...process.env, CLAUDE_PROJECT_DIR: root, CK_DEBUG: '0', CLAUDE_HOOK_DEBUG: '0', NODE_OPTIONS: '' },
                     stdio: ['pipe', 'pipe', 'pipe']
                 });
@@ -408,7 +415,7 @@ const hookTests = [
         name: 'TC-GRAPHHEAD-013: hook is registered on UserPromptSubmit',
         fn() {
             const settings = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, '.claude', 'settings.json'), 'utf-8'));
-            const commands = (settings.hooks.UserPromptSubmit || []).flatMap((entry) => entry.hooks.map((h) => h.command));
+            const commands = (settings.hooks.UserPromptSubmit || []).flatMap(entry => entry.hooks.map(h => h.command));
             assertContains(commands.join('\n'), 'graph-prompt-sync.cjs', 'graph-prompt-sync must be wired on UserPromptSubmit');
         }
     },
@@ -417,7 +424,7 @@ const hookTests = [
         fn() {
             // A resumed session is precisely the case where HEAD moved while away.
             const settings = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, '.claude', 'settings.json'), 'utf-8'));
-            const entry = (settings.hooks.SessionStart || []).find((e) => e.hooks.some((h) => h.command.includes('graph-session-init.cjs')));
+            const entry = (settings.hooks.SessionStart || []).find(e => e.hooks.some(h => h.command.includes('graph-session-init.cjs')));
             assertTrue(Boolean(entry), 'graph-session-init must be registered on SessionStart');
             assertContains(entry.matcher, 'resume', 'graph-session-init must run on resume, not startup only');
         }

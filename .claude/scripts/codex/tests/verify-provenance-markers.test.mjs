@@ -10,15 +10,9 @@ import { osEssentialsEnv } from '../../../hooks/tests/lib/os-essentials-env.cjs'
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const verifierPath = path.resolve(thisDir, '..', 'verify-provenance-markers.mjs');
 const repoRoot = path.resolve(thisDir, '..', '..', '..', '..');
-const {
-    findMarkerViolations,
-    findBannerViolations,
-    findConsumerViolations,
-    readConsumerBodies,
-    parseSections,
-    DECLARED_TAGS,
-    GUARDED_SECTIONS
-} = await import(pathToFileURL(verifierPath).href);
+const { findMarkerViolations, findBannerViolations, findConsumerViolations, readConsumerBodies, parseSections, DECLARED_TAGS, GUARDED_SECTIONS } = await import(
+    pathToFileURL(verifierPath).href
+);
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -33,9 +27,9 @@ const PREAMBLE = [
     '',
     '> **Consumed by:** `arch-alpha` · `arch-beta` · `arch-gamma`.',
     '>',
-    '> **MUST ATTENTION** provenance is part of every load-bearing claim in **§3, §8, §9, §10**. The ROW is the'
-        + ' only scope unit. A trailing `— VERIFY` means the claim has **not** been checked against a primary'
-        + ' source. NEVER quote a `— VERIFY` row as settled fact in a finding.',
+    '> **MUST ATTENTION** provenance is part of every load-bearing claim in **§3, §8, §9, §10**. The ROW is the' +
+        ' only scope unit. A trailing `— VERIFY` means the claim has **not** been checked against a primary' +
+        ' source. NEVER quote a `— VERIFY` row as settled fact in a finding.',
     ''
 ].join('\n');
 
@@ -43,13 +37,13 @@ const PREAMBLE = [
 // DEFAULT, then a CRITERION-based exception. It names the exception's tag WITHOUT the bracketed form —
 // writing `[model-knowledge]` would trip check 5, and writing `— VERIFY` would re-mark the banner
 // itself, which is the scope collision R4-F1 removed.
-const S3_BANNER_OK = '> **Provenance — default basis for this section:** rows are `[textbook]` — MOST rows name a'
-    + ' published, citable result (Conway, CAP, Amdahl, Little\'s, Parnas). **Exception — a row whose title hedges'
-    + ' (`-ish`) or that synthesizes a rule from other laws is NOT `[textbook]`; mark it inline with the legend\'s'
-    + ' `model-knowledge` basis (no primary source named)**, and NEVER cite such a row as a named authority.';
+const S3_BANNER_OK =
+    '> **Provenance — default basis for this section:** rows are `[textbook]` — MOST rows name a' +
+    " published, citable result (Conway, CAP, Amdahl, Little's, Parnas). **Exception — a row whose title hedges" +
+    " (`-ish`) or that synthesizes a rule from other laws is NOT `[textbook]`; mark it inline with the legend's" +
+    ' `model-knowledge` basis (no primary source named)**, and NEVER cite such a row as a named authority.';
 
-const PLAIN_BANNER = '> **Provenance — default basis for this section:** `[model-knowledge] — VERIFY` unless a'
-    + ' row carries its own marker.';
+const PLAIN_BANNER = '> **Provenance — default basis for this section:** `[model-knowledge] — VERIFY` unless a' + ' row carries its own marker.';
 
 const S3_ROWS = [
     '| Law | Statement | Use |',
@@ -85,7 +79,7 @@ function catalog({ s3Banner = S3_BANNER_OK, s3Rows = S3_ROWS, s8Banner = PLAIN_B
     ].join('\n');
 }
 
-const all = (content) => [...findMarkerViolations(content), ...findBannerViolations(content)];
+const all = content => [...findMarkerViolations(content), ...findBannerViolations(content)];
 
 // ---------------------------------------------------------------------------
 // Check 1 + 5 — the two checks Round 4 confirmed already fire (regression locks)
@@ -109,7 +103,7 @@ test('TC-PROV-002: bare [model-knowledge] without the — VERIFY suffix is a vio
     const content = catalog({
         extraLines: ['| **Bare row** | Statement | Consequence `[model-knowledge]` |']
     });
-    const violations = findMarkerViolations(content).filter((v) => /bare/.test(v));
+    const violations = findMarkerViolations(content).filter(v => /bare/.test(v));
     assert.equal(violations.length, 1);
     assert.match(violations[0], /model-knowledge/);
 });
@@ -131,23 +125,15 @@ test('TC-PROV-003: a free-floating — VERIFY outside the legend is a violation 
     const content = catalog({
         extraLines: ['| **Sneaky row** | Statement | Consequence is marked — VERIFY |']
     });
-    const violations = findMarkerViolations(content).filter((v) => /does not attach/.test(v));
-    assert.equal(
-        violations.length,
-        1,
-        'an ordinary English word must not exempt a line from Check 2 — legitimacy is block-scoped'
-    );
+    const violations = findMarkerViolations(content).filter(v => /does not attach/.test(v));
+    assert.equal(violations.length, 1, 'an ordinary English word must not exempt a line from Check 2 — legitimacy is block-scoped');
 });
 
 // TC-PROV-003b — the same for `means`, and for a line quoting the consumer guard's own wording.
 // Both words appear in real prose constantly; neither may buy an exemption outside the legend.
 test('TC-PROV-003b: neither "means" nor guard-quoting prose exempts a row from Check 2', () => {
-    for (const cell of [
-        '| **Row A** | Statement | This means — VERIFY |',
-        '| **Row B** | Statement | A row or section banner — VERIFY |'
-    ]) {
-        const violations = findMarkerViolations(catalog({ extraLines: [cell] }))
-            .filter((v) => /does not attach/.test(v));
+    for (const cell of ['| **Row A** | Statement | This means — VERIFY |', '| **Row B** | Statement | A row or section banner — VERIFY |']) {
+        const violations = findMarkerViolations(catalog({ extraLines: [cell] })).filter(v => /does not attach/.test(v));
         assert.equal(violations.length, 1, `must be a violation: ${cell}`);
     }
 });
@@ -155,7 +141,7 @@ test('TC-PROV-003b: neither "means" nor guard-quoting prose exempts a row from C
 // TC-PROV-004 — the legitimate case Check 2 must keep allowing: the legend defines the token, so it
 // names it without attaching it. Scoped by BLOCK (the preamble), not by vocabulary.
 test('TC-PROV-004: bare — VERIFY inside the legend/preamble block is allowed', () => {
-    const violations = findMarkerViolations(catalog()).filter((v) => /does not attach/.test(v));
+    const violations = findMarkerViolations(catalog()).filter(v => /does not attach/.test(v));
     assert.deepEqual(violations, [], 'the legend must be free to define the token it introduces');
 });
 
@@ -168,8 +154,9 @@ test('TC-PROV-004: bare — VERIFY inside the legend/preamble block is allowed',
 // TC-PROV-005 (attack iii-a) — THE BYPASS. A banner naming a row title as the exception is a second,
 // hand-maintained mechanism that goes stale on the next row added.
 test('TC-PROV-005: a banner naming a row title after an exception keyword is a violation', () => {
-    const banner = '> **Provenance — default basis for this section:** rows are `[textbook]`.'
-        + ' The exception is Integration cost (Metcalfe-ish), which is not a published result.';
+    const banner =
+        '> **Provenance — default basis for this section:** rows are `[textbook]`.' +
+        ' The exception is Integration cost (Metcalfe-ish), which is not a published result.';
     const violations = findBannerViolations(catalog({ s3Banner: banner }));
     assert.equal(violations.length, 1, 'naming an exception row in a banner must fail Check 4');
     assert.match(violations[0], /§3/);
@@ -178,10 +165,11 @@ test('TC-PROV-005: a banner naming a row title after an exception keyword is a v
 
 // TC-PROV-006 (attack iii-b) — the same defect in different words. Phrasing must not decide the verdict.
 test('TC-PROV-006: a differently-worded row enumeration is equally a violation', () => {
-    const banner = '> **Provenance — default basis for this section:** rows are `[textbook]`,'
-        + ' specifically: Integration cost (Metcalfe-ish) and CAP-aware clock rule are not.';
+    const banner =
+        '> **Provenance — default basis for this section:** rows are `[textbook]`,' +
+        ' specifically: Integration cost (Metcalfe-ish) and CAP-aware clock rule are not.';
     const violations = findBannerViolations(catalog({ s3Banner: banner }));
-    assert.equal(violations.length, 1, 'Check 4 must key on structure, not on one author\'s phrasing');
+    assert.equal(violations.length, 1, "Check 4 must key on structure, not on one author's phrasing");
     assert.match(violations[0], /§3/);
 });
 
@@ -204,11 +192,7 @@ test('TC-PROV-006b: the previously-blocklisted phrasings remain violations', () 
 // not, because the title list precedes the exception keyword and the exception names a property.
 test('TC-PROV-007: a criterion-based exception alongside a default-illustrating law list is clean', () => {
     const violations = findBannerViolations(catalog({ s3Banner: S3_BANNER_OK }));
-    assert.deepEqual(
-        violations,
-        [],
-        'naming laws to illustrate the DEFAULT is not enumerating EXCEPTIONS — the clause scope is what separates them'
-    );
+    assert.deepEqual(violations, [], 'naming laws to illustrate the DEFAULT is not enumerating EXCEPTIONS — the clause scope is what separates them');
 });
 
 // TC-PROV-007b — the plain whole-section banner form ("… unless a row carries its own marker") uses
@@ -260,16 +244,11 @@ const GUARD_REWORDED = [
 
 // A consumer that references the catalog but NOT its guarded sections (e.g. only §20's checklists):
 // it carries no provenance guard, so demanding the token would be a false positive.
-const NON_GUARD_BEARING_SKILL = [
-    '# Orchestrator Skill',
-    'Run the `architecture-knowledge.md` §20 coverage sweep and self-audit.'
-].join('\n');
+const NON_GUARD_BEARING_SKILL = ['# Orchestrator Skill', 'Run the `architecture-knowledge.md` §20 coverage sweep and self-audit.'].join('\n');
 
 // TC-PROV-009 — a reworded guard in a guard-bearing consumer is a violation.
 test('TC-PROV-009: a guard-bearing consumer that lost the literal — VERIFY token is a violation', () => {
-    const violations = findConsumerViolations(catalog(), (name) =>
-        name === 'arch-alpha' ? GUARD_REWORDED : GUARD_BEARING_SKILL
-    );
+    const violations = findConsumerViolations(catalog(), name => (name === 'arch-alpha' ? GUARD_REWORDED : GUARD_BEARING_SKILL));
     assert.equal(violations.length, 1);
     assert.match(violations[0], /arch-alpha/);
     assert.match(violations[0], /VERIFY/);
@@ -285,9 +264,7 @@ test('TC-PROV-009b: consumers that keep the token pass', () => {
 // sections. A consumer such as `arch-gamma` is exactly this case (its pointers target §20), so the check
 // must skip it rather than demand a guard it has no reason to carry.
 test('TC-PROV-009c: a consumer referencing only non-guarded sections is skipped, not failed', () => {
-    const violations = findConsumerViolations(catalog(), (name) =>
-        name === 'arch-gamma' ? NON_GUARD_BEARING_SKILL : GUARD_BEARING_SKILL
-    );
+    const violations = findConsumerViolations(catalog(), name => (name === 'arch-gamma' ? NON_GUARD_BEARING_SKILL : GUARD_BEARING_SKILL));
     assert.deepEqual(violations, [], 'a skill with no provenance guard must not be required to have one');
 });
 
@@ -310,14 +287,20 @@ test('TC-PROV-009e: CLI rejects a lost mode guard even when sibling and router t
         fs.writeFileSync(target, body, 'utf8');
     };
     const reviewPath = '.claude/skills/arch-alpha/references/mode-review.md';
-    const invoke = () => spawnSync(process.execPath, [verifierPath], {
-        cwd: fixture,
-        env: osEssentialsEnv({
-            CLAUDE_PROJECT_DIR: fixture, HOME: fixture, USERPROFILE: fixture,
-            TMPDIR: fixture, TEMP: fixture, TMP: fixture
-        }),
-        encoding: 'utf8', timeout: 60000
-    });
+    const invoke = () =>
+        spawnSync(process.execPath, [verifierPath], {
+            cwd: fixture,
+            env: osEssentialsEnv({
+                CLAUDE_PROJECT_DIR: fixture,
+                HOME: fixture,
+                USERPROFILE: fixture,
+                TMPDIR: fixture,
+                TEMP: fixture,
+                TMP: fixture
+            }),
+            encoding: 'utf8',
+            timeout: 60000
+        });
     try {
         write('.claude/docs/architecture-knowledge.md', catalog());
         write('.claude/skills/arch-alpha/SKILL.md', '# Router\nSelect one mode; unrelated token `— VERIFY`.\n');
@@ -355,7 +338,7 @@ test('TC-PROV-010: the live catalog and its live consumers pass all checks', () 
     const catalogPath = path.join(repoRoot, '.claude', 'docs', 'architecture-knowledge.md');
     if (!fs.existsSync(catalogPath)) return; // fail-soft, same policy as the verifier
     const content = fs.readFileSync(catalogPath, 'utf8');
-    const readSkill = (name) => readConsumerBodies(name, repoRoot);
+    const readSkill = name => readConsumerBodies(name, repoRoot);
     const failures = [...all(content), ...findConsumerViolations(content, readSkill)];
     assert.deepEqual(failures, [], `live catalog must be clean:\n${failures.join('\n')}`);
 });
@@ -378,17 +361,17 @@ test('TC-PROV-011: the verifier is registered as a pipeline stage in the standal
 // inside `.claude` and therefore exist in every adopting project too.
 test('TC-PROV-011b: the stage is individually runnable and inside the derived verify set', () => {
     const verifier = path.join(repoRoot, '.claude', 'scripts', 'codex', 'verify-provenance-markers.mjs');
-    assert.ok(fs.existsSync(verifier),
-        'the verifier must exist at its in-bundle path so `node .claude/scripts/codex/verify-provenance-markers.mjs` works standalone');
+    assert.ok(
+        fs.existsSync(verifier),
+        'the verifier must exist at its in-bundle path so `node .claude/scripts/codex/verify-provenance-markers.mjs` works standalone'
+    );
 
-    const runner = fs.readFileSync(
-        path.join(repoRoot, '.claude', 'skills', 'sync-codex', 'scripts', 'run-codex-sync.mjs'), 'utf8');
+    const runner = fs.readFileSync(path.join(repoRoot, '.claude', 'skills', 'sync-codex', 'scripts', 'run-codex-sync.mjs'), 'utf8');
     const stage = runner.match(/\{[^{}]*\bid:\s*"provenance-markers"[^{}]*\}/);
     assert.ok(stage, 'the runner must declare the provenance-markers stage');
     // Read-only stages carry no `mutate: true`, so `--verify-only` selects this one by derivation —
     // there is no roster to keep in step, which is what the old `verify:all --only` list required.
-    assert.doesNotMatch(stage[0], /\bmutate:\s*true\b/,
-        'provenance-markers is a read-only gate, so it must stay in the derived --verify-only set');
+    assert.doesNotMatch(stage[0], /\bmutate:\s*true\b/, 'provenance-markers is a read-only gate, so it must stay in the derived --verify-only set');
 });
 
 // TC-PROV-012 — peer-convention lock: EVERY codex verifier has a unit test beside it. This test
@@ -396,17 +379,13 @@ test('TC-PROV-011b: the stage is individually runnable and inside the derived ve
 // gap is what let three phrase-list bypasses through. The lock makes the next omission fail here.
 test('TC-PROV-012: every codex verifier has a matching unit test (peer-convention lock)', () => {
     const codexDir = path.join(repoRoot, '.claude', 'scripts', 'codex');
-    const verifiers = fs
-        .readdirSync(codexDir)
-        .filter((name) => name.startsWith('verify-') && name.endsWith('.mjs'));
+    const verifiers = fs.readdirSync(codexDir).filter(name => name.startsWith('verify-') && name.endsWith('.mjs'));
     assert.ok(verifiers.length >= 8, `expected at least 8 verifiers, found ${verifiers.length}`);
-    const untested = verifiers.filter(
-        (name) => !fs.existsSync(path.join(codexDir, 'tests', name.replace(/\.mjs$/, '.test.mjs')))
-    );
+    const untested = verifiers.filter(name => !fs.existsSync(path.join(codexDir, 'tests', name.replace(/\.mjs$/, '.test.mjs'))));
     assert.deepEqual(
         untested,
         [],
-        `every verifier needs a tests/<name>.test.mjs — a verifier whose only executed case is the live `
-            + `repo has no negative coverage at all:\n${untested.join('\n')}`
+        `every verifier needs a tests/<name>.test.mjs — a verifier whose only executed case is the live ` +
+            `repo has no negative coverage at all:\n${untested.join('\n')}`
     );
 });

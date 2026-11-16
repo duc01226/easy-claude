@@ -16,116 +16,111 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const NOTE_FIELDS = [
-  ['say', 'Say'],
-  ['why', 'Why'],
-  ['evidence', 'Evidence'],
-  ['transition', 'Transition'],
-  ['timing', 'Timing'],
-  ['question', 'Question'],
+    ['say', 'Say'],
+    ['why', 'Why'],
+    ['evidence', 'Evidence'],
+    ['transition', 'Transition'],
+    ['timing', 'Timing'],
+    ['question', 'Question']
 ];
 
 const DEFAULT_THEME = {
-  paper: '#f6f4ee',
-  ink: '#1f2523',
-  muted: '#5f6b66',
-  accent: '#0b6e69',
-  accentSoft: '#d8ece8',
-  panel: '#ffffff',
-  line: '#d9e0da',
-  font: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-  displayFont: 'Georgia, "Times New Roman", serif',
+    paper: '#f6f4ee',
+    ink: '#1f2523',
+    muted: '#5f6b66',
+    accent: '#0b6e69',
+    accentSoft: '#d8ece8',
+    panel: '#ffffff',
+    line: '#d9e0da',
+    font: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    displayFont: 'Georgia, "Times New Roman", serif'
 };
 
 const EXAMPLE_SPEC = {
-  id: 'subject-example',
-  title: 'A subject-led presentation',
-  subtitle: 'Replace this example with your audience, evidence, and story.',
-  slides: [
-    {
-      id: 'opening-context',
-      title: 'Start with the audience outcome',
-      purpose: 'context',
-      principle: 'The opening makes the subject and desired outcome explicit.',
-      blocks: [
-        { type: 'paragraph', text: 'Name what the audience should understand, decide, remember, or do.' },
-        { type: 'quote', text: 'A clear outcome is the spine of the story.', attribution: 'Presentation brief' },
-      ],
-      notes: {
-        say: 'Open by naming the subject and the outcome you want the audience to leave with.',
-        why: 'Context gives the audience a reason to listen before detail arrives.',
-        evidence: 'This is a planning prompt, not a factual claim; replace it with a cited source.',
-        transition: 'Once the outcome is clear, state the thesis that will earn it.',
-        timing: '00:45',
-        question: 'What should I pay attention to? Answer with the one outcome and the route.',
-      },
-    },
-    {
-      id: 'thesis',
-      title: 'Make the thesis visible early',
-      purpose: 'explain',
-      principle: 'The audience can test the rest of the deck against one meaningful claim.',
-      blocks: [
-        { type: 'metric', value: '01', label: 'primary claim', detail: 'Evidence and implications follow.' },
-        { type: 'paragraph', text: 'Use the remaining slides to prove, qualify, compare, and act on this claim.' },
-      ],
-      notes: {
-        say: 'State the thesis in one sentence, then point to the evidence path that follows.',
-        why: 'A visible thesis reduces cognitive load and makes the sequence inspectable.',
-        evidence: 'Label the source, baseline, date, and caveat for the real claim you insert here.',
-        transition: 'Move from the thesis into the context or tension that makes it necessary.',
-        timing: '01:00',
-        question: 'What would change your mind? Name the evidence or threshold that would do so.',
-      },
-    },
-  ],
+    id: 'subject-example',
+    title: 'A subject-led presentation',
+    subtitle: 'Replace this example with your audience, evidence, and story.',
+    slides: [
+        {
+            id: 'opening-context',
+            title: 'Start with the audience outcome',
+            purpose: 'context',
+            principle: 'The opening makes the subject and desired outcome explicit.',
+            blocks: [
+                { type: 'paragraph', text: 'Name what the audience should understand, decide, remember, or do.' },
+                { type: 'quote', text: 'A clear outcome is the spine of the story.', attribution: 'Presentation brief' }
+            ],
+            notes: {
+                say: 'Open by naming the subject and the outcome you want the audience to leave with.',
+                why: 'Context gives the audience a reason to listen before detail arrives.',
+                evidence: 'This is a planning prompt, not a factual claim; replace it with a cited source.',
+                transition: 'Once the outcome is clear, state the thesis that will earn it.',
+                timing: '00:45',
+                question: 'What should I pay attention to? Answer with the one outcome and the route.'
+            }
+        },
+        {
+            id: 'thesis',
+            title: 'Make the thesis visible early',
+            purpose: 'explain',
+            principle: 'The audience can test the rest of the deck against one meaningful claim.',
+            blocks: [
+                { type: 'metric', value: '01', label: 'primary claim', detail: 'Evidence and implications follow.' },
+                { type: 'paragraph', text: 'Use the remaining slides to prove, qualify, compare, and act on this claim.' }
+            ],
+            notes: {
+                say: 'State the thesis in one sentence, then point to the evidence path that follows.',
+                why: 'A visible thesis reduces cognitive load and makes the sequence inspectable.',
+                evidence: 'Label the source, baseline, date, and caveat for the real claim you insert here.',
+                transition: 'Move from the thesis into the context or tension that makes it necessary.',
+                timing: '01:00',
+                question: 'What would change your mind? Name the evidence or threshold that would do so.'
+            }
+        }
+    ]
 };
 
 function fail(message) {
-  throw new Error(`presentation spec: ${message}`);
+    throw new Error(`presentation spec: ${message}`);
 }
 
 function asNonEmptyString(value, label) {
-  if (typeof value !== 'string' || value.trim() === '') fail(`${label} must be a non-empty string`);
-  return value.trim();
+    if (typeof value !== 'string' || value.trim() === '') fail(`${label} must be a non-empty string`);
+    return value.trim();
 }
 
 function escapeHtml(value) {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 function escapeAttribute(value) {
-  return escapeHtml(value);
+    return escapeHtml(value);
 }
 
 function slugify(value, fallback = 'presentation') {
-  const slug = String(value || '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 64);
-  return slug || fallback;
+    const slug = String(value || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 64);
+    return slug || fallback;
 }
 
 function stableId(value, label) {
-  const source = asNonEmptyString(value, label);
-  const id = slugify(source, '');
-  if (!id) fail(`${label} must contain at least one letter or number`);
-  return id;
+    const source = asNonEmptyString(value, label);
+    const id = slugify(source, '');
+    if (!id) fail(`${label} must contain at least one letter or number`);
+    return id;
 }
 
 function inlineJson(value) {
-  return JSON.stringify(value).replace(/<\//g, '<\\/');
+    return JSON.stringify(value).replace(/<\//g, '<\\/');
 }
 
 function safeCssValue(value, fallback) {
-  if (typeof value !== 'string' || value.trim() === '') return fallback;
-  if (value.length > 180 || /[{};<>]/.test(value)) return fallback;
-  return value.trim();
+    if (typeof value !== 'string' || value.trim() === '') return fallback;
+    if (value.length > 180 || /[{};<>]/.test(value)) return fallback;
+    return value.trim();
 }
 
 const DEFAULT_LOOK_WARNING = 'Warning: no usable theme supplied — the default look was used; set "theme" from your design plan.';
@@ -133,166 +128,170 @@ const DEFAULT_LOOK_WARNING = 'Warning: no usable theme supplied — the default 
 // A theme counts as chosen when at least one known key holds a value the renderer keeps; otherwise every
 // custom property falls back to DEFAULT_THEME and the deck ships the default look.
 function defaultLookWarning(spec) {
-  const theme = spec && typeof spec === 'object' ? spec.theme : undefined;
-  if (theme && typeof theme === 'object') {
-    const chosen = Object.keys(DEFAULT_THEME).some((key) => safeCssValue(theme[key], null) !== null);
-    if (chosen) return null;
-  }
-  return DEFAULT_LOOK_WARNING;
+    const theme = spec && typeof spec === 'object' ? spec.theme : undefined;
+    if (theme && typeof theme === 'object') {
+        const chosen = Object.keys(DEFAULT_THEME).some(key => safeCssValue(theme[key], null) !== null);
+        if (chosen) return null;
+    }
+    return DEFAULT_LOOK_WARNING;
 }
 
 function safeUrl(value, label, allowExternalAssets) {
-  const url = asNonEmptyString(value, label);
-  if (/^javascript:/i.test(url)) fail('javascript: URLs are not allowed');
-  if (/^(?:https?:)?\/\//i.test(url) && !allowExternalAssets) {
-    fail(`${label} points to an external asset; set allowExternalAssets to true to opt in`);
-  }
-  if (/^data:(?!image\/(?:png|jpe?g|gif|svg\+xml|webp);base64,)/i.test(url)) {
-    fail('only base64 image data URLs are allowed');
-  }
-  return url;
+    const url = asNonEmptyString(value, label);
+    if (/^javascript:/i.test(url)) fail('javascript: URLs are not allowed');
+    if (/^(?:https?:)?\/\//i.test(url) && !allowExternalAssets) {
+        fail(`${label} points to an external asset; set allowExternalAssets to true to opt in`);
+    }
+    if (/^data:(?!image\/(?:png|jpe?g|gif|svg\+xml|webp);base64,)/i.test(url)) {
+        fail('only base64 image data URLs are allowed');
+    }
+    return url;
 }
 
 const EXTERNAL_URL_PATTERN = /(?:https?:)?\/\//i;
-const EXTERNAL_ASSET_TAG_PATTERN = /<(?:img|audio|video|source|track|iframe|object|embed|image|use|link)\b[^>]*\b(?:src|poster|href)\s*=\s*(["']?)(?:https?:)?\/\//i;
+const EXTERNAL_ASSET_TAG_PATTERN =
+    /<(?:img|audio|video|source|track|iframe|object|embed|image|use|link)\b[^>]*\b(?:src|poster|href)\s*=\s*(["']?)(?:https?:)?\/\//i;
 const EXTERNAL_CSS_URL_PATTERN = /\burl\(\s*(["']?)(?:https?:)?\/\//i;
 
 function assertExternalAssetsAllowed(value, label, allowExternalAssets) {
-  if (!allowExternalAssets && EXTERNAL_URL_PATTERN.test(String(value))) {
-    fail(`${label} contains an external URL; set allowExternalAssets to true to opt in`);
-  }
+    if (!allowExternalAssets && EXTERNAL_URL_PATTERN.test(String(value))) {
+        fail(`${label} contains an external URL; set allowExternalAssets to true to opt in`);
+    }
 }
 
 function assertAuthorAssetsAllowed(value, label, allowExternalAssets) {
-  if (!allowExternalAssets && (EXTERNAL_ASSET_TAG_PATTERN.test(String(value)) || EXTERNAL_CSS_URL_PATTERN.test(String(value)))) {
-    fail(`${label} contains an external asset; set allowExternalAssets to true to opt in`);
-  }
+    if (!allowExternalAssets && (EXTERNAL_ASSET_TAG_PATTERN.test(String(value)) || EXTERNAL_CSS_URL_PATTERN.test(String(value)))) {
+        fail(`${label} contains an external asset; set allowExternalAssets to true to opt in`);
+    }
 }
 
 function sanitizeAuthorHtml(value) {
-  return String(value)
-    .replace(/<script\b[\s\S]*?<\/script>/gi, '')
-    .replace(/<style\b[\s\S]*?<\/style>/gi, '')
-    .replace(/<iframe\b[\s\S]*?<\/iframe>/gi, '')
-    .replace(/<object\b[\s\S]*?<\/object>/gi, '')
-    .replace(/\s+on[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
-    .replace(/\s+(?:href|src)\s*=\s*("|')\s*javascript:[\s\S]*?\1/gi, ' ');
+    return String(value)
+        .replace(/<script\b[\s\S]*?<\/script>/gi, '')
+        .replace(/<style\b[\s\S]*?<\/style>/gi, '')
+        .replace(/<iframe\b[\s\S]*?<\/iframe>/gi, '')
+        .replace(/<object\b[\s\S]*?<\/object>/gi, '')
+        .replace(/\s+on[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+        .replace(/\s+(?:href|src)\s*=\s*("|')\s*javascript:[\s\S]*?\1/gi, ' ');
 }
 
 function renderTypedBlock(block, index, options = {}) {
-  if (!block || typeof block !== 'object') fail(`blocks[${index}] must be an object`);
-  const type = asNonEmptyString(block.type, `blocks[${index}].type`).toLowerCase();
+    if (!block || typeof block !== 'object') fail(`blocks[${index}] must be an object`);
+    const type = asNonEmptyString(block.type, `blocks[${index}].type`).toLowerCase();
 
-  if (type === 'paragraph' || type === 'text') {
-    return `<p data-editable="true">${escapeHtml(asNonEmptyString(block.text, `blocks[${index}].text`)).replace(/\n/g, '<br>')}</p>`;
-  }
+    if (type === 'paragraph' || type === 'text') {
+        return `<p data-editable="true">${escapeHtml(asNonEmptyString(block.text, `blocks[${index}].text`)).replace(/\n/g, '<br>')}</p>`;
+    }
 
-  if (type === 'bullets' || type === 'list') {
-    if (!Array.isArray(block.items) || block.items.length === 0) fail(`blocks[${index}].items must be a non-empty array`);
-    return `<ul>${block.items.map((item, itemIndex) => `<li data-editable="true">${escapeHtml(asNonEmptyString(item, `blocks[${index}].items[${itemIndex}]`))}</li>`).join('')}</ul>`;
-  }
+    if (type === 'bullets' || type === 'list') {
+        if (!Array.isArray(block.items) || block.items.length === 0) fail(`blocks[${index}].items must be a non-empty array`);
+        return `<ul>${block.items.map((item, itemIndex) => `<li data-editable="true">${escapeHtml(asNonEmptyString(item, `blocks[${index}].items[${itemIndex}]`))}</li>`).join('')}</ul>`;
+    }
 
-  if (type === 'quote') {
-    const text = escapeHtml(asNonEmptyString(block.text, `blocks[${index}].text`));
-    const attribution = block.attribution ? `<cite data-editable="true">${escapeHtml(block.attribution)}</cite>` : '';
-    return `<blockquote><p data-editable="true">${text}</p>${attribution}</blockquote>`;
-  }
+    if (type === 'quote') {
+        const text = escapeHtml(asNonEmptyString(block.text, `blocks[${index}].text`));
+        const attribution = block.attribution ? `<cite data-editable="true">${escapeHtml(block.attribution)}</cite>` : '';
+        return `<blockquote><p data-editable="true">${text}</p>${attribution}</blockquote>`;
+    }
 
-  if (type === 'metric') {
-    return `<div class="metric" data-protected="true"><strong>${escapeHtml(asNonEmptyString(block.value, `blocks[${index}].value`))}</strong><span data-editable="true">${escapeHtml(asNonEmptyString(block.label, `blocks[${index}].label`))}</span>${block.detail ? `<small data-editable="true">${escapeHtml(block.detail)}</small>` : ''}</div>`;
-  }
+    if (type === 'metric') {
+        return `<div class="metric" data-protected="true"><strong>${escapeHtml(asNonEmptyString(block.value, `blocks[${index}].value`))}</strong><span data-editable="true">${escapeHtml(asNonEmptyString(block.label, `blocks[${index}].label`))}</span>${block.detail ? `<small data-editable="true">${escapeHtml(block.detail)}</small>` : ''}</div>`;
+    }
 
-  if (type === 'image') {
-    const src = escapeAttribute(safeUrl(block.src, `blocks[${index}].src`, options.allowExternalAssets));
-    const alt = escapeAttribute(asNonEmptyString(block.alt, `blocks[${index}].alt`));
-    const caption = block.caption ? `<figcaption data-editable="true">${escapeHtml(block.caption)}</figcaption>` : '';
-    return `<figure data-protected="true"><img src="${src}" alt="${alt}">${caption}</figure>`;
-  }
+    if (type === 'image') {
+        const src = escapeAttribute(safeUrl(block.src, `blocks[${index}].src`, options.allowExternalAssets));
+        const alt = escapeAttribute(asNonEmptyString(block.alt, `blocks[${index}].alt`));
+        const caption = block.caption ? `<figcaption data-editable="true">${escapeHtml(block.caption)}</figcaption>` : '';
+        return `<figure data-protected="true"><img src="${src}" alt="${alt}">${caption}</figure>`;
+    }
 
-  if (type === 'code') {
-    const language = block.language ? ` data-language="${escapeAttribute(block.language)}"` : '';
-    return `<pre data-protected="true"><code${language}>${escapeHtml(asNonEmptyString(block.text, `blocks[${index}].text`))}</code></pre>`;
-  }
+    if (type === 'code') {
+        const language = block.language ? ` data-language="${escapeAttribute(block.language)}"` : '';
+        return `<pre data-protected="true"><code${language}>${escapeHtml(asNonEmptyString(block.text, `blocks[${index}].text`))}</code></pre>`;
+    }
 
-  if (type === 'html') {
-    const html = sanitizeAuthorHtml(asNonEmptyString(block.html, `blocks[${index}].html`));
-    assertAuthorAssetsAllowed(html, `blocks[${index}].html`, options.allowExternalAssets);
-    return html;
-  }
+    if (type === 'html') {
+        const html = sanitizeAuthorHtml(asNonEmptyString(block.html, `blocks[${index}].html`));
+        assertAuthorAssetsAllowed(html, `blocks[${index}].html`, options.allowExternalAssets);
+        return html;
+    }
 
-  fail(`blocks[${index}].type "${type}" is unsupported; use paragraph, bullets, quote, metric, image, code, or html`);
+    fail(`blocks[${index}].type "${type}" is unsupported; use paragraph, bullets, quote, metric, image, code, or html`);
 }
 
 function renderBody(slide, options = {}) {
-  if (typeof slide.bodyHtml === 'string' && slide.bodyHtml.trim()) {
-    const html = sanitizeAuthorHtml(slide.bodyHtml);
-    assertAuthorAssetsAllowed(html, `slide "${slide.id}" bodyHtml`, options.allowExternalAssets);
-    return html;
-  }
-  if (typeof slide.body === 'string' && slide.body.trim()) {
-    return `<p data-editable="true">${escapeHtml(slide.body.trim()).replace(/\n/g, '<br>')}</p>`;
-  }
-  if (Array.isArray(slide.blocks) && slide.blocks.length) {
-    return slide.blocks.map((block, index) => renderTypedBlock(block, index, options)).join('\n');
-  }
-  fail(`slide "${slide.id || slide.title || 'unknown'}" needs body, bodyHtml, or blocks`);
+    if (typeof slide.bodyHtml === 'string' && slide.bodyHtml.trim()) {
+        const html = sanitizeAuthorHtml(slide.bodyHtml);
+        assertAuthorAssetsAllowed(html, `slide "${slide.id}" bodyHtml`, options.allowExternalAssets);
+        return html;
+    }
+    if (typeof slide.body === 'string' && slide.body.trim()) {
+        return `<p data-editable="true">${escapeHtml(slide.body.trim()).replace(/\n/g, '<br>')}</p>`;
+    }
+    if (Array.isArray(slide.blocks) && slide.blocks.length) {
+        return slide.blocks.map((block, index) => renderTypedBlock(block, index, options)).join('\n');
+    }
+    fail(`slide "${slide.id || slide.title || 'unknown'}" needs body, bodyHtml, or blocks`);
 }
 
 function normalizeNotes(rawNotes, slideId) {
-  if (!rawNotes || typeof rawNotes !== 'object' || Array.isArray(rawNotes)) {
-    fail(`slide "${slideId}" needs notes.say, notes.why, notes.evidence, notes.transition, notes.timing, and notes.question`);
-  }
-  const notes = {};
-  for (const [field] of NOTE_FIELDS) notes[field] = asNonEmptyString(rawNotes[field], `slide "${slideId}" notes.${field}`);
-  return notes;
+    if (!rawNotes || typeof rawNotes !== 'object' || Array.isArray(rawNotes)) {
+        fail(`slide "${slideId}" needs notes.say, notes.why, notes.evidence, notes.transition, notes.timing, and notes.question`);
+    }
+    const notes = {};
+    for (const [field] of NOTE_FIELDS) notes[field] = asNonEmptyString(rawNotes[field], `slide "${slideId}" notes.${field}`);
+    return notes;
 }
 
 function normalizeSpec(spec) {
-  if (!spec || typeof spec !== 'object' || Array.isArray(spec)) fail('root must be a JSON object');
-  const deckId = stableId(spec.id, 'id');
-  const title = asNonEmptyString(spec.title, 'title');
-  if (!Array.isArray(spec.slides) || spec.slides.length < 1) fail('slides must contain at least one slide');
-  const allowExternalAssets = spec.allowExternalAssets === true;
+    if (!spec || typeof spec !== 'object' || Array.isArray(spec)) fail('root must be a JSON object');
+    const deckId = stableId(spec.id, 'id');
+    const title = asNonEmptyString(spec.title, 'title');
+    if (!Array.isArray(spec.slides) || spec.slides.length < 1) fail('slides must contain at least one slide');
+    const allowExternalAssets = spec.allowExternalAssets === true;
 
-  const usedIds = new Set();
-  const slides = spec.slides.map((rawSlide, index) => {
-    if (!rawSlide || typeof rawSlide !== 'object' || Array.isArray(rawSlide)) fail(`slides[${index}] must be an object`);
-    const id = stableId(rawSlide.id, `slides[${index}].id`);
-    if (usedIds.has(id)) fail(`duplicate slide id "${id}"`);
-    usedIds.add(id);
-    const slide = {
-      id,
-      title: asNonEmptyString(rawSlide.title, `slides[${index}].title`),
-      purpose: asNonEmptyString(rawSlide.purpose, `slides[${index}].purpose`),
-      principle: asNonEmptyString(rawSlide.principle, `slides[${index}].principle`),
-      eyebrow: rawSlide.eyebrow ? String(rawSlide.eyebrow).trim() : '',
-      body: renderBody({ ...rawSlide, id }, { allowExternalAssets }),
-      notes: normalizeNotes(rawSlide.notes, id),
+    const usedIds = new Set();
+    const slides = spec.slides.map((rawSlide, index) => {
+        if (!rawSlide || typeof rawSlide !== 'object' || Array.isArray(rawSlide)) fail(`slides[${index}] must be an object`);
+        const id = stableId(rawSlide.id, `slides[${index}].id`);
+        if (usedIds.has(id)) fail(`duplicate slide id "${id}"`);
+        usedIds.add(id);
+        const slide = {
+            id,
+            title: asNonEmptyString(rawSlide.title, `slides[${index}].title`),
+            purpose: asNonEmptyString(rawSlide.purpose, `slides[${index}].purpose`),
+            principle: asNonEmptyString(rawSlide.principle, `slides[${index}].principle`),
+            eyebrow: rawSlide.eyebrow ? String(rawSlide.eyebrow).trim() : '',
+            body: renderBody({ ...rawSlide, id }, { allowExternalAssets }),
+            notes: normalizeNotes(rawSlide.notes, id)
+        };
+        return slide;
+    });
+
+    const theme = {};
+    for (const key of Object.keys(DEFAULT_THEME)) {
+        theme[key] = safeCssValue(spec.theme && spec.theme[key], DEFAULT_THEME[key]);
+        assertExternalAssetsAllowed(theme[key], `theme.${key}`, allowExternalAssets);
+    }
+
+    return {
+        id: deckId,
+        title,
+        subtitle: spec.subtitle ? String(spec.subtitle).trim() : '',
+        lang: /^[a-z]{2,8}(?:-[a-z]{2,8})?$/i.test(String(spec.lang || 'en')) ? String(spec.lang || 'en') : 'en',
+        allowExternalAssets,
+        theme,
+        slides
     };
-    return slide;
-  });
-
-  const theme = {};
-  for (const key of Object.keys(DEFAULT_THEME)) {
-    theme[key] = safeCssValue(spec.theme && spec.theme[key], DEFAULT_THEME[key]);
-    assertExternalAssetsAllowed(theme[key], `theme.${key}`, allowExternalAssets);
-  }
-
-  return {
-    id: deckId,
-    title,
-    subtitle: spec.subtitle ? String(spec.subtitle).trim() : '',
-    lang: /^[a-z]{2,8}(?:-[a-z]{2,8})?$/i.test(String(spec.lang || 'en')) ? String(spec.lang || 'en') : 'en',
-    allowExternalAssets,
-    theme,
-    slides,
-  };
 }
 
 function renderSlide(slide, index, total) {
-  const eyebrow = slide.eyebrow ? `<p class="slide-eyebrow" data-protected="true">${escapeHtml(slide.eyebrow)}</p>` : '';
-  const notes = NOTE_FIELDS.map(([field, label]) => `<p data-note-row="${field}"><strong>${label}:</strong> <span data-note-value="${field}">${escapeHtml(slide.notes[field])}</span></p>`).join('');
-  return `
+    const eyebrow = slide.eyebrow ? `<p class="slide-eyebrow" data-protected="true">${escapeHtml(slide.eyebrow)}</p>` : '';
+    const notes = NOTE_FIELDS.map(
+        ([field, label]) =>
+            `<p data-note-row="${field}"><strong>${label}:</strong> <span data-note-value="${field}">${escapeHtml(slide.notes[field])}</span></p>`
+    ).join('');
+    return `
     <section class="slide${index === 0 ? ' active' : ''}" data-slide-id="${escapeAttribute(slide.id)}" data-purpose="${escapeAttribute(slide.purpose)}" data-principle="${escapeAttribute(slide.principle)}" data-slide-index="${index}">
       <header class="slide-header" data-protected="true">
         ${eyebrow}
@@ -306,7 +305,7 @@ function renderSlide(slide, index, total) {
 }
 
 function renderCss(theme) {
-  return `
+    return `
     :root {
       --paper: ${theme.paper}; --ink: ${theme.ink}; --muted: ${theme.muted};
       --accent: ${theme.accent}; --accent-soft: ${theme.accentSoft};
@@ -381,7 +380,7 @@ function renderCss(theme) {
 }
 
 function renderRuntime(meta) {
-  return `
+    return `
     <script>
       (() => {
         'use strict';
@@ -839,12 +838,22 @@ function renderRuntime(meta) {
 }
 
 function generatePresentation(input) {
-  const spec = normalizeSpec(input);
-  const meta = { id: spec.id, title: spec.title, slideCount: spec.slides.length, allowExternalAssets: spec.allowExternalAssets };
-  const overviewCards = spec.slides.map((slide, index) => `<button type="button" class="overview-card" data-overview-index="${index}"><strong>${String(index + 1).padStart(2, '0')} · ${escapeHtml(slide.title)}</strong><small>${escapeHtml(slide.purpose)}</small></button>`).join('');
-  const subtitle = spec.subtitle ? `<span class="toolbar-subtitle">${escapeHtml(spec.subtitle)}</span>` : '';
-  const assetPolicy = '<span class="toolbar-policy" data-asset-policy="' + (spec.allowExternalAssets ? 'external-allowed' : 'self-contained') + '">' + (spec.allowExternalAssets ? 'Network assets enabled' : 'Local assets only') + '</span>';
-  return `<!doctype html>
+    const spec = normalizeSpec(input);
+    const meta = { id: spec.id, title: spec.title, slideCount: spec.slides.length, allowExternalAssets: spec.allowExternalAssets };
+    const overviewCards = spec.slides
+        .map(
+            (slide, index) =>
+                `<button type="button" class="overview-card" data-overview-index="${index}"><strong>${String(index + 1).padStart(2, '0')} · ${escapeHtml(slide.title)}</strong><small>${escapeHtml(slide.purpose)}</small></button>`
+        )
+        .join('');
+    const subtitle = spec.subtitle ? `<span class="toolbar-subtitle">${escapeHtml(spec.subtitle)}</span>` : '';
+    const assetPolicy =
+        '<span class="toolbar-policy" data-asset-policy="' +
+        (spec.allowExternalAssets ? 'external-allowed' : 'self-contained') +
+        '">' +
+        (spec.allowExternalAssets ? 'Network assets enabled' : 'Local assets only') +
+        '</span>';
+    return `<!doctype html>
 <html lang="${escapeAttribute(spec.lang)}" data-presentation-id="${escapeAttribute(spec.id)}">
   <head>
     <meta charset="utf-8">
@@ -894,48 +903,48 @@ function generatePresentation(input) {
 }
 
 function exampleSpec() {
-  return JSON.parse(JSON.stringify(EXAMPLE_SPEC));
+    return JSON.parse(JSON.stringify(EXAMPLE_SPEC));
 }
 
 function main(argv) {
-  const args = argv.filter((arg) => arg !== '--example');
-  const isExample = argv.includes('--example');
-  const inputPath = args[0];
-  const outputPath = args[1];
-  if (isExample) {
-    if (!inputPath) {
-      console.error('Usage: node create-presentation.cjs --example <output.html>');
-      return 2;
+    const args = argv.filter(arg => arg !== '--example');
+    const isExample = argv.includes('--example');
+    const inputPath = args[0];
+    const outputPath = args[1];
+    if (isExample) {
+        if (!inputPath) {
+            console.error('Usage: node create-presentation.cjs --example <output.html>');
+            return 2;
+        }
+    } else if (!inputPath || !outputPath) {
+        console.error('Usage: node create-presentation.cjs <deck.json> <output.html>\n       node create-presentation.cjs --example <output.html>');
+        return 2;
     }
-  } else if (!inputPath || !outputPath) {
-    console.error('Usage: node create-presentation.cjs <deck.json> <output.html>\n       node create-presentation.cjs --example <output.html>');
-    return 2;
-  }
 
-  try {
-    const spec = isExample ? exampleSpec() : JSON.parse(fs.readFileSync(path.resolve(inputPath), 'utf8'));
-    const html = generatePresentation(spec);
-    const target = path.resolve(isExample ? inputPath : outputPath);
-    fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.writeFileSync(target, html, 'utf8');
-    console.log(`Created ${target} (${html.length} bytes, ${spec.slides.length} slides)`);
-    const warning = defaultLookWarning(spec);
-    if (warning) console.error(warning);
-    return 0;
-  } catch (error) {
-    console.error(error.message);
-    return 1;
-  }
+    try {
+        const spec = isExample ? exampleSpec() : JSON.parse(fs.readFileSync(path.resolve(inputPath), 'utf8'));
+        const html = generatePresentation(spec);
+        const target = path.resolve(isExample ? inputPath : outputPath);
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        fs.writeFileSync(target, html, 'utf8');
+        console.log(`Created ${target} (${html.length} bytes, ${spec.slides.length} slides)`);
+        const warning = defaultLookWarning(spec);
+        if (warning) console.error(warning);
+        return 0;
+    } catch (error) {
+        console.error(error.message);
+        return 1;
+    }
 }
 
 if (require.main === module) process.exitCode = main(process.argv.slice(2));
 
 module.exports = {
-  DEFAULT_LOOK_WARNING,
-  DEFAULT_THEME,
-  EXAMPLE_SPEC,
-  defaultLookWarning,
-  generatePresentation,
-  main,
-  normalizeSpec,
+    DEFAULT_LOOK_WARNING,
+    DEFAULT_THEME,
+    EXAMPLE_SPEC,
+    defaultLookWarning,
+    generatePresentation,
+    main,
+    normalizeSpec
 };

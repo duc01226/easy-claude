@@ -42,11 +42,7 @@ const { removeTempDir, childEnv } = require('../lib/hook-runner.cjs');
 const CLAUDE_DIR = path.resolve(__dirname, '..', '..', '..');
 const { SCHEMA } = require(path.join(CLAUDE_DIR, 'hooks', 'lib', 'project-config-schema.cjs'));
 const { CK_SCHEMA } = require(path.join(CLAUDE_DIR, 'hooks', 'lib', 'ck-config-schema.cjs'));
-const {
-    PROJECT_CONFIG_DESCRIBES,
-    CK_CONFIG_DESCRIBES,
-    describeField
-} = require(path.join(CLAUDE_DIR, 'scripts', 'lib', 'config-option-describes.cjs'));
+const { PROJECT_CONFIG_DESCRIBES, CK_CONFIG_DESCRIBES, describeField } = require(path.join(CLAUDE_DIR, 'scripts', 'lib', 'config-option-describes.cjs'));
 
 const { validateTaskTracking } = require(path.join(CLAUDE_DIR, 'hooks', 'lib', 'task-tracking-config.cjs'));
 const { vocabularyBlock } = require(path.join(CLAUDE_DIR, 'hooks', 'lib', 'task-tracking-vocabulary.cjs'));
@@ -113,9 +109,17 @@ function runHelpJson(script) {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cfg-help-'));
     try {
         const env = childEnv({
-            HOME: tmp, USERPROFILE: tmp, TMPDIR: tmp, TEMP: tmp, TMP: tmp,
-            CK_DEBUG: undefined, CLAUDE_HOOK_DEBUG: undefined, CLAUDE_HOOK_DEBUG_LOG: undefined,
-            CK_PROMPT_LEDGER: undefined, CK_COMMIT_SKILL_ROUTE: undefined, CK_JUDGEMENT_INTEGRITY_ROUTE: undefined
+            HOME: tmp,
+            USERPROFILE: tmp,
+            TMPDIR: tmp,
+            TEMP: tmp,
+            TMP: tmp,
+            CK_DEBUG: undefined,
+            CLAUDE_HOOK_DEBUG: undefined,
+            CLAUDE_HOOK_DEBUG_LOG: undefined,
+            CK_PROMPT_LEDGER: undefined,
+            CK_COMMIT_SKILL_ROUTE: undefined,
+            CK_JUDGEMENT_INTEGRITY_ROUTE: undefined
         });
         const result = spawnSync(process.execPath, [script, '--json'], { cwd: tmp, env, encoding: 'utf8', timeout: 60000 });
         assert.equal(result.status, 0, `${path.basename(script)} --json exited ${result.status}: ${result.stderr}`);
@@ -132,16 +136,18 @@ module.exports = {
             name: '[config-help] CFGHELP-001 every project-config schema field has help text',
             fn: () => {
                 assert.ok(PROJECT_FIELDS.length > 0, 'the project-config schema must expose fields');
-                assert.deepEqual(undescribed(PROJECT_FIELDS, PROJECT_CONFIG_DESCRIBES), [],
-                    'add a `describe` to the schema entry or a key to .claude/scripts/lib/config-option-describes.cjs');
+                assert.deepEqual(
+                    undescribed(PROJECT_FIELDS, PROJECT_CONFIG_DESCRIBES),
+                    [],
+                    'add a `describe` to the schema entry or a key to .claude/scripts/lib/config-option-describes.cjs'
+                );
             }
         },
         {
             name: '[config-help] CFGHELP-002 every .ck.json schema field has help text',
             fn: () => {
                 assert.ok(CK_FIELDS.length > 0, 'the .ck.json schema must expose fields');
-                assert.deepEqual(undescribed(CK_FIELDS, CK_CONFIG_DESCRIBES), [],
-                    'add a `describe` to the CK_SCHEMA entry or a key to CK_CONFIG_DESCRIBES');
+                assert.deepEqual(undescribed(CK_FIELDS, CK_CONFIG_DESCRIBES), [], 'add a `describe` to the CK_SCHEMA entry or a key to CK_CONFIG_DESCRIBES');
             }
         },
         {
@@ -173,7 +179,10 @@ module.exports = {
                 const keys = new Set(payload.options.map(option => option.key));
                 const missing = CK_FIELDS.map(field => field.path).filter(key => !keys.has(key));
                 assert.deepEqual(missing, [], 'ck-config-help.cjs must list every .ck.json field');
-                assert.ok(payload.options.every(option => option.describe), 'every .ck.json option must show its help text');
+                assert.ok(
+                    payload.options.every(option => option.describe),
+                    'every .ck.json option must show its help text'
+                );
                 for (const id of ['quickSettings', 'environment']) {
                     const body = payload.sections[id] && payload.sections[id].body;
                     assert.ok(body && body.includes('|'), `the ${id} table must be found in its source doc`);
@@ -181,11 +190,17 @@ module.exports = {
             }
         },
         {
-            name: "[config-help] TECH-tracker-label-help help lists exactly the tracker label settings that validation accepts: the five current kinds, the levels and the types, group labels for a declared earlier version only, and a label changes displayed text alone",
+            name: '[config-help] TECH-tracker-label-help help lists exactly the tracker label settings that validation accepts: the five current kinds, the levels and the types, group labels for a declared earlier version only, and a label changes displayed text alone',
             TechnicalSpec: 'work-tracking/config-label-help',
             fn: () => {
-                const listed = prefix => PROJECT_FIELDS.filter(field => field.path.startsWith(prefix)).map(field => field.path.slice(prefix.length)).sort();
-                const helpText = fieldPath => { const field = PROJECT_FIELDS.find(entry => entry.path === fieldPath); return field && describeField(PROJECT_CONFIG_DESCRIBES, field.path, field.schema); };
+                const listed = prefix =>
+                    PROJECT_FIELDS.filter(field => field.path.startsWith(prefix))
+                        .map(field => field.path.slice(prefix.length))
+                        .sort();
+                const helpText = fieldPath => {
+                    const field = PROJECT_FIELDS.find(entry => entry.path === fieldPath);
+                    return field && describeField(PROJECT_CONFIG_DESCRIBES, field.path, field.schema);
+                };
                 const findings = tracking => validateTaskTracking({ taskTracking: tracking });
                 const shownAs = word => `Shown ${word}`;
                 for (const [setting, words] of Object.entries(TRACKER_LABELS)) {
@@ -197,7 +212,11 @@ module.exports = {
                         assert.deepEqual(findings({ schemaVersion: 3, [setting]: { [word]: shownAs(word) } }), [], `${setting}.${word}`);
                     }
                     // What help does not list, validation refuses by name.
-                    assert.deepEqual(findings({ schemaVersion: 3, [setting]: { unlisted: 'Shown' } }), [`taskTracking.${setting}.unlisted: unknown field`], setting);
+                    assert.deepEqual(
+                        findings({ schemaVersion: 3, [setting]: { unlisted: 'Shown' } }),
+                        [`taskTracking.${setting}.unlisted: unknown field`],
+                        setting
+                    );
                 }
                 // A kind of the earlier vocabulary is no label key of a current project.
                 for (const kind of ['project', 'vision']) {
@@ -211,16 +230,32 @@ module.exports = {
                 assert.deepEqual(findings({ schemaVersion: 2, groupLabels }), []);
                 assert.deepEqual(findings({ schemaVersion: 3, groupLabels }), ['taskTracking.groupLabels: unknown field']);
                 // These four are every label map the tracker has.
-                assert.deepEqual(PROJECT_FIELDS.map(field => field.path).filter(fieldPath => /^taskTracking\.[A-Za-z]+Labels$/.test(fieldPath)).sort(),
-                    ['taskTracking.groupLabels', ...Object.keys(TRACKER_LABELS).map(setting => `taskTracking.${setting}`)].sort());
+                assert.deepEqual(
+                    PROJECT_FIELDS.map(field => field.path)
+                        .filter(fieldPath => /^taskTracking\.[A-Za-z]+Labels$/.test(fieldPath))
+                        .sort(),
+                    ['taskTracking.groupLabels', ...Object.keys(TRACKER_LABELS).map(setting => `taskTracking.${setting}`)].sort()
+                );
                 // A label is display text only: with every label declared, the stored words are what they were.
-                const declared = { schemaVersion: 3, ...Object.fromEntries(Object.entries(TRACKER_LABELS).map(([setting, words]) => [setting, Object.fromEntries(words.map(word => [word, shownAs(word)]))])) };
+                const declared = {
+                    schemaVersion: 3,
+                    ...Object.fromEntries(
+                        Object.entries(TRACKER_LABELS).map(([setting, words]) => [setting, Object.fromEntries(words.map(word => [word, shownAs(word)]))])
+                    )
+                };
                 assert.deepEqual(findings(declared), []);
                 const { labels: shown, ...words } = vocabularyBlock({ taskTracking: declared });
                 const { labels: defaults, ...defaultWords } = vocabularyBlock({ taskTracking: { schemaVersion: 3 } });
                 assert.deepEqual(words, defaultWords);
-                assert.deepEqual([[...words.kinds].sort(), [...words.levels].sort(), [...words.initiativeTypes].sort()], Object.values(TRACKER_LABELS).map(list => [...list].sort()));
-                for (const [table, setting] of [['kinds', 'kindLabels'], ['levels', 'levelLabels'], ['initiativeTypes', 'typeLabels']]) {
+                assert.deepEqual(
+                    [[...words.kinds].sort(), [...words.levels].sort(), [...words.initiativeTypes].sort()],
+                    Object.values(TRACKER_LABELS).map(list => [...list].sort())
+                );
+                for (const [table, setting] of [
+                    ['kinds', 'kindLabels'],
+                    ['levels', 'levelLabels'],
+                    ['initiativeTypes', 'typeLabels']
+                ]) {
                     for (const word of TRACKER_LABELS[setting]) {
                         assert.equal(shown[table][word], shownAs(word), `${table}.${word}`);
                         assert.notEqual(defaults[table][word], shownAs(word), `${table}.${word}`);

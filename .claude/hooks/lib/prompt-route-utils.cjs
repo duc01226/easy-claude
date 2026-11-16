@@ -49,8 +49,11 @@ function stripCode(text) {
         }
     }
     // Inline spans cannot cross a paragraph boundary. Retain that boundary verbatim.
-    return prose.join('').split(/((?:\r\n|\r(?!\n)|(?<!\r)\n)[ \t]*(?:\r\n|\r(?!\n)|(?<!\r)\n))/)
-        .map((paragraph, i) => i % 2 ? paragraph : stripInlineCode(paragraph)).join('');
+    return prose
+        .join('')
+        .split(/((?:\r\n|\r(?!\n)|(?<!\r)\n)[ \t]*(?:\r\n|\r(?!\n)|(?<!\r)\n))/)
+        .map((paragraph, i) => (i % 2 ? paragraph : stripInlineCode(paragraph)))
+        .join('');
 }
 
 function stripInlineCode(text) {
@@ -178,7 +181,11 @@ function readJsonObject(file) {
 
 /** The tracked project config (honoring `portability.projectConfigPath`); null when unresolvable. */
 function projectConfigFile(projectDir) {
-    try { return require('../../scripts/lib/workflow-routing-config.cjs').resolveProjectConfigPath(projectDir) || null; } catch { return null; }
+    try {
+        return require('../../scripts/lib/workflow-routing-config.cjs').resolveProjectConfigPath(projectDir) || null;
+    } catch {
+        return null;
+    }
 }
 
 /**
@@ -188,9 +195,12 @@ function projectConfigFile(projectDir) {
  */
 function loadRouterSettings(projectDir, section, options = {}) {
     const merged = {};
-    const files = [path.join(projectDir, '.claude', '.ck.json'), projectConfigFile(projectDir),
+    const files = [
+        path.join(projectDir, '.claude', '.ck.json'),
+        projectConfigFile(projectDir),
         path.join(options.homeDir || require('node:os').homedir(), '.claude', '.ck.json'),
-        path.join(projectDir, '.claude', '.ck.local.json')];
+        path.join(projectDir, '.claude', '.ck.local.json')
+    ];
     for (const file of files) {
         if (!file) continue;
         const config = readJsonObject(file);
@@ -218,7 +228,9 @@ function resolveHookDecisionSupportMode(deps = {}) {
     const env = deps.env || process.env;
     const projectDir = deps.projectDir || require('./project-root.cjs').resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env }).rootDir;
     return require('../../scripts/lib/workflow-routing-config.cjs').resolveDecisionSupportMode({
-        rootDir: projectDir, env, homeDir: deps.homeDir,
+        rootDir: projectDir,
+        env,
+        homeDir: deps.homeDir,
         ...(typeof deps.skillAutoTrigger === 'boolean' ? { skillAutoTrigger: deps.skillAutoTrigger } : {})
     });
 }
@@ -260,18 +272,23 @@ const SENTENCE_START = `${SENTENCE_END}${prefixes(CONNECTIVES)}`;
 const ITEM_START = `${SENTENCE_END}${LIST_MARKER}${prefixes(CONNECTIVES)}`;
 const WORK_START = `${SENTENCE_END}${LIST_MARKER}${prefixes(`${AFFIRMATIONS}|${CONNECTIVES}`)}`;
 // "follow" only as an instruction ("follow the steps"), never "Follow up:", "follow-up" or "Follow-ups:".
-const ACTION_VERBS = '(?:fix|implement|add|create|build|run|resolve|make|update|refactor|write|remove|delete|rename|debug|repair|patch|install|set\\s+up|migrate|clean\\s+up|handle|change|move|convert|upgrade|generate|apply|follow(?![\\s-]*ups?\\b))';
-const workRequest = start => new RegExp(
-    `${start}${ACTION_VERBS}\\b|\\b(?:can|could|would|will) you (?:please )?(?:help (?:me )?)?${ACTION_VERBS}\\b|\\b(?:please|help me) ${ACTION_VERBS}\\b`,
-    'i'
-);
+const ACTION_VERBS =
+    '(?:fix|implement|add|create|build|run|resolve|make|update|refactor|write|remove|delete|rename|debug|repair|patch|install|set\\s+up|migrate|clean\\s+up|handle|change|move|convert|upgrade|generate|apply|follow(?![\\s-]*ups?\\b))';
+const workRequest = start =>
+    new RegExp(
+        `${start}${ACTION_VERBS}\\b|\\b(?:can|could|would|will) you (?:please )?(?:help (?:me )?)?${ACTION_VERBS}\\b|\\b(?:please|help me) ${ACTION_VERBS}\\b`,
+        'i'
+    );
 // A fix/build request: a sentence-initial imperative ("Run the tests and fix any errors") or a polite ask
 // ("can you fix it?", "please implement …").
 const ACTION_REQUEST = workRequest(SENTENCE_START);
 // The same request written as a list item or after an affirmation, for the plan offer only.
 const WORK_REQUEST = workRequest(WORK_START);
 // The go-ahead that turns a discussion into work: "ok do it", "yes, go ahead", "let's build it", "proceed".
-const GO_AHEAD = new RegExp(`${WORK_START}(?:do it|do that|do this|go ahead|proceed|let'?s (?:do|build|implement|start|go)|start (?:implementing|building|the work|on it))\\b`, 'i');
+const GO_AHEAD = new RegExp(
+    `${WORK_START}(?:do it|do that|do this|go ahead|proceed|let'?s (?:do|build|implement|start|go)|start (?:implementing|building|the work|on it))\\b`,
+    'i'
+);
 
 /** True when the user-authored prompt text asks for work to be done, not a question or a verdict. */
 function isBuildRequest(text) {

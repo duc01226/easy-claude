@@ -11,7 +11,7 @@ const { resolveProjectRoot, isInvokedAsScript } = require('../lib/project-root.c
 const rootResolution = resolveProjectRoot({
     cwd: process.cwd(),
     scriptPath: fileURLToPath(import.meta.url),
-    env: process.env,
+    env: process.env
 });
 const rootDir = rootResolution.rootDir;
 const claudeSkillsRoot = path.join(rootDir, '.claude', 'skills');
@@ -87,9 +87,9 @@ export const DEBUGGER_TRACE_REQUIRED_SOURCE_PATHS = [
     '.claude/skills/workflow-feature/SKILL.md'
 ];
 
-const DEBUGGER_TRACE_REQUIRED_GENERATED_SKILLS = DEBUGGER_TRACE_REQUIRED_SOURCE_PATHS
-    .filter(relPath => relPath.startsWith('.claude/skills/'))
-    .map(relPath => relPath.replace('.claude/skills/', '.agents/skills/').replace(/\/skill\.md$/i, '/SKILL.md'));
+const DEBUGGER_TRACE_REQUIRED_GENERATED_SKILLS = DEBUGGER_TRACE_REQUIRED_SOURCE_PATHS.filter(relPath => relPath.startsWith('.claude/skills/')).map(relPath =>
+    relPath.replace('.claude/skills/', '.agents/skills/').replace(/\/skill\.md$/i, '/SKILL.md')
+);
 
 const REQUIRED_CONTRACT_SNIPPETS = [
     'load the registered `.agents/skills/<name>/SKILL.md` and execute it with Codex tools',
@@ -179,8 +179,7 @@ function parseSkillFrontmatter(content) {
         values[key] = rawValue.replace(/^['"]|['"]$/g, '').trim();
     }
     // Optional parser stays lazy for the standalone verifier's minimal fixtures.
-    const concise = keys.includes('metadata')
-        && require('../lib/skill-instruction-profile.cjs').hasConciseInstructions(content);
+    const concise = keys.includes('metadata') && require('../lib/skill-instruction-profile.cjs').hasConciseInstructions(content);
     return { keys, values, concise };
 }
 
@@ -384,7 +383,9 @@ export function checkGuideCarrierRules({ relativePath, skillName, content, inlin
     const tags = guideTagsIn(content);
     if (tags.length === 0) return failures;
     if (inlineSkills.includes(skillName)) {
-        failures.push(`${relativePath}: skill "${skillName}" is listed in inlineSkills (shared/protocol-groups.json) and must keep full SYNC bodies, but it carries guide entries: ${tags.join(', ')}`);
+        failures.push(
+            `${relativePath}: skill "${skillName}" is listed in inlineSkills (shared/protocol-groups.json) and must keep full SYNC bodies, but it carries guide entries: ${tags.join(', ')}`
+        );
     }
     for (const tag of tags) {
         if (!PROTOCOL_TAG_RE.test(tag) || !projectionExists(tag)) {
@@ -449,13 +450,15 @@ async function checkSourceGuideCarriers(failures) {
         const [skillName] = toRelativeNormalized(filePath, claudeSkillsRoot).split('/');
         if (skillName === 'shared') continue; // canonical text and its projection, not a skill
         const content = await fs.readFile(filePath, 'utf8');
-        failures.push(...checkGuideCarrierRules({
-            relativePath: toRelativeNormalized(filePath, rootDir),
-            skillName,
-            content,
-            inlineSkills,
-            projectionExists
-        }));
+        failures.push(
+            ...checkGuideCarrierRules({
+                relativePath: toRelativeNormalized(filePath, rootDir),
+                skillName,
+                content,
+                inlineSkills,
+                projectionExists
+            })
+        );
     }
 }
 
@@ -520,21 +523,19 @@ export function countOccurrences(haystack, needle) {
 // Compact-root contract. `AGENTS.md` is a small, static projection of the project root file
 // (CLAUDE.md): project information only. Keep this predicate pure so both the verifier and focused tests
 // can prove the size, marker and absence invariants without invoking a host runtime.
-export function checkCompactAgentsProjection(agentsText, {
-    limitBytes = AGENTS_ROOT_LIMIT_BYTES
-} = {}) {
+export function checkCompactAgentsProjection(agentsText, { limitBytes = AGENTS_ROOT_LIMIT_BYTES } = {}) {
     const failures = [];
     const agents = String(agentsText ?? '');
     const bytes = Buffer.byteLength(agents, 'utf8');
     if (bytes > limitBytes) {
         failures.push(`AGENTS.md is ${bytes} bytes, above the ${limitBytes}-byte bounded projection limit`);
     }
-    if (!hasStandaloneMarker(agents, AGENTS_ROOT_PROJECTION_START) ||
-        !hasStandaloneMarker(agents, AGENTS_ROOT_PROJECTION_END)) {
+    if (!hasStandaloneMarker(agents, AGENTS_ROOT_PROJECTION_START) || !hasStandaloneMarker(agents, AGENTS_ROOT_PROJECTION_END)) {
         failures.push(`AGENTS.md missing bounded root projection markers (${AGENTS_ROOT_PROJECTION_START}/${AGENTS_ROOT_PROJECTION_END})`);
     }
     for (const marker of RETIRED_MIRROR_MARKERS) {
-        if (agents.includes(marker)) failures.push(`AGENTS.md still carries the retired block ${marker}; the sync no longer writes protocol or context mirrors`);
+        if (agents.includes(marker))
+            failures.push(`AGENTS.md still carries the retired block ${marker}; the sync no longer writes protocol or context mirrors`);
     }
     failures.push(...checkNoUniversalProtocolText(agents, 'AGENTS.md'));
     return failures;
@@ -542,14 +543,14 @@ export function checkCompactAgentsProjection(agentsText, {
 
 // A root file or mirror must carry none of the universal protocol text. Pure + exported so a focused
 // test can drive every signature — and prove the guard is not silently deletable — without a host runtime.
-export function checkNoUniversalProtocolText(text, label, {
-    signatures = UNIVERSAL_TEXT_SIGNATURES
-} = {}) {
+export function checkNoUniversalProtocolText(text, label, { signatures = UNIVERSAL_TEXT_SIGNATURES } = {}) {
     const failures = [];
     for (const signature of signatures) {
         const n = countOccurrences(text, signature);
         if (n > 0) {
-            failures.push(`${label}: universal protocol text "${signature}" found ${n}× (expected 0 — the universal hook delivers the shared protocols; no root file or mirror carries them)`);
+            failures.push(
+                `${label}: universal protocol text "${signature}" found ${n}× (expected 0 — the universal hook delivers the shared protocols; no root file or mirror carries them)`
+            );
         }
     }
     return failures;
@@ -664,7 +665,10 @@ async function main() {
             }
 
             for (const marker of RETIRED_MIRROR_MARKERS) {
-                if (content.includes(marker)) failures.push(`${relativePath} carries the retired injected block ${marker}; mirrored skills carry exactly their source text, the universal hook delivers the shared protocols`);
+                if (content.includes(marker))
+                    failures.push(
+                        `${relativePath} carries the retired injected block ${marker}; mirrored skills carry exactly their source text, the universal hook delivers the shared protocols`
+                    );
             }
             failures.push(...checkNoUniversalProtocolText(content, relativePath));
 
@@ -736,7 +740,9 @@ async function main() {
     }
 
     if (await exists(contextPath)) {
-        failures.push(`${path.relative(rootDir, contextPath)} is a retired mirror; the sync removes it (run node .claude/skills/sync-codex/scripts/run-codex-sync.mjs)`);
+        failures.push(
+            `${path.relative(rootDir, contextPath)} is a retired mirror; the sync removes it (run node .claude/skills/sync-codex/scripts/run-codex-sync.mjs)`
+        );
     }
     if (!(await exists(projectAgentsPath))) {
         failures.push(`Missing AGENTS.md file: ${path.relative(rootDir, projectAgentsPath)}`);

@@ -56,7 +56,7 @@ const PROTOCOLS_DIR = '.claude/skills/shared/protocols';
 const SPAWN_TIMEOUT_MS = 60000;
 
 // Computed synchronously at load: the runner reads `skip` before it runs a test.
-const LIVE_SKIP = isFrameworkRepo(REPO_ROOT) ? false : 'asserts the framework repo\'s own settings and agents (framework-repo signal)';
+const LIVE_SKIP = isFrameworkRepo(REPO_ROOT) ? false : "asserts the framework repo's own settings and agents (framework-repo signal)";
 
 const entryCommand = group => `node "$CLAUDE_PROJECT_DIR"/.claude/hooks/protocol-inject-${group}.cjs`;
 const entryRel = group => `.claude/hooks/protocol-inject-${group}.cjs`;
@@ -74,7 +74,7 @@ const skillLoadRels = () => [...ENTRY_GROUPS.map(entryRel), overlayRel];
 // while commandWindows carries this native Node command.
 const GIT_STEPS = [
     "const gitHelperPath = path.join(root, '.claude', 'hooks', 'lib', 'windows-git.cjs');",
-    "try { if (fs.existsSync(gitHelperPath)) { const git = require(gitHelperPath); const result = git.resolveWindowsGit(); if (result && result.outcome === git.OUTCOMES.READY) Object.assign(process.env, git.withGitEnvironment(process.env, result.capability)); } } catch {}"
+    'try { if (fs.existsSync(gitHelperPath)) { const git = require(gitHelperPath); const result = git.resolveWindowsGit(); if (result && result.outcome === git.OUTCOMES.READY) Object.assign(process.env, git.withGitEnvironment(process.env, result.capability)); } } catch {}'
 ];
 const TODAY_LAUNCHER = [
     "const fs = require('node:fs');",
@@ -94,7 +94,7 @@ const LEAN_LAUNCHER = TODAY_LAUNCHER.replace(` ${GIT_STEPS.join(' ')}`, '');
 const todayRender = hookRel => `node -e "${TODAY_LAUNCHER}" -- ${JSON.stringify(hookRel)}`;
 const leanRender = hookRel => `node -e "${LEAN_LAUNCHER}" -- ${JSON.stringify(hookRel)}`;
 const quotePosix = value => `'${value.replaceAll("'", "'\\''")}'`;
-const nativeCommand = handler => process.platform === 'win32' ? handler.commandWindows : handler.command;
+const nativeCommand = handler => (process.platform === 'win32' ? handler.commandWindows : handler.command);
 // Existing steps that run no Git and start before every shell call, so they share the lean launcher.
 const LEAN_EXISTING_HOOKS = new Set(['.claude/hooks/failure-investigation-remind.cjs']);
 
@@ -110,7 +110,6 @@ function assertLauncher(handler, hookRel, lean, label) {
         assert.ok(!handler.commandWindows.includes('windows-git.cjs'), `${label}: no native Git step`);
     }
 }
-
 
 // ── environment ─────────────────────────────────────────────────────────────
 
@@ -135,9 +134,9 @@ function readLiveSettings() {
 
 /** Every protocol handler registered on `event`: [{ group, matcher, handler }]. */
 function protocolHandlers(settings, event) {
-    return (settings.hooks?.[event] || []).flatMap(group => (group.hooks || [])
-        .filter(handler => isProtocolCommand(handler.command))
-        .map(handler => ({ matcher: group.matcher ?? null, handler })));
+    return (settings.hooks?.[event] || []).flatMap(group =>
+        (group.hooks || []).filter(handler => isProtocolCommand(handler.command)).map(handler => ({ matcher: group.matcher ?? null, handler }))
+    );
 }
 
 /** Settings with every protocol handler removed (empty groups and events dropped). */
@@ -171,7 +170,10 @@ function fixtureSettings() {
             ],
             PreToolUse: [
                 {
-                    hooks: [{ command: cmd('doc-sync-gate.cjs'), type: 'command' }, { command: cmd('review-commit-gate.cjs'), type: 'command' }],
+                    hooks: [
+                        { command: cmd('doc-sync-gate.cjs'), type: 'command' },
+                        { command: cmd('review-commit-gate.cjs'), type: 'command' }
+                    ],
                     matcher: 'Bash'
                 }
             ],
@@ -221,8 +223,11 @@ function assertExistingStepsUnchanged(settings, temp, label) {
     for (const [event, groups] of Object.entries(baseline)) {
         assert.equal(stripped[event].length, groups.length, `${label}: ${event} group count changed`);
         groups.forEach((group, index) => {
-            assert.equal(JSON.stringify(stripped[event][index]), JSON.stringify(group),
-                `${label}: existing step changed: ${event}[${index}] ${group.hooks.map(h => h.command.slice(-60)).join(', ')}`);
+            assert.equal(
+                JSON.stringify(stripped[event][index]),
+                JSON.stringify(group),
+                `${label}: existing step changed: ${event}[${index}] ${group.hooks.map(h => h.command.slice(-60)).join(', ')}`
+            );
             for (const handler of group.hooks) {
                 // The whole handler, not only its command: an added field (say, the delivery
                 // allowance leaking onto every handler) changes the hash the host trusts.
@@ -231,8 +236,11 @@ function assertExistingStepsUnchanged(settings, temp, label) {
                 const hookRel = /-- "([^"\n]+)"$/.exec(handler.commandWindows)?.[1];
                 assert.ok(hookRel, `${label}: existing launcher has exactly one hook argument`);
                 assertLauncher(handler, hookRel, LEAN_EXISTING_HOOKS.has(hookRel), `${label}: ${hookRel}`);
-                assert.deepEqual(Object.keys(handler), ['type', 'command', 'commandWindows', ...(Object.hasOwn(handler, 'timeout') ? ['timeout'] : [])],
-                    `${label}: existing handler fields changed`);
+                assert.deepEqual(
+                    Object.keys(handler),
+                    ['type', 'command', 'commandWindows', ...(Object.hasOwn(handler, 'timeout') ? ['timeout'] : [])],
+                    `${label}: existing handler fields changed`
+                );
                 assert.equal(handler.type, 'command');
             }
         });
@@ -251,17 +259,32 @@ function guideBlock(tags) {
 
 /** Protocol index, group data, a converted skill (both skill roots) and the guide recognizer. */
 function writeDeliveryFixture(root, tags = ['review-alpha']) {
-    const rows = tags.map(tag => ({ tag, group: 'review' })).map(spec => {
-        writeFile(path.join(root, ...PROTOCOLS_DIR.split('/'), `${spec.tag}.md`), `> **${spec.tag}** — fixture protocol ${marker(spec.tag)}\n`);
-        return { ...spec, summary: `Fixture summary for ${spec.tag}`, when: 'when it applies', file: `${PROTOCOLS_DIR}/${spec.tag}.md`, parts: [{ file: `${PROTOCOLS_DIR}/${spec.tag}.md` }] };
-    });
+    const rows = tags
+        .map(tag => ({ tag, group: 'review' }))
+        .map(spec => {
+            writeFile(path.join(root, ...PROTOCOLS_DIR.split('/'), `${spec.tag}.md`), `> **${spec.tag}** — fixture protocol ${marker(spec.tag)}\n`);
+            return {
+                ...spec,
+                summary: `Fixture summary for ${spec.tag}`,
+                when: 'when it applies',
+                file: `${PROTOCOLS_DIR}/${spec.tag}.md`,
+                parts: [{ file: `${PROTOCOLS_DIR}/${spec.tag}.md` }]
+            };
+        });
     writeFile(path.join(root, ...PROTOCOLS_DIR.split('/'), 'index.json'), JSON.stringify({ binChars: 9500, groups: INDEX_GROUPS, tags: rows }, null, 2));
-    writeFile(path.join(root, '.claude', 'skills', 'shared', 'protocol-groups.json'), JSON.stringify({
-        version: 1,
-        binChars: 9500,
-        groups: Object.fromEntries(INDEX_GROUPS.map(group => [group, { description: `${group} fixture`, tags: {} }])),
-        inlineSkills: []
-    }, null, 2));
+    writeFile(
+        path.join(root, '.claude', 'skills', 'shared', 'protocol-groups.json'),
+        JSON.stringify(
+            {
+                version: 1,
+                binChars: 9500,
+                groups: Object.fromEntries(INDEX_GROUPS.map(group => [group, { description: `${group} fixture`, tags: {} }])),
+                inlineSkills: []
+            },
+            null,
+            2
+        )
+    );
     const skill = `---\nname: conv-a\ndescription: fixture skill\n---\n\n# conv-a\n\n${guideBlock(tags)}\n`;
     writeFile(path.join(root, '.claude', 'skills', 'conv-a', 'SKILL.md'), skill);
     writeFile(path.join(root, '.agents', 'skills', 'conv-a', 'SKILL.md'), skill);
@@ -305,7 +328,11 @@ for (const name of ['spawn', 'spawnSync', 'exec', 'execSync', 'execFile', 'execF
 
 function readLog(file) {
     if (!fs.existsSync(file)) return [];
-    return fs.readFileSync(file, 'utf8').split('\n').filter(Boolean).map(line => JSON.parse(line));
+    return fs
+        .readFileSync(file, 'utf8')
+        .split('\n')
+        .filter(Boolean)
+        .map(line => JSON.parse(line));
 }
 
 // ── live framework data (TC-PDL-060) ────────────────────────────────────────
@@ -318,7 +345,10 @@ function skillPreloadingAgents(agentsDir) {
         if (lines[0].trim() !== '---') continue;
         const end = lines.findIndex((line, i) => i > 0 && line.trim() === '---');
         const front = lines.slice(1, end < 0 ? 0 : end);
-        const name = front.map(line => /^name:\s*(.+?)\s*$/.exec(line)).find(Boolean)?.[1].replace(/^(['"])(.*)\1$/, '$2');
+        const name = front
+            .map(line => /^name:\s*(.+?)\s*$/.exec(line))
+            .find(Boolean)?.[1]
+            .replace(/^(['"])(.*)\1$/, '$2');
         if (name && front.some(line => /^skills:/.test(line))) names.push(name);
     }
     return names;
@@ -345,22 +375,31 @@ function normalizeGuideBlock(text) {
  */
 function generateInlineMirror(root, inlineTags) {
     writeDeliveryFixture(root, INLINE_TAGS);
-    writeFile(path.join(root, '.claude', 'skills', 'shared', 'sync-inline-versions.md'),
-        `# Canonical fixture\n\n${INLINE_TAGS.map(tag => `## SYNC:${tag}\n\n${canonicalBody(tag)}`).join('\n\n---\n\n')}\n`);
+    writeFile(
+        path.join(root, '.claude', 'skills', 'shared', 'sync-inline-versions.md'),
+        `# Canonical fixture\n\n${INLINE_TAGS.map(tag => `## SYNC:${tag}\n\n${canonicalBody(tag)}`).join('\n\n---\n\n')}\n`
+    );
     fs.rmSync(path.join(root, '.agents'), { recursive: true, force: true });
     const temp = fs.mkdtempSync(path.join(root, 'tmp-run-'));
     const driver = path.join(temp, 'drive-mirror.mjs');
-    fs.writeFileSync(driver, [
-        "import { pathToFileURL } from 'node:url';",
-        'const [migratePath, compatPath, target, listJson] = process.argv.slice(2);',
-        'const { materializeSkillMirror } = await import(pathToFileURL(migratePath).href);',
-        'const { buildSkillReferenceMap } = await import(pathToFileURL(compatPath).href);',
-        'const list = JSON.parse(listJson);',
-        "await materializeSkillMirror(target, buildSkillReferenceMap(['conv-a', 'shared']), list === null ? {} : { inlineTags: list });"
-    ].join('\n'));
+    fs.writeFileSync(
+        driver,
+        [
+            "import { pathToFileURL } from 'node:url';",
+            'const [migratePath, compatPath, target, listJson] = process.argv.slice(2);',
+            'const { materializeSkillMirror } = await import(pathToFileURL(migratePath).href);',
+            'const { buildSkillReferenceMap } = await import(pathToFileURL(compatPath).href);',
+            'const list = JSON.parse(listJson);',
+            "await materializeSkillMirror(target, buildSkillReferenceMap(['conv-a', 'shared']), list === null ? {} : { inlineTags: list });"
+        ].join('\n')
+    );
     const target = path.join(root, '.agents', 'skills');
     const run = spawnSync(process.execPath, [driver, CODEX_MIGRATE, CODEX_COMPAT, target, JSON.stringify(inlineTags)], {
-        cwd: root, env: scrubbedEnv(temp, { CLAUDE_PROJECT_DIR: root }), encoding: 'utf8', windowsHide: true, timeout: SPAWN_TIMEOUT_MS
+        cwd: root,
+        env: scrubbedEnv(temp, { CLAUDE_PROJECT_DIR: root }),
+        encoding: 'utf8',
+        windowsHide: true,
+        timeout: SPAWN_TIMEOUT_MS
     });
     assert.equal(run.status, 0, `second-host copy failed: ${run.stderr}`);
     return {
@@ -372,8 +411,10 @@ function generateInlineMirror(root, inlineTags) {
 /** The review group's second-host delivery plan for a prompt naming the fixture skill. */
 function planCodexReviewDelivery(root) {
     const { planDelivery } = require(path.join(HOOKS_DIR, 'lib', 'protocol-delivery.cjs'));
-    return planDelivery({ hook_event_name: 'UserPromptSubmit', prompt: 'please use $conv-a here', turn_id: 't1', session_id: 's1', cwd: root },
-        'review', { projectRoot: root, host: 'codex' });
+    return planDelivery({ hook_event_name: 'UserPromptSubmit', prompt: 'please use $conv-a here', turn_id: 't1', session_id: 's1', cwd: root }, 'review', {
+        projectRoot: root,
+        host: 'codex'
+    });
 }
 
 // ── tests ───────────────────────────────────────────────────────────────────
@@ -398,28 +439,49 @@ const tests = [
                 const handlers = protocolHandlers(settings, event).filter(entry => entry.matcher === matcher);
                 const commands = handlers.map(entry => entry.handler.command);
                 // Then each group's entry file and the overlay reminder are registered exactly once, with no arguments, and exist
-                assert.deepEqual(commands, skillLoadCommands(), `${event} ${matcher || '(no matcher)'}: one bare registration per group, then the overlay reminder`);
+                assert.deepEqual(
+                    commands,
+                    skillLoadCommands(),
+                    `${event} ${matcher || '(no matcher)'}: one bare registration per group, then the overlay reminder`
+                );
                 for (const rel of skillLoadRels()) assert.ok(fs.existsSync(path.join(REPO_ROOT, ...rel.split('/'))), `${rel} exists`);
                 // And all share one registration group per load path
                 assert.equal(new Set(handlers.map(entry => entry.matcher)).size, 1, `${event}: one registration group`);
             }
             // And the agent start carries the five groups and then the four bins, in one registration group
             const agentStart = protocolHandlers(settings, 'SubagentStart');
-            assert.deepEqual(agentStart.map(entry => entry.handler.command), [...ENTRY_GROUPS, ...BINS.map(binName)].map(entryCommand), 'SubagentStart: groups then bins');
+            assert.deepEqual(
+                agentStart.map(entry => entry.handler.command),
+                [...ENTRY_GROUPS, ...BINS.map(binName)].map(entryCommand),
+                'SubagentStart: groups then bins'
+            );
             assert.equal(new Set(agentStart.map(entry => entry.matcher)).size, 1, 'SubagentStart: one registration group');
             // And the prompt event carries the bins, one bare registration each, in a registration group of their own that comes first
             const prompt = protocolHandlers(settings, 'UserPromptSubmit');
-            assert.deepEqual(prompt.map(entry => entry.handler.command), BINS.map(binName).map(entryCommand), 'UserPromptSubmit: the bins only');
+            assert.deepEqual(
+                prompt.map(entry => entry.handler.command),
+                BINS.map(binName).map(entryCommand),
+                'UserPromptSubmit: the bins only'
+            );
             assert.equal(settings.hooks.UserPromptSubmit[0].hooks.length, BIN_COUNT, 'the bins are the first prompt registration group');
             for (const n of BINS) assert.ok(fs.existsSync(path.join(HOOKS_DIR, `protocol-inject-${binName(n)}.cjs`)), `bin ${n} entry file exists`);
             assert.equal(fs.existsSync(path.join(HOOKS_DIR, 'protocol-inject-universal.cjs')), false, 'the retired single universal entry file is gone');
             // And the bins are also registered on the session start of a compaction or a clear (the `compact|clear` sources only), so a
             // compaction that no prompt follows still re-delivers the bundle; nothing else protocol-related sits there
             const sessionStart = protocolHandlers(settings, 'SessionStart');
-            assert.deepEqual(sessionStart.map(entry => entry.handler.command), BINS.map(binName).map(entryCommand), 'SessionStart: the bins only');
-            assert.deepEqual([...new Set(sessionStart.map(entry => entry.matcher))], ['compact|clear'], 'SessionStart: the compact and clear sources only, never startup or resume');
+            assert.deepEqual(
+                sessionStart.map(entry => entry.handler.command),
+                BINS.map(binName).map(entryCommand),
+                'SessionStart: the bins only'
+            );
+            assert.deepEqual(
+                [...new Set(sessionStart.map(entry => entry.matcher))],
+                ['compact|clear'],
+                'SessionStart: the compact and clear sources only, never startup or resume'
+            );
             // And no protocol entry is registered anywhere else
-            const elsewhere = Object.keys(settings.hooks).filter(event => !['PostToolUse', 'UserPromptExpansion', 'SubagentStart', 'UserPromptSubmit', 'SessionStart'].includes(event))
+            const elsewhere = Object.keys(settings.hooks)
+                .filter(event => !['PostToolUse', 'UserPromptExpansion', 'SubagentStart', 'UserPromptSubmit', 'SessionStart'].includes(event))
                 .filter(event => protocolHandlers(settings, event).length > 0);
             assert.deepEqual(elsewhere, [], 'protocol entries on an unexpected event');
             assert.equal(protocolHandlers(settings, 'PostToolUse').length, (ENTRY_GROUPS.length + 1) * 2, 'PostToolUse: Skill and Read only');
@@ -434,7 +496,11 @@ const tests = [
             // When every protocol handler is listed with its event and matcher
             const all = Object.keys(settings.hooks).flatMap(event => protocolHandlers(settings, event).map(entry => ({ event, ...entry })));
             const perLoadPath = ENTRY_GROUPS.length + 1;
-            assert.equal(all.length, perLoadPath * 3 + (ENTRY_GROUPS.length + BIN_COUNT) + BIN_COUNT + BIN_COUNT, 'three skill-load paths, the agent start, the prompt event and the compact session start');
+            assert.equal(
+                all.length,
+                perLoadPath * 3 + (ENTRY_GROUPS.length + BIN_COUNT) + BIN_COUNT + BIN_COUNT,
+                'three skill-load paths, the agent start, the prompt event and the compact session start'
+            );
             // Then each handler under PostToolUse `Read` has exactly the skill-file condition
             const reads = all.filter(entry => entry.event === 'PostToolUse' && entry.matcher === 'Read');
             assert.equal(reads.length, perLoadPath);
@@ -495,7 +561,11 @@ const tests = [
                 assert.equal(hooks.UserPromptSubmit.at(-1), prompt[1], 'the remapped group follows every native prompt group');
                 // And each group has a shell-read step (the confirmation run kept the shell mapping on)
                 const post = protocolGroups('PostToolUse');
-                assert.deepEqual(post.map(group => group.matcher), ['Bash'], 'PostToolUse protocol steps sit on the shell tool only');
+                assert.deepEqual(
+                    post.map(group => group.matcher),
+                    ['Bash'],
+                    'PostToolUse protocol steps sit on the shell tool only'
+                );
                 expectEntries(post[0], 'PostToolUse Bash');
                 // And agent start mirrors with the filter anchored for the second host's regex matcher
                 const agent = protocolGroups('SubagentStart');
@@ -508,7 +578,11 @@ const tests = [
                 assert.equal(start[0].matcher, 'compact|clear', 'SessionStart keeps the compact and clear sources');
                 expectEntries(start[0], 'SessionStart compact|clear', binRels);
                 assert.equal(hooks.SessionStart.length, 1, 'no other step mirrors on SessionStart in this fixture');
-                assert.equal(report.skipped_events.some(entry => entry.event === 'SessionStart'), false, 'session start is not skipped');
+                assert.equal(
+                    report.skipped_events.some(entry => entry.event === 'SessionStart'),
+                    false,
+                    'session start is not skipped'
+                );
                 // And no delivery step is keyed to file read or skill use
                 for (const [event, groups] of Object.entries(hooks)) {
                     for (const group of groups.filter(item => item.hooks.some(handler => isProtocolCommand(handler.command)))) {
@@ -518,13 +592,24 @@ const tests = [
                 }
                 assert.equal(hooks.UserPromptExpansion, undefined, 'the second host has no command-expansion event');
                 // And the dropped and remapped paths are reported with their reasons
-                assert.deepEqual(report.skipped_events.filter(entry => entry.event === 'UserPromptExpansion'),
-                    [{ event: 'UserPromptExpansion', reason: 'remapped-to-user-prompt-submit' }]);
+                assert.deepEqual(
+                    report.skipped_events.filter(entry => entry.event === 'UserPromptExpansion'),
+                    [{ event: 'UserPromptExpansion', reason: 'remapped-to-user-prompt-submit' }]
+                );
                 const dropped = report.skipped_groups.filter(entry => entry.reason === 'matcher-names-no-codex-tool');
-                assert.deepEqual(dropped.map(entry => `${entry.event}:${entry.matcher}`), ['PostToolUse:Skill', 'PostToolUse:Read']);
-                assert.deepEqual(report.codex_only_groups.map(entry => [entry.event, entry.matcher, entry.hooks, entry.derived_from.matcher]),
-                    [['PostToolUse', 'Bash', ENTRY_GROUPS.length + 1, 'Read']]);
-                assert.equal(report.skipped_events.some(entry => entry.event === 'SubagentStart'), false, 'agent start is not skipped');
+                assert.deepEqual(
+                    dropped.map(entry => `${entry.event}:${entry.matcher}`),
+                    ['PostToolUse:Skill', 'PostToolUse:Read']
+                );
+                assert.deepEqual(
+                    report.codex_only_groups.map(entry => [entry.event, entry.matcher, entry.hooks, entry.derived_from.matcher]),
+                    [['PostToolUse', 'Bash', ENTRY_GROUPS.length + 1, 'Read']]
+                );
+                assert.equal(
+                    report.skipped_events.some(entry => entry.event === 'SubagentStart'),
+                    false,
+                    'agent start is not skipped'
+                );
                 // And, in the framework repo, the shipped settings keep every existing step byte-identical too
                 if (!LIVE_SKIP) assertExistingStepsUnchanged(readLiveSettings(), temp, 'shipped settings');
             } finally {
@@ -542,12 +627,20 @@ const tests = [
                 writeDeliveryFixture(fixture);
                 const settings = fixtureSettings();
                 const { mirror } = renderCodex(fixture, settings, temp);
-                const protocolHandlers = Object.values(mirror.hooks).flat().flatMap(group => group.hooks)
+                const protocolHandlers = Object.values(mirror.hooks)
+                    .flat()
+                    .flatMap(group => group.hooks)
                     .filter(handler => isProtocolCommand(handler.command));
-                assert.equal(protocolHandlers.length, (ENTRY_GROUPS.length + 1) * 2 + (ENTRY_GROUPS.length + BIN_COUNT) + BIN_COUNT + BIN_COUNT, 'prompt, shell-read, agent-start, native bin and compact session-start steps');
+                assert.equal(
+                    protocolHandlers.length,
+                    (ENTRY_GROUPS.length + 1) * 2 + (ENTRY_GROUPS.length + BIN_COUNT) + BIN_COUNT + BIN_COUNT,
+                    'prompt, shell-read, agent-start, native bin and compact session-start steps'
+                );
                 // Then every platform step has exact JS plus exactly one existing entry file and no extra argv.
                 for (const handler of protocolHandlers) {
-                    const match = /^node -e "[^"]+" -- "(\.claude\/hooks\/(?:protocol-inject-[a-z0-9-]+|skill-overlay-remind)\.cjs)"$/.exec(handler.commandWindows);
+                    const match = /^node -e "[^"]+" -- "(\.claude\/hooks\/(?:protocol-inject-[a-z0-9-]+|skill-overlay-remind)\.cjs)"$/.exec(
+                        handler.commandWindows
+                    );
                     assert.ok(match, `not an exact native launcher command: ${handler.commandWindows?.slice(-80)}`);
                     assertLauncher(handler, match[1], true, match[1]);
                     assert.ok(fs.existsSync(path.join(fixture, ...match[1].split('/'))), `${match[1]} exists`);
@@ -556,21 +649,42 @@ const tests = [
                 const sub = path.join(fixture, 'packages', 'app');
                 fs.mkdirSync(sub, { recursive: true });
                 const env = scrubbedEnv(temp);
-                const reviewCommand = event => nativeCommand(mirror.hooks[event].flatMap(group => group.hooks)
-                    .find(handler => handler.command.includes('protocol-inject-review.cjs')));
-                const prompt = runShellCommand(reviewCommand('UserPromptSubmit'), sub,
-                    { hook_event_name: 'UserPromptSubmit', prompt: 'please use $conv-a here', turn_id: 't1', session_id: 's1', cwd: sub }, env);
-                const shell = runShellCommand(reviewCommand('PostToolUse'), sub,
-                    { hook_event_name: 'PostToolUse', tool_name: 'Bash', tool_input: { command: 'Get-Content -Raw .agents/skills/conv-a/SKILL.md' }, turn_id: 't2', session_id: 's2', cwd: fixture }, env);
+                const reviewCommand = event =>
+                    nativeCommand(mirror.hooks[event].flatMap(group => group.hooks).find(handler => handler.command.includes('protocol-inject-review.cjs')));
+                const prompt = runShellCommand(
+                    reviewCommand('UserPromptSubmit'),
+                    sub,
+                    { hook_event_name: 'UserPromptSubmit', prompt: 'please use $conv-a here', turn_id: 't1', session_id: 's1', cwd: sub },
+                    env
+                );
+                const shell = runShellCommand(
+                    reviewCommand('PostToolUse'),
+                    sub,
+                    {
+                        hook_event_name: 'PostToolUse',
+                        tool_name: 'Bash',
+                        tool_input: { command: 'Get-Content -Raw .agents/skills/conv-a/SKILL.md' },
+                        turn_id: 't2',
+                        session_id: 's2',
+                        cwd: fixture
+                    },
+                    env
+                );
                 // Then each resolves the project root from the subdirectory and delivers the protocol
-                for (const [label, result] of [['prompt', prompt], ['shell read', shell]]) {
+                for (const [label, result] of [
+                    ['prompt', prompt],
+                    ['shell read', shell]
+                ]) {
                     assert.equal(result.code, 0, `${label}: ${result.stderr}`);
                     assert.ok(contextOf(result.stdout).includes(marker('review-alpha')), `${label}: delivered (stdout: ${result.stdout.slice(0, 200)})`);
                 }
                 // And the OpenCode bridge table names the same bare entry files, each resolving to a file
                 const { buildHooksConfig } = await import(pathToFileURL(OPENCODE_SYNC).href);
-                const bridged = Object.values(buildHooksConfig(settings).hooks).flat().flatMap(group => group.hooks)
-                    .map(handler => handler.command).filter(isProtocolCommand);
+                const bridged = Object.values(buildHooksConfig(settings).hooks)
+                    .flat()
+                    .flatMap(group => group.hooks)
+                    .map(handler => handler.command)
+                    .filter(isProtocolCommand);
                 assert.ok(bridged.length >= ENTRY_GROUPS.length, 'the bridge carries protocol steps');
                 for (const hookRel of bridged) {
                     assert.match(hookRel, /^\.claude\/hooks\/(?:protocol-inject-[a-z0-9-]+|skill-overlay-remind)\.cjs$/, 'one bare path, no arguments');
@@ -587,8 +701,7 @@ const tests = [
             // Given the exported second-host command renderer
             const { normalizeCommand } = await import(pathToFileURL(CODEX_SYNC).href);
             // When it renders a protocol entry and an existing hook
-            const protocol = { command: normalizeCommand(entryCommand('review')),
-                commandWindows: normalizeCommand(entryCommand('review'), { windows: true }) };
+            const protocol = { command: normalizeCommand(entryCommand('review')), commandWindows: normalizeCommand(entryCommand('review'), { windows: true }) };
             const existingCommand = 'node "$CLAUDE_PROJECT_DIR"/.claude/hooks/review-commit-gate.cjs';
             const existing = { command: normalizeCommand(existingCommand), commandWindows: normalizeCommand(existingCommand, { windows: true }) };
             // Then both platform commands preserve independent exact JS/argv; delivery carries no Git lookup.
@@ -604,16 +717,30 @@ const tests = [
                 fs.mkdirSync(sub, { recursive: true });
                 const log = path.join(temp, 'load.jsonl');
                 // When the protocol command runs from a subdirectory for a second-host prompt with no `$`
-                const result = runShellCommand(nativeCommand(protocol), sub,
+                const result = runShellCommand(
+                    nativeCommand(protocol),
+                    sub,
                     { hook_event_name: 'UserPromptSubmit', prompt: 'explain the build', turn_id: 't1', session_id: 's1', cwd: sub },
-                    scrubbedEnv(temp, { NODE_OPTIONS: `--require "${preload.replace(/\\/g, '/')}"`, PDL_LOAD_LOG: log }));
+                    scrubbedEnv(temp, { NODE_OPTIONS: `--require "${preload.replace(/\\/g, '/')}"`, PDL_LOAD_LOG: log })
+                );
                 // Then it prints nothing, exits 0, never loads the Git helper and spawns no child process
                 assert.equal(result.code, 0, result.stderr);
                 assert.equal(result.stdout, '');
                 const entries = readLog(log);
-                assert.ok(entries.some(entry => entry.type === 'load' && /protocol-inject-review\.cjs$/.test(entry.file)), 'the logger saw the entry load');
-                assert.deepEqual(entries.filter(entry => entry.type === 'load' && /windows-git\.cjs$/.test(entry.file)), [], 'windows-git.cjs loaded');
-                assert.deepEqual(entries.filter(entry => entry.type === 'spawn'), [], 'a child process was spawned');
+                assert.ok(
+                    entries.some(entry => entry.type === 'load' && /protocol-inject-review\.cjs$/.test(entry.file)),
+                    'the logger saw the entry load'
+                );
+                assert.deepEqual(
+                    entries.filter(entry => entry.type === 'load' && /windows-git\.cjs$/.test(entry.file)),
+                    [],
+                    'windows-git.cjs loaded'
+                );
+                assert.deepEqual(
+                    entries.filter(entry => entry.type === 'spawn'),
+                    [],
+                    'a child process was spawned'
+                );
             } finally {
                 removeTempDir(fixture);
             }
@@ -636,10 +763,16 @@ const tests = [
                 const post = hooks.PostToolUse;
                 const byMatcher = matcher => post.filter(group => group.matcher === matcher);
                 assert.equal(byMatcher('Skill').length, 1, 'one skill-tool group');
-                assert.deepEqual(byMatcher('Skill')[0].hooks, skillLoadRels().map(command => ({ type: 'command', command })));
+                assert.deepEqual(
+                    byMatcher('Skill')[0].hooks,
+                    skillLoadRels().map(command => ({ type: 'command', command }))
+                );
                 // And once on the file read, each entry carrying the skill-file condition
                 assert.equal(byMatcher('Read').length, 1, 'one file-read group');
-                assert.deepEqual(byMatcher('Read')[0].hooks, skillLoadRels().map(command => ({ type: 'command', command, if: READ_CONDITION })));
+                assert.deepEqual(
+                    byMatcher('Read')[0].hooks,
+                    skillLoadRels().map(command => ({ type: 'command', command, if: READ_CONDITION }))
+                );
                 // And every other step keeps its earlier two-key shape
                 for (const [event, groups] of Object.entries(hooks)) {
                     for (const handler of groups.flatMap(group => group.hooks).filter(item => !isProtocolCommand(item.command))) {
@@ -648,7 +781,11 @@ const tests = [
                 }
                 // And typed-command expansion and agent start are bridged on the V2 surfaces, never dropped silently
                 for (const event of ['UserPromptExpansion', 'SubagentStart']) {
-                    assert.deepEqual(report.skipped_events.filter(entry => entry.event === event), [], `${event} is bridged, not skipped`);
+                    assert.deepEqual(
+                        report.skipped_events.filter(entry => entry.event === event),
+                        [],
+                        `${event} is bridged, not skipped`
+                    );
                     assert.ok(Array.isArray(hooks[event]) && hooks[event].length > 0, `${event} has a bridge entry`);
                 }
                 // And every bridged entry resolves to a file of the copied tree
@@ -666,31 +803,41 @@ const tests = [
             try {
                 // Given a converted skill, a skill with no guide block, and the bridge generated from the settings
                 writeDeliveryFixture(fixture);
-                writeFile(path.join(fixture, '.claude', 'skills', 'plain-b', 'SKILL.md'), '---\nname: plain-b\ndescription: unconverted fixture skill\n---\n\n# plain-b\n');
+                writeFile(
+                    path.join(fixture, '.claude', 'skills', 'plain-b', 'SKILL.md'),
+                    '---\nname: plain-b\ndescription: unconverted fixture skill\n---\n\n# plain-b\n'
+                );
                 writeFile(path.join(fixture, '.claude', 'settings.json'), `${JSON.stringify(fixtureSettings(), null, 2)}\n`);
                 const { materializeOpencodeHooks } = await import(pathToFileURL(OPENCODE_SYNC).href);
                 const { pluginPath } = await materializeOpencodeHooks({ rootDir: fixture });
                 // When the bridge receives the skill tool's completion, the skill named in `name` (the third host's field)
                 const driver = path.join(temp, 'drive-bridge.mjs');
-                fs.writeFileSync(driver, [
-                    "import { pathToFileURL } from 'node:url';",
-                    'const [pluginPath, root, eventsJson] = process.argv.slice(2);',
-                    'const { EasyClaudeHooks } = await import(pathToFileURL(pluginPath).href);',
-                    'const hooks = await EasyClaudeHooks({ directory: root });',
-                    'const results = [];',
-                    'for (const event of JSON.parse(eventsJson)) {',
-                    "    const output = { title: 'skill', output: event.output, metadata: {} };",
-                    "    await hooks['tool.execute.after'](event.input, output);",
-                    '    results.push(output.output);',
-                    '}',
-                    'process.stdout.write(JSON.stringify(results));'
-                ].join('\n'));
+                fs.writeFileSync(
+                    driver,
+                    [
+                        "import { pathToFileURL } from 'node:url';",
+                        'const [pluginPath, root, eventsJson] = process.argv.slice(2);',
+                        'const { EasyClaudeHooks } = await import(pathToFileURL(pluginPath).href);',
+                        'const hooks = await EasyClaudeHooks({ directory: root });',
+                        'const results = [];',
+                        'for (const event of JSON.parse(eventsJson)) {',
+                        "    const output = { title: 'skill', output: event.output, metadata: {} };",
+                        "    await hooks['tool.execute.after'](event.input, output);",
+                        '    results.push(output.output);',
+                        '}',
+                        'process.stdout.write(JSON.stringify(results));'
+                    ].join('\n')
+                );
                 const events = [
                     { input: { tool: 'skill', sessionID: 's027', callID: 'c1', args: { name: 'conv-a' } }, output: 'CONV_A_SKILL_TEXT' },
                     { input: { tool: 'skill', sessionID: 's027b', callID: 'c2', args: { name: 'plain-b' } }, output: 'PLAIN_B_SKILL_TEXT' }
                 ];
                 const run = spawnSync(process.execPath, [driver, pluginPath, fixture, JSON.stringify(events)], {
-                    cwd: fixture, env: scrubbedEnv(temp), encoding: 'utf8', windowsHide: true, timeout: SPAWN_TIMEOUT_MS
+                    cwd: fixture,
+                    env: scrubbedEnv(temp),
+                    encoding: 'utf8',
+                    windowsHide: true,
+                    timeout: SPAWN_TIMEOUT_MS
                 });
                 assert.equal(run.status, 0, `bridge driver failed: ${run.stderr}`);
                 const [converted, plain] = JSON.parse(run.stdout);
@@ -713,9 +860,16 @@ const tests = [
                 const { mirrorSkill, source } = generateInlineMirror(fixture, ['review-beta']);
                 const carrier = require(path.join(REPO_ROOT, GUIDE_CARRIER_REL));
                 // Then the copy holds the listed protocol's full canonical body
-                assert.ok(mirrorSkill.includes(`<!-- SYNC:review-beta -->\n\n${canonicalBody('review-beta')}\n\n<!-- /SYNC:review-beta -->`), 'listed protocol inline');
+                assert.ok(
+                    mirrorSkill.includes(`<!-- SYNC:review-beta -->\n\n${canonicalBody('review-beta')}\n\n<!-- /SYNC:review-beta -->`),
+                    'listed protocol inline'
+                );
                 // And a guide entry, never a body, for the other
-                assert.deepEqual(carrier.guideTags(mirrorSkill), ['review-alpha'], 'the unlisted protocol stays a guide entry and the listed one leaves the block');
+                assert.deepEqual(
+                    carrier.guideTags(mirrorSkill),
+                    ['review-alpha'],
+                    'the unlisted protocol stays a guide entry and the listed one leaves the block'
+                );
                 assert.ok(!mirrorSkill.includes(marker('review-alpha')), 'the unlisted protocol has no body in the copy');
                 assert.deepEqual(carrier.guideTags(source), ['review-alpha', 'review-beta'], 'the source skill is unchanged');
                 // And second-host delivery for that skill covers only the unlisted protocol, so nothing arrives twice
@@ -724,7 +878,11 @@ const tests = [
                 assert.ok(!plan.text.includes(marker('review-beta')), 'the listed protocol was also delivered');
                 // Boundary: a listed protocol the skill does not declare changes nothing
                 const other = generateInlineMirror(fs.mkdtempSync(path.join(fixture, 'undeclared-')), ['review-gamma']);
-                assert.equal(normalizeGuideBlock(other.mirrorSkill), normalizeGuideBlock(other.source), 'guide block changed for an undeclared listed protocol');
+                assert.equal(
+                    normalizeGuideBlock(other.mirrorSkill),
+                    normalizeGuideBlock(other.source),
+                    'guide block changed for an undeclared listed protocol'
+                );
             } finally {
                 removeTempDir(fixture);
             }

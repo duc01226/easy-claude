@@ -37,8 +37,7 @@ test('TC-PIPE-WIRE-002: source skill docs expose the read-only commands and the 
 
     // When the documented commands and stage table are inspected.
     assert.match(techSpec, /generate-tech-specs\.mjs --check/);
-    assert.doesNotMatch(techSpec, /npm run /,
-        'the skill must document the in-framework path, never a host npm script it cannot rely on');
+    assert.doesNotMatch(techSpec, /npm run /, 'the skill must document the in-framework path, never a host npm script it cannot rely on');
     assert.match(syncCodex, /20 stages, sequential/);
     assert.match(syncCodex, /\| 1\s+\| claude-md/);
     assert.match(syncCodex, /\| 5\s+\| counts/);
@@ -66,7 +65,10 @@ test('TC-PIPE-WIRE-003: both release gates carry their optional-capability flags
     assert.match(registry[0], /["']--configured-roots["']/, 'the registry gate must read the project-declared roots');
 
     // Neither gate may be a mutating stage, so both are selected by the derived `--verify-only` set.
-    for (const [name, stage] of [['tech-spec-freshness', techSpec[0]], ['feature-registry', registry[0]]]) {
+    for (const [name, stage] of [
+        ['tech-spec-freshness', techSpec[0]],
+        ['feature-registry', registry[0]]
+    ]) {
         assert.doesNotMatch(stage, /\bmutate:\s*true\b/, `${name} is a read-only gate`);
     }
 });

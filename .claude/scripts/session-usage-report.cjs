@@ -39,15 +39,7 @@ const { readUsage, USAGE_FIELDS } = require('../hooks/lib/session-usage.cjs');
 // refused, as `assertRunId` does there (`:41-45`). Copied because that lib does not export them.
 const RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 // Deviation kinds, closed set: `start-workflow` SKILL.md → Step Execution Protocol, step 6 (BR-GWF-08).
-const DEVIATION_KINDS = Object.freeze([
-    'when-false',
-    'pre-action',
-    'intent-skip',
-    'merged',
-    'simplified',
-    'reordered',
-    'review-report'
-]);
+const DEVIATION_KINDS = Object.freeze(['when-false', 'pre-action', 'intent-skip', 'merged', 'simplified', 'reordered', 'review-report']);
 // Occurrence ids are schema ids (`^[a-z][a-z0-9-]*$`) or resolver ids such as `legacy-2.4.0-<hash>-1`.
 const OCCURRENCE_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 const SKILL_NAME = /^[a-z0-9][a-z0-9-]*$/;
@@ -211,7 +203,10 @@ function readDeviationLog(runId, cwd) {
     } catch {
         return { runId, status: 'missing', lines: [] };
     }
-    const lines = text.split(/\r?\n/).filter(line => line.trim() !== '').map(parseDeviationLine);
+    const lines = text
+        .split(/\r?\n/)
+        .filter(line => line.trim() !== '')
+        .map(parseDeviationLine);
     return { runId, status: 'found', lines };
 }
 
@@ -312,10 +307,10 @@ function formatJson(report) {
     const log = report.deviationLog;
     const deviationLog = log
         ? {
-            runId: log.runId,
-            status: log.status,
-            lines: log.lines.map(line => (line.invalid ? { invalid: true } : { occurrenceId: line.occurrenceId, kind: line.kind }))
-        }
+              runId: log.runId,
+              status: log.status,
+              lines: log.lines.map(line => (line.invalid ? { invalid: true } : { occurrenceId: line.occurrenceId, kind: line.kind }))
+          }
         : null;
     return `${JSON.stringify({ runs, comparison: report.comparison, deviationLog }, null, 2)}\n`;
 }

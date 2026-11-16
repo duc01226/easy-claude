@@ -149,7 +149,9 @@ function listCarriers(root) {
             if (entry.endsWith('.md')) carriers.push({ kind: 'agent', name: entry.slice(0, -3), file: path.join(agentsDir, entry) });
         }
     }
-    return carriers.filter(carrier => !(carrier.kind === 'skill' && carrier.name === OWNER_SKILL) && !(carrier.kind === 'agent' && carrier.name === OWNER_AGENT));
+    return carriers.filter(
+        carrier => !(carrier.kind === 'skill' && carrier.name === OWNER_SKILL) && !(carrier.kind === 'agent' && carrier.name === OWNER_AGENT)
+    );
 }
 
 // No skill may hold a guide line for an AI protocol: a guide line is a pointer the protocol hook expands once per
@@ -167,7 +169,8 @@ function tagViolations(root) {
         const text = fs.readFileSync(carrier.file, 'utf8');
         for (const tag of TAGS) {
             if (text.includes(`SYNC:${tag}`)) found.push(`${carrier.kind} ${carrier.name}: SYNC:${tag}`);
-            if (new RegExp(`^\\s*[-*]\\s+\`${tag}\`\\s+[—-]`, 'm').test(text) && !guideLineAllowed(carrier, tag)) found.push(`${carrier.kind} ${carrier.name}: guide line for ${tag}`);
+            if (new RegExp(`^\\s*[-*]\\s+\`${tag}\`\\s+[—-]`, 'm').test(text) && !guideLineAllowed(carrier, tag))
+                found.push(`${carrier.kind} ${carrier.name}: guide line for ${tag}`);
         }
     }
     return found;
@@ -183,7 +186,8 @@ function pointerViolations(root) {
             if (line.length > POINTER_MAX_CHARS) found.push(`${where}: pointer is ${line.length} chars (limit ${POINTER_MAX_CHARS})`);
             const paths = [...new Set(line.match(PROTOCOL_PATH) || [])];
             if (paths.length > 1) found.push(`${where}: names ${paths.length} protocol files`);
-            if (paths.length === 0 && !line.includes(OWNER_SKILL) && !line.includes(OWNER_AGENT)) found.push(`${where}: names neither a protocol file nor the reviewer`);
+            if (paths.length === 0 && !line.includes(OWNER_SKILL) && !line.includes(OWNER_AGENT))
+                found.push(`${where}: names neither a protocol file nor the reviewer`);
             for (const p of paths) if (!fs.existsSync(path.join(root, ...p.split('/')))) found.push(`${where}: ${p} does not exist`);
         }
     }
@@ -199,36 +203,51 @@ const tests = [
         // When the carrier scan runs
         // Then carriers outside the reviewer pair are flagged and the pair passes
         name: 'TC-AIZ-001 the carrier scan flags a SYNC marker, a reminder or a guide line for an AI protocol in any skill or agent except the reviewer pair',
-        fn: () => withFixture(fx => {
-            fx.write('.claude/skills/plan/SKILL.md', '# plan\n');
-            fx.write('.claude/agents/planner.md', '# planner\n');
-            fx.write(`.claude/skills/${OWNER_SKILL}/SKILL.md`, `<!-- SYNC:ai-engineering-gate -->\nbody\n<!-- /SYNC:ai-engineering-gate -->\n- \`ai-review-checklist\` — guide\n`);
-            fx.write(`.claude/agents/${OWNER_AGENT}.md`, '<!-- SYNC:ai-feature-framing-gate -->\nbody\n');
-            assert.deepEqual(tagViolations(fx.root), [], 'clean carriers, and the reviewer pair may carry the tags');
-            fx.write('.claude/skills/plan/SKILL.md', '<!-- SYNC:ai-feature-framing-gate -->\nbody\n');
-            assert.deepEqual(tagViolations(fx.root), ['skill plan: SYNC:ai-feature-framing-gate'], 'a body marker');
-            fx.write('.claude/skills/plan/SKILL.md', '<!-- SYNC:ai-engineering-gate:reminder -->\nx\n');
-            assert.deepEqual(tagViolations(fx.root), ['skill plan: SYNC:ai-engineering-gate'], 'a reminder variant');
-            fx.write('.claude/skills/plan/SKILL.md', '- `ai-review-checklist` — Executable review protocol\n');
-            assert.deepEqual(tagViolations(fx.root), ['skill plan: guide line for ai-review-checklist'], 'a guide line');
-            fx.write('.claude/skills/plan/SKILL.md', '# plan\n');
-            fx.write('.claude/agents/planner.md', '  * `ai-engineering-gate` - Thirty-eight clauses\n');
-            assert.deepEqual(tagViolations(fx.root), ['agent planner: guide line for ai-engineering-gate'], 'an agent guide line');
-            // No skill is an allowed guide carrier: the floor's guide line, another tag and a body are all flagged.
-            fx.write('.claude/agents/planner.md', '# planner\n');
-            fx.write('.claude/skills/integration-test/SKILL.md', '- `ai-engineering-gate` — reviewing tests of an AI feature → .claude/skills/shared/protocols/ai-engineering-gate.md\n');
-            assert.deepEqual(tagViolations(fx.root), ['skill integration-test: guide line for ai-engineering-gate'], 'the integration-test skill carries no floor guide line: its review mode keeps it in a reference');
-            fx.write('.claude/skills/integration-test/SKILL.md', '- `ai-review-checklist` — Executable review protocol\n');
-            assert.deepEqual(tagViolations(fx.root), ['skill integration-test: guide line for ai-review-checklist'], 'another tag is not allowed there');
-            fx.write('.claude/skills/integration-test/SKILL.md', '<!-- SYNC:ai-engineering-gate -->\nbody\n');
-            assert.deepEqual(tagViolations(fx.root), ['skill integration-test: SYNC:ai-engineering-gate'], 'a body is not a guide line');
-            fx.write('.claude/skills/integration-test/SKILL.md', '# integration-test\n');
-            fx.write('.claude/skills/plan/SKILL.md', '- `ai-engineering-gate` — floor\n');
-            assert.deepEqual(tagViolations(fx.root), ['skill plan: guide line for ai-engineering-gate'], 'the plan skill carries no floor guide line: its review mode keeps it in a reference');
-            fx.write('.claude/skills/plan/SKILL.md', '# plan\n');
-            fx.write('.claude/skills/fix/SKILL.md', '- `ai-engineering-gate` — floor\n');
-            assert.deepEqual(tagViolations(fx.root), ['skill fix: guide line for ai-engineering-gate'], 'the allowance is per skill, not global');
-        })
+        fn: () =>
+            withFixture(fx => {
+                fx.write('.claude/skills/plan/SKILL.md', '# plan\n');
+                fx.write('.claude/agents/planner.md', '# planner\n');
+                fx.write(
+                    `.claude/skills/${OWNER_SKILL}/SKILL.md`,
+                    `<!-- SYNC:ai-engineering-gate -->\nbody\n<!-- /SYNC:ai-engineering-gate -->\n- \`ai-review-checklist\` — guide\n`
+                );
+                fx.write(`.claude/agents/${OWNER_AGENT}.md`, '<!-- SYNC:ai-feature-framing-gate -->\nbody\n');
+                assert.deepEqual(tagViolations(fx.root), [], 'clean carriers, and the reviewer pair may carry the tags');
+                fx.write('.claude/skills/plan/SKILL.md', '<!-- SYNC:ai-feature-framing-gate -->\nbody\n');
+                assert.deepEqual(tagViolations(fx.root), ['skill plan: SYNC:ai-feature-framing-gate'], 'a body marker');
+                fx.write('.claude/skills/plan/SKILL.md', '<!-- SYNC:ai-engineering-gate:reminder -->\nx\n');
+                assert.deepEqual(tagViolations(fx.root), ['skill plan: SYNC:ai-engineering-gate'], 'a reminder variant');
+                fx.write('.claude/skills/plan/SKILL.md', '- `ai-review-checklist` — Executable review protocol\n');
+                assert.deepEqual(tagViolations(fx.root), ['skill plan: guide line for ai-review-checklist'], 'a guide line');
+                fx.write('.claude/skills/plan/SKILL.md', '# plan\n');
+                fx.write('.claude/agents/planner.md', '  * `ai-engineering-gate` - Thirty-eight clauses\n');
+                assert.deepEqual(tagViolations(fx.root), ['agent planner: guide line for ai-engineering-gate'], 'an agent guide line');
+                // No skill is an allowed guide carrier: the floor's guide line, another tag and a body are all flagged.
+                fx.write('.claude/agents/planner.md', '# planner\n');
+                fx.write(
+                    '.claude/skills/integration-test/SKILL.md',
+                    '- `ai-engineering-gate` — reviewing tests of an AI feature → .claude/skills/shared/protocols/ai-engineering-gate.md\n'
+                );
+                assert.deepEqual(
+                    tagViolations(fx.root),
+                    ['skill integration-test: guide line for ai-engineering-gate'],
+                    'the integration-test skill carries no floor guide line: its review mode keeps it in a reference'
+                );
+                fx.write('.claude/skills/integration-test/SKILL.md', '- `ai-review-checklist` — Executable review protocol\n');
+                assert.deepEqual(tagViolations(fx.root), ['skill integration-test: guide line for ai-review-checklist'], 'another tag is not allowed there');
+                fx.write('.claude/skills/integration-test/SKILL.md', '<!-- SYNC:ai-engineering-gate -->\nbody\n');
+                assert.deepEqual(tagViolations(fx.root), ['skill integration-test: SYNC:ai-engineering-gate'], 'a body is not a guide line');
+                fx.write('.claude/skills/integration-test/SKILL.md', '# integration-test\n');
+                fx.write('.claude/skills/plan/SKILL.md', '- `ai-engineering-gate` — floor\n');
+                assert.deepEqual(
+                    tagViolations(fx.root),
+                    ['skill plan: guide line for ai-engineering-gate'],
+                    'the plan skill carries no floor guide line: its review mode keeps it in a reference'
+                );
+                fx.write('.claude/skills/plan/SKILL.md', '# plan\n');
+                fx.write('.claude/skills/fix/SKILL.md', '- `ai-engineering-gate` — floor\n');
+                assert.deepEqual(tagViolations(fx.root), ['skill fix: guide line for ai-engineering-gate'], 'the allowance is per skill, not global');
+            })
     },
     {
         // INVARIANT 1 — the repository: the reviewer pair carries the protocols; no other skill holds a guide
@@ -251,26 +270,37 @@ const tests = [
         // When the pointer scan runs
         // Then each defect is flagged
         name: 'TC-AIZ-003 the pointer scan flags a long pointer, two protocol files, a missing file, and a pointer that names no route',
-        fn: () => withFixture(fx => {
-            fx.write(GATE_FILE, 'gate\n');
-            fx.write(FRAMING_FILE, 'framing\n');
-            const pointer = (extra = '') => `**AI surface?** Only if the change creates or changes a model call (see \`node .claude/scripts/ai-signal-scan.cjs\`): read \`${GATE_FILE}\` and apply it; otherwise skip this line.${extra}\n`;
-            fx.write('.claude/skills/fix/SKILL.md', pointer());
-            assert.deepEqual(pointerViolations(fx.root), [], 'a well-formed pointer passes');
-            fx.write('.claude/skills/fix/SKILL.md', pointer(' '.repeat(POINTER_MAX_CHARS)));
-            assert.equal(pointerViolations(fx.root).length, 1, 'over the limit');
-            fx.write('.claude/skills/fix/SKILL.md', pointer(` Also \`${FRAMING_FILE}\`.`));
-            assert.ok(pointerViolations(fx.root).some(v => v.includes('names 2 protocol files')), 'two files');
-            fx.write('.claude/skills/fix/SKILL.md', pointer().replace(GATE_FILE, `${PROTOCOL_DIR}/ai-missing.md`));
-            assert.ok(pointerViolations(fx.root).some(v => v.includes('does not exist')), 'dangling path');
-            fx.write('.claude/skills/fix/SKILL.md', '**AI surface?** Only if there is one; otherwise skip.\n');
-            assert.ok(pointerViolations(fx.root).some(v => v.includes('names neither')), 'no route at all');
-            fx.write('.claude/skills/fix/SKILL.md', `| AI surface? | Only if the scan lists one: run \`${OWNER_SKILL}\`. |\n`);
-            assert.deepEqual(pointerViolations(fx.root), [], 'a routing row that names the reviewer is a valid pointer');
-            fx.write('.claude/skills/fix/SKILL.md', pointer());
-            fx.write(`.claude/skills/${OWNER_SKILL}/SKILL.md`, `AI surface? ${'x'.repeat(900)} ${GATE_FILE} ${FRAMING_FILE}\n`);
-            assert.deepEqual(pointerViolations(fx.root), [], 'the reviewer pair is exempt from the pointer shape');
-        })
+        fn: () =>
+            withFixture(fx => {
+                fx.write(GATE_FILE, 'gate\n');
+                fx.write(FRAMING_FILE, 'framing\n');
+                const pointer = (extra = '') =>
+                    `**AI surface?** Only if the change creates or changes a model call (see \`node .claude/scripts/ai-signal-scan.cjs\`): read \`${GATE_FILE}\` and apply it; otherwise skip this line.${extra}\n`;
+                fx.write('.claude/skills/fix/SKILL.md', pointer());
+                assert.deepEqual(pointerViolations(fx.root), [], 'a well-formed pointer passes');
+                fx.write('.claude/skills/fix/SKILL.md', pointer(' '.repeat(POINTER_MAX_CHARS)));
+                assert.equal(pointerViolations(fx.root).length, 1, 'over the limit');
+                fx.write('.claude/skills/fix/SKILL.md', pointer(` Also \`${FRAMING_FILE}\`.`));
+                assert.ok(
+                    pointerViolations(fx.root).some(v => v.includes('names 2 protocol files')),
+                    'two files'
+                );
+                fx.write('.claude/skills/fix/SKILL.md', pointer().replace(GATE_FILE, `${PROTOCOL_DIR}/ai-missing.md`));
+                assert.ok(
+                    pointerViolations(fx.root).some(v => v.includes('does not exist')),
+                    'dangling path'
+                );
+                fx.write('.claude/skills/fix/SKILL.md', '**AI surface?** Only if there is one; otherwise skip.\n');
+                assert.ok(
+                    pointerViolations(fx.root).some(v => v.includes('names neither')),
+                    'no route at all'
+                );
+                fx.write('.claude/skills/fix/SKILL.md', `| AI surface? | Only if the scan lists one: run \`${OWNER_SKILL}\`. |\n`);
+                assert.deepEqual(pointerViolations(fx.root), [], 'a routing row that names the reviewer is a valid pointer');
+                fx.write('.claude/skills/fix/SKILL.md', pointer());
+                fx.write(`.claude/skills/${OWNER_SKILL}/SKILL.md`, `AI surface? ${'x'.repeat(900)} ${GATE_FILE} ${FRAMING_FILE}\n`);
+                assert.deepEqual(pointerViolations(fx.root), [], 'the reviewer pair is exempt from the pointer shape');
+            })
     },
     {
         // INVARIANT 2 — the repository.
@@ -291,24 +321,25 @@ const tests = [
         // When the class digest is built for each
         // Then the non-AI digest is empty and the AI digest is compact with the protocol as its only read doc
         name: 'TC-AIZ-005 the class digest is empty for every non-AI file and, for an AI file, compact with the protocol as its ONLY read doc',
-        fn: () => withFixture(fx => {
-            for (const [rel, content] of Object.entries(NEGATIVE_CORPUS)) {
-                assert.equal(digestFor(fx, rel, content), '', `${rel}: a non-AI file costs zero characters`);
-            }
-            const digest = digestFor(fx, 'src/service.py', 'import anthropic\nclient = anthropic.Anthropic()\n');
-            assert.ok(digest.length > 0, 'an SDK import is an AI surface');
-            assert.ok(digest.length <= DIGEST_MAX_CHARS, `the AI digest is ${digest.length} chars (limit ${DIGEST_MAX_CHARS})`);
-            assert.deepEqual(readDocsOf(digest), [GATE_FILE], 'the protocol file is the only read doc');
-            assert.ok(!/ai-engineering-(?:review-checklist|knowledge|calibration)/.test(digest), 'a deep doc is never named as a read');
-            assert.ok(digest.includes('Deep dives on demand, by section, never whole'), 'the deep-dive rule is stated');
-            // The class definition itself: one read doc, at most three short rules, evidence = protocol + checklist
-            assert.deepEqual([...GATE.referenceDocs], [GATE_FILE]);
-            assert.ok(GATE.rules.length <= 3, `at most three rules (${GATE.rules.length})`);
-            for (const rule of GATE.rules) assert.ok(rule.length <= 200, `a rule stays short (${rule.length}): ${rule}`);
-            // The rules are also rendered into the root instruction file of every session: keep their sum small
-            assert.ok(GATE.rules.join('').length <= 300, `the rules weigh ${GATE.rules.join('').length} chars (budget 300)`);
-            assert.deepEqual([...GATE.evidenceDocs].sort(), [GATE_FILE, '.claude/docs/ai-engineering-review-checklist.md'].sort());
-        })
+        fn: () =>
+            withFixture(fx => {
+                for (const [rel, content] of Object.entries(NEGATIVE_CORPUS)) {
+                    assert.equal(digestFor(fx, rel, content), '', `${rel}: a non-AI file costs zero characters`);
+                }
+                const digest = digestFor(fx, 'src/service.py', 'import anthropic\nclient = anthropic.Anthropic()\n');
+                assert.ok(digest.length > 0, 'an SDK import is an AI surface');
+                assert.ok(digest.length <= DIGEST_MAX_CHARS, `the AI digest is ${digest.length} chars (limit ${DIGEST_MAX_CHARS})`);
+                assert.deepEqual(readDocsOf(digest), [GATE_FILE], 'the protocol file is the only read doc');
+                assert.ok(!/ai-engineering-(?:review-checklist|knowledge|calibration)/.test(digest), 'a deep doc is never named as a read');
+                assert.ok(digest.includes('Deep dives on demand, by section, never whole'), 'the deep-dive rule is stated');
+                // The class definition itself: one read doc, at most three short rules, evidence = protocol + checklist
+                assert.deepEqual([...GATE.referenceDocs], [GATE_FILE]);
+                assert.ok(GATE.rules.length <= 3, `at most three rules (${GATE.rules.length})`);
+                for (const rule of GATE.rules) assert.ok(rule.length <= 200, `a rule stays short (${rule.length}): ${rule}`);
+                // The rules are also rendered into the root instruction file of every session: keep their sum small
+                assert.ok(GATE.rules.join('').length <= 300, `the rules weigh ${GATE.rules.join('').length} chars (budget 300)`);
+                assert.deepEqual([...GATE.evidenceDocs].sort(), [GATE_FILE, '.claude/docs/ai-engineering-review-checklist.md'].sort());
+            })
     },
     {
         // INVARIANT 3 — content precision, both directions: the corpora are the R8 audit made permanent.
@@ -318,18 +349,37 @@ const tests = [
         name: 'TC-AIZ-006 content signals: no negative-corpus file is an AI surface, and every single-signal positive is found',
         fn: () => {
             for (const [rel, text] of Object.entries(NEGATIVE_CORPUS)) {
-                assert.equal(contentMatches(rel, text), false, `${rel} must not be matched by content: ${JSON.stringify(conventions.explainGroupMatch(GATE, rel, { readContent: () => text }, true).contentSignals)}`);
+                assert.equal(
+                    contentMatches(rel, text),
+                    false,
+                    `${rel} must not be matched by content: ${JSON.stringify(conventions.explainGroupMatch(GATE, rel, { readContent: () => text }, true).contentSignals)}`
+                );
             }
             for (const [rel, text] of Object.entries(POSITIVE_CORPUS)) {
                 assert.equal(contentMatches(rel, text), true, `${rel} (${text.trim().slice(0, 50)}) must be matched by content`);
             }
             // Ambiguous wire tokens and bare vendor or model names are not signals on their own
-            for (const token of ['tool_use', 'tool_calls', 'system_prompt', 'OpenAI', 'Anthropic', 'pinecone', 'qdrant', 'gpt-4', 'claude-sonnet-4-5', '@modelcontextprotocol']) {
+            for (const token of [
+                'tool_use',
+                'tool_calls',
+                'system_prompt',
+                'OpenAI',
+                'Anthropic',
+                'pinecone',
+                'qdrant',
+                'gpt-4',
+                'claude-sonnet-4-5',
+                '@modelcontextprotocol'
+            ]) {
                 assert.equal(contentMatches('x.ts', `const v = "${token}";\n// ${token}\n`), false, `a bare ${token} is not an AI surface`);
             }
             // Path names shared with non-AI code do not match by folder name alone
             for (const rel of ['shop/agents/models.py', 'src/agents/AgentList.tsx', 'lib/retrieval/search.ts', 'ml/evals/run.py']) {
-                assert.equal(conventions.explainGroupMatch(GATE, rel, { readContent: () => 'x = 1\n' }, true).member, false, `${rel} is not an AI surface by path`);
+                assert.equal(
+                    conventions.explainGroupMatch(GATE, rel, { readContent: () => 'x = 1\n' }, true).member,
+                    false,
+                    `${rel} is not an AI surface by path`
+                );
             }
         }
     },
@@ -339,39 +389,56 @@ const tests = [
         // When the route runs
         // Then it is silent on the first two, short on the third, and silent on a second match until a compaction
         name: 'TC-AIZ-007 the route is silent on non-AI and framework-meta prompts (verbatim), short on genuine AI-feature prompts, and silent on the second matching prompt',
-        fn: async () => withFixture(async fx => {
-            const NEGATIVE_PROMPTS = [
-                // Verbatim: the requirement this suite exists for
-                'ensure it do not cause running waste, only when changes or target have ai feature implementation, ai technique need to audit or plan to implement ai feature. do not waste token',
-                // Framework-meta: the goal of building this very gate (review skills, sub-agents, hooks), naming AI techniques in passing
-                'research AI engineering best practices and bad practices for LLM apps, RAG, agents and tool use, then update the review skills, sub-agents, hooks and static context so plan review and code review of any AI feature is driven by an expert protocol',
-                'add an AI-engineering review skill and sub-agent, wire it into the review workflows and hooks, and keep the framework portable',
-                'make the AI gate cost nothing in sessions that never touch an AI feature: fewer tokens in the hooks and the skills',
-                // Non-AI work and bare questions
-                'refactor the settings loader', 'fix the failing checkout test', 'what is RAG?', 'explain how embeddings work', 'commit this'
-            ];
-            for (const prompt of NEGATIVE_PROMPTS) {
-                assert.equal(route.evaluate({ hook_event_name: 'UserPromptSubmit', session_id: 's', prompt }, { env: {}, rawSettings: {} }), '', `silent: ${prompt.slice(0, 70)}`);
-            }
-            const store = fx.abs('store');
-            const run = async (prompt, session, now) => route.run({ hook_event_name: 'UserPromptSubmit', session_id: session, prompt }, {
-                env: {}, rawSettings: {}, storeRoot: store, now, write: (text, done) => done(true)
-            });
-            for (const prompt of NEGATIVE_PROMPTS) assert.equal(await run(prompt, 'neg', T0), '', `run() is silent: ${prompt.slice(0, 50)}`);
-            assert.equal(fs.existsSync(store), false, 'silent prompts leave no state behind');
-            const GENUINE = ['add a RAG pipeline with embeddings to the search service', 'review this OpenAI tool-calling agent for prompt injection'];
-            for (const prompt of GENUINE) {
-                const out = await run(prompt, `genuine-${prompt.length}`, T0);
-                assert.ok(out.includes(route.MARKER_START), `speaks: ${prompt}`);
-                assert.ok(out.length <= DIRECTIVE_MAX_CHARS, `directive is ${out.length} chars (limit ${DIRECTIVE_MAX_CHARS})`);
-                assert.ok(out.includes(GATE_FILE) && !/ai-engineering-(?:review-checklist|knowledge)/.test(out), 'one read pointer, no deep doc');
-            }
-            // Dedup: the second matching prompt of the same session is silent; a compaction re-arms it
-            assert.ok((await run(GENUINE[0], 'dedup', T0)).length > 0);
-            assert.equal(await run(GENUINE[1], 'dedup', T0 + MINUTE), '', 'second matching prompt in the window is silent');
-            require(path.join(HOOKS_DIR, 'lib', 'convention-ledger.cjs')).recordSessionCompaction(store, 'dedup', T0 + 2 * MINUTE);
-            assert.ok((await run(GENUINE[1], 'dedup', T0 + 3 * MINUTE)).length > 0, 're-armed after a compaction');
-        })
+        fn: async () =>
+            withFixture(async fx => {
+                const NEGATIVE_PROMPTS = [
+                    // Verbatim: the requirement this suite exists for
+                    'ensure it do not cause running waste, only when changes or target have ai feature implementation, ai technique need to audit or plan to implement ai feature. do not waste token',
+                    // Framework-meta: the goal of building this very gate (review skills, sub-agents, hooks), naming AI techniques in passing
+                    'research AI engineering best practices and bad practices for LLM apps, RAG, agents and tool use, then update the review skills, sub-agents, hooks and static context so plan review and code review of any AI feature is driven by an expert protocol',
+                    'add an AI-engineering review skill and sub-agent, wire it into the review workflows and hooks, and keep the framework portable',
+                    'make the AI gate cost nothing in sessions that never touch an AI feature: fewer tokens in the hooks and the skills',
+                    // Non-AI work and bare questions
+                    'refactor the settings loader',
+                    'fix the failing checkout test',
+                    'what is RAG?',
+                    'explain how embeddings work',
+                    'commit this'
+                ];
+                for (const prompt of NEGATIVE_PROMPTS) {
+                    assert.equal(
+                        route.evaluate({ hook_event_name: 'UserPromptSubmit', session_id: 's', prompt }, { env: {}, rawSettings: {} }),
+                        '',
+                        `silent: ${prompt.slice(0, 70)}`
+                    );
+                }
+                const store = fx.abs('store');
+                const run = async (prompt, session, now) =>
+                    route.run(
+                        { hook_event_name: 'UserPromptSubmit', session_id: session, prompt },
+                        {
+                            env: {},
+                            rawSettings: {},
+                            storeRoot: store,
+                            now,
+                            write: (text, done) => done(true)
+                        }
+                    );
+                for (const prompt of NEGATIVE_PROMPTS) assert.equal(await run(prompt, 'neg', T0), '', `run() is silent: ${prompt.slice(0, 50)}`);
+                assert.equal(fs.existsSync(store), false, 'silent prompts leave no state behind');
+                const GENUINE = ['add a RAG pipeline with embeddings to the search service', 'review this OpenAI tool-calling agent for prompt injection'];
+                for (const prompt of GENUINE) {
+                    const out = await run(prompt, `genuine-${prompt.length}`, T0);
+                    assert.ok(out.includes(route.MARKER_START), `speaks: ${prompt}`);
+                    assert.ok(out.length <= DIRECTIVE_MAX_CHARS, `directive is ${out.length} chars (limit ${DIRECTIVE_MAX_CHARS})`);
+                    assert.ok(out.includes(GATE_FILE) && !/ai-engineering-(?:review-checklist|knowledge)/.test(out), 'one read pointer, no deep doc');
+                }
+                // Dedup: the second matching prompt of the same session is silent; a compaction re-arms it
+                assert.ok((await run(GENUINE[0], 'dedup', T0)).length > 0);
+                assert.equal(await run(GENUINE[1], 'dedup', T0 + MINUTE), '', 'second matching prompt in the window is silent');
+                require(path.join(HOOKS_DIR, 'lib', 'convention-ledger.cjs')).recordSessionCompaction(store, 'dedup', T0 + 2 * MINUTE);
+                assert.ok((await run(GENUINE[1], 'dedup', T0 + 3 * MINUTE)).length > 0, 're-armed after a compaction');
+            })
     },
     {
         // INVARIANT 5 — the scan is the cheap oracle.
@@ -379,39 +446,51 @@ const tests = [
         // When the scan runs in process and as a CLI
         // Then the clean set is empty with status clean, the AI set lists the file with status surface, and the exit code is 0
         name: 'TC-AIZ-008 the scan answers a non-AI change set with an empty list (exit 0), an AI one with a hit, and ignores vendor mentions in prose and comments',
-        fn: () => withFixture(fx => {
-            const scan = (files, extra = {}) => scanner.scan({ projectDir: fx.root, files, config: {}, ...extra });
-            for (const [rel, content] of Object.entries(NEGATIVE_CORPUS)) fx.write(rel, content);
-            const clean = scan(Object.keys(NEGATIVE_CORPUS));
-            assert.equal(clean.inScope, false, JSON.stringify(clean.aiSurface));
-            assert.deepEqual(clean.aiSurface, [], 'an empty list is a clean answer');
-            assert.equal(clean.status, 'clean', 'a completed scan that found nothing is the ONLY status a caller may treat as "skip"');
-            // An empty list from an incomplete scan is not a clean answer: a git error proves nothing
-            assert.equal(scan(Object.keys(NEGATIVE_CORPUS), { errors: ['git diff failed: fatal'] }).status, 'unknown', 'an error is unknown, never clean');
-            fx.write('docs/vendors.md', "import anthropic\nOpenAI, pinecone and api.openai.com are vendors.\n");
-            fx.write('README.md', "from openai import OpenAI\n");
-            fx.write('docs/how-to.py', 'import anthropic\n');
-            fx.write('src/comment-only.py', '# import anthropic  (we no longer use it)\n');
-            assert.deepEqual(scan(['docs/vendors.md', 'README.md', 'docs/how-to.py', 'src/comment-only.py']).aiSurface, [], 'prose, docs and comments are not AI surfaces');
-            fx.write('src/chat.py', 'import anthropic\n');
-            const hit = scan([...Object.keys(NEGATIVE_CORPUS), 'src/chat.py']);
-            assert.equal(hit.inScope, true);
-            assert.equal(hit.status, 'surface');
-            assert.deepEqual(hit.aiSurface.map(entry => entry.file), ['src/chat.py']);
-            // At the process boundary: exit 0 and one plain line for a clean change set, a listed file for an AI one
-            const runCli = files => spawnSync(process.execPath, [path.resolve(HOOKS_DIR, '..', 'scripts', 'ai-signal-scan.cjs'), '--files', ...files], {
-                cwd: fx.root, encoding: 'utf8', windowsHide: true, env: fx.env()
-            });
-            const none = runCli(['src/cms.ts', 'src/notes.ts']);
-            assert.equal(none.status, 0, none.stderr);
-            assert.match(none.stdout, /^No AI-feature surface detected in 2 file\(s\)/);
-            assert.equal(none.stdout.trim().split('\n').length, 1, 'a clean answer is one line');
-            const some = runCli(['src/chat.py']);
-            assert.equal(some.status, 0, some.stderr);
-            assert.match(some.stdout, /src\/chat\.py/);
-            const asJson = JSON.parse(runCli(['src/cms.ts', '--json']).stdout);
-            assert.equal(asJson.status, 'clean', 'the JSON carries the status callers act on');
-        })
+        fn: () =>
+            withFixture(fx => {
+                const scan = (files, extra = {}) => scanner.scan({ projectDir: fx.root, files, config: {}, ...extra });
+                for (const [rel, content] of Object.entries(NEGATIVE_CORPUS)) fx.write(rel, content);
+                const clean = scan(Object.keys(NEGATIVE_CORPUS));
+                assert.equal(clean.inScope, false, JSON.stringify(clean.aiSurface));
+                assert.deepEqual(clean.aiSurface, [], 'an empty list is a clean answer');
+                assert.equal(clean.status, 'clean', 'a completed scan that found nothing is the ONLY status a caller may treat as "skip"');
+                // An empty list from an incomplete scan is not a clean answer: a git error proves nothing
+                assert.equal(scan(Object.keys(NEGATIVE_CORPUS), { errors: ['git diff failed: fatal'] }).status, 'unknown', 'an error is unknown, never clean');
+                fx.write('docs/vendors.md', 'import anthropic\nOpenAI, pinecone and api.openai.com are vendors.\n');
+                fx.write('README.md', 'from openai import OpenAI\n');
+                fx.write('docs/how-to.py', 'import anthropic\n');
+                fx.write('src/comment-only.py', '# import anthropic  (we no longer use it)\n');
+                assert.deepEqual(
+                    scan(['docs/vendors.md', 'README.md', 'docs/how-to.py', 'src/comment-only.py']).aiSurface,
+                    [],
+                    'prose, docs and comments are not AI surfaces'
+                );
+                fx.write('src/chat.py', 'import anthropic\n');
+                const hit = scan([...Object.keys(NEGATIVE_CORPUS), 'src/chat.py']);
+                assert.equal(hit.inScope, true);
+                assert.equal(hit.status, 'surface');
+                assert.deepEqual(
+                    hit.aiSurface.map(entry => entry.file),
+                    ['src/chat.py']
+                );
+                // At the process boundary: exit 0 and one plain line for a clean change set, a listed file for an AI one
+                const runCli = files =>
+                    spawnSync(process.execPath, [path.resolve(HOOKS_DIR, '..', 'scripts', 'ai-signal-scan.cjs'), '--files', ...files], {
+                        cwd: fx.root,
+                        encoding: 'utf8',
+                        windowsHide: true,
+                        env: fx.env()
+                    });
+                const none = runCli(['src/cms.ts', 'src/notes.ts']);
+                assert.equal(none.status, 0, none.stderr);
+                assert.match(none.stdout, /^No AI-feature surface detected in 2 file\(s\)/);
+                assert.equal(none.stdout.trim().split('\n').length, 1, 'a clean answer is one line');
+                const some = runCli(['src/chat.py']);
+                assert.equal(some.status, 0, some.stderr);
+                assert.match(some.stdout, /src\/chat\.py/);
+                const asJson = JSON.parse(runCli(['src/cms.ts', '--json']).stdout);
+                assert.equal(asJson.status, 'clean', 'the JSON carries the status callers act on');
+            })
     },
     {
         // INVARIANT 6 — no dangling read pointer in the code that emits them.
@@ -421,8 +500,10 @@ const tests = [
         name: 'TC-AIZ-009 every protocol path the digest and the route point at exists under the shipped protocol directory',
         fn: () => {
             const emitted = new Set([
-                ...GATE.referenceDocs, ...GATE.evidenceDocs.filter(doc => doc.startsWith(PROTOCOL_DIR)),
-                route.GATE_FILE, route.FRAMING_FILE,
+                ...GATE.referenceDocs,
+                ...GATE.evidenceDocs.filter(doc => doc.startsWith(PROTOCOL_DIR)),
+                route.GATE_FILE,
+                route.FRAMING_FILE,
                 ...(route.buildDirective({ signals: ['RAG'], intent: route.INTENTS.PLAN }).match(PROTOCOL_PATH) || []),
                 ...(route.buildDirective({ signals: ['RAG'], intent: route.INTENTS.BUILD }).match(PROTOCOL_PATH) || [])
             ]);
@@ -450,7 +531,11 @@ const tests = [
             assert.ok(fs.existsSync(path.join(REPO_ROOT, ...FRAMING_FILE.split('/'))), 'the planning protocol file exists');
             if (!isFrameworkRepo(REPO_ROOT)) return;
             const root = fs.readFileSync(path.join(REPO_ROOT, 'CLAUDE.md'), 'utf8');
-            assert.equal(root.includes('[AI-ENGINEERING-GATE]'), false, 'the root file carries no gate block (run ai-context-refresh --mode update --strip-legacy-universal)');
+            assert.equal(
+                root.includes('[AI-ENGINEERING-GATE]'),
+                false,
+                'the root file carries no gate block (run ai-context-refresh --mode update --strip-legacy-universal)'
+            );
         }
     }
 ];

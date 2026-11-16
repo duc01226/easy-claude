@@ -27,11 +27,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { resolveProjectRoot } = require('./lib/project-root.cjs');
 const { isHookEntryPoint } = require('./lib/hook-runner.cjs');
-const {
-    isConfigPopulated: _isConfigPopulated,
-    getProjectConfigStatus,
-    getConfiguredProjectConfigPath
-} = require('./lib/project-config-loader.cjs');
+const { isConfigPopulated: _isConfigPopulated, getProjectConfigStatus, getConfiguredProjectConfigPath } = require('./lib/project-config-loader.cjs');
 const { hasProjectContent } = require('./lib/session-init-helpers.cjs');
 const {
     getAgentFileIssues,
@@ -106,11 +102,7 @@ const ALLOWLIST_PATTERNS = [
 // invalid-config warning (it is the repair itself). Mentioning one inside an
 // unrelated prompt does not. Both Claude slash commands and Codex skill
 // invocations are accepted.
-const CONFIG_REPAIR_PATTERNS = [
-    /^\s*(?:\/|\$)project-init(?=\s|$)/i,
-    /^\s*(?:\/|\$)init-project(?=\s|$)/i,
-    /^\s*(?:\/|\$)project-config(?=\s|$)/i
-];
+const CONFIG_REPAIR_PATTERNS = [/^\s*(?:\/|\$)project-init(?=\s|$)/i, /^\s*(?:\/|\$)init-project(?=\s|$)/i, /^\s*(?:\/|\$)project-config(?=\s|$)/i];
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPERS
@@ -149,11 +141,11 @@ function noticeMissingConfig() {
     if (isDismissed()) return;
     emitPromptContext(
         `No project config at \`${configDisplayPath()}\` — a supported state, not an error. ` +
-        'The framework is running on its portable defaults: resolve project facts (paths, run ' +
-        'commands, conventions, architecture) from repository evidence — manifests, lockfiles, ' +
-        'scripts, directory layout — and state the assumption when one is material. Optional: ' +
-        'run /project-init or /project-config to record those facts once instead of re-deriving ' +
-        'them each session. This notice repeats at most once a day.'
+            'The framework is running on its portable defaults: resolve project facts (paths, run ' +
+            'commands, conventions, architecture) from repository evidence — manifests, lockfiles, ' +
+            'scripts, directory layout — and state the assumption when one is material. Optional: ' +
+            'run /project-init or /project-config to record those facts once instead of re-deriving ' +
+            'them each session. This notice repeats at most once a day.'
     );
     writeDismissFlag();
 }
@@ -167,10 +159,13 @@ function noticeMissingConfig() {
 function warnInvalidConfig(status) {
     const displayPath = configDisplayPath();
     // `missing` never reaches here: main() routes an absent config to noticeMissingConfig().
-    const issue = status.state === 'unavailable'
-        ? `Unable to verify the project config at \`${displayPath}\`: ${(status.errors || []).slice(0, 3).join('; ')}`
-        : `Project config at \`${displayPath}\` is invalid: ${(status.errors || []).slice(0, 3).join('; ')}`;
-    emitPromptContext(`${issue} Do not rely on the sections of that config as project facts: derive them from repository evidence and say so when it matters. Work the user asked for proceeds. Offer /project-init to repair it or /project-config to rewrite it once, never as a precondition. The minimum valid config is a non-empty project.name; capability sections may be omitted, but any declared section must satisfy its schema.`);
+    const issue =
+        status.state === 'unavailable'
+            ? `Unable to verify the project config at \`${displayPath}\`: ${(status.errors || []).slice(0, 3).join('; ')}`
+            : `Project config at \`${displayPath}\` is invalid: ${(status.errors || []).slice(0, 3).join('; ')}`;
+    emitPromptContext(
+        `${issue} Do not rely on the sections of that config as project facts: derive them from repository evidence and say so when it matters. Work the user asked for proceeds. Offer /project-init to repair it or /project-config to rewrite it once, never as a precondition. The minimum valid config is a non-empty project.name; capability sections may be omitted, but any declared section must satisfy its schema.`
+    );
 }
 
 /**
@@ -263,11 +258,15 @@ function writeScanDismissFlag() {
         const expiresAt = new Date(dismissedAt.getTime() + SCAN_DISMISS_TTL_MS);
         fs.writeFileSync(
             SCAN_DISMISS_FLAG,
-            JSON.stringify({
-                dismissedAt: dismissedAt.toISOString(),
-                expiresAt: expiresAt.toISOString(),
-                ttlDays: SCAN_DISMISS_TTL_DAYS
-            }, null, 2) + '\n',
+            JSON.stringify(
+                {
+                    dismissedAt: dismissedAt.toISOString(),
+                    expiresAt: expiresAt.toISOString(),
+                    ttlDays: SCAN_DISMISS_TTL_DAYS
+                },
+                null,
+                2
+            ) + '\n',
             'utf-8'
         );
     } catch {
@@ -430,7 +429,9 @@ function isGraphDismissRequest(prompt) {
  * @returns {string}
  */
 function getGraphNoteMarkerPath(sessionId) {
-    const sessionKey = String(sessionId || SESSION_ID_DEFAULT).replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 128);
+    const sessionKey = String(sessionId || SESSION_ID_DEFAULT)
+        .replace(/[^A-Za-z0-9_-]/g, '_')
+        .slice(0, 128);
     return path.join(MARKERS_DIR, `${graphNoteMarkerPrefix()}${sessionKey}`);
 }
 
@@ -554,10 +555,7 @@ function handleGraphGate(userPrompt, { config, sessionId } = {}) {
 
     const instructions = hasPython
         ? ['  /graph-code --mode=build — Build the code graph (optional)']
-        : [
-              'Python 3.10+ required; `/graph-code --mode=build` installs the rest.',
-              '  /graph-code --mode=build — Build the code graph (optional)'
-          ];
+        : ['Python 3.10+ required; `/graph-code --mode=build` installs the rest.', '  /graph-code --mode=build — Build the code graph (optional)'];
 
     // Advisory only — the graph is an optional hint source; nothing depends on it.
     emitPromptContext(
@@ -586,7 +584,7 @@ function main() {
     if (rootResolution.error) {
         emitPromptContext(
             `[init-prompt-gate] Skipped: project root resolution failed (${rootResolution.error}). ` +
-            'Project config and setup gates were not evaluated this turn.'
+                'Project config and setup gates were not evaluated this turn.'
         );
         process.exit(0);
     }

@@ -57,33 +57,30 @@ const REF_INCLUDE_DIRS = ['.claude', 'docs', 'CLAUDE.md'];
 // collection only costs a human a look, while a live reference that does not block
 // costs the reference.
 const REF_EXCLUDE_PATHS = [
-    'docs/superpowers/plans',      // archived plans; see the note above
-    'docs/adr',                    // ADRs intentionally name historical skills
-    '.agents',                     // auto-regen mirror
-    '.codex',                      // auto-regen mirror
-    'AGENTS.md',                   // auto-regen
-    '.ai',                         // workspace scratch
+    'docs/superpowers/plans', // archived plans; see the note above
+    'docs/adr', // ADRs intentionally name historical skills
+    '.agents', // auto-regen mirror
+    '.codex', // auto-regen mirror
+    'AGENTS.md', // auto-regen
+    '.ai', // workspace scratch
     '.claude/scripts/skills_data.yaml',
-    '.claude/SKILLS.yaml',
+    '.claude/SKILLS.yaml'
 ];
 
 // Mirror locations to delete alongside canonical
-const MIRROR_BASES = [
-    path.join(REPO_ROOT, '.agents', 'skills'),
-    path.join(REPO_ROOT, '.codex', 'skills'),
-];
+const MIRROR_BASES = [path.join(REPO_ROOT, '.agents', 'skills'), path.join(REPO_ROOT, '.codex', 'skills')];
 
 function parseArgs(argv) {
     const args = { apply: false, allDeprecated: false, targets: [] };
     for (const a of argv.slice(2)) {
         if (a === '--apply') args.apply = true;
         else if (a === '--all-deprecated') args.allDeprecated = true;
-        else if (a === '--help' || a === '-h') { args.help = true; }
-        else if (a.startsWith('--')) {
+        else if (a === '--help' || a === '-h') {
+            args.help = true;
+        } else if (a.startsWith('--')) {
             console.error(`Error: unknown flag ${a}`);
             process.exit(2);
-        }
-        else args.targets.push(a);
+        } else args.targets.push(a);
     }
     return args;
 }
@@ -198,10 +195,7 @@ function resolveTarget(name) {
     // The sweep greps the NAME and the delete removes the DIRECTORY, so both must denote the same skill. A spelling
     // that only resolves to it ("foo/", "foo/.", or another letter case on a case-insensitive disk) matches no document,
     // reads as unreferenced, and then deletes the real folder. Accept only the folder's own spelling, and use it.
-    const canonicalName = path
-        .relative(fs.realpathSync.native(CANONICAL_SKILLS_DIR), fs.realpathSync.native(dir))
-        .split(path.sep)
-        .join('/');
+    const canonicalName = path.relative(fs.realpathSync.native(CANONICAL_SKILLS_DIR), fs.realpathSync.native(dir)).split(path.sep).join('/');
     if (canonicalName !== name) return null;
     return { name: canonicalName, dir, fm: parseFrontmatter(dir) || {} };
 }
@@ -295,28 +289,24 @@ function gitGrepRefs(skillName, skillDir) {
     // the header and REFUSES --apply. The check below is belt-and-braces only and is
     // unreachable in normal operation, because a target requires
     // `.claude/skills/<name>/SKILL.md` to exist, which means `.claude` always does.
-    const presentIncludes = REF_INCLUDE_DIRS.filter(entry =>
-        fs.existsSync(path.join(REPO_ROOT, entry)));
+    const presentIncludes = REF_INCLUDE_DIRS.filter(entry => fs.existsSync(path.join(REPO_ROOT, entry)));
     if (presentIncludes.length === 0) {
         throw new Error(
             `skill-gc: none of the reference roots (${REF_INCLUDE_DIRS.join(', ')}) exist under ` +
-            `${REPO_ROOT}; refusing to sweep, because an unscoped git grep would search the ` +
-            'entire repository instead.'
+                `${REPO_ROOT}; refusing to sweep, because an unscoped git grep would search the ` +
+                'entire repository instead.'
         );
     }
     // The two arms differ ONLY in how git enumerates files, so a name found by
     // either one is a reference. Running both is what closes the tracked-and-ignored
     // hole described above; neither arm alone sees every file in the roots.
     const runArm = enumerationFlags => {
-        const args = [
-            'grep', '-n', '-z', '--no-color', '--fixed-strings', '--text',
-            ...enumerationFlags, '--', skillName, ...presentIncludes,
-        ];
+        const args = ['grep', '-n', '-z', '--no-color', '--fixed-strings', '--text', ...enumerationFlags, '--', skillName, ...presentIncludes];
         const result = spawnSync('git', args, {
             cwd: REPO_ROOT,
             encoding: 'utf-8',
             stdio: ['ignore', 'pipe', 'pipe'],
-            maxBuffer: 256 * 1024 * 1024,
+            maxBuffer: 256 * 1024 * 1024
         });
         if (result.error) throw result.error;
         // A fatal error (128: a pathspec absent from the tree, a broken repository)
@@ -338,8 +328,8 @@ function gitGrepRefs(skillName, skillDir) {
         if (readError) {
             throw new Error(
                 'skill-gc: git grep wrote to stderr, so part of the tree could not be ' +
-                `read: ${readError}. An unreadable carrier is not an absent one. ` +
-                'Refusing to decide whether the skill is referenced.'
+                    `read: ${readError}. An unreadable carrier is not an absent one. ` +
+                    'Refusing to decide whether the skill is referenced.'
             );
         }
         if (result.status === 1) return '';
@@ -379,8 +369,8 @@ function gitGrepRefs(skillName, skillDir) {
         if (fields.length < 3) {
             throw new Error(
                 'skill-gc: a git grep -z record carried fewer than three NUL-separated ' +
-                `fields: ${JSON.stringify(line.slice(0, 200))}. A path containing a literal ` +
-                'newline does this. Refusing to decide whether the skill is referenced.'
+                    `fields: ${JSON.stringify(line.slice(0, 200))}. A path containing a literal ` +
+                    'newline does this. Refusing to decide whether the skill is referenced.'
             );
         }
         const norm = fields[0].replace(/\\/g, '/');
@@ -470,7 +460,10 @@ function deleteTarget(target, decision) {
 
 function main() {
     const args = parseArgs(process.argv);
-    if (args.help) { printHelp(); return 0; }
+    if (args.help) {
+        printHelp();
+        return 0;
+    }
 
     let targets;
     if (args.allDeprecated) {
@@ -516,26 +509,30 @@ function main() {
     // — because then committed carriers exist that `git grep` cannot read.
     const hasTrackedContent = entry => {
         const r = spawnSync('git', ['ls-files', '-z', '--', entry], {
-            cwd: REPO_ROOT, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'],
+            cwd: REPO_ROOT,
+            encoding: 'utf-8',
+            stdio: ['ignore', 'pipe', 'pipe']
         });
         if (r.error) throw r.error;
         return r.status === 0 && (r.stdout || '').length > 0;
     };
-    const missingRefRoots = REF_INCLUDE_DIRS.filter(
-        entry => !fs.existsSync(path.join(REPO_ROOT, entry)) && hasTrackedContent(entry));
+    const missingRefRoots = REF_INCLUDE_DIRS.filter(entry => !fs.existsSync(path.join(REPO_ROOT, entry)) && hasTrackedContent(entry));
 
     console.log(`skill-gc — ${args.apply ? 'APPLY' : 'dry-run'} · ${decisions.length} target(s) · ${formatLocalDate(today)}\n`);
     if (missingRefRoots.length > 0) {
         console.log(
             `  ! INCOMPLETE SWEEP — reference root(s) tracked but absent from the ` +
-            `working tree: ${missingRefRoots.join(', ')}.\n` +
-            '    Committed references under them were NOT seen, so every READY below is\n' +
-            '    unproven and --apply is refused while this holds. A sparse checkout or\n' +
-            '    skip-worktree bit is the usual cause.\n'
+                `working tree: ${missingRefRoots.join(', ')}.\n` +
+                '    Committed references under them were NOT seen, so every READY below is\n' +
+                '    unproven and --apply is refused while this holds. A sparse checkout or\n' +
+                '    skip-worktree bit is the usual cause.\n'
         );
     }
 
-    let readyCount = 0, blockedCount = 0, waitingCount = 0, otherCount = 0;
+    let readyCount = 0,
+        blockedCount = 0,
+        waitingCount = 0,
+        otherCount = 0;
     for (const { target, decision } of decisions) {
         const tag = decision.state.padEnd(16);
         console.log(`  [${tag}] ${target.name} — ${decision.reason}`);
@@ -575,9 +572,9 @@ function main() {
     if (missingRefRoots.length > 0) {
         console.error(
             `\nRefusing --apply: reference root(s) tracked but absent from the working ` +
-            `tree (${missingRefRoots.join(', ')}), so the sweep was incomplete and no ` +
-            'READY verdict is proven. Restore the root(s) to the worktree, or run ' +
-            'without --apply to use the report as-is.'
+                `tree (${missingRefRoots.join(', ')}), so the sweep was incomplete and no ` +
+                'READY verdict is proven. Restore the root(s) to the worktree, or run ' +
+                'without --apply to use the report as-is.'
         );
         return 1;
     }

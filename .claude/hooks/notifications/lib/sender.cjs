@@ -27,16 +27,16 @@ const SESSION_END_RESERVE_MS = 400;
  * @returns {Object} Provider -> last error timestamp map
  */
 function loadThrottleState() {
-  try {
-    if (fs.existsSync(THROTTLE_FILE)) {
-      const content = fs.readFileSync(THROTTLE_FILE, 'utf8');
-      return JSON.parse(content);
+    try {
+        if (fs.existsSync(THROTTLE_FILE)) {
+            const content = fs.readFileSync(THROTTLE_FILE, 'utf8');
+            return JSON.parse(content);
+        }
+    } catch (err) {
+        // Corrupted file - start fresh
+        console.error(`[sender] Throttle file corrupted, resetting: ${err.message}`);
     }
-  } catch (err) {
-    // Corrupted file - start fresh
-    console.error(`[sender] Throttle file corrupted, resetting: ${err.message}`);
-  }
-  return {};
+    return {};
 }
 
 /**
@@ -44,11 +44,11 @@ function loadThrottleState() {
  * @param {Object} state - Provider -> timestamp map
  */
 function saveThrottleState(state) {
-  try {
-    fs.writeFileSync(THROTTLE_FILE, JSON.stringify(state, null, 2), 'utf8');
-  } catch (err) {
-    console.error(`[sender] Failed to save throttle state: ${err.message}`);
-  }
+    try {
+        fs.writeFileSync(THROTTLE_FILE, JSON.stringify(state, null, 2), 'utf8');
+    } catch (err) {
+        console.error(`[sender] Failed to save throttle state: ${err.message}`);
+    }
 }
 
 /**
@@ -57,13 +57,13 @@ function saveThrottleState(state) {
  * @returns {boolean} True if throttled
  */
 function isThrottled(provider) {
-  const state = loadThrottleState();
-  const lastError = state[provider];
+    const state = loadThrottleState();
+    const lastError = state[provider];
 
-  if (!lastError) return false;
+    if (!lastError) return false;
 
-  const elapsed = Date.now() - lastError;
-  return elapsed < THROTTLE_DURATION_MS;
+    const elapsed = Date.now() - lastError;
+    return elapsed < THROTTLE_DURATION_MS;
 }
 
 /**
@@ -71,9 +71,9 @@ function isThrottled(provider) {
  * @param {string} provider - Provider name
  */
 function recordError(provider) {
-  const state = loadThrottleState();
-  state[provider] = Date.now();
-  saveThrottleState(state);
+    const state = loadThrottleState();
+    state[provider] = Date.now();
+    saveThrottleState(state);
 }
 
 /**
@@ -81,11 +81,11 @@ function recordError(provider) {
  * @param {string} provider - Provider name
  */
 function clearThrottle(provider) {
-  const state = loadThrottleState();
-  if (state[provider]) {
-    delete state[provider];
-    saveThrottleState(state);
-  }
+    const state = loadThrottleState();
+    if (state[provider]) {
+        delete state[provider];
+        saveThrottleState(state);
+    }
 }
 
 /**
@@ -97,9 +97,9 @@ function clearThrottle(provider) {
  * @returns {number} Milliseconds allowed, never negative; 0 = no time left to send
  */
 function requestTimeoutFor(event, uptimeMs = process.uptime() * 1000) {
-  if (event !== 'SessionEnd') return REQUEST_TIMEOUT_MS;
-  const remaining = Math.floor(SESSION_END_BUDGET_MS - SESSION_END_RESERVE_MS - uptimeMs);
-  return Math.max(0, Math.min(REQUEST_TIMEOUT_MS, remaining));
+    if (event !== 'SessionEnd') return REQUEST_TIMEOUT_MS;
+    const remaining = Math.floor(SESSION_END_BUDGET_MS - SESSION_END_RESERVE_MS - uptimeMs);
+    return Math.max(0, Math.min(REQUEST_TIMEOUT_MS, remaining));
 }
 
 /**
@@ -113,68 +113,67 @@ function requestTimeoutFor(event, uptimeMs = process.uptime() * 1000) {
  * @returns {Promise<{success: boolean, error?: string, throttled?: boolean, timedOut?: boolean, skipped?: boolean}>}
  */
 async function send(provider, url, body, { headers = {}, event } = {}) {
-  // Check throttle first
-  if (isThrottled(provider)) {
-    return { success: false, throttled: true };
-  }
-
-  const timeoutMs = requestTimeoutFor(event);
-  if (timeoutMs <= 0) {
-    // Nothing left of the host hook budget: skip rather than be killed mid-request.
-    // Not a channel failure, so no cooldown.
-    const errorMsg = `skipped: no time left in the ${event} hook budget`;
-    console.error(`[sender] ${provider} ${errorMsg}`);
-    return { success: false, skipped: true, error: errorMsg };
-  }
-
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...headers,
-      },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(timeoutMs),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unknown error');
-      const errorMsg = `HTTP ${response.status}: ${errorText.slice(0, 100)}`;
-
-      // Record error for throttling
-      recordError(provider);
-      console.error(`[sender] ${provider} failed: ${errorMsg}`);
-
-      return { success: false, error: errorMsg };
+    // Check throttle first
+    if (isThrottled(provider)) {
+        return { success: false, throttled: true };
     }
 
-    // Success - clear any previous throttle
-    clearThrottle(provider);
-    return { success: true };
-
-  } catch (err) {
-    if (err && (err.name === 'TimeoutError' || err.name === 'AbortError')) {
-      // Slow channel: abandon this alert only; later alerts are still attempted.
-      const errorMsg = `request timed out after ${timeoutMs}ms`;
-      console.error(`[sender] ${provider} ${errorMsg} (no cooldown)`);
-      return { success: false, timedOut: true, error: errorMsg };
+    const timeoutMs = requestTimeoutFor(event);
+    if (timeoutMs <= 0) {
+        // Nothing left of the host hook budget: skip rather than be killed mid-request.
+        // Not a channel failure, so no cooldown.
+        const errorMsg = `skipped: no time left in the ${event} hook budget`;
+        console.error(`[sender] ${provider} ${errorMsg}`);
+        return { success: false, skipped: true, error: errorMsg };
     }
 
-    // Network error (refused, DNS, reset) - pause the channel like an HTTP error
-    const errorMsg = err && err.message ? err.message : String(err);
-    recordError(provider);
-    console.error(`[sender] ${provider} network error: ${errorMsg}`);
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...headers
+            },
+            body: JSON.stringify(body),
+            signal: AbortSignal.timeout(timeoutMs)
+        });
 
-    return { success: false, error: errorMsg };
-  }
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => 'Unknown error');
+            const errorMsg = `HTTP ${response.status}: ${errorText.slice(0, 100)}`;
+
+            // Record error for throttling
+            recordError(provider);
+            console.error(`[sender] ${provider} failed: ${errorMsg}`);
+
+            return { success: false, error: errorMsg };
+        }
+
+        // Success - clear any previous throttle
+        clearThrottle(provider);
+        return { success: true };
+    } catch (err) {
+        if (err && (err.name === 'TimeoutError' || err.name === 'AbortError')) {
+            // Slow channel: abandon this alert only; later alerts are still attempted.
+            const errorMsg = `request timed out after ${timeoutMs}ms`;
+            console.error(`[sender] ${provider} ${errorMsg} (no cooldown)`);
+            return { success: false, timedOut: true, error: errorMsg };
+        }
+
+        // Network error (refused, DNS, reset) - pause the channel like an HTTP error
+        const errorMsg = err && err.message ? err.message : String(err);
+        recordError(provider);
+        console.error(`[sender] ${provider} network error: ${errorMsg}`);
+
+        return { success: false, error: errorMsg };
+    }
 }
 
 module.exports = {
-  send,
-  isThrottled,
-  requestTimeoutFor,
-  REQUEST_TIMEOUT_MS,
-  SESSION_END_BUDGET_MS,
-  SESSION_END_RESERVE_MS,
+    send,
+    isThrottled,
+    requestTimeoutFor,
+    REQUEST_TIMEOUT_MS,
+    SESSION_END_BUDGET_MS,
+    SESSION_END_RESERVE_MS
 };

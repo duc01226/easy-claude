@@ -15,7 +15,8 @@ const { resolveProjectRoot } = require('../hooks/lib/project-root.cjs');
 const routing = require('./lib/workflow-routing-config.cjs');
 
 const MODE_FLAG = '--mode=';
-const OFF_NOTE = 'Route mode off: choose and start no workflow yourself. Use this catalog only for a workflow the user explicitly requests or a running operation requires; the activation legend below does not apply.';
+const OFF_NOTE =
+    'Route mode off: choose and start no workflow yourself. Use this catalog only for a workflow the user explicitly requests or a running operation requires; the activation legend below does not apply.';
 
 /** `{ sessionMode }` (undefined without the flag), or `{ error }` naming the arguments that are not understood. */
 function parseArgs(argv) {

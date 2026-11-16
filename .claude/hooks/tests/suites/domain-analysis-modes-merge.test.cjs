@@ -43,7 +43,7 @@ const { extractSyncBody, normalizeEol } = require('../../../scripts/lib/extract-
 const guideCarrier = require('../../../scripts/lib/protocol-guide-carrier.cjs');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
-const SKIP = isFrameworkRepo(REPO_ROOT) ? false : 'asserts the framework repo\'s own domain-analysis skill and workflow registry (framework-repo signal)';
+const SKIP = isFrameworkRepo(REPO_ROOT) ? false : "asserts the framework repo's own domain-analysis skill and workflow registry (framework-repo signal)";
 
 const SKILLS = path.join(REPO_ROOT, '.claude', 'skills');
 const read = (...parts) => fs.readFileSync(path.join(...parts), 'utf8').replace(/\r\n/g, '\n');
@@ -84,11 +84,7 @@ function guideTags(text) {
 
 const LIVE_SOURCE_ROOTS = ['.claude', 'docs/specs', 'docs/project-reference', 'README.md'];
 // Generated catalogs are rebuilt from the skill folders; history stays in ADRs and release notes.
-const SCAN_EXCLUDED = new Set([
-    '.claude/SKILLS.yaml',
-    '.claude/scripts/skills_data.yaml',
-    '.claude/hooks/tests/suites/domain-analysis-modes-merge.test.cjs'
-]);
+const SCAN_EXCLUDED = new Set(['.claude/SKILLS.yaml', '.claude/scripts/skills_data.yaml', '.claude/hooks/tests/suites/domain-analysis-modes-merge.test.cjs']);
 const SCAN_EXCLUDED_DIRS = new Set(['node_modules', '.git', '.code-graph', 'tmp', 'temp', 'plans', '__pycache__']);
 const SCAN_EXTENSIONS = new Set(['.md', '.cjs', '.mjs', '.js', '.py', '.json', '.yaml', '.yml', '.html', '.toml']);
 
@@ -145,7 +141,15 @@ const tests = [
         skip: SKIP,
         fn: () => {
             const text = skillText();
-            const reviewOnly = ['## Phase 5: Why-Review Self-Validation Gate', '#### M. Invariant vs Validation Ownership', '### 0.4 Modelling Paradigm Detection', '## Report-Only Mode (`--report-only`)', '## Systematic Review Strategy', '### 3.1 Model-Level Dimensions', 'Health Score'];
+            const reviewOnly = [
+                '## Phase 5: Why-Review Self-Validation Gate',
+                '#### M. Invariant vs Validation Ownership',
+                '### 0.4 Modelling Paradigm Detection',
+                '## Report-Only Mode (`--report-only`)',
+                '## Systematic Review Strategy',
+                '### 3.1 Model-Level Dimensions',
+                'Health Score'
+            ];
             for (const marker of reviewOnly) assert.ok(!text.includes(marker), `domain-analysis/SKILL.md must not inline review text: ${marker}`);
             for (const marker of reviewOnly) assert.ok(modeReview().includes(marker), `mode-review.md holds ${marker}`);
             // And the default analysis keeps its contract
@@ -169,7 +173,10 @@ const tests = [
             assert.match(text, /\/why-review --validate-findings/);
             assert.match(text, /Round 1: zero open findings; Round 2: zero CRITICAL\/HIGH\/MEDIUM, LOW deferred/);
             // Assignment strategy follows the canonical risk/fit contract, with report-only isolation.
-            assert.match(text, /Follow `SYNC:systematic-review-batching` to choose from risk, related flows, working-set fit and delegation cost; file counts are planning cues/);
+            assert.match(
+                text,
+                /Follow `SYNC:systematic-review-batching` to choose from risk, related flows, working-set fit and delegation cost; file counts are planning cues/
+            );
             assert.match(text, /Not run under `--report-only` — that mode reviews sequentially in this context/);
             assert.doesNotMatch(text, /10\+ entity files[^\n]*automatically/);
             // --report-only is a read-only leaf: caller-mode read, no fix/restart/fan-out/questions, severity mapping 1:1
@@ -185,7 +192,7 @@ const tests = [
             assert.ok(text.includes('tmp/reports/' + REMOVED + '-{date}-{slug}.md'), 'report path prefix kept');
             // The canonical-owner linkage to the shared Domain Entity Change Gate
             assert.match(text, /`\/domain-analysis --mode=review` is the \*\*canonical owner\*\* of `SYNC:domain-entity-change-gate`/);
-            assert.ok(text.includes('`Gate is this skill\'s own body — A–P checklist owns it.`'), 'deferral line kept verbatim');
+            assert.ok(text.includes("`Gate is this skill's own body — A–P checklist owns it.`"), 'deferral line kept verbatim');
             // The mode ends with the standalone Next Steps prompt and closing reminders
             assert.match(text, /\n## Next Steps\n/);
             assert.match(text, /\n## Closing Reminders\n/);
@@ -198,7 +205,19 @@ const tests = [
             const skill = skillText();
             const review = modeReview();
             const canon = canonical();
-            const tags = ['category-review-thinking', 'core-engineering-principles', 'goal-contract-satisfaction-loop', 'graph-assisted-investigation', 'review-principle-awareness', 'severity-rubric', 'source-test-drift-check', 'systematic-review-batching', 'task-tracking-external-report', 'trade-off-interrogation-gate', 'understand-code-first'];
+            const tags = [
+                'category-review-thinking',
+                'core-engineering-principles',
+                'goal-contract-satisfaction-loop',
+                'graph-assisted-investigation',
+                'review-principle-awareness',
+                'severity-rubric',
+                'source-test-drift-check',
+                'systematic-review-batching',
+                'task-tracking-external-report',
+                'trade-off-interrogation-gate',
+                'understand-code-first'
+            ];
             for (const tag of tags) {
                 const body = extractSyncBody(canon, tag);
                 assert.ok(body, `canonical body for ${tag}`);
@@ -209,11 +228,19 @@ const tests = [
             }
             // A references file keeps full bodies: no guide entry, no retired pointer line, balanced fences
             assert.deepEqual(guideTags(review), [], 'mode-review.md carries no guide entry');
-            assert.deepEqual(guideTags(skill), ['output-quality-principles', 'review-decision-autonomy', 'review-policy'], 'shared document, decision and mode policies are routed at entry; domain-specific protocols stay isolated');
+            assert.deepEqual(
+                guideTags(skill),
+                ['output-quality-principles', 'review-decision-autonomy', 'review-policy'],
+                'shared document, decision and mode policies are routed at entry; domain-specific protocols stay isolated'
+            );
             assert.ok(skill.includes('<!-- SYNC:review-decision-autonomy:reminder -->'), 'the review policy reminder remains discoverable');
             assert.ok(skill.includes('<!-- SYNC:review-policy:reminder -->'), 'the shared modes/rounds reminder remains discoverable');
             const autonomy = fs.readFileSync(path.join(SKILLS, 'shared', 'protocols', 'review-decision-autonomy.md'), 'utf8');
-            assert.match(autonomy, /Non-review creation, interviews and implementation retain their own contracts/, 'loading the guide cannot alter non-review mode authority');
+            assert.match(
+                autonomy,
+                /Non-review creation, interviews and implementation retain their own contracts/,
+                'loading the guide cannot alter non-review mode authority'
+            );
             assert.ok(!review.includes('Root-carried protocols'), 'mode-review.md carries no retired pointer line');
             const opens = review.match(/<!-- SYNC:[a-z-]+(?::reminder)? -->/g) || [];
             const closes = review.match(/<!-- \/SYNC:[a-z-]+(?::reminder)? -->/g) || [];
@@ -247,18 +274,24 @@ const tests = [
             for (const manifest of resolveAllWorkflowManifests(document, 'workflow-review-changes', { rootDir: REPO_ROOT })) {
                 const leaf = manifest.occurrences.find(entry => entry.skill === 'domain-analysis');
                 assert.ok(leaf && leaf.id === step.id, 'conditional reviewer identity survives every variant');
-                assert.equal(leaf.args, manifest.mode === 'fix-loop'
-                    ? '--mode=review --fix-loop --loop-owner=caller' : '--mode=review --review-only');
+                assert.equal(leaf.args, manifest.mode === 'fix-loop' ? '--mode=review --fix-loop --loop-owner=caller' : '--mode=review --review-only');
                 assert.ok(leaf.applicability && leaf.applicability.when && leaf.applicability.skipReason);
             }
             // The scan target of the same name family is a different skill and stays
-            assert.ok(review.sequence.some(entry => (typeof entry === 'string' ? entry : `${entry.skill} ${entry.args || ''}`).includes('scan --target=domain-entities')), 'the domain-entities scan step is untouched');
+            assert.ok(
+                review.sequence.some(entry =>
+                    (typeof entry === 'string' ? entry : `${entry.skill} ${entry.args || ''}`).includes('scan --target=domain-entities')
+                ),
+                'the domain-entities scan step is untouched'
+            );
             // And no resolved workflow step runs the removed name
             for (const { skill } of (() => {
                 const all = [];
-                for (const id of Object.keys(document.workflows)) for (const m of resolveAllWorkflowManifests(document, id, { rootDir: REPO_ROOT })) all.push(...m.occurrences);
+                for (const id of Object.keys(document.workflows))
+                    for (const m of resolveAllWorkflowManifests(document, id, { rootDir: REPO_ROOT })) all.push(...m.occurrences);
                 return all;
-            })()) assert.notEqual(skill, REMOVED);
+            })())
+                assert.notEqual(skill, REMOVED);
         }
     },
     {
@@ -277,7 +310,10 @@ const tests = [
                 reviewSteps += 1;
             }
             assert.ok(reviewSteps >= 1, `tripwire: the registry runs the review mode as a domain-analysis step (${reviewSteps})`);
-            assert.ok(found.some(({ occurrence }) => !occurrence.args.trim()), 'tripwire: the default analysis still runs as a workflow step');
+            assert.ok(
+                found.some(({ occurrence }) => !occurrence.args.trim()),
+                'tripwire: the default analysis still runs as a workflow step'
+            );
         }
     },
     {
@@ -291,11 +327,22 @@ const tests = [
             assert.match(primer, /`--mode=review`/);
             // The review mode points at it and does not carry a copy of the shared matrices or pattern tables
             assert.match(review, /live once in `references\/ddd-reference\.md`/);
-            for (const copied of ['### Decision Matrix', '### Canonical Value Objects', '### Aggregate Size Heuristics', '### Identity Strategies', '### Cross-Aggregate References']) {
+            for (const copied of [
+                '### Decision Matrix',
+                '### Canonical Value Objects',
+                '### Aggregate Size Heuristics',
+                '### Identity Strategies',
+                '### Cross-Aggregate References'
+            ]) {
                 assert.ok(!review.includes(copied), `mode-review.md must not copy the primer section ${copied}`);
             }
             // The review-only tables stay with the review mode
-            for (const own of ['### Invariant Enforcement Decision Table', '### Invariant vs Validation Decision Table', '### Paradigm Adaptation Table', '### Code Smell Signals']) {
+            for (const own of [
+                '### Invariant Enforcement Decision Table',
+                '### Invariant vs Validation Decision Table',
+                '### Paradigm Adaptation Table',
+                '### Code Smell Signals'
+            ]) {
                 assert.ok(review.includes(own), `mode-review.md keeps ${own}`);
             }
         }
@@ -332,12 +379,19 @@ const tests = [
             const groupsData = JSON.parse(read(SKILLS, 'shared', 'protocol-groups.json'));
             const agentPolicy = groupsData.agentGuides && groupsData.agentGuides.enabled === true ? groupsData.agentGuides : null;
             const triggerGated = Object.values(groupsData.groups || {}).some(group => group && group.tags && group.tags[tag] && group.tags[tag].trigger);
-            const agentMayGuide = agent => Boolean(agentPolicy) && triggerGated && !(((agentPolicy.keepInline || {})[agent]) || []).includes(tag);
-            for (const rel of ['.claude/agents/backend-developer.md', '.claude/agents/code-reviewer.md', '.claude/agents/planner.md', '.claude/skills/changes-review/SKILL.md']) {
+            const agentMayGuide = agent => Boolean(agentPolicy) && triggerGated && !((agentPolicy.keepInline || {})[agent] || []).includes(tag);
+            for (const rel of [
+                '.claude/agents/backend-developer.md',
+                '.claude/agents/code-reviewer.md',
+                '.claude/agents/planner.md',
+                '.claude/skills/changes-review/SKILL.md'
+            ]) {
                 const agent = (/^\.claude\/agents\/([^/]+)\.md$/.exec(rel) || [])[1];
                 const acceptGuide = agent ? agentMayGuide(agent) : true;
-                assert.ok(carriesCanonicalProtocol(read(REPO_ROOT, ...rel.split('/')), tag, projection, canonicalGate, acceptGuide),
-                    `${rel} carries the canonical gate (${acceptGuide ? 'a body or a published guide line' : 'the full body; the agent-guide policy does not convert it here'})`);
+                assert.ok(
+                    carriesCanonicalProtocol(read(REPO_ROOT, ...rel.split('/')), tag, projection, canonicalGate, acceptGuide),
+                    `${rel} carries the canonical gate (${acceptGuide ? 'a body or a published guide line' : 'the full body; the agent-guide policy does not convert it here'})`
+                );
             }
             const guide = `<!-- PROTOCOL-GUIDES:START -->\n${guideCarrier.guideEntries(read(SKILLS, 'changes-review', 'SKILL.md')).get(tag)}\n<!-- PROTOCOL-GUIDES:END -->`;
             for (const [label, text, published, acceptGuide] of [
@@ -372,7 +426,9 @@ const tests = [
             assert.ok(scanned > 500, `tripwire: the scan covers the framework sources (${scanned} files)`);
             assert.deepEqual(offenders, [], 'replace each with `domain-analysis --mode=review`');
             // The allow-list is live: SKILL.md names the removed command only as "formerly"
-            const named = skillText().split('\n').filter(line => line.includes(REMOVED));
+            const named = skillText()
+                .split('\n')
+                .filter(line => line.includes(REMOVED));
             assert.ok(named.length >= 1 && named.every(line => /former/i.test(line)), 'domain-analysis/SKILL.md names the removed command only as "formerly"');
         }
     }

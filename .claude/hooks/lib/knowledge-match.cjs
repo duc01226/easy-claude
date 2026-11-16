@@ -22,9 +22,11 @@ const MARKER_END = '<!-- /CK:KNOWLEDGE -->';
 const TITLE_MAX = 48;
 const SIGNAL_MAX = 32;
 
-const BUILD_CUE = /\b(?:add|adds|adding|build|building|create|implement|implementing|integrat\w*|develop|ship|wire|write|enable|set ?up|fix|fixing|change|changing|update|updating|refactor|migrate|introduce|extend|support|store|save|log|delete|remove|expose|handle|make)\b/i;
+const BUILD_CUE =
+    /\b(?:add|adds|adding|build|building|create|implement|implementing|integrat\w*|develop|ship|wire|write|enable|set ?up|fix|fixing|change|changing|update|updating|refactor|migrate|introduce|extend|support|store|save|log|delete|remove|expose|handle|make)\b/i;
 const PLAN_CUE = /\b(?:plan|planning|design|designing|architect\w*|estimate|scope|scoping|proposal|approach|roadmap|spec)\b/i;
-const REVIEW_CUE = /\b(?:review|reviewing|audit|auditing|assess|assessing|critique|inspect|evaluate|check|checking|verify)\b|\bany (?:gaps|issues|problems|risks)\b|\b(?:is|are) (?:this|it|the)\b[^.?!\n]{0,40}\b(?:safe|compliant|correct|ok|okay|sound)\b/i;
+const REVIEW_CUE =
+    /\b(?:review|reviewing|audit|auditing|assess|assessing|critique|inspect|evaluate|check|checking|verify)\b|\bany (?:gaps|issues|problems|risks)\b|\b(?:is|are) (?:this|it|the)\b[^.?!\n]{0,40}\b(?:safe|compliant|correct|ok|okay|sound)\b/i;
 
 function escapeRegex(text) {
     return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -85,14 +87,22 @@ function matchPrompt(packs, text, deps = {}) {
 }
 
 function baseName(name) {
-    const text = String(name || '').trim().toLowerCase();
+    const text = String(name || '')
+        .trim()
+        .toLowerCase();
     const colon = text.lastIndexOf(':');
     return colon === -1 ? text : text.slice(colon + 1);
 }
 
 /** Skill matches: a bound name equals the started skill, or the started skill's name after a plugin prefix. */
 function matchSkills(packs, skillNames) {
-    const started = (skillNames || []).map(name => String(name || '').trim().toLowerCase()).filter(Boolean);
+    const started = (skillNames || [])
+        .map(name =>
+            String(name || '')
+                .trim()
+                .toLowerCase()
+        )
+        .filter(Boolean);
     if (!started.length) return [];
     const matches = [];
     for (const entry of packs) {
@@ -105,10 +115,14 @@ function matchSkills(packs, skillNames) {
 
 /** Helper-agent matches for the starting agent's role. */
 function matchAgents(packs, agentType) {
-    const role = String(agentType || '').trim().toLowerCase();
+    const role = String(agentType || '')
+        .trim()
+        .toLowerCase();
     if (!role) return [];
     return packs
-        .filter(entry => ((entry.triggers && entry.triggers.agents) || []).some(name => String(name).toLowerCase() === role || String(name).toLowerCase() === baseName(role)))
+        .filter(entry =>
+            ((entry.triggers && entry.triggers.agents) || []).some(name => String(name).toLowerCase() === role || String(name).toLowerCase() === baseName(role))
+        )
         .map(entry => ({ entry, trigger: 'agent', signal: role }));
 }
 
@@ -132,7 +146,9 @@ function orderMatches(matches) {
 }
 
 function clip(text, max) {
-    const value = String(text || '').replace(/\s+/g, ' ').trim();
+    const value = String(text || '')
+        .replace(/\s+/g, ' ')
+        .trim();
     return value.length <= max ? value : `${value.slice(0, max - 1).trimEnd()}…`;
 }
 

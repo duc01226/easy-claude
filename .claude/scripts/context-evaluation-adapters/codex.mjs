@@ -43,7 +43,17 @@ import path from 'node:path';
 import readline from 'node:readline';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
-import { MAX_OUTPUT, innerCommand, shellReadPaths, childEnv, ancestorContext, removeHostScratch, jobClock, runTimeout, makeTempDir } from './adapter-common.mjs';
+import {
+    MAX_OUTPUT,
+    innerCommand,
+    shellReadPaths,
+    childEnv,
+    ancestorContext,
+    removeHostScratch,
+    jobClock,
+    runTimeout,
+    makeTempDir
+} from './adapter-common.mjs';
 
 export { innerCommand, shellReadPaths };
 import { snapshot, changed } from './claude-code-observer.mjs';
@@ -58,17 +68,39 @@ export function toEvent(item, cwd, changedPaths = []) {
     if (item.type === 'command_execution') {
         const output = typeof item.aggregated_output === 'string' ? item.aggregated_output : '';
         return {
-            action: 'local-exec', command: innerCommand(item.command), readPaths: shellReadPaths(item.command, cwd), changedPaths,
-            output: output.slice(0, MAX_OUTPUT), exitCode: Number.isInteger(item.exit_code) ? item.exit_code : item.status === 'completed' ? 0 : 1
+            action: 'local-exec',
+            command: innerCommand(item.command),
+            readPaths: shellReadPaths(item.command, cwd),
+            changedPaths,
+            output: output.slice(0, MAX_OUTPUT),
+            exitCode: Number.isInteger(item.exit_code) ? item.exit_code : item.status === 'completed' ? 0 : 1
         };
     }
     if (item.type === 'file_change') {
-        const declared = (Array.isArray(item.changes) ? item.changes : []).map(change => change && change.path).filter(p => typeof p === 'string')
-            .map(p => path.relative(cwd, path.resolve(cwd, p)).split(path.sep).join('/')).filter(p => p && !p.startsWith('..'));
-        return { action: 'local-write', command: '', readPaths: [], changedPaths: [...new Set([...changedPaths, ...declared])].sort(), output: '', exitCode: item.status === 'failed' ? 1 : 0 };
+        const declared = (Array.isArray(item.changes) ? item.changes : [])
+            .map(change => change && change.path)
+            .filter(p => typeof p === 'string')
+            .map(p => path.relative(cwd, path.resolve(cwd, p)).split(path.sep).join('/'))
+            .filter(p => p && !p.startsWith('..'));
+        return {
+            action: 'local-write',
+            command: '',
+            readPaths: [],
+            changedPaths: [...new Set([...changedPaths, ...declared])].sort(),
+            output: '',
+            exitCode: item.status === 'failed' ? 1 : 0
+        };
     }
     if (item.type === 'web_search') return { action: 'network', command: '', readPaths: [], changedPaths, output: '', exitCode: 0 };
-    if (item.type === 'mcp_tool_call') return { action: 'local-exec', command: `${item.server || ''}.${item.tool || ''}`, readPaths: [], changedPaths, output: '', exitCode: item.status === 'failed' ? 1 : 0 };
+    if (item.type === 'mcp_tool_call')
+        return {
+            action: 'local-exec',
+            command: `${item.server || ''}.${item.tool || ''}`,
+            readPaths: [],
+            changedPaths,
+            output: '',
+            exitCode: item.status === 'failed' ? 1 : 0
+        };
     return null;
 }
 
@@ -81,14 +113,25 @@ export function preflight(platform, world) {
 
 /** The host argv for one job. Pure. */
 export function runArgs(job, { model, oss, provider }) {
-    return ['exec', '--json', '--ephemeral', '--skip-git-repo-check', '--sandbox', 'workspace-write',
-        '-c', 'sandbox_workspace_write.network_access=false',
-        '-c', 'sandbox_workspace_write.exclude_tmpdir_env_var=true',
-        '-c', 'sandbox_workspace_write.exclude_slash_tmp=true',
-        '-c', `developer_instructions=${JSON.stringify(String(job.policy ?? ''))}`,
+    return [
+        'exec',
+        '--json',
+        '--ephemeral',
+        '--skip-git-repo-check',
+        '--sandbox',
+        'workspace-write',
+        '-c',
+        'sandbox_workspace_write.network_access=false',
+        '-c',
+        'sandbox_workspace_write.exclude_tmpdir_env_var=true',
+        '-c',
+        'sandbox_workspace_write.exclude_slash_tmp=true',
+        '-c',
+        `developer_instructions=${JSON.stringify(String(job.policy ?? ''))}`,
         ...(oss ? ['--oss', '--local-provider', provider] : []),
         ...(model ? ['-m', model] : []),
-        job.prompt];
+        job.prompt
+    ];
 }
 
 /** Attempts per job: the first run and at most one retry. */
@@ -98,7 +141,8 @@ export const RETRY_FLOOR_MS = 30000;
 /** Time a run past its limit gets between SIGTERM and SIGKILL. */
 export const KILL_GRACE_MS = 3000;
 /** Failure messages of the host or its model server, never of the model's own work. */
-const TRANSPORT_FAILURE = /stream (?:disconnected|closed|error)|disconnected|connection (?:reset|refused|closed|error|lost)|ECONNRESET|ECONNREFUSED|ETIMEDOUT|EAI_AGAIN|ENOTFOUND|socket hang up|network error|internal server error|bad gateway|service unavailable|gateway time-?out|\b50[0-4]\b|\b529\b|overloaded|rate.?limit|too many requests|\b429\b/i;
+const TRANSPORT_FAILURE =
+    /stream (?:disconnected|closed|error)|disconnected|connection (?:reset|refused|closed|error|lost)|ECONNRESET|ECONNREFUSED|ETIMEDOUT|EAI_AGAIN|ENOTFOUND|socket hang up|network error|internal server error|bad gateway|service unavailable|gateway time-?out|\b50[0-4]\b|\b529\b|overloaded|rate.?limit|too many requests|\b429\b/i;
 
 /** True when a run failed in the host or its transport rather than in the model's work, so a retry cannot
  * re-roll a result: Codex could not start, exited without reporting a failed turn, or its last reported failure
@@ -126,7 +170,15 @@ export function restoreWorld(backup, world) {
 
 /** Signal a Codex run and the commands it started: the run leads its own process group (POSIX). */
 function signalRun(child, signal) {
-    try { process.kill(-child.pid, signal); } catch { try { child.kill(signal); } catch { /* already gone */ } }
+    try {
+        process.kill(-child.pid, signal);
+    } catch {
+        try {
+            child.kill(signal);
+        } catch {
+            /* already gone */
+        }
+    }
 }
 
 /** The Codex run in progress, so a SIGTERM/SIGINT handler can stop it. */
@@ -137,7 +189,12 @@ function runJob(bin, args, { cwd, env, timeout }) {
     return new Promise(resolve => {
         const child = spawn(bin, args, { cwd, env, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true, detached: process.platform !== 'win32' });
         activeRun = child;
-        const events = []; const failures = []; let usage = null; let ok = false; let stderr = ''; let timedOut = false;
+        const events = [];
+        const failures = [];
+        let usage = null;
+        let ok = false;
+        let stderr = '';
+        let timedOut = false;
         let before = snapshot(cwd);
         let escalation = null;
         const timer = setTimeout(() => {
@@ -145,19 +202,37 @@ function runJob(bin, args, { cwd, env, timeout }) {
             signalRun(child, 'SIGTERM');
             escalation = setTimeout(() => signalRun(child, 'SIGKILL'), KILL_GRACE_MS);
         }, timeout);
-        const settle = value => { clearTimeout(timer); clearTimeout(escalation); activeRun = null; resolve({ ...value, events, failures, usage, timedOut, stderr }); };
-        child.stderr.on('data', chunk => { stderr = (stderr + chunk).slice(-8000); });
+        const settle = value => {
+            clearTimeout(timer);
+            clearTimeout(escalation);
+            activeRun = null;
+            resolve({ ...value, events, failures, usage, timedOut, stderr });
+        };
+        child.stderr.on('data', chunk => {
+            stderr = (stderr + chunk).slice(-8000);
+        });
         readline.createInterface({ input: child.stdout }).on('line', line => {
             let event;
-            try { event = JSON.parse(line); } catch { return; }
+            try {
+                event = JSON.parse(line);
+            } catch {
+                return;
+            }
             if (event.type === 'item.completed') {
                 const now = snapshot(cwd);
                 const mapped = toEvent(event.item, cwd, changed(before, now));
                 before = now;
                 if (mapped) events.push(mapped);
-            } else if (event.type === 'turn.completed') { usage = event.usage || null; ok = true; }
-            else if (event.type === 'turn.failed') { ok = false; failures.push(String(event.error?.message || event.message || 'turn failed')); }
-            else if (event.type === 'error') { ok = false; failures.push(String(event.message || event.error?.message || 'error')); }
+            } else if (event.type === 'turn.completed') {
+                usage = event.usage || null;
+                ok = true;
+            } else if (event.type === 'turn.failed') {
+                ok = false;
+                failures.push(String(event.error?.message || event.message || 'turn failed'));
+            } else if (event.type === 'error') {
+                ok = false;
+                failures.push(String(event.message || event.error?.message || 'error'));
+            }
         });
         child.on('error', error => settle({ error, ok: false }));
         child.on('close', code => settle({ code, ok: ok && code === 0 }));
@@ -167,7 +242,13 @@ function runJob(bin, args, { cwd, env, timeout }) {
 /** Paths the adapter must remove however it ends. */
 const ownedPaths = new Set();
 function removeOwned() {
-    for (const owned of ownedPaths) { try { fs.rmSync(owned, { recursive: true, force: true }); } catch { /* the evaluator removes the scratch folder */ } }
+    for (const owned of ownedPaths) {
+        try {
+            fs.rmSync(owned, { recursive: true, force: true });
+        } catch {
+            /* the evaluator removes the scratch folder */
+        }
+    }
     ownedPaths.clear();
 }
 
@@ -176,7 +257,11 @@ function removeOwned() {
 function stopOnSignal(signal) {
     if (activeRun) signalRun(activeRun, 'SIGKILL');
     removeOwned();
-    try { fs.writeSync(2, `[codex-adapter] stopped by ${signal}\n`); } catch { /* stderr closed */ }
+    try {
+        fs.writeSync(2, `[codex-adapter] stopped by ${signal}\n`);
+    } catch {
+        /* stderr closed */
+    }
     process.exit(signal === 'SIGINT' ? 130 : 143);
 }
 
@@ -195,14 +280,18 @@ async function main() {
     try {
         const sourceHome = process.env.CODEX_HOME || path.join(os.homedir(), '.codex');
         const auth = path.join(sourceHome, 'auth.json');
-        if (!oss && fs.existsSync(auth)) { fs.copyFileSync(auth, path.join(home, 'auth.json')); fs.chmodSync(path.join(home, 'auth.json'), 0o600); }
+        if (!oss && fs.existsSync(auth)) {
+            fs.copyFileSync(auth, path.join(home, 'auth.json'));
+            fs.chmodSync(path.join(home, 'auth.json'), 0o600);
+        }
         const bin = process.env.CTX_EVAL_CODEX_BIN || 'codex';
         const env = { ...childEnv(process.env, process.env.CTX_EVAL_PASS_ENV), CODEX_HOME: home, GIT_CEILING_DIRECTORIES: path.dirname(cwd) };
         // A host or transport failure produces no graded outcome, so it is retried once from the world's starting
         // state; a timeout, a completed turn or a failed turn the model caused is never retried (isHostFailure).
         const backup = backupWorld(cwd, () => makeTempDir(job, 'ctx-eval-world-'));
         ownedPaths.add(backup);
-        let result; let attempts = 0;
+        let result;
+        let attempts = 0;
         try {
             for (;;) {
                 const timeout = runTimeout(clock);
@@ -212,7 +301,9 @@ async function main() {
                 if (!isHostFailure(result) || attempts >= MAX_ATTEMPTS) break;
                 const status = result.code ?? result.error?.code;
                 if (runTimeout(clock) < RETRY_FLOOR_MS) {
-                    process.stderr.write(`[codex-adapter] host failure (status ${status}); not retried, less than ${RETRY_FLOOR_MS} ms of the job limit left\n`);
+                    process.stderr.write(
+                        `[codex-adapter] host failure (status ${status}); not retried, less than ${RETRY_FLOOR_MS} ms of the job limit left\n`
+                    );
                     break;
                 }
                 process.stderr.write(`[codex-adapter] host failure (status ${status}); retrying once from the starting world\n`);
@@ -223,26 +314,35 @@ async function main() {
             ownedPaths.delete(backup);
         }
         if (result.error || !result.ok) {
-            if (process.env.CTX_EVAL_DEBUG_DIR) fs.writeFileSync(path.join(process.env.CTX_EVAL_DEBUG_DIR, `${path.basename(cwd)}.log`), `${result.error?.message || ''}\nstatus ${result.code} attempts ${attempts}\n${result.failures.join('\n')}\n${result.stderr}`);
+            if (process.env.CTX_EVAL_DEBUG_DIR)
+                fs.writeFileSync(
+                    path.join(process.env.CTX_EVAL_DEBUG_DIR, `${path.basename(cwd)}.log`),
+                    `${result.error?.message || ''}\nstatus ${result.code} attempts ${attempts}\n${result.failures.join('\n')}\n${result.stderr}`
+                );
             throw new Error(result.error ? result.error.message : `codex run did not complete (status ${result.code}, ${attempts} attempt(s))`);
         }
         removeHostScratch(cwd);
         const version = String(spawnSync(bin, ['--version'], { encoding: 'utf8', env, timeout: 15000 }).stdout || '').trim();
         const fixed = runArgs({ prompt: '', policy: '' }, options);
-        process.stdout.write(JSON.stringify({
-            toolEvents: result.events,
-            model: options.model || 'codex-default',
-            settingsHash: sha256(JSON.stringify({ fixed, version, observer: 'codex-json-items-v3' })),
-            host: 'codex',
-            attempts,
-            inputTokens: result.usage?.input_tokens || 0,
-            outputTokens: result.usage?.output_tokens || 0
-        }));
+        process.stdout.write(
+            JSON.stringify({
+                toolEvents: result.events,
+                model: options.model || 'codex-default',
+                settingsHash: sha256(JSON.stringify({ fixed, version, observer: 'codex-json-items-v3' })),
+                host: 'codex',
+                attempts,
+                inputTokens: result.usage?.input_tokens || 0,
+                outputTokens: result.usage?.output_tokens || 0
+            })
+        );
     } finally {
         removeOwned();
     }
 }
 
 if (isInvokedAsScript(process.argv[1], fileURLToPath(import.meta.url))) {
-    main().catch(error => { process.stderr.write(`[codex-adapter] ${error.message}\n`); process.exitCode = 1; });
+    main().catch(error => {
+        process.stderr.write(`[codex-adapter] ${error.message}\n`);
+        process.exitCode = 1;
+    });
 }

@@ -24,19 +24,37 @@ async function fixture(fn) {
     const transcript = path.join(root, 'history.jsonl');
     fs.writeFileSync(transcript, '');
     const fx = {
-        root, transcript, store: path.join(root, 'tmp/protocol-delivery'),
-        event: extra => ({ hook_event_name: 'PreToolUse', session_id: 'main', cwd: root, transcript_path: transcript, tool_name: 'Bash', tool_input: { command: 'fixture-test' }, ...extra }),
+        root,
+        transcript,
+        store: path.join(root, 'tmp/protocol-delivery'),
+        event: extra => ({
+            hook_event_name: 'PreToolUse',
+            session_id: 'main',
+            cwd: root,
+            transcript_path: transcript,
+            tool_name: 'Bash',
+            tool_input: { command: 'fixture-test' },
+            ...extra
+        }),
         fire: (input, config = {}, deps = {}) => hook.run(input, { projectRoot: root, config, write: (_text, done) => done(true), ...deps }),
         grow: tokens => fs.appendFileSync(transcript, 'x'.repeat(tokens * BYTES_PER_TOKEN))
     };
-    try { await fn(fx); } finally { fs.rmSync(root, { recursive: true, force: true }); }
+    try {
+        await fn(fx);
+    } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+    }
 }
 
 const cases = {
     async signals() {
         await fixture(async fx => {
             const input = fx.event();
-            Object.defineProperty(input, 'tool_input', { get() { throw new Error('command must not be inspected'); } });
+            Object.defineProperty(input, 'tool_input', {
+                get() {
+                    throw new Error('command must not be inspected');
+                }
+            });
             const first = JSON.parse(await fx.fire(input)).hookSpecificOutput;
             assert.equal(first.hookEventName, 'PreToolUse');
             assert.match(first.additionalContext, /Before fixing an unexpected error or failed test/);
@@ -48,22 +66,32 @@ const cases = {
             assert.ok(await fx.fire(fx.event({ tool_name: 'exec_command', session_id: 'codex' })));
             const failure = fx.event({ hook_event_name: 'PostToolUseFailure', tool_name: 'mcp__fixture__query', session_id: 'failure', is_interrupt: false });
             for (const field of ['error', 'tool_response', 'tool_result']) {
-                Object.defineProperty(failure, field, { get() { throw new Error('tool output must not be inspected'); } });
+                Object.defineProperty(failure, field, {
+                    get() {
+                        throw new Error('tool output must not be inspected');
+                    }
+                });
             }
             assert.equal(JSON.parse(await fx.fire(failure)).hookSpecificOutput.hookEventName, 'PostToolUseFailure');
             const silent = [
-                fx.event({ hook_event_name: 'PostToolUse', tool_response: { exit_code: 1, isError: true }, tool_result: 'Process exited with code 1\nOutput:\nERROR' }),
+                fx.event({
+                    hook_event_name: 'PostToolUse',
+                    tool_response: { exit_code: 1, isError: true },
+                    tool_result: 'Process exited with code 1\nOutput:\nERROR'
+                }),
                 fx.event({ hook_event_name: 'UserPromptSubmit', prompt: 'error: failed test' }),
                 fx.event({ tool_name: 'Edit' }),
                 fx.event({ hook_event_name: 'PostToolUseFailure', is_interrupt: true }),
                 fx.event({ hook_event_name: 'PostToolUseFailure', tool_name: '' }),
-                fx.event({ session_id: undefined }), fx.event({ session_id: '  ' }), null, {}
+                fx.event({ session_id: undefined }),
+                fx.event({ session_id: '  ' }),
+                null,
+                {}
             ];
             for (const [index, value] of silent.entries()) {
                 // Independent rejection must not pass because an earlier delivery
                 // already credited this session. Preserve absent/blank identities.
-                const input = value && typeof value.session_id === 'string' && value.session_id.trim()
-                    ? { ...value, session_id: `rejected-${index}` } : value;
+                const input = value && typeof value.session_id === 'string' && value.session_id.trim() ? { ...value, session_id: `rejected-${index}` } : value;
                 assert.equal(await fx.fire(input), '');
             }
         });
@@ -140,7 +168,18 @@ const cases = {
             assert.equal(await fx.fire(event, configured({ enabled: false })), '');
             assert.equal(await fx.fire({ ...event, hook_event_name: 'PostToolUseFailure' }, configured({ enabled: false })), '');
             assert.equal(await fx.fire(event, {}, { write: (_text, done) => done(false) }), '');
-            assert.equal(await fx.fire(event, {}, { write: () => { throw new Error('closed'); } }), '');
+            assert.equal(
+                await fx.fire(
+                    event,
+                    {},
+                    {
+                        write: () => {
+                            throw new Error('closed');
+                        }
+                    }
+                ),
+                ''
+            );
             assert.equal(ledger.readRecord(fx.store, 'main', 'main', GROUP), null, 'failed writes earn no credit');
             const config = configured({ reinjectAfterTokens: 20000 });
             assert.ok(await fx.fire(event, config));
@@ -151,7 +190,10 @@ const cases = {
             assert.ok(await fx.fire(event, configured({ reinjectAfterTokens: 30000 })), 'a changed policy re-arms');
             let writes = 0;
             const parallel = fx.event({ session_id: 'parallel' });
-            const write = (_text, done) => { writes++; setTimeout(() => done(true), 5); };
+            const write = (_text, done) => {
+                writes++;
+                setTimeout(() => done(true), 5);
+            };
             const results = await Promise.all([fx.fire(parallel, {}, { write }), fx.fire(parallel, {}, { write })]);
             assert.equal(writes, 1, 'same-scope competing events share the delivery claim');
             assert.equal(results.filter(Boolean).length, 1);
@@ -176,13 +218,29 @@ const cases = {
     },
     async entrypointsAndRegistration() {
         await fixture(async fx => {
-            const env = { ...process.env, HOME: fx.root, USERPROFILE: fx.root, CLAUDE_PROJECT_DIR: fx.root, TMPDIR: fx.root, TMP: fx.root, TEMP: fx.root, CLAUDE_HOOK_DEBUG: '0' };
+            const env = {
+                ...process.env,
+                HOME: fx.root,
+                USERPROFILE: fx.root,
+                CLAUDE_PROJECT_DIR: fx.root,
+                TMPDIR: fx.root,
+                TMP: fx.root,
+                TEMP: fx.root,
+                CLAUDE_HOOK_DEBUG: '0'
+            };
             delete env.CLAUDE_HOOK_DEBUG_LOG;
             for (const key of Object.keys(env)) if (/^CK_|TOKEN|SECRET|PASSWORD|API_KEY/i.test(key)) delete env[key];
-            const invoke = (args, input) => spawnSync(process.execPath, args, { cwd: fx.root, env, encoding: 'utf8', input: JSON.stringify(input), timeout: 10000 });
-            for (const [name, args] of [['direct', [HOOK]], ['imported', ['-e', 'require(process.argv[1])', HOOK]]]) {
+            const invoke = (args, input) =>
+                spawnSync(process.execPath, args, { cwd: fx.root, env, encoding: 'utf8', input: JSON.stringify(input), timeout: 10000 });
+            for (const [name, args] of [
+                ['direct', [HOOK]],
+                ['imported', ['-e', 'require(process.argv[1])', HOOK]]
+            ]) {
                 const event = fx.event({ session_id: name });
-                if (name === 'imported') { event.event = event.hook_event_name; delete event.hook_event_name; }
+                if (name === 'imported') {
+                    event.event = event.hook_event_name;
+                    delete event.hook_event_name;
+                }
                 const result = invoke(args, event);
                 assert.equal(result.status, 0, result.stderr);
                 assert.match(JSON.parse(result.stdout).hookSpecificOutput.additionalContext, /investigate --mode=debug/);
@@ -199,9 +257,18 @@ const cases = {
         });
         const settings = JSON.parse(fs.readFileSync(path.join(ROOT, '.claude/settings.json'), 'utf8'));
         const owns = group => group.hooks?.some(entry => entry.command?.endsWith(`/.claude/hooks/${GROUP}.cjs`));
-        assert.deepEqual(settings.hooks.PreToolUse.filter(owns).map(group => group.matcher), ['Bash|exec_command']);
-        assert.deepEqual(settings.hooks.PostToolUseFailure.filter(owns).map(group => group.matcher), ['*']);
-        assert.deepEqual(settings.hooks.SessionStart.filter(owns).map(group => group.matcher), ['compact|clear']);
+        assert.deepEqual(
+            settings.hooks.PreToolUse.filter(owns).map(group => group.matcher),
+            ['Bash|exec_command']
+        );
+        assert.deepEqual(
+            settings.hooks.PostToolUseFailure.filter(owns).map(group => group.matcher),
+            ['*']
+        );
+        assert.deepEqual(
+            settings.hooks.SessionStart.filter(owns).map(group => group.matcher),
+            ['compact|clear']
+        );
         assert.equal(settings.hooks.PostToolUse.filter(owns).length, 0, 'no broad tool-result callback');
     },
     async hostMapping() {
@@ -209,12 +276,25 @@ const cases = {
         const source = JSON.parse(fs.readFileSync(path.join(ROOT, '.claude/settings.json'), 'utf8'));
         const { hooks, report } = buildHooksConfig(source);
         const owns = group => group.hooks?.some(entry => entry.command === `.claude/hooks/${GROUP}.cjs`);
-        assert.deepEqual(hooks.PreToolUse.filter(owns).map(group => group.matcher), ['Bash|exec_command']);
-        assert.deepEqual(hooks.SessionStart.filter(owns).map(group => group.matcher), ['compact|clear']);
+        assert.deepEqual(
+            hooks.PreToolUse.filter(owns).map(group => group.matcher),
+            ['Bash|exec_command']
+        );
+        assert.deepEqual(
+            hooks.SessionStart.filter(owns).map(group => group.matcher),
+            ['compact|clear']
+        );
         // The V2 bridge reproduces PostToolUseFailure from the tool-result status, so the reminder reaches
         // a failed tool call instead of being reported as an unsupported event.
-        assert.deepEqual(hooks.PostToolUseFailure.filter(owns).map(group => group.matcher), ['*']);
-        assert.equal(report.skipped_events.some(row => row.event === 'PostToolUseFailure'), false, 'PostToolUseFailure is bridged, not skipped');
+        assert.deepEqual(
+            hooks.PostToolUseFailure.filter(owns).map(group => group.matcher),
+            ['*']
+        );
+        assert.equal(
+            report.skipped_events.some(row => row.event === 'PostToolUseFailure'),
+            false,
+            'PostToolUseFailure is bridged, not skipped'
+        );
         await fixture(async fx => {
             // Exercise the generated consumer and actual hook, not just its table.
             const hookRoot = path.join(fx.root, '.claude/hooks');
@@ -225,8 +305,12 @@ const cases = {
             const scriptsLib = path.join(fx.root, '.claude/scripts/lib');
             fs.mkdirSync(scriptsLib, { recursive: true });
             fs.copyFileSync(path.join(ROOT, '.claude/scripts/lib/workflow-routing-config.cjs'), path.join(scriptsLib, 'workflow-routing-config.cjs'));
-            const reminderOnly = Object.fromEntries(['PreToolUse', 'SessionStart'].map(event => [event,
-                source.hooks[event].filter(group => group.hooks?.some(entry => entry.command?.endsWith(`/.claude/hooks/${GROUP}.cjs`)))]));
+            const reminderOnly = Object.fromEntries(
+                ['PreToolUse', 'SessionStart'].map(event => [
+                    event,
+                    source.hooks[event].filter(group => group.hooks?.some(entry => entry.command?.endsWith(`/.claude/hooks/${GROUP}.cjs`)))
+                ])
+            );
             fs.writeFileSync(path.join(fx.root, '.claude/settings.json'), JSON.stringify({ hooks: reminderOnly }));
             // The bridge spawns hooks with this process's environment, and their runtime
             // guard reads personal settings from HOME: give them the fixture's home, as the
@@ -240,7 +324,8 @@ const cases = {
                 const { pluginPath } = await materializeOpencodeHooks({ rootDir: fx.root });
                 const { EasyClaudeHooks } = await import(pathToFileURL(pluginPath).href);
                 const bridge = await EasyClaudeHooks({ directory: fx.root });
-                const before = sessionID => bridge['tool.execute.before']({ tool: 'bash', sessionID, callID: 'fixture' }, { args: { command: 'fixture-test' } });
+                const before = sessionID =>
+                    bridge['tool.execute.before']({ tool: 'bash', sessionID, callID: 'fixture' }, { args: { command: 'fixture-test' } });
                 const model = async sessionID => {
                     const output = { system: [] };
                     await bridge['experimental.chat.system.transform']({ sessionID }, output);
@@ -252,7 +337,11 @@ const cases = {
                     return output.output;
                 };
                 await before('completed');
-                assert.match(await after('completed'), /^fixture-output\n\n[^]*CK:FAILURE-INVESTIGATION-REMINDER/, 'a completed tool carries the reminder in its output, where it stays in the conversation');
+                assert.match(
+                    await after('completed'),
+                    /^fixture-output\n\n[^]*CK:FAILURE-INVESTIGATION-REMINDER/,
+                    'a completed tool carries the reminder in its output, where it stays in the conversation'
+                );
                 assert.deepEqual(await model('completed'), [], 'a reminder delivered with tool output is not repeated in the system prompt');
                 await before('completed');
                 assert.equal(await after('completed'), 'fixture-output', 'actual hook credit keeps later tool output free of the reminder');

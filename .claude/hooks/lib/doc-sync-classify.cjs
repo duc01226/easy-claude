@@ -36,47 +36,38 @@ const CONFIG_PATH = path.join(PROJECT_DIR, '.claude', 'hooks', 'config', 'doc-sy
  * @returns {object} config (with .enabled === false on any failure)
  */
 function loadConfig() {
-  try {
-    const raw = fs.readFileSync(CONFIG_PATH, 'utf-8');
-    const cfg = JSON.parse(raw);
-    if (!cfg || typeof cfg !== 'object') return { enabled: false };
-    const projectConfig = loadProjectConfig();
-    const projectGate = projectConfig.workflowPatterns?.docSyncGate ?? projectConfig.docSyncGate;
-    const errors = [
-      ...validateDocSyncGate(cfg, 'doc-sync-gate'),
-      ...validateDocSyncGate(projectGate)
-    ];
-    if (errors.length) throw new Error(errors.join('; '));
-    cfg.enabled = projectGate?.enabled ?? cfg.enabled;
-    const projectAreas = projectGate?.enforcedAreas;
-    cfg.enforcedAreas = Array.isArray(projectAreas)
-      ? projectAreas
-      : Array.isArray(cfg.enforcedAreas) ? cfg.enforcedAreas : [];
-    // Normalise enforced-area path prefixes to a trailing slash so startsWith()
-    // only matches whole path segments — prevents 'src/Services/Example'
-    // from matching a sibling 'src/Services/ExampleX/...'. Idempotent.
-    for (const area of cfg.enforcedAreas) {
-      if (!area || typeof area !== 'object') continue;
-      if (Array.isArray(area.codePathPrefixes)) {
-        area.codePathPrefixes = area.codePathPrefixes.map(pre =>
-          pre.replace(/\\/g, '/').replace(/\/+$/, '') + '/'
-        );
-      }
+    try {
+        const raw = fs.readFileSync(CONFIG_PATH, 'utf-8');
+        const cfg = JSON.parse(raw);
+        if (!cfg || typeof cfg !== 'object') return { enabled: false };
+        const projectConfig = loadProjectConfig();
+        const projectGate = projectConfig.workflowPatterns?.docSyncGate ?? projectConfig.docSyncGate;
+        const errors = [...validateDocSyncGate(cfg, 'doc-sync-gate'), ...validateDocSyncGate(projectGate)];
+        if (errors.length) throw new Error(errors.join('; '));
+        cfg.enabled = projectGate?.enabled ?? cfg.enabled;
+        const projectAreas = projectGate?.enforcedAreas;
+        cfg.enforcedAreas = Array.isArray(projectAreas) ? projectAreas : Array.isArray(cfg.enforcedAreas) ? cfg.enforcedAreas : [];
+        // Normalise enforced-area path prefixes to a trailing slash so startsWith()
+        // only matches whole path segments — prevents 'src/Services/Example'
+        // from matching a sibling 'src/Services/ExampleX/...'. Idempotent.
+        for (const area of cfg.enforcedAreas) {
+            if (!area || typeof area !== 'object') continue;
+            if (Array.isArray(area.codePathPrefixes)) {
+                area.codePathPrefixes = area.codePathPrefixes.map(pre => pre.replace(/\\/g, '/').replace(/\/+$/, '') + '/');
+            }
+        }
+        cfg.behavioralCodeExtensions = Array.isArray(cfg.behavioralCodeExtensions) ? cfg.behavioralCodeExtensions : ['.cs', '.ts'];
+        cfg.fastExit = cfg.fastExit || {};
+        cfg.fastExit.pathPrefixes = Array.isArray(cfg.fastExit.pathPrefixes) ? cfg.fastExit.pathPrefixes : [];
+        cfg.fastExit.pathContains = Array.isArray(cfg.fastExit.pathContains) ? cfg.fastExit.pathContains : [];
+        cfg.fastExit.extensions = Array.isArray(cfg.fastExit.extensions) ? cfg.fastExit.extensions : [];
+        return cfg;
+    } catch (error) {
+        if (error.code !== 'ENOENT') {
+            reportHookInternalError('doc-sync-gate', `configuration read failed at ${CONFIG_PATH}`, error);
+        }
+        return { enabled: false };
     }
-    cfg.behavioralCodeExtensions = Array.isArray(cfg.behavioralCodeExtensions)
-      ? cfg.behavioralCodeExtensions
-      : ['.cs', '.ts'];
-    cfg.fastExit = cfg.fastExit || {};
-    cfg.fastExit.pathPrefixes = Array.isArray(cfg.fastExit.pathPrefixes) ? cfg.fastExit.pathPrefixes : [];
-    cfg.fastExit.pathContains = Array.isArray(cfg.fastExit.pathContains) ? cfg.fastExit.pathContains : [];
-    cfg.fastExit.extensions = Array.isArray(cfg.fastExit.extensions) ? cfg.fastExit.extensions : [];
-    return cfg;
-  } catch (error) {
-    if (error.code !== 'ENOENT') {
-      reportHookInternalError('doc-sync-gate', `configuration read failed at ${CONFIG_PATH}`, error);
-    }
-    return { enabled: false };
-  }
 }
 
 /**
@@ -85,24 +76,24 @@ function loadConfig() {
  * @returns {string} repo-relative posix path (no leading ./), '' on falsy
  */
 function toRepoRel(p) {
-  if (!p) return '';
-  let s = String(p).replace(/\\/g, '/');
-  const root = PROJECT_DIR.replace(/\\/g, '/').replace(/\/+$/, '');
-  if (s.toLowerCase().startsWith(root.toLowerCase() + '/')) {
-    s = s.slice(root.length + 1);
-  } else if (path.isAbsolute(String(p))) {
-    // A differently-spelled absolute path (symlink, macOS /var -> /private/var) is in-project
-    // when its filesystem identity is; containment is owned by file-conventions (lazy: this
-    // module loads on every doc-sync-gate call, the fallback only runs on a lexical miss).
-    try {
-      const physical = require('./file-conventions.cjs').toRepoRelative(String(p), PROJECT_DIR);
-      if (physical) return physical;
-    } catch (error) {
-      reportHookInternalError('doc-sync-classify', 'identity containment', error);
+    if (!p) return '';
+    let s = String(p).replace(/\\/g, '/');
+    const root = PROJECT_DIR.replace(/\\/g, '/').replace(/\/+$/, '');
+    if (s.toLowerCase().startsWith(root.toLowerCase() + '/')) {
+        s = s.slice(root.length + 1);
+    } else if (path.isAbsolute(String(p))) {
+        // A differently-spelled absolute path (symlink, macOS /var -> /private/var) is in-project
+        // when its filesystem identity is; containment is owned by file-conventions (lazy: this
+        // module loads on every doc-sync-gate call, the fallback only runs on a lexical miss).
+        try {
+            const physical = require('./file-conventions.cjs').toRepoRelative(String(p), PROJECT_DIR);
+            if (physical) return physical;
+        } catch (error) {
+            reportHookInternalError('doc-sync-classify', 'identity containment', error);
+        }
     }
-  }
-  // Drive-absolute but outside project (rare) — keep as-is minus drive noise.
-  return s.replace(/^\.\//, '').replace(/^\/+/, '');
+    // Drive-absolute but outside project (rare) — keep as-is minus drive noise.
+    return s.replace(/^\.\//, '').replace(/^\/+/, '');
 }
 
 /**
@@ -112,14 +103,14 @@ function toRepoRel(p) {
  * @returns {boolean}
  */
 function isFastExit(relPath, cfg) {
-  if (!relPath) return true;
-  const fe = cfg.fastExit || {};
-  const lower = relPath.toLowerCase();
-  if ((fe.pathPrefixes || []).some(pre => lower.startsWith(String(pre).toLowerCase()))) return true;
-  if ((fe.pathContains || []).some(frag => lower.includes(String(frag).toLowerCase()))) return true;
-  const ext = path.posix.extname(lower);
-  if ((fe.extensions || []).map(e => String(e).toLowerCase()).includes(ext)) return true;
-  return false;
+    if (!relPath) return true;
+    const fe = cfg.fastExit || {};
+    const lower = relPath.toLowerCase();
+    if ((fe.pathPrefixes || []).some(pre => lower.startsWith(String(pre).toLowerCase()))) return true;
+    if ((fe.pathContains || []).some(frag => lower.includes(String(frag).toLowerCase()))) return true;
+    const ext = path.posix.extname(lower);
+    if ((fe.extensions || []).map(e => String(e).toLowerCase()).includes(ext)) return true;
+    return false;
 }
 
 /**
@@ -129,13 +120,9 @@ function isFastExit(relPath, cfg) {
  * @returns {object|null} matching area
  */
 function areaForCodePath(relPath, cfg) {
-  if (!relPath) return null;
-  const lower = relPath.toLowerCase();
-  return (
-    (cfg.enforcedAreas || []).find(a =>
-      (a.codePathPrefixes || []).some(pre => lower.startsWith(String(pre).toLowerCase()))
-    ) || null
-  );
+    if (!relPath) return null;
+    const lower = relPath.toLowerCase();
+    return (cfg.enforcedAreas || []).find(a => (a.codePathPrefixes || []).some(pre => lower.startsWith(String(pre).toLowerCase()))) || null;
 }
 
 /**
@@ -152,9 +139,9 @@ function areaForCodePath(relPath, cfg) {
  * @returns {string} e.g. 'docs/specs/Auth/' at the default root, or 'spec-library/Auth/' when `specRoots.business.path` in docs/project-config.json relocates it
  */
 function featureSpecDirForArea(area, specRoot) {
-  const bucket = area && typeof area.name === 'string' ? area.name.trim().replace(/^\/+|\/+$/g, '') : '';
-  const root = specRoot === undefined || specRoot === null ? getSpecDocsPath() : specRoot;
-  return joinRoot(root, bucket, '');
+    const bucket = area && typeof area.name === 'string' ? area.name.trim().replace(/^\/+|\/+$/g, '') : '';
+    const root = specRoot === undefined || specRoot === null ? getSpecDocsPath() : specRoot;
+    return joinRoot(root, bucket, '');
 }
 
 /**
@@ -169,13 +156,9 @@ function featureSpecDirForArea(area, specRoot) {
  * @returns {object|null} the owning area, or null
  */
 function areaForFeatureDoc(relPath, cfg) {
-  if (!relPath) return null;
-  const specRoot = getSpecDocsPath();
-  return (
-    (cfg.enforcedAreas || []).find(
-      a => isPathWithinRoot(relPath, featureSpecDirForArea(a, specRoot))
-    ) || null
-  );
+    if (!relPath) return null;
+    const specRoot = getSpecDocsPath();
+    return (cfg.enforcedAreas || []).find(a => isPathWithinRoot(relPath, featureSpecDirForArea(a, specRoot))) || null;
 }
 
 /**
@@ -186,21 +169,21 @@ function areaForFeatureDoc(relPath, cfg) {
  * @returns {{area: object}|null}
  */
 function behavioralCodeHit(relPath, cfg) {
-  if (isFastExit(relPath, cfg)) return null;
-  const ext = path.posix.extname(relPath).toLowerCase();
-  if (!(cfg.behavioralCodeExtensions || []).map(e => e.toLowerCase()).includes(ext)) return null;
-  const area = areaForCodePath(relPath, cfg);
-  return area ? { area } : null;
+    if (isFastExit(relPath, cfg)) return null;
+    const ext = path.posix.extname(relPath).toLowerCase();
+    if (!(cfg.behavioralCodeExtensions || []).map(e => e.toLowerCase()).includes(ext)) return null;
+    const area = areaForCodePath(relPath, cfg);
+    return area ? { area } : null;
 }
 
 module.exports = {
-  PROJECT_DIR,
-  CONFIG_PATH,
-  loadConfig,
-  toRepoRel,
-  isFastExit,
-  areaForCodePath,
-  featureSpecDirForArea,
-  areaForFeatureDoc,
-  behavioralCodeHit
+    PROJECT_DIR,
+    CONFIG_PATH,
+    loadConfig,
+    toRepoRel,
+    isFastExit,
+    areaForCodePath,
+    featureSpecDirForArea,
+    areaForFeatureDoc,
+    behavioralCodeHit
 };

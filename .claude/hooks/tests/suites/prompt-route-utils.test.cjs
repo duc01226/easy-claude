@@ -20,10 +20,16 @@ module.exports = {
             fn: () => {
                 // Given commands, verdicts and AI work used only as code samples
                 const quote = text => [
-                    `\`${text}\``, `\`\`${text}\`\``, `\`\`\`\`${text}\`\`\`\``,
-                    `\`\`\`text\n${text}\n\`\`\``, `~~~text\n${text}\n~~~`,
-                    `~~~~text\n${text}\n~~~~~`, `\`\`a \` ${text}\`\``,
-                    `\`\`\n${text}\n\`\``, `\`\`\r\n${text}\r\n\`\``, `\`\`\r${text}\r\`\``
+                    `\`${text}\``,
+                    `\`\`${text}\`\``,
+                    `\`\`\`\`${text}\`\`\`\``,
+                    `\`\`\`text\n${text}\n\`\`\``,
+                    `~~~text\n${text}\n~~~`,
+                    `~~~~text\n${text}\n~~~~~`,
+                    `\`\`a \` ${text}\`\``,
+                    `\`\`\n${text}\n\`\``,
+                    `\`\`\r\n${text}\r\n\`\``,
+                    `\`\`\r${text}\r\`\``
                 ];
                 for (const router of ROUTERS) {
                     for (const prompt of quote(router.sample)) {
@@ -80,7 +86,10 @@ module.exports = {
                         assertTrue(!judgement.isJudgementRequest(lines.join(eol)), `fence leaked on ${JSON.stringify(lines)}`);
                     }
                     // When a valid closer is followed by a request, then prose remains visible
-                    assertTrue(judgement.isJudgementRequest(['~~~~text', 'example', '~~~~~', 'any gaps?'].join(eol)), 'prose after longer valid closer must survive');
+                    assertTrue(
+                        judgement.isJudgementRequest(['~~~~text', 'example', '~~~~~', 'any gaps?'].join(eol)),
+                        'prose after longer valid closer must survive'
+                    );
                 }
                 assertTrue(judgement.isJudgementRequest('example ~~~ any gaps? ~~~'), 'inline tildes are prose, not a fenced block');
             }

@@ -42,7 +42,9 @@ module.exports = {
                     f.write(f.files.shipped, { commitSkillRoute: { enabled: true } });
                     f.write(f.files.team, { project: { name: 'Fixture' }, commitSkillRoute: { enabled: false } });
                     assertEqual(f.enabled(), false, 'the team layer outranks the shipped file a framework update replaces');
-                } finally { f.cleanup(); }
+                } finally {
+                    f.cleanup();
+                }
             }
         },
         {
@@ -55,9 +57,19 @@ module.exports = {
                     assertEqual(f.enabled(), true, 'a person turns the team default back on in ~/.claude/.ck.json');
                     f.write(f.files.checkout, { commitSkillRoute: { enabled: false } });
                     assertEqual(f.enabled(), false, 'the checkout file wins last');
-                    assertEqual(utils.isRouterEnabled('commitSkillRoute', 'CK_COMMIT_SKILL_ROUTE', { env: { CK_COMMIT_SKILL_ROUTE: '0' }, projectDir: f.project, homeDir: f.home, rawSettings: { enabled: true } }), false,
-                        'the environment switch still turns it off');
-                } finally { f.cleanup(); }
+                    assertEqual(
+                        utils.isRouterEnabled('commitSkillRoute', 'CK_COMMIT_SKILL_ROUTE', {
+                            env: { CK_COMMIT_SKILL_ROUTE: '0' },
+                            projectDir: f.project,
+                            homeDir: f.home,
+                            rawSettings: { enabled: true }
+                        }),
+                        false,
+                        'the environment switch still turns it off'
+                    );
+                } finally {
+                    f.cleanup();
+                }
             }
         },
         {
@@ -69,7 +81,9 @@ module.exports = {
                     f.write(f.files.personal, { corePrinciplesInject: { enabled: false } });
                     const merged = utils.loadRouterSettings(f.project, 'corePrinciplesInject', { homeDir: f.home });
                     assertEqual(JSON.stringify(merged), JSON.stringify({ reinjectAfterTokens: 300000, enabled: false }));
-                } finally { f.cleanup(); }
+                } finally {
+                    f.cleanup();
+                }
             }
         }
     ]

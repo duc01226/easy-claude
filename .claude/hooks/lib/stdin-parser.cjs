@@ -17,11 +17,11 @@ const { logError } = require('./debug-log.cjs');
 
 // Native JSON errors may quote the input, including credentials.
 function parseJsonInput(text) {
-  try {
-    return JSON.parse(text);
-  } catch {
-    throw new SyntaxError('Hook stdin contains invalid JSON');
-  }
+    try {
+        return JSON.parse(text);
+    } catch {
+        throw new SyntaxError('Hook stdin contains invalid JSON');
+    }
 }
 
 /**
@@ -35,32 +35,25 @@ function parseJsonInput(text) {
  * @returns {any} Parsed JSON or defaultValue
  */
 function parseStdinSync(options = {}) {
-  const {
-    defaultValue = {},
-    trim = true,
-    throwOnError = false,
-    context = 'stdin-parser'
-  } = options;
+    const { defaultValue = {}, trim = true, throwOnError = false, context = 'stdin-parser' } = options;
 
-  try {
-    let stdin = fs.readFileSync(0, 'utf-8');
-    if (trim) stdin = stdin.trim();
+    try {
+        let stdin = fs.readFileSync(0, 'utf-8');
+        if (trim) stdin = stdin.trim();
 
-    if (!stdin) {
-      return defaultValue;
+        if (!stdin) {
+            return defaultValue;
+        }
+
+        return parseJsonInput(stdin);
+    } catch (error) {
+        const diagnostic = error instanceof SyntaxError ? error : new Error('Unable to read hook stdin');
+        if (throwOnError) {
+            throw diagnostic;
+        }
+        logError(context, diagnostic);
+        return defaultValue;
     }
-
-    return parseJsonInput(stdin);
-  } catch (error) {
-    const diagnostic = error instanceof SyntaxError
-      ? error
-      : new Error('Unable to read hook stdin');
-    if (throwOnError) {
-      throw diagnostic;
-    }
-    logError(context, diagnostic);
-    return defaultValue;
-  }
 }
 
 /**
@@ -71,15 +64,15 @@ function parseStdinSync(options = {}) {
  * @returns {string} Raw stdin content
  */
 function readStdinSync(options = {}) {
-  const { trim = true } = options;
+    const { trim = true } = options;
 
-  try {
-    let stdin = fs.readFileSync(0, 'utf-8');
-    return trim ? stdin.trim() : stdin;
-  } catch (error) {
-    logError('stdin-parser', 'Unable to read hook stdin');
-    return '';
-  }
+    try {
+        let stdin = fs.readFileSync(0, 'utf-8');
+        return trim ? stdin.trim() : stdin;
+    } catch (error) {
+        logError('stdin-parser', 'Unable to read hook stdin');
+        return '';
+    }
 }
 
 /**
@@ -89,30 +82,30 @@ function readStdinSync(options = {}) {
  * @returns {Object} Object with { raw, hookEventName, toolName, toolInput, sessionId, ... }
  */
 function parseHookEvent(options = {}) {
-  let raw = parseStdinSync(options);
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-    const error = new TypeError('Hook event payload must be a JSON object');
-    if (options.throwOnError) throw error;
-    logError(options.context || 'stdin-parser', error);
-    raw = {};
-  }
+    let raw = parseStdinSync(options);
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+        const error = new TypeError('Hook event payload must be a JSON object');
+        if (options.throwOnError) throw error;
+        logError(options.context || 'stdin-parser', error);
+        raw = {};
+    }
 
-  return {
-    raw,
-    hookEventName: raw.hook_event_name || '',
-    toolName: raw.tool_name || '',
-    toolInput: raw.tool_input || {},
-    toolResult: raw.tool_result || '',
-    sessionId: raw.session_id || '',
-    cwd: raw.cwd || process.cwd(),
-    // Pass through all original fields
-    ...raw
-  };
+    return {
+        raw,
+        hookEventName: raw.hook_event_name || '',
+        toolName: raw.tool_name || '',
+        toolInput: raw.tool_input || {},
+        toolResult: raw.tool_result || '',
+        sessionId: raw.session_id || '',
+        cwd: raw.cwd || process.cwd(),
+        // Pass through all original fields
+        ...raw
+    };
 }
 
 module.exports = {
-  parseJsonInput,
-  parseStdinSync,
-  readStdinSync,
-  parseHookEvent
+    parseJsonInput,
+    parseStdinSync,
+    readStdinSync,
+    parseHookEvent
 };

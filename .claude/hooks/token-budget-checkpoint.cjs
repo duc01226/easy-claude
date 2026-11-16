@@ -373,5 +373,13 @@ if (require('./lib/hook-runner.cjs').isHookEntryPoint(module)) {
     } catch {
         input = null;
     }
-    if (input) run(input).then(() => { process.exitCode = 0; }, () => { process.exitCode = 0; });
+    if (input)
+        run(input).then(
+            () => {
+                process.exitCode = 0;
+            },
+            () => {
+                process.exitCode = 0;
+            }
+        );
 }

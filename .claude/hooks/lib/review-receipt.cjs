@@ -78,8 +78,7 @@ function canonicalDirectory(value) {
 }
 
 function boundedText(value, label, max = 512) {
-    if (typeof value !== 'string' || value.length === 0 || value.length > max ||
-        value.trim() !== value || /[\x00-\x1f\x7f]/.test(value)) {
+    if (typeof value !== 'string' || value.length === 0 || value.length > max || value.trim() !== value || /[\x00-\x1f\x7f]/.test(value)) {
         throw new Error(`${label} must be a bounded printable string`);
     }
     return value;
@@ -100,9 +99,12 @@ function storeDirectory(options, repositoryHash) {
     // The env override lets a host relocate the store and lets tests isolate it;
     // the hook and the CLI must resolve the SAME default or the gate never clears.
     const configured = process.env.CK_REVIEW_RECEIPT_STORE;
-    const store = options.storeDir === undefined
-        ? (configured && configured.length > 0 ? configured : path.join(os.tmpdir(), 'ck', 'review-receipts'))
-        : options.storeDir;
+    const store =
+        options.storeDir === undefined
+            ? configured && configured.length > 0
+                ? configured
+                : path.join(os.tmpdir(), 'ck', 'review-receipts')
+            : options.storeDir;
     if (typeof store !== 'string' || store.length === 0 || !path.isAbsolute(store)) {
         throw new Error('storeDir must be an absolute path');
     }
@@ -121,7 +123,8 @@ function context(options) {
     const candidateTree = boundedText(options.candidateTree, 'candidateTree', 64);
     if (!TREE_PATTERN.test(baseTree) || !TREE_PATTERN.test(candidateTree)) throw new Error('baseTree and candidateTree must be Git tree IDs');
     const fingerprint = candidateFingerprint({ repository, storageIdentity, baseTree, candidateTree });
-    if (options.fingerprint !== undefined && options.fingerprint !== fingerprint) throw new Error('fingerprint does not match repository/storage/base/candidate identity');
+    if (options.fingerprint !== undefined && options.fingerprint !== fingerprint)
+        throw new Error('fingerprint does not match repository/storage/base/candidate identity');
     return {
         repository,
         repositoryHash,
@@ -149,16 +152,27 @@ function readRecord(file) {
 }
 
 function validRecord(record, ctx, kind, active = true) {
-    return record && record.schemaVersion === 2 && RECEIPT_ID_PATTERN.test(record.receiptId) &&
-        record.repository === ctx.repository && record.repositoryHash === ctx.repositoryHash &&
-        record.storageIdentity === ctx.storageIdentity && record.baseTree === ctx.baseTree &&
-        record.candidateTree === ctx.candidateTree && record.fingerprint === ctx.fingerprint &&
-        record.kind === kind && record.scope === 'full-changeset' && REVIEW_TARGETS.includes(record.target) &&
+    return (
+        record &&
+        record.schemaVersion === 2 &&
+        RECEIPT_ID_PATTERN.test(record.receiptId) &&
+        record.repository === ctx.repository &&
+        record.repositoryHash === ctx.repositoryHash &&
+        record.storageIdentity === ctx.storageIdentity &&
+        record.baseTree === ctx.baseTree &&
+        record.candidateTree === ctx.candidateTree &&
+        record.fingerprint === ctx.fingerprint &&
+        record.kind === kind &&
+        record.scope === 'full-changeset' &&
+        REVIEW_TARGETS.includes(record.target) &&
         (record.descriptor === null || (record.descriptor && typeof record.descriptor === 'object' && !Array.isArray(record.descriptor))) &&
-        Number.isSafeInteger(record.issuedAt) && record.issuedAt > 0 &&
-        Number.isSafeInteger(record.expiresAt) && record.expiresAt > record.issuedAt &&
+        Number.isSafeInteger(record.issuedAt) &&
+        record.issuedAt > 0 &&
+        Number.isSafeInteger(record.expiresAt) &&
+        record.expiresAt > record.issuedAt &&
         record.expiresAt - record.issuedAt <= MAX_LIFETIME_MS &&
-        (!active || (record.revokedAt === undefined && record.issuedAt <= ctx.now && ctx.now < record.expiresAt));
+        (!active || (record.revokedAt === undefined && record.issuedAt <= ctx.now && ctx.now < record.expiresAt))
+    );
 }
 
 function writeRecord(ctx, kind, fingerprint, record) {
@@ -172,7 +186,8 @@ function writeRecord(ctx, kind, fingerprint, record) {
     return record;
 }
 
-const FORBIDDEN_GIT_ENV = /^(?:GIT_(?:INDEX_FILE|DIR|WORK_TREE|COMMON_DIR|OBJECT_DIRECTORY|ALTERNATE_OBJECT_DIRECTORIES|REPLACE_REF_BASE|NO_REPLACE_OBJECTS|PREFIX|CEILING_DIRECTORIES|DISCOVERY_ACROSS_FILESYSTEM|NAMESPACE|ATTR_NOSYSTEM|ATTR_SOURCE|SHALLOW_FILE|INDEX_VERSION|LITERAL_PATHSPECS|GLOB_PATHSPECS|NOGLOB_PATHSPECS|ICASE_PATHSPECS)|GIT_CONFIG(?:_|$))/i;
+const FORBIDDEN_GIT_ENV =
+    /^(?:GIT_(?:INDEX_FILE|DIR|WORK_TREE|COMMON_DIR|OBJECT_DIRECTORY|ALTERNATE_OBJECT_DIRECTORIES|REPLACE_REF_BASE|NO_REPLACE_OBJECTS|PREFIX|CEILING_DIRECTORIES|DISCOVERY_ACROSS_FILESYSTEM|NAMESPACE|ATTR_NOSYSTEM|ATTR_SOURCE|SHALLOW_FILE|INDEX_VERSION|LITERAL_PATHSPECS|GLOB_PATHSPECS|NOGLOB_PATHSPECS|ICASE_PATHSPECS)|GIT_CONFIG(?:_|$))/i;
 
 // Command-scoped config (GIT_CONFIG_COUNT with KEY_n/VALUE_n pairs) that a host
 // injects for remote access — e.g. a cloud container's GitHub proxy — cannot
@@ -200,8 +215,7 @@ function contentNeutralInjectedConfig(env) {
 function gitEnvironmentError(env) {
     const vars = env || {};
     const neutral = contentNeutralInjectedConfig(vars);
-    return Object.keys(vars).find(name => FORBIDDEN_GIT_ENV.test(name) &&
-        !(neutral && INJECTED_GIT_CONFIG_ENV.test(name))) || null;
+    return Object.keys(vars).find(name => FORBIDDEN_GIT_ENV.test(name) && !(neutral && INJECTED_GIT_CONFIG_ENV.test(name))) || null;
 }
 
 function gitEnvironmentWithoutContext(env = process.env) {
@@ -264,28 +278,39 @@ function sameFileState(a, b) {
 }
 
 function validateLiteralPaths(repository, cwd, paths) {
-    if (!Array.isArray(paths) || paths.length === 0) throw Object.assign(new Error('Literal-path mode requires at least one file'), { code: 'INVALID_LITERAL_PATHS' });
+    if (!Array.isArray(paths) || paths.length === 0)
+        throw Object.assign(new Error('Literal-path mode requires at least one file'), { code: 'INVALID_LITERAL_PATHS' });
     if (paths.length > 128 || paths.reduce((size, item) => size + (typeof item === 'string' ? item.length : 0), 0) > 4096) {
         throw Object.assign(new Error('Literal path list exceeds the supported bound'), { code: 'INVALID_LITERAL_PATHS' });
     }
     for (const value of paths) {
-        if (typeof value !== 'string' || value.length === 0 || value.trim() !== value || /[\x00-\x1f\x7f]/.test(value) || path.isAbsolute(value) || /^[A-Za-z]:/.test(value)) {
+        if (
+            typeof value !== 'string' ||
+            value.length === 0 ||
+            value.trim() !== value ||
+            /[\x00-\x1f\x7f]/.test(value) ||
+            path.isAbsolute(value) ||
+            /^[A-Za-z]:/.test(value)
+        ) {
             throw Object.assign(new Error('Only relative, literal file paths are supported'), { code: 'INVALID_LITERAL_PATHS' });
         }
         if (value.startsWith(':') || /[*?\[\]]/.test(value)) {
             throw Object.assign(new Error('Magic and wildcard pathspecs are unsupported; name an exact file'), { code: 'UNSUPPORTED_PATHSPEC' });
         }
         const absolute = path.resolve(cwd, value);
-        if (!pathIsInside(repository, absolute)) throw Object.assign(new Error('Literal path resolves outside the repository'), { code: 'PATH_OUTSIDE_REPOSITORY' });
+        if (!pathIsInside(repository, absolute))
+            throw Object.assign(new Error('Literal path resolves outside the repository'), { code: 'PATH_OUTSIDE_REPOSITORY' });
         let parent;
         try {
             parent = fs.realpathSync.native(path.dirname(absolute));
         } catch (_) {
             throw Object.assign(new Error('Literal path parent must exist'), { code: 'INVALID_LITERAL_PATHS' });
         }
-        if (!pathIsInside(repository, parent)) throw Object.assign(new Error('Literal path follows a directory symlink outside the repository'), { code: 'PATH_OUTSIDE_REPOSITORY' });
+        if (!pathIsInside(repository, parent))
+            throw Object.assign(new Error('Literal path follows a directory symlink outside the repository'), { code: 'PATH_OUTSIDE_REPOSITORY' });
         try {
-            if (fs.statSync(absolute).isDirectory()) throw Object.assign(new Error('Literal paths must name files, not directories'), { code: 'INVALID_LITERAL_PATHS' });
+            if (fs.statSync(absolute).isDirectory())
+                throw Object.assign(new Error('Literal paths must name files, not directories'), { code: 'INVALID_LITERAL_PATHS' });
         } catch (error) {
             if (error.code !== 'ENOENT') throw error;
         }
@@ -298,7 +323,11 @@ function descriptorForCapture(repository, storageIdentity, cwd, indexPath, descr
     }
     const mode = descriptor.mode;
     if (!['staged', 'all', 'literal-paths'].includes(mode)) throw Object.assign(new Error('Unsupported commit mode'), { code: 'UNSUPPORTED_COMMIT_MODE' });
-    for (const [key, actual] of [['repository', repository], ['storageIdentity', storageIdentity], ['indexPath', indexPath]]) {
+    for (const [key, actual] of [
+        ['repository', repository],
+        ['storageIdentity', storageIdentity],
+        ['indexPath', indexPath]
+    ]) {
         if (descriptor[key] !== undefined && path.resolve(String(descriptor[key])) !== path.resolve(actual)) {
             throw Object.assign(new Error(`Commit descriptor ${key} changed`), { code: 'DESCRIPTOR_CONTEXT_CHANGED' });
         }
@@ -320,7 +349,13 @@ function descriptorForCapture(repository, storageIdentity, cwd, indexPath, descr
 }
 
 function branchDescriptor(descriptor) {
-    if (!descriptor || typeof descriptor !== 'object' || Array.isArray(descriptor) || typeof descriptor.base !== 'string' || !BASE_REF_PATTERN.test(descriptor.base)) {
+    if (
+        !descriptor ||
+        typeof descriptor !== 'object' ||
+        Array.isArray(descriptor) ||
+        typeof descriptor.base !== 'string' ||
+        !BASE_REF_PATTERN.test(descriptor.base)
+    ) {
         throw Object.assign(new Error('A branch review needs a base ref name (for example origin/main)'), { code: 'INVALID_BRANCH_BASE' });
     }
     for (const option of ['committed', 'staged']) {
@@ -331,8 +366,7 @@ function branchDescriptor(descriptor) {
     if (descriptor.committed && descriptor.staged) {
         throw Object.assign(new Error('Select either the staged branch candidate or the committed head'), { code: 'INVALID_DESCRIPTOR' });
     }
-    return { base: descriptor.base, ...(descriptor.committed ? { committed: true } : {}),
-        ...(descriptor.staged ? { staged: true } : {}) };
+    return { base: descriptor.base, ...(descriptor.committed ? { committed: true } : {}), ...(descriptor.staged ? { staged: true } : {}) };
 }
 
 function pendingMergeParents(run, repository) {
@@ -357,15 +391,24 @@ function resolveBaseCommit(run, base) {
         try {
             const commit = run(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`]).trim();
             if (/^[a-f0-9]{40,64}$/.test(commit)) return commit;
-        } catch (_) { /* try the next spelling */ }
+        } catch (_) {
+            /* try the next spelling */
+        }
     }
     throw Object.assign(new Error(`Base ref ${base} does not resolve to a commit; fetch it first`), { code: 'BASE_UNRESOLVED' });
 }
 
 function errorSnapshot(target, error, repository = null, cwd = null) {
     return {
-        status: 'ERROR', repository, storageIdentity: null, cwd, indexPath: null,
-        baseTree: null, candidateTree: null, fingerprint: null, target,
+        status: 'ERROR',
+        repository,
+        storageIdentity: null,
+        cwd,
+        indexPath: null,
+        baseTree: null,
+        candidateTree: null,
+        fingerprint: null,
+        target,
         descriptor: null,
         errorCode: typeof error?.code === 'string' && /^[A-Z0-9_]+$/.test(error.code) ? error.code : 'CANDIDATE_COMPUTATION_FAILED',
         errorMessage: String(error?.message || 'Candidate computation failed').slice(0, 500)
@@ -387,7 +430,8 @@ function captureReviewTarget(options = {}) {
     let result = null;
     const exec = options.exec || execFileSync;
     try {
-        if (!REVIEW_TARGETS.includes(target)) throw Object.assign(new Error('target must be worktree, staged, commit-descriptor or branch'), { code: 'INVALID_TARGET' });
+        if (!REVIEW_TARGETS.includes(target))
+            throw Object.assign(new Error('target must be worktree, staged, commit-descriptor or branch'), { code: 'INVALID_TARGET' });
         const sourceRepository = canonicalDirectory(options.repository);
         const sourceCwd = options.descriptor?.cwd || options.cwd || sourceRepository;
         repository = canonicalDirectory(sourceRepository);
@@ -399,7 +443,8 @@ function captureReviewTarget(options = {}) {
         const run = (args, extra = {}) => runGit(exec, repository, args, cleanEnv, extra);
 
         const discoveredRoot = canonicalDirectory(run(['rev-parse', '--show-toplevel']).trim());
-        if (discoveredRoot !== repository) throw Object.assign(new Error('Repository identity changed during candidate capture'), { code: 'REPOSITORY_IDENTITY_CHANGED' });
+        if (discoveredRoot !== repository)
+            throw Object.assign(new Error('Repository identity changed during candidate capture'), { code: 'REPOSITORY_IDENTITY_CHANGED' });
         const storageRaw = run(['rev-parse', '--git-common-dir']).trim();
         const storageIdentity = canonicalDirectory(path.isAbsolute(storageRaw) ? storageRaw : path.resolve(repository, storageRaw));
         const rawIndexPath = run(['rev-parse', '--git-path', 'index']).trim();
@@ -410,16 +455,15 @@ function captureReviewTarget(options = {}) {
         if (fs.existsSync(path.join(objectsPath, 'info', 'alternates'))) {
             throw Object.assign(new Error('Alternate object stores are unsupported'), { code: 'UNSUPPORTED_ALTERNATE_OBJECT_STORE' });
         }
-        let descriptor = target === 'commit-descriptor'
-            ? descriptorForCapture(repository, storageIdentity, cwd, actualIndexPath, options.descriptor)
-            : null;
+        let descriptor = target === 'commit-descriptor' ? descriptorForCapture(repository, storageIdentity, cwd, actualIndexPath, options.descriptor) : null;
         if (target === 'branch') descriptor = branchDescriptor(options.descriptor);
         indexBefore = fileState(actualIndexPath);
         const sharedIndex = run(['rev-parse', '--shared-index-path']).trim();
         if (sharedIndex) throw Object.assign(new Error('Split indexes are unsupported'), { code: 'UNSUPPORTED_SPLIT_INDEX' });
         if (boolConfig(run, 'core.splitIndex')) throw Object.assign(new Error('Split-index mode is unsupported'), { code: 'UNSUPPORTED_SPLIT_INDEX' });
         if (boolConfig(run, 'core.sparseCheckout')) throw Object.assign(new Error('Sparse checkouts are unsupported'), { code: 'UNSUPPORTED_SPARSE_INDEX' });
-        if (run(['ls-files', '-u', '-z']).length !== 0) throw Object.assign(new Error('Unmerged index entries must be resolved first'), { code: 'UNMERGED_INDEX' });
+        if (run(['ls-files', '-u', '-z']).length !== 0)
+            throw Object.assign(new Error('Unmerged index entries must be resolved first'), { code: 'UNMERGED_INDEX' });
         const sparseEntries = run(['ls-files', '--sparse', '--stage', '-z']);
         if (sparseEntries.split('\0').some(entry => entry.startsWith('040000 '))) {
             throw Object.assign(new Error('Sparse index entries are unsupported'), { code: 'UNSUPPORTED_SPARSE_INDEX' });
@@ -454,8 +498,11 @@ function captureReviewTarget(options = {}) {
                 // With extra parents, Git treats the commits after the first as a hypothetical merge.
                 const args = parents.length ? [baseCommit, headCommit, ...parents] : [headCommit, baseCommit];
                 mergeBase = run(['merge-base', ...args]).trim();
-            } catch (_) { /* exit 1: no common ancestor, reported below */ }
-            if (!/^[a-f0-9]{40,64}$/.test(mergeBase)) throw Object.assign(new Error(`No merge-base between HEAD and ${descriptor.base}`), { code: 'NO_MERGE_BASE' });
+            } catch (_) {
+                /* exit 1: no common ancestor, reported below */
+            }
+            if (!/^[a-f0-9]{40,64}$/.test(mergeBase))
+                throw Object.assign(new Error(`No merge-base between HEAD and ${descriptor.base}`), { code: 'NO_MERGE_BASE' });
             baseTree = treeId(run(['rev-parse', `${mergeBase}^{tree}`]), 'branch baseTree');
             descriptor = { ...descriptor, mergeBase };
         }
@@ -464,16 +511,19 @@ function captureReviewTarget(options = {}) {
             // the same base `git reset --soft HEAD~1 && git commit` would have.
             if (!headCommit) throw Object.assign(new Error('Cannot amend: HEAD has no commit'), { code: 'AMEND_WITHOUT_HEAD' });
             const parents = run(['rev-list', '--parents', '-n', '1', headCommit]).trim().split(/\s+/).slice(1);
-            if (parents.length > 1) throw Object.assign(new Error('Amending a merge commit is unsupported for receipt matching'), { code: 'UNSUPPORTED_AMEND_MERGE' });
-            baseTree = parents.length === 1
-                ? treeId(run(['rev-parse', `${parents[0]}^{tree}`]), 'amend baseTree')
-                : treeId(run(['hash-object', '-t', 'tree', '--stdin'], { input: '' }), 'empty amend baseTree');
+            if (parents.length > 1)
+                throw Object.assign(new Error('Amending a merge commit is unsupported for receipt matching'), { code: 'UNSUPPORTED_AMEND_MERGE' });
+            baseTree =
+                parents.length === 1
+                    ? treeId(run(['rev-parse', `${parents[0]}^{tree}`]), 'amend baseTree')
+                    : treeId(run(['hash-object', '-t', 'tree', '--stdin'], { input: '' }), 'empty amend baseTree');
         }
 
         const projectTmp = path.join(repository, 'tmp');
         fs.mkdirSync(projectTmp, { recursive: true });
         const canonicalTmp = fs.realpathSync.native(projectTmp);
-        if (!pathIsInside(repository, canonicalTmp)) throw Object.assign(new Error('Repository tmp directory resolves outside the repository'), { code: 'TEMP_DIRECTORY_OUTSIDE_REPOSITORY' });
+        if (!pathIsInside(repository, canonicalTmp))
+            throw Object.assign(new Error('Repository tmp directory resolves outside the repository'), { code: 'TEMP_DIRECTORY_OUTSIDE_REPOSITORY' });
         temporaryDirectory = fs.mkdtempSync(path.join(canonicalTmp, 'ck-review-candidate-'));
         const tempIndex = path.join(temporaryDirectory, 'index');
         const tempObjects = path.join(temporaryDirectory, 'objects');
@@ -509,8 +559,15 @@ function captureReviewTarget(options = {}) {
         const fingerprint = candidateFingerprint({ repository, storageIdentity, baseTree, candidateTree });
         result = {
             status: candidateTree === baseTree ? 'CLEAN' : 'CHANGED',
-            repository, storageIdentity, cwd, indexPath: actualIndexPath,
-            baseTree, candidateTree, fingerprint, target, descriptor,
+            repository,
+            storageIdentity,
+            cwd,
+            indexPath: actualIndexPath,
+            baseTree,
+            candidateTree,
+            fingerprint,
+            target,
+            descriptor,
             capturedAt: clock(options)
         };
     } catch (error) {
@@ -519,7 +576,12 @@ function captureReviewTarget(options = {}) {
         if (actualIndexPath && indexBefore) {
             try {
                 if (!sameFileState(indexBefore, fileState(actualIndexPath))) {
-                    result = errorSnapshot(target, Object.assign(new Error('The real Git index changed during candidate capture'), { code: 'INDEX_CHANGED_DURING_CAPTURE' }), repository, cwd);
+                    result = errorSnapshot(
+                        target,
+                        Object.assign(new Error('The real Git index changed during candidate capture'), { code: 'INDEX_CHANGED_DURING_CAPTURE' }),
+                        repository,
+                        cwd
+                    );
                 }
             } catch (error) {
                 result = errorSnapshot(target, error, repository, cwd);
@@ -529,7 +591,12 @@ function captureReviewTarget(options = {}) {
             try {
                 fs.rmSync(temporaryDirectory, { recursive: true, force: true });
             } catch (error) {
-                result = errorSnapshot(target, Object.assign(new Error(`Could not remove throwaway candidate state: ${error.message}`), { code: 'TEMP_CLEANUP_FAILED' }), repository, cwd);
+                result = errorSnapshot(
+                    target,
+                    Object.assign(new Error(`Could not remove throwaway candidate state: ${error.message}`), { code: 'TEMP_CLEANUP_FAILED' }),
+                    repository,
+                    cwd
+                );
             }
         }
     }
@@ -537,10 +604,17 @@ function captureReviewTarget(options = {}) {
 }
 
 function sameSnapshotIdentity(a, b) {
-    return a.repository === b.repository && a.storageIdentity === b.storageIdentity &&
-        a.indexPath === b.indexPath && a.cwd === b.cwd && a.target === b.target &&
-        a.baseTree === b.baseTree && a.candidateTree === b.candidateTree &&
-        a.fingerprint === b.fingerprint && JSON.stringify(a.descriptor ?? null) === JSON.stringify(b.descriptor ?? null);
+    return (
+        a.repository === b.repository &&
+        a.storageIdentity === b.storageIdentity &&
+        a.indexPath === b.indexPath &&
+        a.cwd === b.cwd &&
+        a.target === b.target &&
+        a.baseTree === b.baseTree &&
+        a.candidateTree === b.candidateTree &&
+        a.fingerprint === b.fingerprint &&
+        JSON.stringify(a.descriptor ?? null) === JSON.stringify(b.descriptor ?? null)
+    );
 }
 
 /** Legacy helper: returns null only for a confirmed clean worktree; Git errors throw. */
@@ -608,7 +682,8 @@ function attestReviewStart(input, deps) {
     const found = require('./git-statement.cjs').findRepository(start);
     const repository = found ? canonicalDirectory(found) : null;
     if (!repository || reviewGateMode(repository) !== 'enforce') return [];
-    const source = `${input.hook_event_name || 'event'}:${input.tool_name || input.command_name || 'prompt'}`.replace(/[^\w:./-]/g, '').slice(0, 64) || 'skill-start';
+    const source =
+        `${input.hook_event_name || 'event'}:${input.tool_name || input.command_name || 'prompt'}`.replace(/[^\w:./-]/g, '').slice(0, 64) || 'skill-start';
     return kinds.map(kind => recordAttestation({ repository, kind, source, ...(deps.now ? { now: deps.now } : {}) }));
 }
 
@@ -625,10 +700,21 @@ function claimAttestation(ctx, kind, notAfter) {
     for (const name of names) {
         if (!name.startsWith(prefix) || !name.endsWith('.json')) continue;
         const record = readRecord(path.join(ctx.directory, name));
-        if (!record || record.schemaVersion !== 1 || record.kind !== kind || record.repository !== ctx.repository ||
-            !ATTESTATION_ID_PATTERN.test(record.attestationId) || name !== `${prefix}${record.attestationId}.json`) continue;
+        if (
+            !record ||
+            record.schemaVersion !== 1 ||
+            record.kind !== kind ||
+            record.repository !== ctx.repository ||
+            !ATTESTATION_ID_PATTERN.test(record.attestationId) ||
+            name !== `${prefix}${record.attestationId}.json`
+        )
+            continue;
         if (!Number.isSafeInteger(record.invokedAt) || ctx.now - record.invokedAt > MAX_LIFETIME_MS) {
-            try { fs.unlinkSync(path.join(ctx.directory, name)); } catch (_) { /* expired: best-effort prune */ }
+            try {
+                fs.unlinkSync(path.join(ctx.directory, name));
+            } catch (_) {
+                /* expired: best-effort prune */
+            }
             continue;
         }
         if (record.invokedAt > notAfter) continue;
@@ -643,7 +729,11 @@ function claimAttestation(ctx, kind, notAfter) {
         } catch (_) {
             continue; // another issuance claimed it first
         }
-        try { fs.unlinkSync(claimed); } catch (_) { /* a leftover claimed file is inert */ }
+        try {
+            fs.unlinkSync(claimed);
+        } catch (_) {
+            /* a leftover claimed file is inert */
+        }
         return { attestationId: record.attestationId, invokedAt: record.invokedAt, source: record.source };
     }
     return null;
@@ -651,8 +741,13 @@ function claimAttestation(ctx, kind, notAfter) {
 
 function attestedRecord(record) {
     const attestation = record?.attestation;
-    return Boolean(attestation && typeof attestation === 'object' && ATTESTATION_ID_PATTERN.test(attestation.attestationId) &&
-        Number.isSafeInteger(attestation.invokedAt) && attestation.invokedAt <= record.issuedAt);
+    return Boolean(
+        attestation &&
+        typeof attestation === 'object' &&
+        ATTESTATION_ID_PATTERN.test(attestation.attestationId) &&
+        Number.isSafeInteger(attestation.invokedAt) &&
+        attestation.invokedAt <= record.issuedAt
+    );
 }
 
 function issueReceipt(options) {
@@ -698,7 +793,9 @@ function issueReceipt(options) {
         }
         attestation = claimAttestation(ctx, kind, Math.min(snapshot.capturedAt, ctx.now));
         if (!attestation) {
-            throw new Error(`reviewGate.mode is enforce: no ${kind} run was attested for ${ctx.repository} before this snapshot. Run /${kind} --fix-loop, which snapshots, reviews and issues the receipt, from a session whose working directory is inside this repository (the attestation is recorded for that repository); a receipt is not minted by hand. If the review did run, its review protocol hook did not: Codex runs project hooks only after they are trusted (review them in /hooks; a new checkout path or a changed hook asks again), and a session can run hooks from an older checkout that predates attestation.`);
+            throw new Error(
+                `reviewGate.mode is enforce: no ${kind} run was attested for ${ctx.repository} before this snapshot. Run /${kind} --fix-loop, which snapshots, reviews and issues the receipt, from a session whose working directory is inside this repository (the attestation is recorded for that repository); a receipt is not minted by hand. If the review did run, its review protocol hook did not: Codex runs project hooks only after they are trusted (review them in /hooks; a new checkout path or a changed hook asks again), and a session can run hooks from an older checkout that predates attestation.`
+            );
         }
     }
     return writeRecord(ctx, kind, ctx.fingerprint, {
@@ -730,7 +827,9 @@ function checkReceipt(options) {
         if (options.storageIdentity !== undefined && canonicalDirectory(options.storageIdentity) !== snapshot.storageIdentity) return false;
         if (options.baseTree !== undefined && options.baseTree !== snapshot.baseTree) return false;
         if (options.candidateTree !== undefined && options.candidateTree !== snapshot.candidateTree) return false;
-        const ctx = context({ ...snapshot, ...options,
+        const ctx = context({
+            ...snapshot,
+            ...options,
             repository: snapshot.repository,
             storageIdentity: snapshot.storageIdentity,
             baseTree: snapshot.baseTree,
@@ -771,14 +870,20 @@ function stagedBranchReviewBases(snapshot) {
             const kind = name.split('.')[0];
             if (!REVIEW_KINDS.includes(kind)) continue;
             const record = readRecord(path.join(ctx.directory, name));
-            if (record?.target !== 'branch' || record.descriptor?.staged !== true ||
+            if (
+                record?.target !== 'branch' ||
+                record.descriptor?.staged !== true ||
                 record.candidateTree !== ctx.candidateTree ||
-                typeof record.baseTree !== 'string' || !TREE_PATTERN.test(record.baseTree) ||
-                typeof record.descriptor.base !== 'string' || !BASE_REF_PATTERN.test(record.descriptor.base)) continue;
+                typeof record.baseTree !== 'string' ||
+                !TREE_PATTERN.test(record.baseTree) ||
+                typeof record.descriptor.base !== 'string' ||
+                !BASE_REF_PATTERN.test(record.descriptor.base)
+            )
+                continue;
             const identity = { ...ctx, baseTree: record.baseTree };
             identity.fingerprint = candidateFingerprint(identity);
-            if (name === path.basename(receiptPath(identity, kind, identity.fingerprint)) &&
-                validRecord(record, identity, kind)) bases.add(record.descriptor.base);
+            if (name === path.basename(receiptPath(identity, kind, identity.fingerprint)) && validRecord(record, identity, kind))
+                bases.add(record.descriptor.base);
         }
         return [...bases];
     } catch (_) {
@@ -820,7 +925,9 @@ function clearReceipts(options) {
         try {
             fs.unlinkSync(path.join(directory, name));
             removed++;
-        } catch (_) { /* Best-effort cleanup; a held file is not an error. */ }
+        } catch (_) {
+            /* Best-effort cleanup; a held file is not an error. */
+        }
     }
     return removed;
 }
@@ -871,7 +978,8 @@ function reviewStatusPolicy(repository, options) {
 
 /** Trailers of the commit's final trailer block, as Git reads them; a marker in the body is not one. */
 function commitTrailers(run, commit) {
-    return run(['log', '-1', '--format=%(trailers:only,unfold)', commit]).split('\n')
+    return run(['log', '-1', '--format=%(trailers:only,unfold)', commit])
+        .split('\n')
         .map(line => /^([A-Za-z0-9-]+):[ \t]*(.*)$/.exec(line))
         .filter(Boolean)
         .map(match => ({ key: match[1], value: match[2].trim() }));
@@ -889,7 +997,7 @@ function reviewBypass(run, head, pr) {
     if (trailers.length === 0) {
         // Git reads trailers only from the final paragraph; a line after them (an attribution) hides them all.
         if (/^review-bypass(?:-[a-z]+)?:/im.test(run(['log', '-1', '--format=%B', head]))) {
-            return invalid('its Review-Bypass lines are not in the message\'s final trailer block; put them last, with any attribution line above them');
+            return invalid("its Review-Bypass lines are not in the message's final trailer block; put them last, with any attribution line above them");
         }
         return null;
     }
@@ -919,15 +1027,18 @@ function reviewBypass(run, head, pr) {
 }
 
 function noReceiptMessage({ pr, head, base, snapshot, attested }) {
-    const measured = snapshot.status === 'CHANGED'
-        ? `branch tree ${snapshot.candidateTree} against its merge-base with ${base}`
-        : `the branch has no change against its merge-base with ${base}`;
-    return `no ${attested ? 'attested ' : ''}review receipt matches pull request #${pr} at ${head} (${measured}). ` +
+    const measured =
+        snapshot.status === 'CHANGED'
+            ? `branch tree ${snapshot.candidateTree} against its merge-base with ${base}`
+            : `the branch has no change against its merge-base with ${base}`;
+    return (
+        `no ${attested ? 'attested ' : ''}review receipt matches pull request #${pr} at ${head} (${measured}). ` +
         `Review the whole branch from this checkout: the pull-request skill's review step, or /changes-review --fix-loop ` +
         `over the branch (snapshot --target=branch --base=${base}); commit everything it reviewed, push, and publish again ` +
         `while the receipt is live (${DEFAULT_LIFETIME_MS / 3600000} hours by default). To skip the review on purpose, make the ` +
         `branch's last commit an empty one whose message ends with the trailers Review-Bypass: true, Review-Bypass-Reason: <${BYPASS_REASON_MIN}-${BYPASS_REASON_MAX} characters>, ` +
-        `Review-Bypass-PR: ${pr} and Review-Bypass-Parent: ${head}, push it, and publish again.`;
+        `Review-Bypass-PR: ${pr} and Review-Bypass-Parent: ${head}, push it, and publish again.`
+    );
 }
 
 /**
@@ -945,7 +1056,9 @@ function publishReviewStatus(options = {}) {
             const out = gh(args);
             return Buffer.isBuffer(out) ? out.toString('utf8') : String(out ?? '');
         } catch (error) {
-            const detail = String(error?.stderr || error?.message || 'gh failed').trim().slice(0, 300);
+            const detail = String(error?.stderr || error?.message || 'gh failed')
+                .trim()
+                .slice(0, 300);
             throw new Error(`${what} failed (gh ${args.slice(0, 2).join(' ')} ...): ${detail}`);
         }
     };
@@ -959,9 +1072,10 @@ function publishReviewStatus(options = {}) {
     if (unsafeVariable) return refuse(`unsupported ambient Git context: ${unsafeVariable}`);
     const run = args => runGit(exec, repository, args, gitEnvironmentWithoutContext(process.env));
 
-    const slug = options.githubRepository === undefined
-        ? ghText(['repo', 'view', '--json', 'nameWithOwner', '--jq', '.nameWithOwner'], 'Resolving the GitHub repository').trim()
-        : options.githubRepository;
+    const slug =
+        options.githubRepository === undefined
+            ? ghText(['repo', 'view', '--json', 'nameWithOwner', '--jq', '.nameWithOwner'], 'Resolving the GitHub repository').trim()
+            : options.githubRepository;
     if (typeof slug !== 'string' || !GITHUB_REPOSITORY_PATTERN.test(slug)) return refuse('--repository must be owner/name');
     let pull;
     try {
@@ -978,7 +1092,9 @@ function publishReviewStatus(options = {}) {
     }
     const localHead = run(['rev-parse', '--verify', 'HEAD']).trim();
     if (head !== localHead) {
-        return refuse(`pull request #${pr} head is ${head} but this checkout's committed HEAD is ${localHead}; check out the pull request branch, push or pull so both match, and publish again`);
+        return refuse(
+            `pull request #${pr} head is ${head} but this checkout's committed HEAD is ${localHead}; check out the pull request branch, push or pull so both match, and publish again`
+        );
     }
     const base = options.base === undefined ? baseRef : options.base;
     // Another base would measure another diff (the branch itself measures none), so only spellings of the PR's base count.
@@ -986,17 +1102,28 @@ function publishReviewStatus(options = {}) {
         return refuse(`--base must name the pull request's base branch ${baseRef} (for example ${baseRef} or origin/${baseRef})`);
     }
 
-    const snapshot = captureReviewTarget({ repository, cwd: repository, target: 'branch', descriptor: { base, committed: true }, exec,
-        ...(options.now === undefined ? {} : { now: options.now }) });
+    const snapshot = captureReviewTarget({
+        repository,
+        cwd: repository,
+        target: 'branch',
+        descriptor: { base, committed: true },
+        exec,
+        ...(options.now === undefined ? {} : { now: options.now })
+    });
     if (snapshot.status === 'ERROR') return refuse(`the branch snapshot failed (${snapshot.errorCode}): ${snapshot.errorMessage}`);
     if (run(['rev-parse', '--verify', 'HEAD']).trim() !== localHead) return refuse('HEAD moved while the branch was measured; publish again');
     // Off by default because a host may run without trusted hooks; enforce never accepts what its own gate would refuse.
     const attested = policy.requireAttestation === true || reviewGateMode(repository, options) === 'enforce';
-    const kind = snapshot.status === 'CHANGED'
-        ? matchReviewReceipt({ repository, snapshot, reviewGateMode: attested ? 'enforce' : 'off',
-            ...(options.storeDir === undefined ? {} : { storeDir: options.storeDir }),
-            ...(options.now === undefined ? {} : { now: options.now }) })
-        : null;
+    const kind =
+        snapshot.status === 'CHANGED'
+            ? matchReviewReceipt({
+                  repository,
+                  snapshot,
+                  reviewGateMode: attested ? 'enforce' : 'off',
+                  ...(options.storeDir === undefined ? {} : { storeDir: options.storeDir }),
+                  ...(options.now === undefined ? {} : { now: options.now })
+              })
+            : null;
     let description;
     if (kind) {
         description = `reviewed: ${kind}; tree=${snapshot.candidateTree}`;
@@ -1007,10 +1134,34 @@ function publishReviewStatus(options = {}) {
         description = `skipped review: ${bypass.reason}`;
     }
     description = statusDescription(description);
-    ghText(['api', '--method', 'POST', `repos/${slug}/statuses/${localHead}`,
-        '-f', 'state=success', '-f', `context=${policy.context}`, '-f', `description=${description}`], 'Posting the review status');
-    return { status: 'PUBLISHED', valid: true, state: 'success', context: policy.context, description,
-        sha: localHead, pr: Number(pr), repository: slug, base, via: kind ? 'review' : 'bypass', kind };
+    ghText(
+        [
+            'api',
+            '--method',
+            'POST',
+            `repos/${slug}/statuses/${localHead}`,
+            '-f',
+            'state=success',
+            '-f',
+            `context=${policy.context}`,
+            '-f',
+            `description=${description}`
+        ],
+        'Posting the review status'
+    );
+    return {
+        status: 'PUBLISHED',
+        valid: true,
+        state: 'success',
+        context: policy.context,
+        description,
+        sha: localHead,
+        pr: Number(pr),
+        repository: slug,
+        base,
+        via: kind ? 'review' : 'bypass',
+        kind
+    };
 }
 
 function parseArgs(argv) {
@@ -1039,9 +1190,11 @@ function runCli(argv) {
     const base = { repository, ...(storeDir ? { storeDir } : {}) };
     let descriptor = flags['descriptor-json'] === undefined ? undefined : JSON.parse(flags['descriptor-json']);
     if (flags.target === 'branch' && descriptor === undefined) {
-        descriptor = { base: typeof flags.base === 'string' ? flags.base : '',
+        descriptor = {
+            base: typeof flags.base === 'string' ? flags.base : '',
             ...(flags.committed === true ? { committed: true } : {}),
-            ...(flags.staged === true ? { staged: true } : {}) };
+            ...(flags.staged === true ? { staged: true } : {})
+        };
     }
     if (command === 'snapshot') {
         return captureReviewTarget({ repository, cwd: process.cwd(), target: flags.target || 'worktree', ...(descriptor ? { descriptor } : {}) });
@@ -1049,8 +1202,14 @@ function runCli(argv) {
     if (command === 'issue') {
         if (typeof flags['snapshot-json'] !== 'string') throw new Error('issue requires --snapshot-json=<pre-review snapshot>');
         const snapshot = JSON.parse(flags['snapshot-json']);
-        return issueReceipt({ ...base, snapshot, scope: flags.scope, kind: flags.kind,
-            ttlMs: flags['ttl-ms'] === undefined ? undefined : Number(flags['ttl-ms']), reason: flags.reason });
+        return issueReceipt({
+            ...base,
+            snapshot,
+            scope: flags.scope,
+            kind: flags.kind,
+            ttlMs: flags['ttl-ms'] === undefined ? undefined : Number(flags['ttl-ms']),
+            reason: flags.reason
+        });
     }
     if (command === 'skip') {
         const snapshot = captureReviewTarget({ repository, cwd: process.cwd(), target: flags.target || 'worktree' });
@@ -1060,20 +1219,26 @@ function runCli(argv) {
         return { removed: clearReceipts(base) };
     }
     if (command === 'publish-status') {
-        return publishReviewStatus({ ...base, pr: flags.pr,
+        return publishReviewStatus({
+            ...base,
+            pr: flags.pr,
             ...(flags.base === undefined ? {} : { base: flags.base }),
-            ...(flags.repository === undefined ? {} : { githubRepository: flags.repository }) });
+            ...(flags.repository === undefined ? {} : { githubRepository: flags.repository })
+        });
     }
     // check the requested review target; CLEAN needs no receipt, ERROR is never clean.
     const snapshot = captureReviewTarget({ repository, cwd: process.cwd(), target: flags.target || 'worktree', ...(descriptor ? { descriptor } : {}) });
     if (snapshot.status === 'ERROR') return { status: 'ERROR', errorCode: snapshot.errorCode, valid: false };
     if (snapshot.status === 'CLEAN') return { status: 'CLEAN', fingerprint: snapshot.fingerprint, valid: true, review: null, skip: null };
     if (flags.kind !== undefined) {
-        return { status: snapshot.status, kind: flags.kind, fingerprint: snapshot.fingerprint,
-            valid: checkReceipt({ ...base, snapshot, kind: flags.kind }) };
+        return { status: snapshot.status, kind: flags.kind, fingerprint: snapshot.fingerprint, valid: checkReceipt({ ...base, snapshot, kind: flags.kind }) };
     }
-    return { status: snapshot.status, fingerprint: snapshot.fingerprint,
-        review: matchReviewReceipt({ ...base, snapshot }), skip: matchSkipReceipt({ ...base, snapshot }) };
+    return {
+        status: snapshot.status,
+        fingerprint: snapshot.fingerprint,
+        review: matchReviewReceipt({ ...base, snapshot }),
+        skip: matchSkipReceipt({ ...base, snapshot })
+    };
 }
 
 module.exports = {
@@ -1107,7 +1272,7 @@ if (require.main === module) {
         const result = runCli(process.argv.slice(2));
         process.stdout.write(`${JSON.stringify(result)}\n`);
         if (result?.status === 'REFUSED') process.stderr.write(`Review status refused: ${result.reason}\n`);
-        process.exitCode = result?.status === 'ERROR' ? 2 : (result && result.valid === false ? 1 : 0);
+        process.exitCode = result?.status === 'ERROR' ? 2 : result && result.valid === false ? 1 : 0;
     } catch (error) {
         process.stderr.write(`Review receipt failed: ${error.message}\n`);
         process.exitCode = 2;

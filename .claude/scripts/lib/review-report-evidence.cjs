@@ -7,7 +7,7 @@ const path = require('node:path');
 const ACCEPTED = new Set(['PASS', 'CONVERGED', 'APPROVED', 'ACCEPTED', 'CLEAN']);
 const MAX_INPUT_BYTES = 64 * 1024;
 const text = value => typeof value === 'string' && value.trim().length > 0;
-const status = value => typeof value === 'string' ? value.trim().toUpperCase() : '';
+const status = value => (typeof value === 'string' ? value.trim().toUpperCase() : '');
 function timestamp(value) {
     if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:\d{2})$/.test(value)) return NaN;
     return Date.parse(value);
@@ -20,8 +20,7 @@ function checkReportEvidence(input, root = process.cwd()) {
     }
     const report = input.report || {};
     const occurrence = input.occurrence || {};
-    if (!text(occurrence.id) || !text(occurrence.skill) || !Array.isArray(input.satisfiedBy) ||
-        !input.satisfiedBy.includes(occurrence.skill)) {
+    if (!text(occurrence.id) || !text(occurrence.skill) || !Array.isArray(input.satisfiedBy) || !input.satisfiedBy.includes(occurrence.skill)) {
         reasons.push('Report occurrence does not satisfy the declared gate');
     }
     try {
@@ -29,8 +28,8 @@ function checkReportEvidence(input, root = process.cwd()) {
         const actualRoot = fs.realpathSync(root);
         const actualReport = fs.realpathSync(path.resolve(root, report.path));
         const relative = path.relative(actualRoot, actualReport);
-        if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative) ||
-            !fs.statSync(actualReport).isFile()) throw new Error('Outside project or not a file');
+        if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative) || !fs.statSync(actualReport).isFile())
+            throw new Error('Outside project or not a file');
     } catch {
         reasons.push('Report is missing or is not a file inside the project');
     }
@@ -42,14 +41,13 @@ function checkReportEvidence(input, root = process.cwd()) {
         reasons.push('Report is stale: predates the last change-producing occurrence');
     }
     if (report.targetFingerprint !== undefined || input.currentTargetFingerprint !== undefined) {
-        if (!text(report.targetFingerprint) || !text(input.currentTargetFingerprint) ||
-            report.targetFingerprint !== input.currentTargetFingerprint) reasons.push('Reviewed target does not match the current target');
+        if (!text(report.targetFingerprint) || !text(input.currentTargetFingerprint) || report.targetFingerprint !== input.currentTargetFingerprint)
+            reasons.push('Reviewed target does not match the current target');
     }
     // Architecture full is a declared read-only diagnostic: completion means
     // validated report coverage, not repairing the inspected system's findings.
     if (occurrence.skill === 'architecture --mode=full') {
-        if (status(report.finalStatus) !== 'FINISHED' || report.facesMerged !== 3 ||
-            !ACCEPTED.has(status(report.validationStatus))) {
+        if (status(report.finalStatus) !== 'FINISHED' || report.facesMerged !== 3 || !ACCEPTED.has(status(report.validationStatus))) {
             reasons.push('Diagnostic report is unfinished, incomplete, or its validation was not accepted');
         }
     } else if (!ACCEPTED.has(status(report.finalStatus))) {

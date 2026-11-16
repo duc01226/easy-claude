@@ -33,7 +33,7 @@ const REPO_ROOT = path.resolve(HOOKS_DIR, '..', '..');
 const { isFrameworkRepo } = require(path.join(HOOKS_DIR, 'tests', 'lib', 'framework-repo-guard.cjs'));
 
 const IS_FRAMEWORK_REPO = isFrameworkRepo(REPO_ROOT);
-const SKIP_REASON = 'reads the framework repo\'s own shipped skills and registry (framework-repo signal)';
+const SKIP_REASON = "reads the framework repo's own shipped skills and registry (framework-repo signal)";
 const guarded = fn => ({ skip: IS_FRAMEWORK_REPO ? false : SKIP_REASON, fn });
 
 const SKILLS_DIR = path.join(REPO_ROOT, '.claude', 'skills');
@@ -43,12 +43,13 @@ const skillText = (...rel) => read('.claude', 'skills', ...rel);
 /** Every markdown file under `.claude/skills` as `{ rel, text }` (POSIX-style rel). */
 function skillMarkdown() {
     const files = [];
-    const walk = (dir) => {
+    const walk = dir => {
         for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
             if (entry.name === 'node_modules' || entry.name === '.git') continue;
             const abs = path.join(dir, entry.name);
             if (entry.isDirectory()) walk(abs);
-            else if (entry.name.endsWith('.md')) files.push({ rel: path.relative(SKILLS_DIR, abs).split(path.sep).join('/'), text: fs.readFileSync(abs, 'utf8').replace(/\r\n?/g, '\n') });
+            else if (entry.name.endsWith('.md'))
+                files.push({ rel: path.relative(SKILLS_DIR, abs).split(path.sep).join('/'), text: fs.readFileSync(abs, 'utf8').replace(/\r\n?/g, '\n') });
         }
     };
     walk(SKILLS_DIR);
@@ -86,11 +87,22 @@ const tests = [
         name: '[review-fix-r3] TC-RF3-001 no skill text asks the model to pick workflow vs standalone; direct calls ask no workflow question',
         ...guarded(() => {
             const hits = leftoverHits(skillMarkdown());
-            assert.deepEqual(hits, [], `leftover route-question wording (the route gate owns routing; keep only the Next Steps prompt): ${JSON.stringify(hits)}`);
+            assert.deepEqual(
+                hits,
+                [],
+                `leftover route-question wording (the route gate owns routing; keep only the Next Steps prompt): ${JSON.stringify(hits)}`
+            );
             // And the previously stale carriers state the replacement rule or simply no longer carry the clause
             assert.match(skillText('investigate', 'references', 'mode-debug.md'), /Direct invocation asks no workflow question/);
-            assert.match(skillText('production-readiness-review', 'SKILL.md'), /Ask the standalone Next Steps question; parent-invoked, sub-agent and `--report-only` runs return/);
-            for (const rel of [['security-audit', 'SKILL.md'], ['integration-test', 'SKILL.md'], ['code-simplifier', 'SKILL.md']]) {
+            assert.match(
+                skillText('production-readiness-review', 'SKILL.md'),
+                /Ask the standalone Next Steps question; parent-invoked, sub-agent and `--report-only` runs return/
+            );
+            for (const rel of [
+                ['security-audit', 'SKILL.md'],
+                ['integration-test', 'SKILL.md'],
+                ['code-simplifier', 'SKILL.md']
+            ]) {
                 assert.ok(skillText(...rel).includes('ask user question tool'), `${rel.join('/')} keeps its own Next Steps ask user question tool prompt`);
             }
             // The test skill selects its follow-up from the results instead of offering a menu, and asks only for what it lacks.
@@ -102,16 +114,25 @@ const tests = [
     {
         name: '[review-fix-r3] TC-RF3-002 the leftover-phrase scan fails when a stale route question returns (mutation check on the scanner, in memory)',
         ...guarded(() => {
-            const sample = [{ rel: 'x/SKILL.md', text: 'a\n**MANDATORY** validate route/decisions with the user via `ask user question tool` — NEVER auto-decide a workflow vs standalone run.\nb' }];
+            const sample = [
+                {
+                    rel: 'x/SKILL.md',
+                    text: 'a\n**MANDATORY** validate route/decisions with the user via `ask user question tool` — NEVER auto-decide a workflow vs standalone run.\nb'
+                }
+            ];
             assert.ok(leftoverHits(sample).length >= 2, 'the old test-skill closing reminder is detected');
             for (const stale of [
                 'outside a workflow ask the user to choose `workflow-bugfix` or direct `/investigate --mode=debug`',
                 'validate workflow choice via `ask user question tool` — never auto-decide.',
                 '- `ask user question tool` — validate workflow/route decisions with the user. NEVER auto-decide complexity.',
                 '## Workflow Recommendation'
-            ]) assert.ok(leftoverHits([{ rel: 'x.md', text: stale }]).length >= 1, `detected: ${stale}`);
+            ])
+                assert.ok(leftoverHits([{ rel: 'x.md', text: stale }]).length >= 1, `detected: ${stale}`);
             // A legitimate Next-Steps option and the route-gate rule itself are not flagged
-            for (const fine of ['- **"/workflow-review-changes (Recommended)"** — Review all changes', 'never ask the user to choose. When the route matched a catalog workflow']) {
+            for (const fine of [
+                '- **"/workflow-review-changes (Recommended)"** — Review all changes',
+                'never ask the user to choose. When the route matched a catalog workflow'
+            ]) {
                 assert.deepEqual(leftoverHits([{ rel: 'x.md', text: fine }]), [], `not flagged: ${fine}`);
             }
         })
@@ -125,7 +146,10 @@ const tests = [
             assert.match(table, /merely exists in `TaskList`, such as an abandoned one, does not count/);
             assert.doesNotMatch(table, /Parent workflow row active in `TaskList`/, 'no ambient-state skip rule');
             // The same rule the Next-Steps owners use
-            assert.match(skillText('integration-test', 'SKILL.md'), /a `\[Workflow\]` row that merely exists in `TaskList`, such as an abandoned one, does not count/);
+            assert.match(
+                skillText('integration-test', 'SKILL.md'),
+                /a `\[Workflow\]` row that merely exists in `TaskList`, such as an abandoned one, does not count/
+            );
         })
     },
     {
@@ -133,28 +157,48 @@ const tests = [
         ...guarded(() => {
             const workflow = JSON.parse(read('.claude', 'workflows.json')).workflows['workflow-review-changes'];
             assert.equal(workflow.defaultMode, 'fix-loop');
-            const reviews = ['changes-review','why-review','architecture','domain-analysis','performance-review','integration-test','security-audit','production-readiness-review','ui-design','ai-engineering-review','experience-review'];
+            const reviews = [
+                'changes-review',
+                'why-review',
+                'architecture',
+                'domain-analysis',
+                'performance-review',
+                'integration-test',
+                'security-audit',
+                'production-readiness-review',
+                'ui-design',
+                'ai-engineering-review',
+                'experience-review'
+            ];
             // `--report-only` selects mode `review-only`: one read-only mode, not two identical copies (P47)
             assert.equal(workflow.variants['report-only'], undefined, 'report-only is a flag for review-only, not a duplicate mode');
-            assert.match(skillText('workflow-review-changes', 'SKILL.md'), /`--review-only` or `--report-only`; both select mode `review-only`/, 'the skill maps the report-only flag to the review-only mode');
+            assert.match(
+                skillText('workflow-review-changes', 'SKILL.md'),
+                /`--review-only` or `--report-only`; both select mode `review-only`/,
+                'the skill maps the report-only flag to the review-only mode'
+            );
             for (const mode of ['review-only']) {
                 const steps = workflow.variants[mode].sequence;
                 assert.ok(steps.length > 0);
-                assert.ok(!steps.some(step => ['fix','code-simplifier','docs-manager','scan'].includes(step.skill)));
+                assert.ok(!steps.some(step => ['fix', 'code-simplifier', 'docs-manager', 'scan'].includes(step.skill)));
                 for (const step of steps) if (reviews.includes(step.skill) && step.id !== 'validate-findings') assert.match(step.args, /--review-only/);
-                for (const skill of ['workflow-end', 'watzup']) assert.ok(steps.some(step => step.skill === skill && step.role === 'optional'), `${mode} retains optional ${skill} closing`);
+                for (const skill of ['workflow-end', 'watzup'])
+                    assert.ok(
+                        steps.some(step => step.skill === skill && step.role === 'optional'),
+                        `${mode} retains optional ${skill} closing`
+                    );
             }
-            for (const step of workflow.sequence) if (reviews.includes(step.skill) &&
-                step.id !== 'validate-findings' && step.id !== 'verify-settled-tests') {
-                assert.match(step.args, /--fix-loop --loop-owner=caller/);
-            }
+            for (const step of workflow.sequence)
+                if (reviews.includes(step.skill) && step.id !== 'validate-findings' && step.id !== 'verify-settled-tests') {
+                    assert.match(step.args, /--fix-loop --loop-owner=caller/);
+                }
             const initial = workflow.sequence.find(step => step.id === 'initial-changes-review');
             assert.match(initial.args, /--defer=specialists,tests,entities/);
             // The simplifier is a report-only lens: the fix step applies validated simplifications and the fresh
             // changes-review rerun covers them with its whole-target rationale pass.
             assert.equal(workflow.sequence.find(step => step.id === 'code-simplifier').args, '--report-only');
             assert.match(skillText('workflow-review-changes', 'SKILL.md'), /Re-invoke `initial-changes-review` as `rerun N` on the whole settled target/);
-            const caller = skillText('workflow-review-changes','references','caller-mode.md');
+            const caller = skillText('workflow-review-changes', 'references', 'caller-mode.md');
             assert.match(caller, /full fresh `\/why-review` of the settled target after simplification/i);
             assert.match(caller, /omit its deferral so the duty stays with the skill/);
         })
@@ -207,11 +251,18 @@ const tests = [
             assert.deepEqual(scan(files), [], 'ambient "a [Workflow] row exists" nesting rule returned');
             // Each of the four decision sites states the positive rule: nested=true, and a row that merely exists does not count
             for (const { rel, text } of files) {
-                assert.match(text, rel === 'investigate/references/mode-debug.md' ? /an abandoned\/existing row alone does not qualify/ : /merely exists in `TaskList`/, `${rel} rejects a stale workflow row`);
+                assert.match(
+                    text,
+                    rel === 'investigate/references/mode-debug.md' ? /an abandoned\/existing row alone does not qualify/ : /merely exists in `TaskList`/,
+                    `${rel} rejects a stale workflow row`
+                );
                 assert.match(text, /nested=true/, `${rel} keys the skip on nested=true`);
             }
             // The skipped-steps list of plan execute is unchanged: the nested run still skips exactly Steps 3, 4 and 5
-            assert.match(skillText('plan', 'references', 'mode-execute.md'), /skip Step 3 \(`code-reviewer`\), Step 4 \(`tester`\) and Step 5 \(approval\)|SKIP Step 3 \(`code-reviewer`\), Step 4 \(`tester`\) and Step 5 \(approval\)/i);
+            assert.match(
+                skillText('plan', 'references', 'mode-execute.md'),
+                /skip Step 3 \(`code-reviewer`\), Step 4 \(`tester`\) and Step 5 \(approval\)|SKIP Step 3 \(`code-reviewer`\), Step 4 \(`tester`\) and Step 5 \(approval\)/i
+            );
             // Mutation check on the scanner (in memory): each old wording is detected
             for (const stale of [
                 'SKIP this section: if a parent `[Workflow]` row exists, the surrounding workflow',
@@ -220,7 +271,8 @@ const tests = [
                 '> If already inside a workflow, skip both the contract and this menu',
                 '## Standalone Mode Pipeline (skip entirely if invoked inside a workflow)',
                 'An active parent workflow row — or a `--target=review` call'
-            ]) assert.ok(scan([{ rel: 'x.md', text: stale }]).length >= 1, `detected: ${stale}`);
+            ])
+                assert.ok(scan([{ rel: 'x.md', text: stale }]).length >= 1, `detected: ${stale}`);
         })
     }
 ];

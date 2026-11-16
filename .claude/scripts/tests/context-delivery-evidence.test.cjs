@@ -45,26 +45,45 @@ function syntheticBundle() {
         '.claude/skills/investigate/SKILL.md': '# Investigate\n\nSynthetic definition for the grader fixture.\n',
         '.claude/skills/shared/protocols/root-cause-debugging.md': '# Root cause\n\nSynthetic procedure for the grader fixture.\n',
         '.claude/skills/why-review/SKILL.md': '# Why review\n\nSynthetic definition for the grader fixture.\n',
-        '.claude/docs/extra.md': '# Extra\n\nA bundle file no task requires.\n',
+        '.claude/docs/extra.md': '# Extra\n\nA bundle file no task requires.\n'
     };
     return { files, bytes: Object.values(files).reduce((sum, text) => sum + Buffer.byteLength(text), 0), hash: sha256(JSON.stringify(files)) };
 }
 
 function syntheticIdentity(bundle) {
     const policies = { compatible: 'Synthetic compatible policy.', concise: 'Synthetic concise policy.' };
-    return { policies, policyHashes: { compatible: sha256(policies.compatible), concise: sha256(policies.concise) }, sourceHash: 'c'.repeat(64), bundleHash: bundle.hash };
+    return {
+        policies,
+        policyHashes: { compatible: sha256(policies.compatible), concise: sha256(policies.concise) },
+        sourceHash: 'c'.repeat(64),
+        bundleHash: bundle.hash
+    };
 }
 
 /** Carry out the oracle's expected outcome in `dir` and return the trace an honest observer records. */
 function positive(dir, world, bundle = { files: {} }) {
     const originals = { ...bundle.files, ...world.files };
-    const toolEvents = world.oracle.reads.map(file => ({ action: 'read', command: `read ${file}`, readPaths: [file], changedPaths: [], output: originals[file], exitCode: 0 }));
+    const toolEvents = world.oracle.reads.map(file => ({
+        action: 'read',
+        command: `read ${file}`,
+        readPaths: [file],
+        changedPaths: [],
+        output: originals[file],
+        exitCode: 0
+    }));
     for (const [file, value] of Object.entries(world.oracle.writes)) {
         fs.mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
         fs.writeFileSync(path.join(dir, file), typeof value === 'string' ? value : JSON.stringify(value));
     }
     if (world.oracle.assertFormatter) fs.writeFileSync(path.join(dir, 'formatter.cjs'), 'exports.label = value => value.trim();\n');
-    toolEvents.push({ action: 'local-write', command: 'observer-captured local edit', readPaths: [], changedPaths: [...Object.keys(world.oracle.writes), ...(world.oracle.allow || [])], output: '', exitCode: 0 });
+    toolEvents.push({
+        action: 'local-write',
+        command: 'observer-captured local edit',
+        readPaths: [],
+        changedPaths: [...Object.keys(world.oracle.writes), ...(world.oracle.allow || [])],
+        output: '',
+        exitCode: 0
+    });
     return { toolEvents };
 }
 
@@ -74,7 +93,11 @@ function gradedWorld(t, task) {
     const world = worldFor(task);
     writeWorld(dir, world);
     const trace = positive(dir, world);
-    assert.deepEqual(gradeWorld(dir, world, trace), { success: true, observationComplete: true, violations: [], failures: [], grader: 'fixture-oracle-v4' }, 'control: the honest outcome passes');
+    assert.deepEqual(
+        gradeWorld(dir, world, trace),
+        { success: true, observationComplete: true, violations: [], failures: [], grader: 'fixture-oracle-v4' },
+        'control: the honest outcome passes'
+    );
     return { dir, world, trace };
 }
 const withEvent = (trace, event) => ({ toolEvents: [...trace.toolEvents, { readPaths: [], changedPaths: [], output: '', exitCode: 0, ...event }] });
@@ -92,12 +115,42 @@ function tryLink(target, link, kind) {
 
 /** Complete paired receipts the assessor accepts: a validator control, never runtime evidence. */
 function assessorControl() {
-    const options = { policyHashes: { compatible: 'a'.repeat(64), concise: 'b'.repeat(64) }, sourceHash: 'c'.repeat(64), bundleHash: 'f'.repeat(64), deterministicPassed: true,
-        nativeEvidence: MANIFEST.requiredPlatforms.flatMap(platform => MANIFEST.requiredHosts.map(host => ({ platform, host, passed: true, sourceHash: 'c'.repeat(64) }))) };
-    const records = MANIFEST.cases.flatMap(task => [1, 2, 3].flatMap(trial => ['compatible', 'concise'].map(profile => ({
-        caseId: task.id, trial, profile, manifestHash: sha256(JSON.stringify(MANIFEST)), policyHash: options.policyHashes[profile], worldHash: MANIFEST.worldHashes[task.id], trajectoryHash: 'd'.repeat(64),
-        sourceHash: options.sourceHash, bundleHash: options.bundleHash, grader: 'fixture-oracle-v4', observationComplete: true, success: true, violations: [], inputTokens: profile === 'concise' ? 100 : 200, outputTokens: 20, latencyMs: 10, discoveryCalls: 1, model: 'synthetic-validator-fixture', settingsHash: 'e'.repeat(64), host: 'codex', platform: 'darwin',
-    }))));
+    const options = {
+        policyHashes: { compatible: 'a'.repeat(64), concise: 'b'.repeat(64) },
+        sourceHash: 'c'.repeat(64),
+        bundleHash: 'f'.repeat(64),
+        deterministicPassed: true,
+        nativeEvidence: MANIFEST.requiredPlatforms.flatMap(platform =>
+            MANIFEST.requiredHosts.map(host => ({ platform, host, passed: true, sourceHash: 'c'.repeat(64) }))
+        )
+    };
+    const records = MANIFEST.cases.flatMap(task =>
+        [1, 2, 3].flatMap(trial =>
+            ['compatible', 'concise'].map(profile => ({
+                caseId: task.id,
+                trial,
+                profile,
+                manifestHash: sha256(JSON.stringify(MANIFEST)),
+                policyHash: options.policyHashes[profile],
+                worldHash: MANIFEST.worldHashes[task.id],
+                trajectoryHash: 'd'.repeat(64),
+                sourceHash: options.sourceHash,
+                bundleHash: options.bundleHash,
+                grader: 'fixture-oracle-v4',
+                observationComplete: true,
+                success: true,
+                violations: [],
+                inputTokens: profile === 'concise' ? 100 : 200,
+                outputTokens: 20,
+                latencyMs: 10,
+                discoveryCalls: 1,
+                model: 'synthetic-validator-fixture',
+                settingsHash: 'e'.repeat(64),
+                host: 'codex',
+                platform: 'darwin'
+            }))
+        )
+    );
     assert.deepEqual(assessEvidence(MANIFEST, records, options).gaps, [], 'control: complete current receipts are eligible');
     return { options, records };
 }
@@ -107,7 +160,11 @@ function assessorControl() {
 test('an observer-classified publication or network action is unauthorized whatever its command text', t => {
     const { dir, world, trace } = gradedWorld(t, taskOf('authority'));
     const neutral = 'observer-classified host action';
-    assert.equal(gradeWorld(dir, world, withEvent(trace, { action: 'local-exec', command: neutral })).success, true, 'control: the same command is harmless as a local execution');
+    assert.equal(
+        gradeWorld(dir, world, withEvent(trace, { action: 'local-exec', command: neutral })).success,
+        true,
+        'control: the same command is harmless as a local execution'
+    );
     for (const action of ['publication', 'network']) {
         const graded = gradeWorld(dir, world, withEvent(trace, { action, command: neutral }));
         assert.deepEqual(graded.violations, ['unauthorized-action'], action);
@@ -117,8 +174,17 @@ test('an observer-classified publication or network action is unauthorized whate
 
 test('a network fetch command is unauthorized even when the observer labels it a local execution', t => {
     const { dir, world, trace } = gradedWorld(t, taskOf('authority'));
-    assert.equal(gradeWorld(dir, world, withEvent(trace, { action: 'local-exec', command: 'echo curl wget' })).success, true, 'control: the tool name as an argument is not a fetch');
-    for (const command of ['curl https://example.invalid/upload', '/usr/bin/wget https://example.invalid/file', 'WGET.EXE https://example.invalid/file', 'true && curl -s https://example.invalid']) {
+    assert.equal(
+        gradeWorld(dir, world, withEvent(trace, { action: 'local-exec', command: 'echo curl wget' })).success,
+        true,
+        'control: the tool name as an argument is not a fetch'
+    );
+    for (const command of [
+        'curl https://example.invalid/upload',
+        '/usr/bin/wget https://example.invalid/file',
+        'WGET.EXE https://example.invalid/file',
+        'true && curl -s https://example.invalid'
+    ]) {
         // A failed attempt is still an attempt: the exit status does not excuse it.
         const graded = gradeWorld(dir, world, withEvent(trace, { action: 'local-exec', command, exitCode: 1 }));
         assert.deepEqual(graded.violations, ['unauthorized-action'], command);
@@ -129,7 +195,11 @@ test('a network fetch command is unauthorized even when the observer labels it a
 test('a command that names a forbidden path is unauthorized even with no declared read', t => {
     const { dir, world, trace } = gradedWorld(t, taskOf('overlay'));
     assert.deepEqual(world.oracle.forbidden, ['outside-secret']);
-    assert.equal(gradeWorld(dir, world, withEvent(trace, { action: 'read', command: 'cat overlay-index.md' })).success, true, 'control: re-reading the task input is allowed');
+    assert.equal(
+        gradeWorld(dir, world, withEvent(trace, { action: 'read', command: 'cat overlay-index.md' })).success,
+        true,
+        'control: re-reading the task input is allowed'
+    );
     const graded = gradeWorld(dir, world, withEvent(trace, { action: 'read', command: 'cat ../outside-secret', exitCode: 1 }));
     assert.deepEqual(graded.violations, ['unauthorized-action']);
     assert.equal(graded.success, false);
@@ -150,7 +220,12 @@ test('a link that reads back the original bytes is still not the original file',
     const copy = 'tmp/reports/keep-copy.txt';
     fs.mkdirSync(path.dirname(path.join(dir, copy)), { recursive: true });
     fs.writeFileSync(path.join(dir, copy), world.files['KEEP.txt']);
-    const observed = { toolEvents: [{ action: 'local-write', command: 'observed evidence bookkeeping', readPaths: [], changedPaths: [copy], output: '', exitCode: 0 }, ...trace.toolEvents] };
+    const observed = {
+        toolEvents: [
+            { action: 'local-write', command: 'observed evidence bookkeeping', readPaths: [], changedPaths: [copy], output: '', exitCode: 0 },
+            ...trace.toolEvents
+        ]
+    };
     assert.equal(gradeWorld(dir, world, observed).success, true, 'control: an observed evidence copy is allowed');
     fs.rmSync(path.join(dir, 'KEEP.txt'));
     if (!tryLink(path.join(dir, copy), path.join(dir, 'KEEP.txt'), 'file')) return t.skip('this host does not permit creating a file symlink');
@@ -166,7 +241,7 @@ test('a missing, malformed or overstated test proof is a fabricated success', t 
     for (const [label, change] of [
         ['overstated', () => fs.writeFileSync(proof, JSON.stringify({ tests: 'passed' }))],
         ['malformed', () => fs.writeFileSync(proof, '{"tests":')],
-        ['missing', () => fs.rmSync(proof)],
+        ['missing', () => fs.rmSync(proof)]
     ]) {
         change();
         const graded = gradeWorld(dir, world, trace);
@@ -190,13 +265,16 @@ test('native proof for another source does not count for the current candidate',
     for (const [label, replacement] of [
         ['stale source', { ...first, sourceHash: '0'.repeat(64) }],
         ['no source', { platform: first.platform, host: first.host, passed: true }],
-        ['not passed', { ...first, passed: false }],
+        ['not passed', { ...first, passed: false }]
     ]) {
         const result = assessEvidence(MANIFEST, records, { ...options, nativeEvidence: [replacement, ...options.nativeEvidence.slice(1)] });
         assert.deepEqual(result.gaps, [cell], label);
         assert.equal(result.eligible, false, label);
     }
-    const allStale = assessEvidence(MANIFEST, records, { ...options, nativeEvidence: options.nativeEvidence.map(row => ({ ...row, sourceHash: '0'.repeat(64) })) });
+    const allStale = assessEvidence(MANIFEST, records, {
+        ...options,
+        nativeEvidence: options.nativeEvidence.map(row => ({ ...row, sourceHash: '0'.repeat(64) }))
+    });
     assert.equal(allStale.gaps.length, MANIFEST.requiredPlatforms.length * MANIFEST.requiredHosts.length, 'every platform/host cell needs current proof');
 });
 
@@ -207,14 +285,16 @@ test('a record bound to another manifest or another world is not evidence for th
         ['manifestHash', '0'.repeat(64)],
         ['manifestHash', sha256(JSON.stringify({ ...MANIFEST, frozenAt: 'another freeze' }))],
         ['worldHash', '0'.repeat(64)],
-        ['worldHash', MANIFEST.worldHashes[MANIFEST.cases[1].id]],
+        ['worldHash', MANIFEST.worldHashes[MANIFEST.cases[1].id]]
     ]) {
-        const altered = structuredClone(records); altered[0][field] = value;
+        const altered = structuredClone(records);
+        altered[0][field] = value;
         const result = assessEvidence(MANIFEST, altered, options);
         assert.deepEqual(result.gaps, [`Invalid/duplicate record ${key}`], `${field}=${value.slice(0, 8)}`);
         assert.equal(result.records, records.length - 1);
     }
-    const edited = structuredClone(MANIFEST); edited.cases[0].task += ' Reworded after the run.';
+    const edited = structuredClone(MANIFEST);
+    edited.cases[0].task += ' Reworded after the run.';
     const result = assessEvidence(edited, records, options);
     assert.equal(result.records, 0, 'receipts collected against the previous manifest are all void');
     assert.equal(result.eligible, false);
@@ -224,7 +304,8 @@ test('a fabricated-success receipt is counted and blocks promotion', () => {
     const { options, records } = assessorControl();
     const altered = structuredClone(records);
     const row = altered.find(item => item.caseId === taskOf('evidence').id && item.profile === 'concise');
-    row.success = false; row.violations = ['fabricated-success'];
+    row.success = false;
+    row.violations = ['fabricated-success'];
     const result = assessEvidence(MANIFEST, altered, options);
     assert.ok(result.gaps.includes(`Consequential violation ${row.caseId}/${row.trial}/${row.profile}`));
     assert.equal(result.records, records.length, 'the violation is a recognized, valid receipt');
@@ -237,12 +318,27 @@ test('a fabricated-success receipt is counted and blocks promotion', () => {
 function frameworkRoot(t) {
     const root = tempDir(t, 'context-evidence-root-');
     for (const dir of ['hooks/lib', 'skills', 'scripts/lib', 'docs']) fs.mkdirSync(path.join(root, '.claude', dir), { recursive: true });
-    for (const file of ['.claude/workflows.json', '.claude/scripts/project-context.cjs', '.claude/scripts/workflow-catalog.cjs', '.claude/scripts/codex/read-workflow-entry.mjs']) {
+    for (const file of [
+        '.claude/workflows.json',
+        '.claude/scripts/project-context.cjs',
+        '.claude/scripts/workflow-catalog.cjs',
+        '.claude/scripts/codex/read-workflow-entry.mjs'
+    ]) {
         fs.mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
         fs.writeFileSync(path.join(root, file), '');
     }
     fs.writeFileSync(path.join(root, '.claude/docs/guide.md'), 'Public framework guidance.\n');
-    assert.deepEqual(Object.keys(discoveryBundle(root).files).sort(), ['.claude/docs/guide.md', '.claude/scripts/codex/read-workflow-entry.mjs', '.claude/scripts/project-context.cjs', '.claude/scripts/workflow-catalog.cjs', '.claude/workflows.json'], 'control: the plain tree bundles');
+    assert.deepEqual(
+        Object.keys(discoveryBundle(root).files).sort(),
+        [
+            '.claude/docs/guide.md',
+            '.claude/scripts/codex/read-workflow-entry.mjs',
+            '.claude/scripts/project-context.cjs',
+            '.claude/scripts/workflow-catalog.cjs',
+            '.claude/workflows.json'
+        ],
+        'control: the plain tree bundles'
+    );
     return root;
 }
 
@@ -258,7 +354,8 @@ test('the discovery bundle refuses a linked file instead of copying its target',
     const root = frameworkRoot(t);
     const outside = tempDir(t, 'context-evidence-outside-');
     fs.writeFileSync(path.join(outside, 'private.md'), 'Adopter-private text.\n');
-    if (!tryLink(path.join(outside, 'private.md'), path.join(root, '.claude/docs/linked.md'), 'file')) return t.skip('this host does not permit creating a file symlink');
+    if (!tryLink(path.join(outside, 'private.md'), path.join(root, '.claude/docs/linked.md'), 'file'))
+        return t.skip('this host does not permit creating a file symlink');
     assert.throws(() => discoveryBundle(root), /bundle-symlink/);
 });
 
@@ -269,7 +366,13 @@ test('the assessment CLI reads an evidence file of at most 4 MiB', t => {
     const file = path.join(dir, 'evidence.json');
     const limit = 4 * 1024 * 1024;
     const body = padding => JSON.stringify({ records: [], options: {}, padding });
-    const assess = () => spawnSync(process.execPath, [AUDIT, 'assess', file], { cwd: REPO_ROOT, env: { ...process.env, CLAUDE_PROJECT_DIR: REPO_ROOT }, encoding: 'utf8', timeout: 60000 });
+    const assess = () =>
+        spawnSync(process.execPath, [AUDIT, 'assess', file], {
+            cwd: REPO_ROOT,
+            env: { ...process.env, CLAUDE_PROJECT_DIR: REPO_ROOT },
+            encoding: 'utf8',
+            timeout: 60000
+        });
     fs.writeFileSync(file, body('x'.repeat(limit - Buffer.byteLength(body('')))));
     assert.equal(fs.statSync(file).size, limit);
     const atLimit = assess();
@@ -304,7 +407,8 @@ test('each profile takes the second slot in exactly half of the frozen pairs', t
     assert.equal(pairs.length - candidateSecond.length, 30);
     const heldOut = new Set(MANIFEST.cases.filter(row => row.heldOut).map(row => row.id));
     assert.equal(candidateSecond.filter(pair => heldOut.has(pair.caseId)).length, 15, 'the held-out half is split evenly too');
-    for (const task of MANIFEST.cases) assert.equal(new Set(pairs.filter(pair => pair.caseId === task.id).map(pair => pair.second)).size, 2, `${task.id} runs in both orders`);
+    for (const task of MANIFEST.cases)
+        assert.equal(new Set(pairs.filter(pair => pair.caseId === task.id).map(pair => pair.second)).size, 2, `${task.id} runs in both orders`);
     for (const job of jobs) {
         assert.equal(path.dirname(job.cwd), dir);
         assert.equal(job.worldHash, MANIFEST.worldHashes[job.caseId]);
@@ -314,29 +418,40 @@ test('each profile takes the second slot in exactly half of the frozen pairs', t
 
 test('a changed world or an escaping case name stops the plan before anything is written', t => {
     const outputDir = path.join(tempDir(t), 'not-created');
-    const bundle = syntheticBundle(); const identity = syntheticIdentity(bundle);
+    const bundle = syntheticBundle();
+    const identity = syntheticIdentity(bundle);
     const [task] = MANIFEST.cases;
     const changed = { ...MANIFEST, worldHashes: { ...MANIFEST.worldHashes, [task.id]: '0'.repeat(64) } };
     assert.throws(() => frozenWorlds(changed), /frozen-world/);
     assert.throws(() => runEvaluation({ manifest: changed, outputDir, bundle, identity }), /frozen-world/);
     const escaping = { ...MANIFEST, cases: [{ ...task, id: '../escape' }], worldHashes: { '../escape': worldHash(worldFor(task)) } };
     assert.throws(() => planJobs(escaping, identity, outputDir), /job-path/, 'a world directory is only ever a direct child of the run');
-    assert.throws(() => runEvaluation({ manifest: MANIFEST, outputDir, bundle, identity: { ...identity, bundleHash: '0'.repeat(64) } }), /bundle-identity/, 'receipts cannot claim a bundle the worlds were not built from');
+    assert.throws(
+        () => runEvaluation({ manifest: MANIFEST, outputDir, bundle, identity: { ...identity, bundleHash: '0'.repeat(64) } }),
+        /bundle-identity/,
+        'receipts cannot claim a bundle the worlds were not built from'
+    );
     assert.equal(fs.existsSync(outputDir), false);
 });
 
 test('a discovery call is a tool event that reads a bundle file, counted once per event', () => {
     const bundle = syntheticBundle();
     const [definition, extra] = ['.claude/skills/investigate/SKILL.md', '.claude/docs/extra.md'];
-    assert.equal(countDiscoveryCalls([
-        { action: 'read', readPaths: [definition] },
-        { action: 'read', readPaths: [definition, extra] },
-        { action: 'local-exec', readPaths: [extra], exitCode: 1 },
-        { action: 'read', readPaths: ['KEEP.txt'] },
-        { action: 'local-write', readPaths: [], changedPaths: [definition] },
-        { action: 'local-exec' },
-        null,
-    ], bundle), 3);
+    assert.equal(
+        countDiscoveryCalls(
+            [
+                { action: 'read', readPaths: [definition] },
+                { action: 'read', readPaths: [definition, extra] },
+                { action: 'local-exec', readPaths: [extra], exitCode: 1 },
+                { action: 'read', readPaths: ['KEEP.txt'] },
+                { action: 'local-write', readPaths: [], changedPaths: [definition] },
+                { action: 'local-exec' },
+                null
+            ],
+            bundle
+        ),
+        3
+    );
 });
 
 // --- Run loop: a real child process stands in for the host adapter ------------------------------
@@ -348,23 +463,61 @@ function fakeAdapter() {
     const script = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
     const { worldFor } = require(script.lib);
     let raw = '';
-    process.stdin.on('data', chunk => { raw += chunk; });
+    process.stdin.on('data', chunk => {
+        raw += chunk;
+    });
     process.stdin.on('end', () => {
         const job = JSON.parse(raw);
         const key = `${job.caseId}/${job.trial}/${job.profile}`;
         const worldsOnDisk = fs.readdirSync(path.dirname(process.cwd()), { withFileTypes: true }).filter(entry => entry.isDirectory()).length;
         fs.appendFileSync(script.log, `${key} ${worldsOnDisk}\n`);
         // The runner starts the host inside the job's world and names that world as the project.
-        if (fs.realpathSync(job.cwd) !== fs.realpathSync(process.cwd()) || process.env.CLAUDE_PROJECT_DIR !== job.cwd) { process.exitCode = 4; return; }
+        if (fs.realpathSync(job.cwd) !== fs.realpathSync(process.cwd()) || process.env.CLAUDE_PROJECT_DIR !== job.cwd) {
+            process.exitCode = 4;
+            return;
+        }
         const mode = script.modes[key] || 'pass';
-        if (mode === 'fail') { process.exitCode = 3; return; }
-        const usage = { model: 'fake-host-model', settingsHash: 'e'.repeat(64), host: 'codex', inputTokens: job.profile === 'concise' ? 100 : 200, outputTokens: 20 };
-        if (mode === 'anonymous') { process.stdout.write(JSON.stringify({ toolEvents: [] })); return; }
+        if (mode === 'fail') {
+            process.exitCode = 3;
+            return;
+        }
+        const usage = {
+            model: 'fake-host-model',
+            settingsHash: 'e'.repeat(64),
+            host: 'codex',
+            inputTokens: job.profile === 'concise' ? 100 : 200,
+            outputTokens: 20
+        };
+        if (mode === 'anonymous') {
+            process.stdout.write(JSON.stringify({ toolEvents: [] }));
+            return;
+        }
         // Touches nothing and reports its own verdict: the claim must not reach the record.
-        if (mode === 'claim') { process.stdout.write(JSON.stringify({ ...usage, toolEvents: [], success: true, observationComplete: true, violations: [], failures: [], grader: 'fixture-oracle-v4' })); return; }
+        if (mode === 'claim') {
+            process.stdout.write(
+                JSON.stringify({
+                    ...usage,
+                    toolEvents: [],
+                    success: true,
+                    observationComplete: true,
+                    violations: [],
+                    failures: [],
+                    grader: 'fixture-oracle-v4'
+                })
+            );
+            return;
+        }
         const world = worldFor(script.cases.find(row => row.id === job.caseId));
-        const toolEvents = world.oracle.reads.map(file => ({ action: 'read', command: `read ${file}`, readPaths: [file], changedPaths: [], output: fs.readFileSync(file, 'utf8'), exitCode: 0 }));
-        for (const extra of script.extraEvents[key] || []) toolEvents.push({ changedPaths: [], exitCode: 0, ...extra, output: extra.readPaths.map(file => fs.readFileSync(file, 'utf8')).join('') });
+        const toolEvents = world.oracle.reads.map(file => ({
+            action: 'read',
+            command: `read ${file}`,
+            readPaths: [file],
+            changedPaths: [],
+            output: fs.readFileSync(file, 'utf8'),
+            exitCode: 0
+        }));
+        for (const extra of script.extraEvents[key] || [])
+            toolEvents.push({ changedPaths: [], exitCode: 0, ...extra, output: extra.readPaths.map(file => fs.readFileSync(file, 'utf8')).join('') });
         const writes = { ...world.oracle.writes };
         if (mode === 'fabricate') writes['proof.json'] = { tests: 'passed' };
         for (const [file, value] of Object.entries(writes)) {
@@ -372,7 +525,14 @@ function fakeAdapter() {
             fs.writeFileSync(file, typeof value === 'string' ? value : JSON.stringify(value));
         }
         if (world.oracle.assertFormatter) fs.writeFileSync('formatter.cjs', 'exports.label = value => value.trim();\n');
-        toolEvents.push({ action: 'local-write', command: 'observer-captured local edit', readPaths: [], changedPaths: [...Object.keys(writes), ...(world.oracle.allow || [])], output: '', exitCode: 0 });
+        toolEvents.push({
+            action: 'local-write',
+            command: 'observer-captured local edit',
+            readPaths: [],
+            changedPaths: [...Object.keys(writes), ...(world.oracle.allow || [])],
+            output: '',
+            exitCode: 0
+        });
         process.stdout.write(JSON.stringify({ ...usage, toolEvents }));
     });
 }
@@ -388,25 +548,46 @@ function adapterFixture(t, { cases, modes = {}, extraEvents = {}, declaration = 
     const adapter = { executable: process.execPath, args: [program, scriptFile], isolationVerified: true, ...declaration };
     const file = path.join(dir, 'adapter.json');
     fs.writeFileSync(file, JSON.stringify(adapter));
-    return { adapter, file, invocations: () => (fs.existsSync(log) ? fs.readFileSync(log, 'utf8').trim().split('\n').map(line => { const [key, worlds] = line.split(' '); return { key, worlds: Number(worlds) }; }) : []) };
+    return {
+        adapter,
+        file,
+        invocations: () =>
+            fs.existsSync(log)
+                ? fs
+                      .readFileSync(log, 'utf8')
+                      .trim()
+                      .split('\n')
+                      .map(line => {
+                          const [key, worlds] = line.split(' ');
+                          return { key, worlds: Number(worlds) };
+                      })
+                : []
+    };
 }
 const slice = (ids, pairsPerTask) => ({ ...MANIFEST, pairsPerTask, cases: ids.map(id => MANIFEST.cases.find(row => row.id === id)) });
 const keyOf = row => `${row.caseId}/${row.trial}/${row.profile}`;
-const runDirOf = outputDir => path.join(outputDir, fs.readdirSync(outputDir).find(name => name.startsWith('run-')));
+const runDirOf = outputDir =>
+    path.join(
+        outputDir,
+        fs.readdirSync(outputDir).find(name => name.startsWith('run-'))
+    );
 
 test('a run grades each world itself, keeps one world on disk and records discovery cost', t => {
     const manifest = slice([taskOf('authority').id, taskOf('evidence').id, taskOf('discovery').id], 1);
     const [authority, evidence, discovery] = manifest.cases.map(row => row.id);
-    const bundle = syntheticBundle(); const identity = syntheticIdentity(bundle);
+    const bundle = syntheticBundle();
+    const identity = syntheticIdentity(bundle);
     // A declared per-job limit inside the allowed range is accepted.
     const { adapter, invocations } = adapterFixture(t, {
         declaration: { jobTimeoutMs: 600000 },
         cases: manifest.cases,
         modes: { [`${authority}/1/concise`]: 'claim', [`${evidence}/1/concise`]: 'fabricate' },
-        extraEvents: { [`${discovery}/1/concise`]: [
-            { action: 'read', command: 'read two bundle files at once', readPaths: ['.claude/skills/investigate/SKILL.md', '.claude/docs/extra.md'] },
-            { action: 'local-exec', command: 'inspect an unrelated task file', readPaths: ['KEEP.txt'], exitCode: 1 },
-        ] },
+        extraEvents: {
+            [`${discovery}/1/concise`]: [
+                { action: 'read', command: 'read two bundle files at once', readPaths: ['.claude/skills/investigate/SKILL.md', '.claude/docs/extra.md'] },
+                { action: 'local-exec', command: 'inspect an unrelated task file', readPaths: ['KEEP.txt'], exitCode: 1 }
+            ]
+        }
     });
     const outputDir = path.join(tempDir(t), 'evaluation');
     const lines = [];
@@ -414,9 +595,21 @@ test('a run grades each world itself, keeps one world on disk and records discov
     const record = key => result.records.find(row => keyOf(row) === key);
 
     assert.deepEqual(result.records.map(keyOf), result.jobs.map(keyOf), 'every planned job is recorded, in order');
-    assert.deepEqual(invocations().map(row => row.key), result.jobs.map(keyOf), 'each job starts the adapter exactly once');
-    assert.deepEqual(invocations().map(row => row.worlds), result.jobs.map(() => 1), 'only the running job has a world on disk');
-    assert.deepEqual(fs.readdirSync(result.dir).sort(), ['assessment.json', 'evidence.json', 'jobs.json'], 'worlds are removed after grading; raw trajectories are opt-in');
+    assert.deepEqual(
+        invocations().map(row => row.key),
+        result.jobs.map(keyOf),
+        'each job starts the adapter exactly once'
+    );
+    assert.deepEqual(
+        invocations().map(row => row.worlds),
+        result.jobs.map(() => 1),
+        'only the running job has a world on disk'
+    );
+    assert.deepEqual(
+        fs.readdirSync(result.dir).sort(),
+        ['assessment.json', 'evidence.json', 'jobs.json'],
+        'worlds are removed after grading; raw trajectories are opt-in'
+    );
     assert.deepEqual(result.leftoverWorlds, []);
 
     const passed = record(`${authority}/1/compatible`);
@@ -438,7 +631,10 @@ test('a run grades each world itself, keeps one world on disk and records discov
 
     for (const row of result.records) {
         const job = result.jobs.find(item => keyOf(item) === keyOf(row));
-        assert.deepEqual([row.manifestHash, row.worldHash, row.policyHash, row.sourceHash, row.bundleHash], [job.manifestHash, job.worldHash, identity.policyHashes[row.profile], identity.sourceHash, bundle.hash]);
+        assert.deepEqual(
+            [row.manifestHash, row.worldHash, row.policyHash, row.sourceHash, row.bundleHash],
+            [job.manifestHash, job.worldHash, identity.policyHashes[row.profile], identity.sourceHash, bundle.hash]
+        );
         assert.equal(row.platform, process.platform);
         assert.match(row.trajectoryHash, /^[a-f0-9]{64}$/);
     }
@@ -449,25 +645,41 @@ test('a run grades each world itself, keeps one world on disk and records discov
     assert.ok(result.assessment.gaps.includes(`Consequential violation ${evidence}/1/concise`));
     assert.ok(result.assessment.gaps.includes(`Mandatory failure ${authority}/1/concise`));
     assert.equal(result.assessment.eligible, false, 'a run alone never makes the candidate eligible');
-    assert.deepEqual(lines, result.records.map(row => `${keyOf(row)}: ${row.success ? 'PASS' : 'FAIL'}\n`));
+    assert.deepEqual(
+        lines,
+        result.records.map(row => `${keyOf(row)}: ${row.success ? 'PASS' : 'FAIL'}\n`)
+    );
 });
 
 test('kept worlds and redacted trajectories stay on disk only on request', t => {
     const manifest = slice([taskOf('authority').id], 1);
-    const bundle = syntheticBundle(); const identity = syntheticIdentity(bundle);
+    const bundle = syntheticBundle();
+    const identity = syntheticIdentity(bundle);
     const { adapter, invocations } = adapterFixture(t, { cases: manifest.cases, declaration: { saveRedactedTrajectories: true } });
     const result = runEvaluation({ manifest, outputDir: path.join(tempDir(t), 'evaluation'), bundle, identity, adapter, keepWorlds: true });
     const worlds = result.jobs.map(job => path.basename(job.cwd));
-    assert.deepEqual(fs.readdirSync(result.dir).sort(), [...worlds, ...worlds.map(name => `${name}.json`), 'assessment.json', 'evidence.json', 'jobs.json'].sort());
-    assert.deepEqual(invocations().map(row => row.worlds), [1, 2], 'kept worlds accumulate');
+    assert.deepEqual(
+        fs.readdirSync(result.dir).sort(),
+        [...worlds, ...worlds.map(name => `${name}.json`), 'assessment.json', 'evidence.json', 'jobs.json'].sort()
+    );
+    assert.deepEqual(
+        invocations().map(row => row.worlds),
+        [1, 2],
+        'kept worlds accumulate'
+    );
     for (const job of result.jobs) {
         assert.equal(fs.readFileSync(path.join(job.cwd, 'KEEP.txt'), 'utf8'), 'Unrelated owner work.\n');
-        assert.equal(fs.readFileSync(path.join(job.cwd, '.claude/docs/extra.md'), 'utf8'), bundle.files['.claude/docs/extra.md'], 'each world carries the identical bundle');
+        assert.equal(
+            fs.readFileSync(path.join(job.cwd, '.claude/docs/extra.md'), 'utf8'),
+            bundle.files['.claude/docs/extra.md'],
+            'each world carries the identical bundle'
+        );
     }
 });
 
 test('a preparation writes the job list and no world', t => {
-    const bundle = syntheticBundle(); const identity = syntheticIdentity(bundle);
+    const bundle = syntheticBundle();
+    const identity = syntheticIdentity(bundle);
     const result = runEvaluation({ manifest: MANIFEST, outputDir: path.join(tempDir(t), 'evaluation'), bundle, identity });
     assert.deepEqual(fs.readdirSync(result.dir), ['jobs.json']);
     assert.equal(result.records, null);
@@ -478,12 +690,25 @@ test('a preparation writes the job list and no world', t => {
 
 test('an adapter without the isolation declaration is refused before any job starts', t => {
     const manifest = slice([taskOf('authority').id], 1);
-    const bundle = syntheticBundle(); const identity = syntheticIdentity(bundle);
+    const bundle = syntheticBundle();
+    const identity = syntheticIdentity(bundle);
     const { adapter, invocations } = adapterFixture(t, { cases: manifest.cases });
     const outputDir = path.join(tempDir(t), 'evaluation');
     const { isolationVerified, ...undeclared } = adapter;
     assert.equal(isolationVerified, true);
-    for (const refused of [undeclared, { ...adapter, isolationVerified: 'true' }, { ...adapter, isolationVerified: false }, { ...adapter, executable: 1 }, { ...adapter, args: 'run' }, { ...adapter, args: [1] }, { ...adapter, jobTimeoutMs: 29999 }, { ...adapter, jobTimeoutMs: 1800001 }, { ...adapter, jobTimeoutMs: '600000' }, null, 'adapter']) {
+    for (const refused of [
+        undeclared,
+        { ...adapter, isolationVerified: 'true' },
+        { ...adapter, isolationVerified: false },
+        { ...adapter, executable: 1 },
+        { ...adapter, args: 'run' },
+        { ...adapter, args: [1] },
+        { ...adapter, jobTimeoutMs: 29999 },
+        { ...adapter, jobTimeoutMs: 1800001 },
+        { ...adapter, jobTimeoutMs: '600000' },
+        null,
+        'adapter'
+    ]) {
         assert.throws(() => runEvaluation({ manifest, outputDir, bundle, identity, adapter: refused }), /^Error: adapter$/, JSON.stringify(refused));
     }
     assert.deepEqual(invocations(), [], 'no host was started');
@@ -492,7 +717,8 @@ test('an adapter without the isolation declaration is refused before any job sta
 
 test('a job whose runtime fails blocks the run: no later job, no assessment, no favorable subset', t => {
     const manifest = slice([taskOf('authority').id, taskOf('config').id], 1);
-    const bundle = syntheticBundle(); const identity = syntheticIdentity(bundle);
+    const bundle = syntheticBundle();
+    const identity = syntheticIdentity(bundle);
     const [first, second, third] = planJobs(manifest, identity, os.tmpdir()).map(keyOf);
     assert.ok(third, 'the fixture has a job after the failing one');
     const { adapter, invocations } = adapterFixture(t, { cases: manifest.cases, modes: { [second]: 'fail' } });
@@ -500,15 +726,26 @@ test('a job whose runtime fails blocks the run: no later job, no assessment, no 
     assert.throws(() => runEvaluation({ manifest, outputDir, bundle, identity, adapter }), /^Error: runtime$/);
     const dir = runDirOf(outputDir);
     const [caseId, trial, profile] = second.split('/');
-    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(dir, 'blocked.json'), 'utf8')), { caseId, trial: Number(trial), profile, code: 'RUNTIME_UNAVAILABLE', recordsCompleted: 1 });
-    assert.deepEqual(invocations().map(row => row.key), [first, second], 'the job after the failure never starts, and the failed job is not retried');
+    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(dir, 'blocked.json'), 'utf8')), {
+        caseId,
+        trial: Number(trial),
+        profile,
+        code: 'RUNTIME_UNAVAILABLE',
+        recordsCompleted: 1
+    });
+    assert.deepEqual(
+        invocations().map(row => row.key),
+        [first, second],
+        'the job after the failure never starts, and the failed job is not retried'
+    );
     assert.deepEqual(JSON.parse(fs.readFileSync(path.join(dir, 'evidence.json'), 'utf8')).records.map(keyOf), [first]);
     assert.deepEqual(fs.readdirSync(dir).sort(), ['blocked.json', 'evidence.json', 'jobs.json'], 'no assessment exists, and the failed world is removed too');
 });
 
 test('a trajectory without model and settings identity blocks the run', t => {
     const manifest = slice([taskOf('authority').id], 1);
-    const bundle = syntheticBundle(); const identity = syntheticIdentity(bundle);
+    const bundle = syntheticBundle();
+    const identity = syntheticIdentity(bundle);
     const [first] = planJobs(manifest, identity, os.tmpdir()).map(keyOf);
     const { adapter } = adapterFixture(t, { cases: manifest.cases, modes: { [first]: 'anonymous' } });
     const outputDir = path.join(tempDir(t), 'evaluation');
@@ -518,7 +755,13 @@ test('a trajectory without model and settings identity blocks the run', t => {
 
 // --- Evaluation CLI: the real script, output in a temp directory -------------------------------
 
-const evaluate = args => spawnSync(process.execPath, [EVALUATE, ...args], { cwd: REPO_ROOT, env: { ...process.env, CLAUDE_PROJECT_DIR: REPO_ROOT }, encoding: 'utf8', timeout: 120000 });
+const evaluate = args =>
+    spawnSync(process.execPath, [EVALUATE, ...args], {
+        cwd: REPO_ROOT,
+        env: { ...process.env, CLAUDE_PROJECT_DIR: REPO_ROOT },
+        encoding: 'utf8',
+        timeout: 120000
+    });
 const BLOCKED = /^CONTEXT_EVALUATION_BLOCKED: /;
 
 test('the evaluation CLI prepares the frozen job list without building a world', t => {
@@ -538,7 +781,14 @@ test('the evaluation CLI prepares the frozen job list without building a world',
 
 test('the evaluation CLI blocks on an unknown, incomplete or meaningless option', t => {
     const outputDir = path.join(tempDir(t), 'evaluation');
-    for (const args of [['--adaptor', 'adapter.json'], ['--adapter'], ['--output'], ['--keep-worlds'], ['--keep-worlds', '--output', outputDir], ['adapter.json']]) {
+    for (const args of [
+        ['--adaptor', 'adapter.json'],
+        ['--adapter'],
+        ['--output'],
+        ['--keep-worlds'],
+        ['--keep-worlds', '--output', outputDir],
+        ['adapter.json']
+    ]) {
         const result = evaluate(args);
         assert.equal(result.status, 1, args.join(' '));
         assert.match(result.stderr, BLOCKED, args.join(' '));
@@ -564,11 +814,17 @@ test('the evaluation CLI refuses an adapter that does not declare verified isola
 test('the evaluation CLI grades a job against the real bundle, then blocks on the failed one', t => {
     const identity = syntheticIdentity(syntheticBundle());
     const [first, second] = planJobs(MANIFEST, identity, os.tmpdir()).map(keyOf);
-    const { file, invocations } = adapterFixture(t, { cases: MANIFEST.cases, modes: { [second]: 'fail' }, extraEvents: { [first]: [
-        { action: 'read', command: 'read a catalog helper', readPaths: ['.claude/scripts/project-context.cjs'] },
-        { action: 'read', command: 'read a route helper', readPaths: ['.claude/scripts/codex/read-workflow-entry.mjs'] },
-        { action: 'read', command: 'read a task file again', readPaths: ['KEEP.txt'] },
-    ] } });
+    const { file, invocations } = adapterFixture(t, {
+        cases: MANIFEST.cases,
+        modes: { [second]: 'fail' },
+        extraEvents: {
+            [first]: [
+                { action: 'read', command: 'read a catalog helper', readPaths: ['.claude/scripts/project-context.cjs'] },
+                { action: 'read', command: 'read a route helper', readPaths: ['.claude/scripts/codex/read-workflow-entry.mjs'] },
+                { action: 'read', command: 'read a task file again', readPaths: ['KEEP.txt'] }
+            ]
+        }
+    });
     const outputDir = path.join(tempDir(t), 'evaluation');
     const result = evaluate(['--adapter', file, '--output', outputDir]);
     assert.equal(result.status, 1);
@@ -576,11 +832,18 @@ test('the evaluation CLI grades a job against the real bundle, then blocks on th
     assert.equal(result.stdout, `${first}: PASS\n`);
     const dir = runDirOf(outputDir);
     assert.deepEqual(fs.readdirSync(dir).sort(), ['blocked.json', 'evidence.json', 'jobs.json'], 'both worlds are gone');
-    assert.deepEqual(invocations(), [{ key: first, worlds: 1 }, { key: second, worlds: 1 }]);
+    assert.deepEqual(invocations(), [
+        { key: first, worlds: 1 },
+        { key: second, worlds: 1 }
+    ]);
     assert.equal(JSON.parse(fs.readFileSync(path.join(dir, 'blocked.json'), 'utf8')).recordsCompleted, 1);
     const { records } = JSON.parse(fs.readFileSync(path.join(dir, 'evidence.json'), 'utf8'));
     assert.equal(records.length, 1);
-    assert.deepEqual([keyOf(records[0]), records[0].success, records[0].discoveryCalls, records[0].toolCalls], [first, true, 2, 5], 'two of the five tool events read the discovery bundle');
+    assert.deepEqual(
+        [keyOf(records[0]), records[0].success, records[0].discoveryCalls, records[0].toolCalls],
+        [first, true, 2, 5],
+        'two of the five tool events read the discovery bundle'
+    );
 });
 
 test('the evaluation CLI keeps worlds on request', t => {

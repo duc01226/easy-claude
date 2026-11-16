@@ -58,7 +58,7 @@ const SKIP_NO_CODE = /skipped — no code changed/;
 
 const tests = [
     {
-        name: 'TC-WSS-001 scope is the session: uncommitted changes plus this session\'s commits',
+        name: "TC-WSS-001 scope is the session: uncommitted changes plus this session's commits",
         fn: () => {
             // Given the watzup skill
             const text = readSkill();
@@ -86,7 +86,11 @@ const tests = [
             // Then all four parts exist
             parts.forEach((p, i) => assert.ok(at[i] >= 0, `part ${p} must be a labelled bullet`));
             // And they appear in the declared order
-            assert.deepEqual([...at].sort((a, b) => a - b), at, 'parts must appear in order Done → Key changes → Why → How it works');
+            assert.deepEqual(
+                [...at].sort((a, b) => a - b),
+                at,
+                'parts must appear in order Done → Key changes → Why → How it works'
+            );
             // And each part carries its contract
             assert.match(body, /\*\*Done:\*\*[^\n]*mapped to each user request or the session goal[^\n]*prompt ledger/);
             assert.match(body, /\*\*Key changes:\*\*[^\n]*grouped by area[^\n]*`file:line` anchor/);
@@ -102,8 +106,14 @@ const tests = [
         fn: () => {
             const text = readSkill();
             assert.match(section(text, 'Doc Staleness Check (REQUIRED)'), /`Doc staleness: skipped — no code changed` — plus the evidence/);
-            assert.match(section(text, 'Spec-Driven Development Health Check (REQUIRED when business code changed)'), /`Spec health: skipped — no code changed` with the evidence/);
-            assert.match(section(text, 'Session Summary (ALWAYS runs)'), /\*\*No code changed\*\* means[^\n]*Cite the path list \(or a clean `git status`\) as the evidence/);
+            assert.match(
+                section(text, 'Spec-Driven Development Health Check (REQUIRED when business code changed)'),
+                /`Spec health: skipped — no code changed` with the evidence/
+            );
+            assert.match(
+                section(text, 'Session Summary (ALWAYS runs)'),
+                /\*\*No code changed\*\* means[^\n]*Cite the path list \(or a clean `git status`\) as the evidence/
+            );
             assert.match(text, /\*\*READ-ONLY contract\*\* — review, summarize and FLAG only; NEVER edit/);
             assert.doesNotMatch(text, /`\/understand`|Understand handoff/);
         }
@@ -121,7 +131,15 @@ const tests = [
             assert.match(summary, /(?:^|\n)-?\s*\*\*Proportion rule:\*\* the session summary and (?:the )?lesson gate always run/);
             assert.match(summary, SKIP_NO_CODE);
             // And the Workflow list orders Scope → Session summary → gates → report → Next Steps
-            const steps = ['1. **Scope**', '2. **Session summary**', '3. **Doc Check**', '4. **Spec Health**', '5. **Lesson Learned**', '6. **Session Report**', '7. **Next Steps**'];
+            const steps = [
+                '1. **Scope**',
+                '2. **Session summary**',
+                '3. **Doc Check**',
+                '4. **Spec Health**',
+                '5. **Lesson Learned**',
+                '6. **Session Report**',
+                '7. **Next Steps**'
+            ];
             steps.forEach(s => assert.ok(workflow.includes(s), `Workflow must list ${s}`));
             // And the Key Rules carry scope, the four-part summary and the skip rule
             assert.match(rules, /Scope covers the whole session: uncommitted changes plus this session's commits/);
@@ -148,12 +166,17 @@ const tests = [
             const ids = ['start-here-label', 'done', 'key-changes', 'why', 'how-it-works', 'flags', 'next-steps'];
             const at = ids.map(id => html.indexOf(`id="${id}"`));
             ids.forEach((id, i) => assert.ok(at[i] >= 0, `template must have id="${id}"`));
-            assert.deepEqual([...at].sort((a, b) => a - b), at, 'template sections must follow the declared order');
+            assert.deepEqual(
+                [...at].sort((a, b) => a - b),
+                at,
+                'template sections must follow the declared order'
+            );
             // And the template is self-contained with tokens, dark mode, landmarks and visible focus
             assert.doesNotMatch(html, /<script|<link\b|@import|(?:src|href)="(?:https?:)?\/\//i);
             assert.match(html, /:root \{[^}]*--ink:[^}]*--accent:/);
             assert.match(html, /@media \(prefers-color-scheme: dark\) \{\s*:root \{/);
-            for (const landmark of ['<header>', '<nav aria-label="Contents">', '<main id="main">', '<footer>']) assert.ok(html.includes(landmark), `landmark ${landmark}`);
+            for (const landmark of ['<header>', '<nav aria-label="Contents">', '<main id="main">', '<footer>'])
+                assert.ok(html.includes(landmark), `landmark ${landmark}`);
             assert.match(html, /:focus-visible \{\s*outline: 3px solid var\(--accent\)/);
         }
     },
@@ -204,7 +227,10 @@ const tests = [
             const body = section(readSkill(), 'Session Report (HTML)');
             const html = fs.readFileSync(TEMPLATE_FILE, 'utf8');
             // Then the skill HTML-escapes every placeholder value, all five characters
-            assert.match(body, /\*\*Encode every value:\*\* HTML-escape each placeholder value — `&` → `&amp;`, `<` → `&lt;`, `>` → `&gt;`, `"` → `&quot;`, `'` → `&#39;`/);
+            assert.match(
+                body,
+                /\*\*Encode every value:\*\* HTML-escape each placeholder value — `&` → `&amp;`, `<` → `&lt;`, `>` → `&gt;`, `"` → `&quot;`, `'` → `&#39;`/
+            );
             // And restricts every href to relative, file: or vscode: links, never javascript:
             assert.match(body, /Every `href` value[^\n]*relative path or a `file:` \/ `vscode:` link — never `javascript:`/);
             // And the template carries a CSP meta that allows no script and no fetch, only inline style
@@ -226,7 +252,10 @@ const tests = [
             // Given the Session Report section
             const body = section(readSkill(), 'Session Report (HTML)');
             // Then a report outside tmp/ or temp/ is not opened, and its path reaches the user
-            assert.match(body, /opens only a report inside the project's `tmp\/` or `temp\/` directory; a report written to a configured reports directory elsewhere is not opened — the helper prints its path/);
+            assert.match(
+                body,
+                /opens only a report inside the project's `tmp\/` or `temp\/` directory; a report written to a configured reports directory elsewhere is not opened — the helper prints its path/
+            );
         }
     }
 ];

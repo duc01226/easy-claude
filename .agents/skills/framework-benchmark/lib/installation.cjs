@@ -10,7 +10,9 @@ function frameworkInstallation({ sourceEntries = [], frameworkRoot, runtime }) {
     const permitted = file => !disposable(file) && !secretFile(file) && !withheldBenchmarkAsset(file);
     const installed = sourceEntries.filter(row => agentSurface(row.path) && !withheldBenchmarkAsset(row.path));
     const root = fs.realpathSync(frameworkRoot);
-    const bundle = installed.some(row => row.path === '.claude/settings.json') ? installed : inventory(path.join(root, '.claude'), { filter: permitted }).map(row => ({ ...row, path: `.claude/${row.path}` }));
+    const bundle = installed.some(row => row.path === '.claude/settings.json')
+        ? installed
+        : inventory(path.join(root, '.claude'), { filter: permitted }).map(row => ({ ...row, path: `.claude/${row.path}` }));
     const projections = [];
     if (runtimeBackend(runtime) === 'host' && runtime.host === 'codex' && !installed.some(row => row.path.startsWith('.agents/skills/'))) {
         for (const folder of ['.agents', '.codex']) {

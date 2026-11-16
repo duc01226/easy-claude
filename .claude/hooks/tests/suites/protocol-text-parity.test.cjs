@@ -45,14 +45,14 @@ const UNIVERSAL_TAGS = Object.keys(universal.tags);
 
 // Strict normalizer for tight byte-parity invariants: CRLF->LF + trim only.
 // Preserves internal blank-line structure so this catches spacing drift, not just wording drift.
-const normTrim = (s) => String(s).replace(/\r\n?/g, '\n').trim();
+const normTrim = s => String(s).replace(/\r\n?/g, '\n').trim();
 
 // Lenient normalizer for the skill sweep: also strips trailing per-line ws and collapses blank-line runs.
-const norm = (s) =>
+const norm = s =>
     String(s)
         .replace(/\r\n?/g, '\n')
         .split('\n')
-        .map((l) => l.replace(/\s+$/, ''))
+        .map(l => l.replace(/\s+$/, ''))
         .join('\n')
         .replace(/\n{2,}/g, '\n')
         .trim();
@@ -100,8 +100,8 @@ function sweepSkillEmbeds(tag, canonCondensedNorm, skillsDir = SKILLS_DIR) {
     const projectionExists = fs.existsSync(path.join(skillsDir, 'shared', 'protocols', `${tag}.md`));
     const skillDirs = fs
         .readdirSync(skillsDir, { withFileTypes: true })
-        .filter((d) => d.isDirectory())
-        .map((d) => d.name);
+        .filter(d => d.isDirectory())
+        .map(d => d.name);
     for (const dir of skillDirs) {
         const p = path.join(skillsDir, dir, 'SKILL.md');
         if (!fs.existsSync(p)) continue;
@@ -118,9 +118,19 @@ function sweepSkillEmbeds(tag, canonCondensedNorm, skillsDir = SKILLS_DIR) {
 }
 
 /** The first non-empty line of a protocol body: its distinctive lead, used to find a copy. */
-const leadLine = (body) => normTrim(body).split('\n').find((line) => line.trim() !== '').trim();
+const leadLine = body =>
+    normTrim(body)
+        .split('\n')
+        .find(line => line.trim() !== '')
+        .trim();
 
-const ROOT_MARKERS = [/CK:UNIVERSAL-GUIDES/, /<!-- CK:CRITICAL-THINKING -->/, /<!-- CK:AI-MISTAKE-PREVENTION -->/, /<!-- CK:WORKFLOW-ROUTE-POINTER -->/, /<!-- CK:WORKFLOW-GATE -->/];
+const ROOT_MARKERS = [
+    /CK:UNIVERSAL-GUIDES/,
+    /<!-- CK:CRITICAL-THINKING -->/,
+    /<!-- CK:AI-MISTAKE-PREVENTION -->/,
+    /<!-- CK:WORKFLOW-ROUTE-POINTER -->/,
+    /<!-- CK:WORKFLOW-GATE -->/
+];
 
 function rootCopyProblems(text) {
     const problems = [];
@@ -146,15 +156,19 @@ module.exports = {
                     assertTrue(body != null && body.length > 0, `canonical ${tag} not found (fail-closed)`);
                     const file = path.join(SKILLS_DIR, 'shared', 'protocols', `${tag}.md`);
                     assertTrue(fs.existsSync(file), `projection file missing for ${tag}`);
-                    assertEqual(normTrim(fs.readFileSync(file, 'utf8')), normTrim(body), `projection of ${tag} drifted from canonical (run node .claude/scripts/build-protocol-projection.cjs)`);
+                    assertEqual(
+                        normTrim(fs.readFileSync(file, 'utf8')),
+                        normTrim(body),
+                        `projection of ${tag} drifted from canonical (run node .claude/scripts/build-protocol-projection.cjs)`
+                    );
                 }
-            },
+            }
         },
         // ── P2 — every bin is exactly the rendered canonical bodies of its tags.
         {
             name: 'TC-CTXP-030 P2: every delivered bin == the canonical bodies of its tags, rendered by the bin format',
             fn() {
-                const reader = (file) => {
+                const reader = file => {
                     try {
                         return fs.readFileSync(file, 'utf8');
                     } catch {
@@ -165,10 +179,14 @@ module.exports = {
                 const bins = universalLib.loadBins(REPO, reader, { config: { contextDelivery: { profile: 'compatible' } } });
                 assertEqual(bins.length, universal.bins.length, 'every authored bin is deliverable');
                 bins.forEach((bin, i) => {
-                    const expected = universalLib.renderBin(i + 1, universal.bins.length, universal.bins[i].map((tag) => normTrim(extractSyncBody(canonical, tag))));
+                    const expected = universalLib.renderBin(
+                        i + 1,
+                        universal.bins.length,
+                        universal.bins[i].map(tag => normTrim(extractSyncBody(canonical, tag)))
+                    );
                     assertEqual(normTrim(bin.text), normTrim(expected), `bin ${i + 1} drifted from the canonical bodies`);
                 });
-            },
+            }
         },
 
         // ── P3 / P4 — no root file carries universal protocol text.
@@ -177,8 +195,12 @@ module.exports = {
             skip: !HAS_CLAUDE_MD ? 'asserts the framework repository root file CLAUDE.md (framework-repo signal)' : false,
             fn() {
                 const problems = rootCopyProblems(fs.readFileSync(CLAUDE_MD_PATH, 'utf8'));
-                assertEqual(problems.length, 0, `CLAUDE.md holds universal protocol text: ${problems.join('; ')} (run /ai-context-refresh with --strip-legacy-universal)`);
-            },
+                assertEqual(
+                    problems.length,
+                    0,
+                    `CLAUDE.md holds universal protocol text: ${problems.join('; ')} (run /ai-context-refresh with --strip-legacy-universal)`
+                );
+            }
         },
         {
             name: 'TC-CTXP-032 P4: AGENTS.md carries no universal protocol text (the hook delivers it)',
@@ -186,7 +208,7 @@ module.exports = {
             fn() {
                 const problems = rootCopyProblems(fs.readFileSync(AGENTS_MD_PATH, 'utf8'));
                 assertEqual(problems.length, 0, `AGENTS.md holds universal protocol text: ${problems.join('; ')} (regenerate with /sync-codex)`);
-            },
+            }
         },
 
         // ── P5 — no skill carries a universal tag in any form.
@@ -195,14 +217,24 @@ module.exports = {
             fn() {
                 for (const tag of UNIVERSAL_TAGS) {
                     const r = sweepSkillEmbeds(tag, norm(extractSyncBody(canonical, tag)));
-                    assertEqual(r.embedCount + r.guideCount, 0, `${tag} is hook-delivered, yet skill(s) still embed or guide it: ${[...r.matched, ...r.drifted, ...r.guided].join(', ')}`);
+                    assertEqual(
+                        r.embedCount + r.guideCount,
+                        0,
+                        `${tag} is hook-delivered, yet skill(s) still embed or guide it: ${[...r.matched, ...r.drifted, ...r.guided].join(', ')}`
+                    );
                 }
                 // And the sync-codex skill never instructs the model to put a universal rule or the full CLAUDE.md into the
                 // generated AGENTS.md projection: that file is project information only and hooks deliver the universal rules.
                 const syncCodex = fs.readFileSync(path.join(SKILLS_DIR, 'sync-codex', 'SKILL.md'), 'utf8');
-                assertTrue(!/Git discipline project first|Doc Lookup and Git discipline|mirror full `CLAUDE\.md`|generated hook\/context blocks/.test(syncCodex), 'sync-codex SKILL.md still instructs a universal-rule or full-CLAUDE.md projection into AGENTS.md');
-                assertTrue(/project projection of `CLAUDE\.md`/.test(syncCodex), 'sync-codex SKILL.md states that AGENTS.md is the project projection of CLAUDE.md');
-            },
+                assertTrue(
+                    !/Git discipline project first|Doc Lookup and Git discipline|mirror full `CLAUDE\.md`|generated hook\/context blocks/.test(syncCodex),
+                    'sync-codex SKILL.md still instructs a universal-rule or full-CLAUDE.md projection into AGENTS.md'
+                );
+                assertTrue(
+                    /project projection of `CLAUDE\.md`/.test(syncCodex),
+                    'sync-codex SKILL.md states that AGENTS.md is the project projection of CLAUDE.md'
+                );
+            }
         },
 
         // ── TC-PDL-065 — the sweep's fail-closed count accepts guide carriers but never an empty sweep.
@@ -220,10 +252,15 @@ module.exports = {
                     fs.mkdirSync(path.join(skillsDir, 'guided'), { recursive: true });
                     const projection = path.join(skillsDir, 'shared', 'protocols', `${tag}.md`);
                     fs.writeFileSync(projection, '> Fixture body.\n');
-                    const guideLine = guideCarrier.formatGuideLine({ tag, summary: 'Fixture', when: 'always', path: `.claude/skills/shared/protocols/${tag}.md` });
+                    const guideLine = guideCarrier.formatGuideLine({
+                        tag,
+                        summary: 'Fixture',
+                        when: 'always',
+                        path: `.claude/skills/shared/protocols/${tag}.md`
+                    });
                     const skillFile = path.join(skillsDir, 'guided', 'SKILL.md');
                     fs.writeFileSync(skillFile, `# Guided\n\n${guideCarrier.GUIDE_BLOCK_START}\n\n${guideLine}\n\n${guideCarrier.GUIDE_BLOCK_END}\n`);
-                    const passes = (r) => r.embedCount + r.guideCount > 0;
+                    const passes = r => r.embedCount + r.guideCount > 0;
 
                     // When: the sweep runs. Then: the guide carrier satisfies the fail-closed count.
                     const withGuide = sweepSkillEmbeds(tag, norm('> Fixture body.'), skillsDir);
@@ -242,7 +279,7 @@ module.exports = {
                 } finally {
                     fs.rmSync(tmp, { recursive: true, force: true });
                 }
-            },
+            }
         },
 
         // ── GUARD — comparator distinguishes drift (proves the equality checks above are not vacuous).
@@ -254,12 +291,19 @@ module.exports = {
                     normTrim(body) !== normTrim(body + '\n- injected drift line'),
                     'comparator failed to detect appended drift — equality assertions would be vacuous'
                 );
-                assertTrue(extractHtmlSyncBody('no markers here', 'critical-thinking-mindset') === null, 'extractHtmlSyncBody must return null on miss (no fail-open)');
-                assertEqual(extractAllCkBodies('no markers here', 'CRITICAL-THINKING').length, 0, 'extractAllCkBodies must return empty on miss (no fail-open)');
+                assertTrue(
+                    extractHtmlSyncBody('no markers here', 'critical-thinking-mindset') === null,
+                    'extractHtmlSyncBody must return null on miss (no fail-open)'
+                );
+                assertEqual(
+                    extractAllCkBodies('no markers here', 'CRITICAL-THINKING').length,
+                    0,
+                    'extractAllCkBodies must return empty on miss (no fail-open)'
+                );
                 // The root-copy detector fires on a real copy and stays quiet on project text
                 assertTrue(rootCopyProblems(`# Project\n\n${leadLine(body)}\n`).length > 0, 'a copy of a body lead line is detected');
                 assertEqual(rootCopyProblems('# Project\n\nOur module map.\n').length, 0, 'project text raises nothing');
-            },
-        },
-    ],
+            }
+        }
+    ]
 };

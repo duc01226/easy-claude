@@ -90,7 +90,11 @@ function saveState(sessionId, state) {
         } catch (renameErr) {
             if (renameErr.code === 'EEXIST' || renameErr.code === 'EPERM') {
                 fs.copyFileSync(tmpFile, statePath);
-                try { fs.unlinkSync(tmpFile); } catch (_) { /* ignore cleanup failure */ }
+                try {
+                    fs.unlinkSync(tmpFile);
+                } catch (_) {
+                    /* ignore cleanup failure */
+                }
             } else {
                 throw renameErr;
             }

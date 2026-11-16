@@ -29,11 +29,21 @@ function protect(directory, { platform = process.platform, runCommand = execFile
     const childEnv = Object.fromEntries(Object.entries(env).filter(([key]) => /^(?:PATH|SYSTEMROOT|WINDIR|COMSPEC)$/i.test(key)));
     let verified = false;
     try {
-        const output = runCommand('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(WINDOWS_PRIVATE_ACL, 'utf16le').toString('base64')], {
-            env: { ...childEnv, CK_BENCH_PRIVATE_DIR: directory }, encoding: 'utf8', windowsHide: true, timeout: 15000, maxBuffer: 1024 * 1024
-        });
+        const output = runCommand(
+            'powershell.exe',
+            ['-NoLogo', '-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(WINDOWS_PRIVATE_ACL, 'utf16le').toString('base64')],
+            {
+                env: { ...childEnv, CK_BENCH_PRIVATE_DIR: directory },
+                encoding: 'utf8',
+                windowsHide: true,
+                timeout: 15000,
+                maxBuffer: 1024 * 1024
+            }
+        );
         verified = String(output).trim() === 'VERIFIED';
-    } catch { /* No credential is written before private storage is established. */ }
+    } catch {
+        /* No credential is written before private storage is established. */
+    }
     if (!verified) throw new Error('ENVIRONMENT-BLOCKED: native Windows requires verified private profile ACLs');
 }
 

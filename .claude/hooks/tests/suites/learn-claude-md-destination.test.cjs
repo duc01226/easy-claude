@@ -32,7 +32,7 @@ const path = require('node:path');
 const { isFrameworkRepo } = require('../lib/framework-repo-guard.cjs');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
-const SKIP = isFrameworkRepo(REPO_ROOT) ? false : 'asserts the framework repo\'s own learn skill text (framework-repo signal)';
+const SKIP = isFrameworkRepo(REPO_ROOT) ? false : "asserts the framework repo's own learn skill text (framework-repo signal)";
 
 const read = (...parts) => fs.readFileSync(path.join(REPO_ROOT, ...parts), 'utf8').replace(/\r\n/g, '\n');
 const learn = () => read('.claude', 'skills', 'learn', 'SKILL.md');
@@ -93,7 +93,10 @@ const tests = [
             // sync-codex runner (platform-neutral node entry), after the end tasks, failure handling
             assert.match(section, /node \.claude\/skills\/sync-codex\/scripts\/run-codex-sync\.mjs --skip=claude-md/);
             assert.ok(fs.existsSync(path.join(REPO_ROOT, '.claude', 'skills', 'sync-codex', 'scripts', 'run-codex-sync.mjs')), 'the named runner exists');
-            assert.match(section, /If the runner fails, keep the task open, report the failing stage and the recovery command, and do not claim the mirrors are current/);
+            assert.match(
+                section,
+                /If the runner fails, keep the task open, report the failing stage and the recovery command, and do not claim the mirrors are current/
+            );
             // Read-only verification: size, fence placement, AGENTS.md carries it, changed mirrors reported
             assert.match(section, /re-measure `CLAUDE\.md` bytes ≤ 32768/);
             assert.match(section, /lies outside every `<!-- SECTION:… -->` fence/);
@@ -115,20 +118,46 @@ const tests = [
             // Existing destinations: reference-doc catalog + routing table, lessons.md, config, overlay, static protocol
             assert.match(text, /## Reference Doc Catalog \(READ before routing\)/);
             assert.match(text, /### Routing Table/);
-            for (const doc of ['code-review-rules.md', 'backend-patterns-reference.md', 'integration-test-reference.md', 'project-structure-reference.md', 'lessons.md']) {
+            for (const doc of [
+                'code-review-rules.md',
+                'backend-patterns-reference.md',
+                'integration-test-reference.md',
+                'project-structure-reference.md',
+                'lessons.md'
+            ]) {
                 assert.ok(text.includes('`' + doc + '`'), `${doc} still routable`);
             }
             // Each table must independently route performance lessons; a mention elsewhere is insufficient.
             const catalog = text.slice(text.indexOf('## Reference Doc Catalog (READ before routing)'), text.indexOf('\n### Also a routing destination:'));
             const routing = text.slice(text.indexOf('\n### Routing Table'), text.indexOf('\n### Prevention Depth Assessment'));
-            assert.match(catalog, /^\| `performance-test-reference\.md`[^\n]*performance\/load\/soak\/capacity tests[^\n]*`\/scan --target=performance-tests`/m, 'catalog names the performance carrier, read trigger and scan owner');
-            assert.match(routing, /^\| Performance\/load\/stress\/soak\/capacity tests[^\n]*\| `performance-test-reference\.md`[^\n]*preferences[^\n]*existing harness guides/m, 'routing preserves project preferences and existing harness owners');
+            assert.match(
+                catalog,
+                /^\| `performance-test-reference\.md`[^\n]*performance\/load\/soak\/capacity tests[^\n]*`\/scan --target=performance-tests`/m,
+                'catalog names the performance carrier, read trigger and scan owner'
+            );
+            assert.match(
+                routing,
+                /^\| Performance\/load\/stress\/soak\/capacity tests[^\n]*\| `performance-test-reference\.md`[^\n]*preferences[^\n]*existing harness guides/m,
+                'routing preserves project preferences and existing harness owners'
+            );
             assert.match(catalog, /supported carriers, not mandatory files/, 'catalog does not require every supported reference');
             assert.match(catalog, /preserve an existing authoritative project guide/i, 'existing guides remain viable owners');
-            assert.match(catalog, /compare viable alternatives[^\n]*new file or selection/i, 'carrier choice explains alternatives and their discovery cost for every reference');
+            assert.match(
+                catalog,
+                /compare viable alternatives[^\n]*new file or selection/i,
+                'carrier choice explains alternatives and their discovery cost for every reference'
+            );
             const introduction = catalog.slice(0, catalog.indexOf('\n| File'));
-            assert.match(introduction, /`session-init-docs\.cjs`[^\n]*missing selected references[^\n]*placeholders/, 'introduction names the hook and its selected placeholder scope');
-            assert.match(introduction, /`\/scan --target=<key>`[^\n]*manual guides remain owner-maintained/, 'introduction names scan ownership without imposing it on manual guides');
+            assert.match(
+                introduction,
+                /`session-init-docs\.cjs`[^\n]*missing selected references[^\n]*placeholders/,
+                'introduction names the hook and its selected placeholder scope'
+            );
+            assert.match(
+                introduction,
+                /`\/scan --target=<key>`[^\n]*manual guides remain owner-maintained/,
+                'introduction names scan ownership without imposing it on manual guides'
+            );
             assert.match(introduction, /Routing is static[^\n]*\*\*Read Trigger\*\*/, 'introduction explains task-triggered lookup');
             assert.doesNotMatch(introduction, /performance/i, 'catalog introduction applies to all reference categories');
             // Saving prose is complete only when the selected carrier is initialized and discoverable.
@@ -136,27 +165,65 @@ const tests = [
             assert.match(decision, /reference doc\/guide[^\n]*Reference-doc handoff/, 'confirmed reference saves invoke the handoff');
             assert.match(decision, /\*\*Reference-doc handoff \(before marking learned\):\*\*/);
             const handoff = decision.slice(decision.indexOf('**Reference-doc handoff (before marking learned):**'));
-            assert.match(handoff, /Update an existing owner in place[^\n]*optional[^\n]*another guide/, 'an existing authoritative guide does not force a new conventional file');
-            assert.match(handoff, /new or unselected reference[^\n]*discovery changes[^\n]*Carrier Choice proposal/, 'new discovery work is explained before carrier selection');
+            assert.match(
+                handoff,
+                /Update an existing owner in place[^\n]*optional[^\n]*another guide/,
+                'an existing authoritative guide does not force a new conventional file'
+            );
+            assert.match(
+                handoff,
+                /new or unselected reference[^\n]*discovery changes[^\n]*Carrier Choice proposal/,
+                'new discovery work is explained before carrier selection'
+            );
             assert.match(handoff, /Preserve explicit `referenceDocs` selections, including `\[\]`/, 'explicit empty or subset selections remain authoritative');
-            assert.match(handoff, /user-approved selection changes[^\n]*`\/project-config`[^\n]*never silently append/, 'selection changes use the approved config owner');
-            assert.match(handoff, /docs-manager\/SKILL\.md[^\n]*--mode=init[^\n]*scan\/SKILL\.md[^\n]*selected scan owner/, 'initialization and scanning use their declared owners');
+            assert.match(
+                handoff,
+                /user-approved selection changes[^\n]*`\/project-config`[^\n]*never silently append/,
+                'selection changes use the approved config owner'
+            );
+            assert.match(
+                handoff,
+                /docs-manager\/SKILL\.md[^\n]*--mode=init[^\n]*scan\/SKILL\.md[^\n]*selected scan owner/,
+                'initialization and scanning use their declared owners'
+            );
             assert.match(handoff, /header-only file[^\n]*does not complete initialization/, 'a placeholder is not initialized guidance');
-            assert.match(handoff, /docs index[^\n]*Doc Lookup[^\n]*owners[^\n]*\/scan --target=docs-index[^\n]*\/ai-context-refresh/, 'index and generated root routing reconcile through their owners');
+            assert.match(
+                handoff,
+                /docs index[^\n]*Doc Lookup[^\n]*owners[^\n]*\/scan --target=docs-index[^\n]*\/ai-context-refresh/,
+                'index and generated root routing reconcile through their owners'
+            );
             assert.match(handoff, /Verify[^\n]*future task[^\n]*actual saved path/, 'future task discovery is verified');
-            assert.match(handoff, /Missing initialization or discovery[^\n]*pending[^\n]*do not claim[^\n]*learned/, 'unresolved discovery cannot be reported as learned');
+            assert.match(
+                handoff,
+                /Missing initialization or discovery[^\n]*pending[^\n]*do not claim[^\n]*learned/,
+                'unresolved discovery cannot be reported as learned'
+            );
             const behavior = text.slice(text.indexOf('\n## Behavior'), text.indexOf('\n## Auto-Inferred Activation'));
-            assert.match(behavior, /`\/learn list`[^\n]*selected reference docs[^\n]*explicitly routed project guides/, 'listing uses the actual selected and routed carriers');
+            assert.match(
+                behavior,
+                /`\/learn list`[^\n]*selected reference docs[^\n]*explicitly routed project guides/,
+                'listing uses the actual selected and routed carriers'
+            );
             assert.doesNotMatch(behavior, /\bALL \d+ (?:target files|reference docs)\b/i, 'listing does not impose a hardcoded catalog size');
-            assert.match(behavior, /\*\*File creation\*\*[^\n]*New reference targets[^\n]*Reference-doc handoff/, 'new reference creation cannot bypass initialization and discovery');
+            assert.match(
+                behavior,
+                /\*\*File creation\*\*[^\n]*New reference targets[^\n]*Reference-doc handoff/,
+                'new reference creation cannot bypass initialization and discovery'
+            );
             assert.match(text, /### Skill-Specific Project-Protocol Route \(BLOCKING\)/);
             assert.match(text, /\/project-skill-protocol add/);
             assert.match(text, /Also a routing destination: `docs\/project-config\.json`/);
             assert.match(text, /### Static Protocol Lesson Promotion \(MANDATORY evaluation\)/);
             // The promotion names the SYNC block that exists today (a stale block name sends the agent to a block that is gone)
             assert.ok(!text.includes('ai-mistake-prevention:full'), 'learn must not name the retired ai-mistake-prevention:full block');
-            assert.match(text, /under the `ai-mistake-prevention` SYNC block \(published to `\.claude\/skills\/shared\/protocols\/ai-mistake-prevention\.md`\)/);
-            assert.ok(fs.existsSync(path.join(REPO_ROOT, '.claude', 'skills', 'shared', 'protocols', 'ai-mistake-prevention.md')), 'the named protocol file exists');
+            assert.match(
+                text,
+                /under the `ai-mistake-prevention` SYNC block \(published to `\.claude\/skills\/shared\/protocols\/ai-mistake-prevention\.md`\)/
+            );
+            assert.ok(
+                fs.existsSync(path.join(REPO_ROOT, '.claude', 'skills', 'shared', 'protocols', 'ai-mistake-prevention.md')),
+                'the named protocol file exists'
+            );
             // Budget for lessons.md and the Prevention Depth assessment
             assert.match(text, /\*\*Hard limit:\*\* 20000 characters/);
             assert.match(text, /### Prevention Depth Assessment \(MANDATORY before saving\)/);
@@ -165,10 +232,14 @@ const tests = [
             assert.match(text, /\*\*Mandatory end tasks[^\n]*\(in order\):\*\*/);
             assert.match(text, /Run \*\*Learn Review\*\*/);
             assert.match(text, /Run `\/why-review`/);
-            assert.match(text, /Run the carrier-specific final quality pass[^\n]*`\/prompt-enhance <modified-prose-file>`[^\n]*owner parser\/schema validation after the final configuration write/);
+            assert.match(
+                text,
+                /Run the carrier-specific final quality pass[^\n]*`\/prompt-enhance <modified-prose-file>`[^\n]*owner parser\/schema validation after the final configuration write/
+            );
             assert.match(text, /Machine-readable configuration[^\n]*NEVER pass it to the Markdown enhancer/);
             // Explicit commands keep working
-            for (const command of ['/learn list', '/learn remove <N>', '/learn clear', '/learn trim']) assert.ok(text.includes(command), `${command} still documented`);
+            for (const command of ['/learn list', '/learn remove <N>', '/learn clear', '/learn trim'])
+                assert.ok(text.includes(command), `${command} still documented`);
             // Auto-inferred activation keeps its confirmation
             assert.match(text, /\*\*confirm with the user before saving\*\*/);
         }
@@ -197,7 +268,10 @@ const tests = [
             // When the marker-managed sections are regenerated
             const rendered = updateMarkedSections(existing, { 'dev-commands': 'FRESH_GENERATED_BODY' }, () => {});
             // Then the hand-owned section is preserved verbatim, outside every fence, before the closing line
-            assert.ok(rendered.includes('## Project Rules & Context\n\n- HAND_OWNED_NOTE_SENTINEL: every new module is registered first.'), 'hand-owned section preserved');
+            assert.ok(
+                rendered.includes('## Project Rules & Context\n\n- HAND_OWNED_NOTE_SENTINEL: every new module is registered first.'),
+                'hand-owned section preserved'
+            );
             assert.ok(rendered.indexOf('HAND_OWNED_NOTE_SENTINEL') < rendered.indexOf('Critical reminders:'), 'closing reminders stay last');
             // And the generated fence body is rewritten, dropping anything hand-written inside it
             assert.ok(rendered.includes('FRESH_GENERATED_BODY'), 'fence body regenerated');
@@ -209,8 +283,14 @@ const tests = [
         name: 'TC-LCM-005 the project-skill-protocol pointer, the ai-context-refresh rules and the docs describe the CLAUDE.md destination',
         skip: SKIP,
         fn: () => {
-            assert.match(read('.claude', 'skills', 'project-skill-protocol', 'SKILL.md'), /not an overlay: `\/learn` routes it to the root `CLAUDE\.md` project-rules section or a reference doc/);
-            assert.match(read('.claude', 'skills', 'ai-context-refresh', 'SKILL.md'), /Hand-owned project notes: `\/learn` writes[^\n]*`## Project Rules & Context`[^\n]*outside every marker fence/);
+            assert.match(
+                read('.claude', 'skills', 'project-skill-protocol', 'SKILL.md'),
+                /not an overlay: `\/learn` routes it to the root `CLAUDE\.md` project-rules section or a reference doc/
+            );
+            assert.match(
+                read('.claude', 'skills', 'ai-context-refresh', 'SKILL.md'),
+                /Hand-owned project notes: `\/learn` writes[^\n]*`## Project Rules & Context`[^\n]*outside every marker fence/
+            );
             assert.match(read('.claude', 'docs', 'skills', 'README.md'), /broad short project rules route to the root `CLAUDE\.md` project-rules section/);
             assert.match(read('.claude', 'docs', 'quick-start.md'), /`## Project Rules & Context` section of the root `CLAUDE\.md`/);
             // The projection whitelist names the heading /learn writes

@@ -33,7 +33,7 @@ const { isFrameworkRepo } = require(path.join(HOOKS_DIR, 'tests', 'lib', 'framew
 const { childEnv, makeHookTreeProject, removeTempDir } = require(path.join(HOOKS_DIR, 'tests', 'lib', 'hook-runner.cjs'));
 
 const IS_FRAMEWORK_REPO = isFrameworkRepo(REPO_ROOT);
-const SKIP_REASON = 'reads the framework repo\'s own shipped files (framework-repo signal)';
+const SKIP_REASON = "reads the framework repo's own shipped files (framework-repo signal)";
 const guarded = fn => ({ skip: IS_FRAMEWORK_REPO ? false : SKIP_REASON, fn });
 
 const read = (...rel) => fs.readFileSync(path.join(REPO_ROOT, ...rel), 'utf8').replace(/\r\n?/g, '\n');
@@ -57,9 +57,25 @@ function withProject(fn) {
     const run = (mode, session, hookFile = 'workflow-route-inject.cjs') => {
         const result = spawnSync(process.execPath, [path.join(root, '.claude', 'hooks', hookFile)], {
             cwd: root,
-            input: JSON.stringify({ hook_event_name: 'UserPromptSubmit', session_id: session, cwd: root, prompt: 'add a pagination option to the export command' }),
-            env: childEnv({ ...SWITCHES, CK_WORKFLOW_ROUTE_MODE: mode, CLAUDE_PROJECT_DIR: root, HOME: home, USERPROFILE: home, TMPDIR: tmp, TEMP: tmp, TMP: tmp }),
-            encoding: 'utf8', windowsHide: true, timeout: 30000
+            input: JSON.stringify({
+                hook_event_name: 'UserPromptSubmit',
+                session_id: session,
+                cwd: root,
+                prompt: 'add a pagination option to the export command'
+            }),
+            env: childEnv({
+                ...SWITCHES,
+                CK_WORKFLOW_ROUTE_MODE: mode,
+                CLAUDE_PROJECT_DIR: root,
+                HOME: home,
+                USERPROFILE: home,
+                TMPDIR: tmp,
+                TEMP: tmp,
+                TMP: tmp
+            }),
+            encoding: 'utf8',
+            windowsHide: true,
+            timeout: 30000
         });
         return { code: result.status, out: result.stdout || '', err: result.stderr || '' };
     };
@@ -72,8 +88,10 @@ function withProject(fn) {
 }
 
 // The one sentence every mode's text carries, in that mode's own words.
-const GATE_CLAUSE = 'A workflow a skill step, a named skill or a running workflow requires is part of that run, not your own selection: no question, `off` never skips it.';
-const OFF_CLAUSE = '`off` governs only a workflow YOU choose to start: one that a skill step, a skill the user names or a running parent workflow requires is part of that run and is not skipped.';
+const GATE_CLAUSE =
+    'A workflow a skill step, a named skill or a running workflow requires is part of that run, not your own selection: no question, `off` never skips it.';
+const OFF_CLAUSE =
+    '`off` governs only a workflow YOU choose to start: one that a skill step, a skill the user names or a running parent workflow requires is part of that run and is not skipped.';
 
 /** The markdown table separator lines of `text` whose previous line is not a table row (an orphaned separator). */
 function orphanSeparators(text) {
@@ -88,61 +106,84 @@ function orphanSeparators(text) {
 const tests = [
     {
         name: '[review-fix-r2-routing] TC-WFR-019 the ask and auto routes carry the required-workflow clause and a self-chosen workflow still asks first',
-        fn: () => withProject(run => {
-            // Given a project in mode ask and in mode auto
-            const ask = run('ask', `r2-ask-${process.pid}`);
-            const auto = run('auto', `r2-auto-${process.pid}`);
-            assert.equal(ask.code, 0, ask.err);
-            assert.equal(auto.code, 0, auto.err);
-            // Then each route says a workflow a run requires is part of that run: no question, never skipped
-            for (const [label, out] of [['ask', ask.out], ['auto', auto.out]]) {
-                assert.ok(out.includes(GATE_CLAUSE), `${label} route lost the required-workflow clause`);
-            }
-            // And a workflow the assistant chooses itself still waits for the question, in ask and in auto
-            for (const [label, out] of [['ask', ask.out], ['auto', auto.out]]) {
-                assert.ok(out.includes('**Workflow question** (every tier)'), `${label} route keeps the workflow question`);
-                assert.ok(out.includes('it NEVER starts before the answer'), `${label} route keeps "never starts before the answer"`);
-                assert.ok(out.includes('ask the workflow question (below) only when YOUR route is to start a catalog workflow'), `${label} route keeps the own-route trigger`);
-            }
-            // And auto recommends the full workflow first, never for a manual-tier workflow
-            assert.ok(auto.out.includes('recommend (a) first, except for a `manual` tier'), 'auto route keeps the manual-tier rule');
-        })
+        fn: () =>
+            withProject(run => {
+                // Given a project in mode ask and in mode auto
+                const ask = run('ask', `r2-ask-${process.pid}`);
+                const auto = run('auto', `r2-auto-${process.pid}`);
+                assert.equal(ask.code, 0, ask.err);
+                assert.equal(auto.code, 0, auto.err);
+                // Then each route says a workflow a run requires is part of that run: no question, never skipped
+                for (const [label, out] of [
+                    ['ask', ask.out],
+                    ['auto', auto.out]
+                ]) {
+                    assert.ok(out.includes(GATE_CLAUSE), `${label} route lost the required-workflow clause`);
+                }
+                // And a workflow the assistant chooses itself still waits for the question, in ask and in auto
+                for (const [label, out] of [
+                    ['ask', ask.out],
+                    ['auto', auto.out]
+                ]) {
+                    assert.ok(out.includes('**Workflow question** (every tier)'), `${label} route keeps the workflow question`);
+                    assert.ok(out.includes('it NEVER starts before the answer'), `${label} route keeps "never starts before the answer"`);
+                    assert.ok(
+                        out.includes('ask the workflow question (below) only when YOUR route is to start a catalog workflow'),
+                        `${label} route keeps the own-route trigger`
+                    );
+                }
+                // And auto recommends the full workflow first, never for a manual-tier workflow
+                assert.ok(auto.out.includes('recommend (a) first, except for a `manual` tier'), 'auto route keeps the manual-tier rule');
+            })
     },
     {
         name: '[review-fix-r2-routing] TC-WFR-019 the off notice carries the required-workflow clause and a self-chosen workflow is still not started',
-        fn: () => withProject(run => {
-            // Given a project in mode off
-            const off = run('off', `r2-off-${process.pid}`);
-            assert.equal(off.code, 0, off.err);
-            // Then the notice says off governs only a workflow the assistant chooses to start
-            assert.ok(off.out.includes(OFF_CLAUSE), 'off notice lost the required-workflow clause');
-            // And it still forbids choosing or starting a workflow by itself, and still skips the skill step that would
-            assert.ok(off.out.includes('Do not choose or start a workflow yourself'), 'off notice keeps the self-chosen prohibition');
-            assert.ok(off.out.includes('a skill step that would start a workflow (skip that step and continue the skill)'), 'off notice keeps the skip rule');
-            // And it still delivers no gate and no catalog: the route hook writes neither, and the catalog hook writes nothing
-            assert.ok(!off.out.includes('CK:RUNTIME-WORKFLOW-ROUTE -->'), 'off must not deliver the ask/auto route');
-            assert.ok(!off.out.includes('## Workflow & Skills Catalog'), 'off must not deliver the catalog');
-            const catalog = run('off', `r2-off-${process.pid}`, 'workflow-catalog-inject.cjs');
-            assert.equal(catalog.code, 0, catalog.err);
-            assert.equal(catalog.out, '', 'off must not deliver the catalog output');
-            // (Counter-case: with routing on, that same hook does deliver the catalog, so the silence above is the mode's doing.)
-            const asked = run('ask', `r2-off-counter-${process.pid}`, 'workflow-catalog-inject.cjs');
-            assert.ok(asked.out.includes('## Workflow & Skills Catalog'), 'the catalog hook delivers the catalog when routing is on');
-        })
+        fn: () =>
+            withProject(run => {
+                // Given a project in mode off
+                const off = run('off', `r2-off-${process.pid}`);
+                assert.equal(off.code, 0, off.err);
+                // Then the notice says off governs only a workflow the assistant chooses to start
+                assert.ok(off.out.includes(OFF_CLAUSE), 'off notice lost the required-workflow clause');
+                // And it still forbids choosing or starting a workflow by itself, and still skips the skill step that would
+                assert.ok(off.out.includes('Do not choose or start a workflow yourself'), 'off notice keeps the self-chosen prohibition');
+                assert.ok(
+                    off.out.includes('a skill step that would start a workflow (skip that step and continue the skill)'),
+                    'off notice keeps the skip rule'
+                );
+                // And it still delivers no gate and no catalog: the route hook writes neither, and the catalog hook writes nothing
+                assert.ok(!off.out.includes('CK:RUNTIME-WORKFLOW-ROUTE -->'), 'off must not deliver the ask/auto route');
+                assert.ok(!off.out.includes('## Workflow & Skills Catalog'), 'off must not deliver the catalog');
+                const catalog = run('off', `r2-off-${process.pid}`, 'workflow-catalog-inject.cjs');
+                assert.equal(catalog.code, 0, catalog.err);
+                assert.equal(catalog.out, '', 'off must not deliver the catalog output');
+                // (Counter-case: with routing on, that same hook does deliver the catalog, so the silence above is the mode's doing.)
+                const asked = run('ask', `r2-off-counter-${process.pid}`, 'workflow-catalog-inject.cjs');
+                assert.ok(asked.out.includes('## Workflow & Skills Catalog'), 'the catalog hook delivers the catalog when routing is on');
+            })
     },
     {
         name: '[review-fix-r2-routing] TC-WFR-019 start-workflow and the configuration guide state the required-workflow clause',
         ...guarded(() => {
             const start = skillText('start-workflow', 'SKILL.md');
             // Then the ask-mode rule exempts a required workflow from the question and from `off`
-            assert.match(start, /A workflow \(or workflow skill\) that an explicit skill step, the user's named skill or an already-running parent workflow requires is part of that run, not a self-matched workflow: it neither asks the workflow question nor is skipped by `off`; the route modes \(`ask`, `auto`, `off`\) govern only a workflow YOU choose to start for the task\./);
+            assert.match(
+                start,
+                /A workflow \(or workflow skill\) that an explicit skill step, the user's named skill or an already-running parent workflow requires is part of that run, not a self-matched workflow: it neither asks the workflow question nor is skipped by `off`; the route modes \(`ask`, `auto`, `off`\) govern only a workflow YOU choose to start for the task\./
+            );
             // And the off rule runs a required workflow in every mode
-            assert.match(start, /An explicit request, and a workflow that a skill step, the user's named skill or a running parent workflow requires, run in every mode\./);
+            assert.match(
+                start,
+                /An explicit request, and a workflow that a skill step, the user's named skill or a running parent workflow requires, run in every mode\./
+            );
             // And a hand-off the assistant chose still counts as its own selection
             assert.match(start, /hand-off after you chose to invoke that skill — is your own selection, never an explicit request/);
             // And the route-mode guide carries the same sentence, with the commit example: a failing test's fix workflow
             const guide = read('.claude', 'docs', 'configuration', 'README.md');
-            assert.match(guide, /So does a workflow that an explicit skill step, the skill you named or an already-running parent workflow requires[^\n]*`\/commit` running `\/workflow-integration-test --mode=green` to fix a failing test\): it is part of that run, not a self-matched workflow — it asks no workflow question and `off` does not skip it; `ask`, `auto` and `off` govern only a workflow the model chooses to start\./);
+            assert.match(
+                guide,
+                /So does a workflow that an explicit skill step, the skill you named or an already-running parent workflow requires[^\n]*`\/commit` running `\/workflow-integration-test --mode=green` to fix a failing test\): it is part of that run, not a self-matched workflow — it asks no workflow question and `off` does not skip it; `ask`, `auto` and `off` govern only a workflow the model chooses to start\./
+            );
             // And the gate file owns the clause once, next to the explicit-request rule
             const gate = read('.claude', 'skills', 'shared', 'workflow-first-gate.md');
             assert.equal(gate.split(GATE_CLAUSE).length - 1, 1, 'the gate file carries the clause exactly once');
@@ -181,23 +222,38 @@ const tests = [
         })
     },
     {
-        name: '[review-fix-r2-routing] Next-Steps prompt is skipped only for THIS run\'s nested step, never for an ambient [Workflow] row',
+        name: "[review-fix-r2-routing] Next-Steps prompt is skipped only for THIS run's nested step, never for an ambient [Workflow] row",
         ...guarded(() => {
-            for (const rel of [['integration-test', 'SKILL.md'], ['integration-test', 'references', 'mode-verify.md'], ['seed-test-data', 'SKILL.md']]) {
+            for (const rel of [
+                ['integration-test', 'SKILL.md'],
+                ['integration-test', 'references', 'mode-verify.md'],
+                ['seed-test-data', 'SKILL.md']
+            ]) {
                 const text = skillText(...rel);
                 const label = rel.join('/');
                 // Then the ambient-state condition is gone
-                assert.doesNotMatch(text, /a parent `\[Workflow\]` task row is active per `TaskList`/, `${label} still keys the skip on an ambient [Workflow] row`);
+                assert.doesNotMatch(
+                    text,
+                    /a parent `\[Workflow\]` task row is active per `TaskList`/,
+                    `${label} still keys the skip on an ambient [Workflow] row`
+                );
                 // And the skip requires THIS run's own linked phase tasks (nested=true)
                 const line = text.split('\n').find(l => l.includes('**Inside a workflow**'));
                 assert.ok(line, `${label} keeps its Inside-a-workflow line`);
-                assert.match(line, /THIS run is a step of a `\[Workflow\]` row: its own phase tasks are linked to that parent row, `nested=true`/, `${label} must condition the skip on nested=true`);
+                assert.match(
+                    line,
+                    /THIS run is a step of a `\[Workflow\]` row: its own phase tasks are linked to that parent row, `nested=true`/,
+                    `${label} must condition the skip on nested=true`
+                );
                 assert.match(line, /abandoned one, does not count/, `${label} must say an abandoned row does not count`);
                 // And every other case asks as a standalone call
-                assert.match(line, /\*\*Otherwise \(standalone, or only an unrelated `\[Workflow\]` row exists\):\*\*/, `${label} must ask when only an unrelated row exists`);
+                assert.match(
+                    line,
+                    /\*\*Otherwise \(standalone, or only an unrelated `\[Workflow\]` row exists\):\*\*/,
+                    `${label} must ask when only an unrelated row exists`
+                );
                 assert.doesNotMatch(line, /\*\*Standalone:\*\*/, `${label} must not keep the old standalone label`);
             }
-
         })
     },
     {
@@ -209,9 +265,18 @@ const tests = [
             // Then the verdict table rows live once, in the shared owner the read line names
             assert.doesNotMatch(skill, /^\| \*\*\([abc]\)/m, 'the skill duplicates the flake verdict table');
             assert.equal((shared.match(/^\| \*\*\([abc]\)/gm) || []).length, 3, 'the shared owner keeps the three-way verdict table');
-            assert.match(skill, /MUST ATTENTION READ `\.claude\/skills\/shared\/verify-convergence-loop\.md` § 1 whenever a required test is red in one run and green in another/);
+            assert.match(
+                skill,
+                /MUST ATTENTION READ `\.claude\/skills\/shared\/verify-convergence-loop\.md` § 1 whenever a required test is red in one run and green in another/
+            );
             // And every flake rule stays in the skill
-            for (const rule of ['Verdict first, change second', 'Reproduce before concluding', 'NEVER resolve a flake by widening a timeout, adding a retry, or skipping', 'Do not file (c) until (a) and (b) are ruled out with evidence', 'Any resolution restarts the configured repeat gate']) {
+            for (const rule of [
+                'Verdict first, change second',
+                'Reproduce before concluding',
+                'NEVER resolve a flake by widening a timeout, adding a retry, or skipping',
+                'Do not file (c) until (a) and (b) are ruled out with evidence',
+                'Any resolution restarts the configured repeat gate'
+            ]) {
                 assert.ok(skill.includes(rule), `the flake rule "${rule}" was lost`);
             }
         })
@@ -224,7 +289,7 @@ const tests = [
         }
     },
     {
-        name: '[review-fix-r2-routing] the ledger retention shape admits a session\'s own state file, so a session holding the route-mode directive is pruned when stale',
+        name: "[review-fix-r2-routing] the ledger retention shape admits a session's own state file, so a session holding the route-mode directive is pruned when stale",
         fn: () => {
             const ledger = require(path.join(HOOKS_DIR, 'lib', 'convention-ledger.cjs'));
             const root = fs.mkdtempSync(path.join(os.tmpdir(), 'r2-ledger-'));

@@ -48,7 +48,10 @@ const unitTests = [
             assertTrue(resolveDefaultReferenceDocs({ testing: { filePatterns: { performance: '*.load.py' } } }).some(doc => doc.filename === filename));
             assertTrue(!resolveDefaultReferenceDocs({ project: { name: 'Minimal' } }).some(doc => doc.filename === filename));
             assertEqual(JSON.stringify(normalizeReferenceDocs([], config).normalized), '[]');
-            assertEqual(JSON.stringify(normalizeReferenceDocs([{ filename: 'code-review-rules.md', purpose: 'Review' }], config).normalized.map(doc => doc.filename)), '["code-review-rules.md"]');
+            assertEqual(
+                JSON.stringify(normalizeReferenceDocs([{ filename: 'code-review-rules.md', purpose: 'Review' }], config).normalized.map(doc => doc.filename)),
+                '["code-review-rules.md"]'
+            );
             assertEqual(resolveReferenceDocTarget(filename).command, 'scan --target=performance-tests');
             assertEqual(mergeReferenceDocs([{ filename }])[0].templatePath, '.claude/templates/reference-docs/performance-test-reference.md');
             assertEqual(validateConfig({ ...config, framework: { ...config.framework, performanceTestDoc: 42 } }).valid, false);
@@ -60,16 +63,28 @@ const unitTests = [
         fn: () => {
             // Given portable built-in definitions and an explicitly selected local section contract.
             const { mergeReferenceDocs, generatePlaceholderContent } = require('../../lib/session-init-helpers.cjs');
-            const filenames = ['project-structure-reference.md', 'backend-patterns-reference.md',
-                'frontend-patterns-reference.md', 'integration-test-reference.md', 'domain-entities-reference.md'];
+            const filenames = [
+                'project-structure-reference.md',
+                'backend-patterns-reference.md',
+                'frontend-patterns-reference.md',
+                'integration-test-reference.md',
+                'domain-entities-reference.md'
+            ];
             // When default guides are scaffolded, they route discovery instead of requiring inventories/classes.
             for (const filename of filenames) {
                 const [definition] = mergeReferenceDocs([{ filename }]);
                 const content = generatePlaceholderContent(definition);
                 // Then the discovery route exists and no prescribed pattern section sneaks into the scaffold.
                 assertContains(content, '## Discovery');
-                for (const legacySection of ['Project Directory Tree', 'Repository Pattern', 'CQRS Patterns',
-                    'Component Base Classes', 'Test Base Classes', 'Entity Catalog', 'Aggregate Boundaries']) {
+                for (const legacySection of [
+                    'Project Directory Tree',
+                    'Repository Pattern',
+                    'CQRS Patterns',
+                    'Component Base Classes',
+                    'Test Base Classes',
+                    'Entity Catalog',
+                    'Aggregate Boundaries'
+                ]) {
                     assertTrue(!definition.sections.includes(legacySection), `${filename} prescribes ${legacySection}`);
                 }
                 const [local] = mergeReferenceDocs([{ filename, sections: ['Local owner contract'] }]);
@@ -85,10 +100,13 @@ const unitTests = [
             try {
                 const docsDir = path.join(tmpDir, 'docs');
                 fs.mkdirSync(docsDir, { recursive: true });
-                fs.writeFileSync(path.join(docsDir, 'project-config.json'), JSON.stringify({
-                    schemaVersion: 2,
-                    project: { name: 'NoReferenceDocsProject' }
-                }));
+                fs.writeFileSync(
+                    path.join(docsDir, 'project-config.json'),
+                    JSON.stringify({
+                        schemaVersion: 2,
+                        project: { name: 'NoReferenceDocsProject' }
+                    })
+                );
 
                 const modulePath = path.resolve(__dirname, '../../session-init-docs.cjs');
                 const loaderPath = path.resolve(__dirname, '../../lib/project-config-loader.cjs');
@@ -111,7 +129,11 @@ const unitTests = [
                     assertEqual(JSON.stringify(repair.added), '[]', 'An empty capability result requires no selected-doc additions');
                     assertEqual(repair.changed, false, 'Absent selection with no capabilities is stable');
                 } finally {
-                    if (origDir === undefined) { delete process.env.CLAUDE_PROJECT_DIR; } else { process.env.CLAUDE_PROJECT_DIR = origDir; }
+                    if (origDir === undefined) {
+                        delete process.env.CLAUDE_PROJECT_DIR;
+                    } else {
+                        process.env.CLAUDE_PROJECT_DIR = origDir;
+                    }
                     delete require.cache[modulePath];
                     delete require.cache[loaderPath];
                     delete require.cache[helpersPath];
@@ -139,7 +161,12 @@ const unitTests = [
                     e2eTesting: { framework: 'Playwright' },
                     referenceDocs: [
                         { filename: 'custom-guide.md', purpose: 'Custom guide', sections: ['Setup', 'Usage'], templatePath: 'templates/custom-guide.md' },
-                        { filename: 'feature-docs-reference.md', purpose: 'Local feature docs', sections: ['Native contract'], templatePath: 'wrong-template.md' }
+                        {
+                            filename: 'feature-docs-reference.md',
+                            purpose: 'Local feature docs',
+                            sections: ['Native contract'],
+                            templatePath: 'wrong-template.md'
+                        }
                     ]
                 };
                 fs.writeFileSync(path.join(docsDir, 'project-config.json'), JSON.stringify(config));
@@ -157,13 +184,25 @@ const unitTests = [
                     const { getReferenceDocs } = require(modulePath);
                     const docs = getReferenceDocs();
                     const names = docs.map(d => d.filename);
-                    assertEqual(JSON.stringify(names), JSON.stringify(['custom-guide.md', 'feature-spec-reference.md']), 'Explicit selection remains exact despite other declared capability evidence');
+                    assertEqual(
+                        JSON.stringify(names),
+                        JSON.stringify(['custom-guide.md', 'feature-spec-reference.md']),
+                        'Explicit selection remains exact despite other declared capability evidence'
+                    );
                     assertEqual(docs[0].templatePath, 'templates/custom-guide.md', 'Selected project template path is preserved');
                     assertEqual(docs[1].purpose, 'Local feature docs', 'Selected canonical metadata override is preserved');
                     assertEqual(JSON.stringify(docs[1].sections), JSON.stringify(['Native contract']), 'Selected canonical sections are preserved');
-                    assertEqual(docs[1].templatePath, '.claude/templates/reference-docs/feature-spec-reference.md', 'Canonical template path remains authoritative');
+                    assertEqual(
+                        docs[1].templatePath,
+                        '.claude/templates/reference-docs/feature-spec-reference.md',
+                        'Canonical template path remains authoritative'
+                    );
                 } finally {
-                    if (origDir === undefined) { delete process.env.CLAUDE_PROJECT_DIR; } else { process.env.CLAUDE_PROJECT_DIR = origDir; }
+                    if (origDir === undefined) {
+                        delete process.env.CLAUDE_PROJECT_DIR;
+                    } else {
+                        process.env.CLAUDE_PROJECT_DIR = origDir;
+                    }
                     delete require.cache[modulePath];
                     delete require.cache[loaderPath];
                     delete require.cache[helpersPath];
@@ -181,11 +220,14 @@ const unitTests = [
             try {
                 const docsDir = path.join(tmpDir, 'docs');
                 fs.mkdirSync(docsDir, { recursive: true });
-                fs.writeFileSync(path.join(docsDir, 'project-config.json'), JSON.stringify({
-                    project: { name: 'EmptySelectionProject' },
-                    framework: { name: 'Express', backendPatternsDoc: 'docs/project-reference/backend-patterns-reference.md' },
-                    referenceDocs: []
-                }));
+                fs.writeFileSync(
+                    path.join(docsDir, 'project-config.json'),
+                    JSON.stringify({
+                        project: { name: 'EmptySelectionProject' },
+                        framework: { name: 'Express', backendPatternsDoc: 'docs/project-reference/backend-patterns-reference.md' },
+                        referenceDocs: []
+                    })
+                );
 
                 const modulePath = path.resolve(__dirname, '../../session-init-docs.cjs');
                 const loaderPath = path.resolve(__dirname, '../../lib/project-config-loader.cjs');
@@ -206,7 +248,11 @@ const unitTests = [
                     assertEqual(result.added.length, 0, 'Repair does not propose portable defaults for an explicit empty selection');
                     assertEqual(result.changed, false, 'An explicit empty selection is already normalized');
                 } finally {
-                    if (origDir === undefined) { delete process.env.CLAUDE_PROJECT_DIR; } else { process.env.CLAUDE_PROJECT_DIR = origDir; }
+                    if (origDir === undefined) {
+                        delete process.env.CLAUDE_PROJECT_DIR;
+                    } else {
+                        process.env.CLAUDE_PROJECT_DIR = origDir;
+                    }
                     delete require.cache[modulePath];
                     delete require.cache[loaderPath];
                     delete require.cache[helpersPath];
@@ -234,17 +280,29 @@ const unitTests = [
                 }
             };
             const backend = resolveDefaultReferenceDocs(backendConfig).map(doc => doc.filename);
-            assertEqual(JSON.stringify(backend), JSON.stringify(['backend-patterns-reference.md']), 'A declared backend reference enables only its matching capability doc');
+            assertEqual(
+                JSON.stringify(backend),
+                JSON.stringify(['backend-patterns-reference.md']),
+                'A declared backend reference enables only its matching capability doc'
+            );
 
             const styledConfig = {
                 project: { name: 'Styled App' },
                 styling: { technology: 'SCSS', fileExtensions: ['.scss'] }
             };
             const styled = resolveDefaultReferenceDocs(styledConfig).map(doc => doc.filename);
-            assertEqual(JSON.stringify(styled), JSON.stringify(['scss-styling-guide.md']), 'Declared SCSS evidence selects its guide without adding browser/UI/backend docs');
+            assertEqual(
+                JSON.stringify(styled),
+                JSON.stringify(['scss-styling-guide.md']),
+                'Declared SCSS evidence selects its guide without adding browser/UI/backend docs'
+            );
 
             const repair = normalizeReferenceDocs(undefined, backendConfig);
-            assertEqual(JSON.stringify(repair.added), JSON.stringify(['backend-patterns-reference.md']), 'Absent-selection normalization reports only evidenced docs');
+            assertEqual(
+                JSON.stringify(repair.added),
+                JSON.stringify(['backend-patterns-reference.md']),
+                'Absent-selection normalization reports only evidenced docs'
+            );
             delete require.cache[helpersPath];
         }
     },
@@ -262,9 +320,17 @@ const unitTests = [
             ]);
             const names = merged.map(d => d.filename);
 
-            assertEqual(JSON.stringify(names), JSON.stringify(['feature-spec-reference.md', 'custom-guide.md']), 'Only selected entries remain in input order after alias normalization');
+            assertEqual(
+                JSON.stringify(names),
+                JSON.stringify(['feature-spec-reference.md', 'custom-guide.md']),
+                'Only selected entries remain in input order after alias normalization'
+            );
             assertEqual(merged[0].purpose, 'Legacy feature docs', 'Selected canonical purpose override is honored');
-            assertEqual(merged[0].templatePath, '.claude/templates/reference-docs/feature-spec-reference.md', 'Selected canonical templatePath remains authoritative');
+            assertEqual(
+                merged[0].templatePath,
+                '.claude/templates/reference-docs/feature-spec-reference.md',
+                'Selected canonical templatePath remains authoritative'
+            );
             assertEqual(JSON.stringify(merged[1].sections), JSON.stringify(['Usage']), 'Custom selected metadata is preserved');
 
             delete require.cache[helpersPath];
@@ -284,11 +350,23 @@ const unitTests = [
             ]);
 
             assertEqual(result.changed, true, 'Drifted config flagged as changed');
-            assertEqual(JSON.stringify(result.renames), JSON.stringify([{ from: 'feature-docs-reference.md', to: 'feature-spec-reference.md' }]), 'Legacy rename reported');
+            assertEqual(
+                JSON.stringify(result.renames),
+                JSON.stringify([{ from: 'feature-docs-reference.md', to: 'feature-spec-reference.md' }]),
+                'Legacy rename reported'
+            );
             assertEqual(JSON.stringify(result.removedLegacy), JSON.stringify(['feature-docs-reference.md']), 'Legacy entry flagged for removal');
-            assertEqual(JSON.stringify(result.normalized.map(d => d.filename)), JSON.stringify(['feature-spec-reference.md', 'custom-guide.md']), 'Normalized selection contains only the configured docs');
+            assertEqual(
+                JSON.stringify(result.normalized.map(d => d.filename)),
+                JSON.stringify(['feature-spec-reference.md', 'custom-guide.md']),
+                'Normalized selection contains only the configured docs'
+            );
             assertEqual(result.added.length, 0, 'Unselected portable defaults are not reported for addition');
-            assertEqual(result.normalized[0].templatePath, '.claude/templates/reference-docs/feature-spec-reference.md', 'Alias receives its canonical templatePath');
+            assertEqual(
+                result.normalized[0].templatePath,
+                '.claude/templates/reference-docs/feature-spec-reference.md',
+                'Alias receives its canonical templatePath'
+            );
 
             const stable = normalizeReferenceDocs(result.normalized);
             assertEqual(stable.changed, false, 'Normalized explicit selection is stable (idempotent)');
@@ -309,7 +387,10 @@ const unitTests = [
             const legacy = { filename: 'feature-docs-reference.md', purpose: 'LEGACY purpose', sections: ['legacy'] };
             const canonical = { filename: 'feature-spec-reference.md', purpose: 'CANONICAL purpose', sections: ['canonical'] };
 
-            for (const [order, docs] of [['legacy-first', [legacy, canonical]], ['canonical-first', [canonical, legacy]]]) {
+            for (const [order, docs] of [
+                ['legacy-first', [legacy, canonical]],
+                ['canonical-first', [canonical, legacy]]
+            ]) {
                 const merged = mergeReferenceDocs(docs);
                 const names = merged.map(d => d.filename);
                 assertEqual(merged.length, 1, `${order}: only the selected canonical doc remains`);
@@ -333,11 +414,19 @@ const unitTests = [
 
             const merged = mergeReferenceDocs([{ filename: 'feature-docs-reference.md ', purpose: 'Legacy', sections: [] }]);
             const names = merged.map(d => d.filename);
-            assertEqual(JSON.stringify(names), JSON.stringify(['feature-spec-reference.md']), 'Whitespace legacy resolves to exactly one selected canonical target');
+            assertEqual(
+                JSON.stringify(names),
+                JSON.stringify(['feature-spec-reference.md']),
+                'Whitespace legacy resolves to exactly one selected canonical target'
+            );
             assertEqual(merged[0].templatePath, '.claude/templates/reference-docs/feature-spec-reference.md', 'Canonical templatePath is retained');
 
             const result = normalizeReferenceDocs([{ filename: 'feature-docs-reference.md ', purpose: 'Legacy', sections: [] }]);
-            assertEqual(JSON.stringify(result.renames), JSON.stringify([{ from: 'feature-docs-reference.md', to: 'feature-spec-reference.md' }]), 'Whitespace legacy reported as rename (trimmed)');
+            assertEqual(
+                JSON.stringify(result.renames),
+                JSON.stringify([{ from: 'feature-docs-reference.md', to: 'feature-spec-reference.md' }]),
+                'Whitespace legacy reported as rename (trimmed)'
+            );
             assertEqual(JSON.stringify(result.removedLegacy), JSON.stringify(['feature-docs-reference.md']), 'Whitespace legacy flagged for removal (trimmed)');
             assertEqual(result.normalized.length, 1, 'No unselected portable defaults are added during repair');
             assertEqual(result.added.length, 0, 'Unselected defaults are not reported as additions');
@@ -359,8 +448,16 @@ const unitTests = [
             ]);
             assertEqual(result.renames.length, 1, 'Duplicate legacy entry yields a single rename');
             assertEqual(result.removedLegacy.length, 1, 'Duplicate legacy entry yields a single removal');
-            assertEqual(JSON.stringify(result.renames[0]), JSON.stringify({ from: 'feature-docs-reference.md', to: 'feature-spec-reference.md' }), 'Single rename is the canonical mapping');
-            assertEqual(JSON.stringify(result.normalized.map(d => d.filename)), JSON.stringify(['feature-spec-reference.md']), 'Duplicate alias produces one selected canonical doc');
+            assertEqual(
+                JSON.stringify(result.renames[0]),
+                JSON.stringify({ from: 'feature-docs-reference.md', to: 'feature-spec-reference.md' }),
+                'Single rename is the canonical mapping'
+            );
+            assertEqual(
+                JSON.stringify(result.normalized.map(d => d.filename)),
+                JSON.stringify(['feature-spec-reference.md']),
+                'Duplicate alias produces one selected canonical doc'
+            );
             assertEqual(result.added.length, 0, 'Duplicate selected alias does not add unselected defaults');
 
             delete require.cache[helpersPath];
@@ -399,14 +496,20 @@ const unitTests = [
             const docsDir = path.join(tmpDir, 'docs');
             fs.mkdirSync(ckDir, { recursive: true });
             fs.mkdirSync(docsDir, { recursive: true });
-            fs.writeFileSync(path.join(ckDir, '.ck.json'), JSON.stringify({
-                portability: { docsIndexPath: '../outside/docs-index-reference.md' }
-            }));
-            fs.writeFileSync(path.join(docsDir, 'project-config.json'), JSON.stringify({
-                schemaVersion: 2,
-                project: { name: 'SafeReferenceRoot' },
-                docsRoots: { projectReference: { path: 'handbook/reference' } }
-            }));
+            fs.writeFileSync(
+                path.join(ckDir, '.ck.json'),
+                JSON.stringify({
+                    portability: { docsIndexPath: '../outside/docs-index-reference.md' }
+                })
+            );
+            fs.writeFileSync(
+                path.join(docsDir, 'project-config.json'),
+                JSON.stringify({
+                    schemaVersion: 2,
+                    project: { name: 'SafeReferenceRoot' },
+                    docsRoots: { projectReference: { path: 'handbook/reference' } }
+                })
+            );
 
             const helpersPath = path.resolve(__dirname, '../../lib/session-init-helpers.cjs');
             const loaderPath = path.resolve(__dirname, '../../lib/project-config-loader.cjs');
@@ -422,13 +525,21 @@ const unitTests = [
                 const { validateConfig } = require(path.resolve(__dirname, '../../lib/project-config-schema.cjs'));
                 const skeleton = buildSkeleton();
                 assertTrue(validateConfig(skeleton).valid, 'Generated skeleton satisfies the required project-config schema');
-                assertEqual(skeleton.project.name, path.basename(tmpDir), 'Folder metadata supplies a non-empty project identity when no package or Git metadata exists');
+                assertEqual(
+                    skeleton.project.name,
+                    path.basename(tmpDir),
+                    'Folder metadata supplies a non-empty project identity when no package or Git metadata exists'
+                );
                 assertEqual(skeleton.framework, undefined, 'Unknown framework capability is omitted');
                 assertEqual(skeleton.designSystem, undefined, 'Unknown design-system capability is omitted');
                 assertEqual(skeleton.docsRoots, undefined, 'Unneeded relocatable roots are omitted until configured');
                 assertEqual(skeleton.referenceDocs, undefined, 'Absent selection remains absent instead of becoming an explicit empty array');
             } finally {
-                if (origDir === undefined) { delete process.env.CLAUDE_PROJECT_DIR; } else { process.env.CLAUDE_PROJECT_DIR = origDir; }
+                if (origDir === undefined) {
+                    delete process.env.CLAUDE_PROJECT_DIR;
+                } else {
+                    process.env.CLAUDE_PROJECT_DIR = origDir;
+                }
                 delete require.cache[helpersPath];
                 delete require.cache[loaderPath];
                 delete require.cache[ckLoaderPath];
@@ -589,7 +700,11 @@ const unitTests = [
                 assertContains(content, 'Template content.', 'Uses template body');
                 assertTrue(!content.includes("Fill in your project's details below"), 'Does not fall back to generic placeholder');
             } finally {
-                if (origDir === undefined) { delete process.env.CLAUDE_PROJECT_DIR; } else { process.env.CLAUDE_PROJECT_DIR = origDir; }
+                if (origDir === undefined) {
+                    delete process.env.CLAUDE_PROJECT_DIR;
+                } else {
+                    process.env.CLAUDE_PROJECT_DIR = origDir;
+                }
                 delete require.cache[modulePath];
                 delete require.cache[loaderPath];
                 delete require.cache[helpersPath];
@@ -611,11 +726,14 @@ const unitTests = [
                 const { generatePlaceholderContent, isPlaceholderFile } = require(modulePath);
                 const filePath = path.join(tmpDir, 'design-tokens.scss');
 
-                fs.writeFileSync(filePath, generatePlaceholderContent({
-                    filename: 'design-tokens.scss',
-                    purpose: 'tokens',
-                    sections: ['Colors']
-                }));
+                fs.writeFileSync(
+                    filePath,
+                    generatePlaceholderContent({
+                        filename: 'design-tokens.scss',
+                        purpose: 'tokens',
+                        sections: ['Colors']
+                    })
+                );
                 assertEqual(isPlaceholderFile(filePath), true, 'SCSS placeholder file detected');
 
                 fs.writeFileSync(filePath, '$primary: #fff;\n$secondary: #000;\n');
@@ -739,11 +857,7 @@ const unitTests = [
         fn: async () => {
             const helpersPath = path.resolve(__dirname, '../../lib/session-init-helpers.cjs');
             delete require.cache[helpersPath];
-            const {
-                mergeReferenceDocs,
-                getReferenceDocScanTarget,
-                getReferenceDocScanSkill
-            } = require(helpersPath);
+            const { mergeReferenceDocs, getReferenceDocScanTarget, getReferenceDocScanSkill } = require(helpersPath);
 
             const [generic, manual] = mergeReferenceDocs([
                 { filename: 'guides/architecture.md', purpose: 'Architecture evidence', scanTarget: 'generic' },
@@ -758,11 +872,7 @@ const unitTests = [
             );
             assertEqual(getReferenceDocScanTarget(manual).kind, 'manual', 'Custom docs without a target stay manually owned');
             assertEqual(getReferenceDocScanSkill(manual), null, 'Manual docs do not claim an automated scan');
-            assertEqual(
-                getReferenceDocScanTarget('e2e-test-reference.md').kind,
-                'built-in',
-                'Built-in target inference remains exact-filename based'
-            );
+            assertEqual(getReferenceDocScanTarget('e2e-test-reference.md').kind, 'built-in', 'Built-in target inference remains exact-filename based');
             assertEqual(
                 getReferenceDocScanTarget('custom/e2e-test-reference.md').kind,
                 'manual',
@@ -778,13 +888,16 @@ const unitTests = [
             const docsDir = path.join(tmpDir, 'docs');
             const referenceDir = path.join(docsDir, 'project-reference');
             fs.mkdirSync(referenceDir, { recursive: true });
-            fs.writeFileSync(path.join(docsDir, 'project-config.json'), JSON.stringify({
-                project: { name: 'Freshness Fixture' },
-                referenceDocs: [
-                    { filename: 'guides/architecture.md', purpose: 'Repository architecture', scanTarget: 'generic' },
-                    { filename: 'guides/operations.md', purpose: 'Curated operator notes' }
-                ]
-            }));
+            fs.writeFileSync(
+                path.join(docsDir, 'project-config.json'),
+                JSON.stringify({
+                    project: { name: 'Freshness Fixture' },
+                    referenceDocs: [
+                        { filename: 'guides/architecture.md', purpose: 'Repository architecture', scanTarget: 'generic' },
+                        { filename: 'guides/operations.md', purpose: 'Curated operator notes' }
+                    ]
+                })
+            );
             fs.mkdirSync(path.join(referenceDir, 'guides'), { recursive: true });
             fs.writeFileSync(path.join(referenceDir, 'guides', 'architecture.md'), '# Architecture\n\n<!-- Last scanned: 2000-01-01 -->\n', 'utf8');
             fs.writeFileSync(path.join(referenceDir, 'guides', 'operations.md'), '# Operations\n\n<!-- Last scanned: 2000-01-01 -->\n', 'utf8');
@@ -835,10 +948,13 @@ const unitTests = [
                 { filename: 'project-structure-reference.md', purpose: 'Structure; mocks are not applicable here' },
                 { filename: 'guides/architecture.md', purpose: 'Repository architecture', scanTarget: 'generic' }
             ];
-            fs.writeFileSync(path.join(docsDir, 'project-config.json'), JSON.stringify({
-                project: { name: 'Applicability Fixture' },
-                referenceDocs
-            }));
+            fs.writeFileSync(
+                path.join(docsDir, 'project-config.json'),
+                JSON.stringify({
+                    project: { name: 'Applicability Fixture' },
+                    referenceDocs
+                })
+            );
             for (const doc of referenceDocs) {
                 fs.writeFileSync(path.join(referenceDir, ...doc.filename.split('/')), '# Reference\n\n<!-- Last scanned: 2000-01-01 -->\n', 'utf8');
             }
@@ -986,7 +1102,10 @@ const integrationTests = [
                 const refDir = path.join(docsDir, 'project-reference');
                 assertTrue(fs.existsSync(path.join(refDir, 'my-guide.md')), 'my-guide.md created in project-reference/');
                 assertTrue(fs.existsSync(path.join(refDir, 'my-rules.md')), 'my-rules.md created in project-reference/');
-                assertTrue(fs.existsSync(path.join(refDir, 'guides', 'architecture.md')), 'nested generic doc created beneath the configured project-reference root');
+                assertTrue(
+                    fs.existsSync(path.join(refDir, 'guides', 'architecture.md')),
+                    'nested generic doc created beneath the configured project-reference root'
+                );
                 assertTrue(!fs.existsSync(path.join(refDir, 'project-structure-reference.md')), 'Unselected portable defaults are not scaffolded');
                 // Verify NOT in docs/ root
                 assertTrue(!fs.existsSync(path.join(docsDir, 'my-guide.md')), 'my-guide.md NOT in docs/ root');
@@ -1034,9 +1153,18 @@ const integrationTests = [
                     fs.existsSync(path.join(tmpDir, 'knowledge', 'reference', 'project-context-index.md')),
                     'Always-on docs index is created at the exact configured owner path'
                 );
-                assertTrue(fs.existsSync(path.join(tmpDir, 'knowledge', 'reference', 'lessons.md')), 'Always-on lessons are created beside the configured docs index');
-                assertTrue(!fs.existsSync(path.join(tmpDir, 'knowledge', 'reference', 'docs-index-reference.md')), 'No default index filename is created beside a configured custom index');
-                assertTrue(!fs.existsSync(path.join(tmpDir, 'knowledge', 'reference', 'project-structure-reference.md')), 'No task-specific docs are inferred from project identity alone');
+                assertTrue(
+                    fs.existsSync(path.join(tmpDir, 'knowledge', 'reference', 'lessons.md')),
+                    'Always-on lessons are created beside the configured docs index'
+                );
+                assertTrue(
+                    !fs.existsSync(path.join(tmpDir, 'knowledge', 'reference', 'docs-index-reference.md')),
+                    'No default index filename is created beside a configured custom index'
+                );
+                assertTrue(
+                    !fs.existsSync(path.join(tmpDir, 'knowledge', 'reference', 'project-structure-reference.md')),
+                    'No task-specific docs are inferred from project identity alone'
+                );
                 assertTrue(!fs.existsSync(path.join(tmpDir, 'docs', 'project-reference')), 'Default reference docs directory not created');
             } finally {
                 cleanupTempDir(tmpDir);
@@ -1050,10 +1178,13 @@ const integrationTests = [
             try {
                 const docsDir = path.join(tmpDir, 'docs');
                 fs.mkdirSync(docsDir, { recursive: true });
-                fs.writeFileSync(path.join(docsDir, 'project-config.json'), JSON.stringify({
-                    project: { name: 'Fixture' },
-                    referenceDocs: []
-                }));
+                fs.writeFileSync(
+                    path.join(docsDir, 'project-config.json'),
+                    JSON.stringify({
+                        project: { name: 'Fixture' },
+                        referenceDocs: []
+                    })
+                );
 
                 const input = createUserPromptInput('hello');
                 const result = await runHook(HOOK_PATH, input, {
@@ -1236,19 +1367,30 @@ const integrationTests = [
             try {
                 const docsDir = path.join(tmpDir, 'docs');
                 fs.mkdirSync(docsDir, { recursive: true });
-                fs.writeFileSync(path.join(docsDir, 'project-config.json'), JSON.stringify({
-                    project: { name: 'Performance template fixture' },
-                    docsRoots: { projectReference: { path: 'handbook/reference' } },
-                    referenceDocs: [{ filename: 'performance-test-reference.md', purpose: 'Performance preferences' }]
-                }));
+                fs.writeFileSync(
+                    path.join(docsDir, 'project-config.json'),
+                    JSON.stringify({
+                        project: { name: 'Performance template fixture' },
+                        docsRoots: { projectReference: { path: 'handbook/reference' } },
+                        referenceDocs: [{ filename: 'performance-test-reference.md', purpose: 'Performance preferences' }]
+                    })
+                );
                 const template = path.join(tmpDir, '.claude', 'templates', 'reference-docs', 'performance-test-reference.md');
                 fs.mkdirSync(path.dirname(template), { recursive: true });
                 // Use the shipped scaffold, so its sentinel cannot drift behind a synthetic fixture.
                 fs.copyFileSync(path.resolve(__dirname, '../../../templates/reference-docs/performance-test-reference.md'), template);
-                const options = { cwd: tmpDir, env: {
-                    CLAUDE_PROJECT_DIR: tmpDir, CK_FRAMEWORK_MODE: 'on', HOME: tmpDir, USERPROFILE: tmpDir,
-                    TMPDIR: tmpDir, TEMP: tmpDir, TMP: tmpDir
-                } };
+                const options = {
+                    cwd: tmpDir,
+                    env: {
+                        CLAUDE_PROJECT_DIR: tmpDir,
+                        CK_FRAMEWORK_MODE: 'on',
+                        HOME: tmpDir,
+                        USERPROFILE: tmpDir,
+                        TMPDIR: tmpDir,
+                        TEMP: tmpDir,
+                        TMP: tmpDir
+                    }
+                };
                 const input = createUserPromptInput('initialize selected references');
                 assertAllowed((await runHook(HOOK_PATH, input, options)).code);
                 const output = path.join(tmpDir, 'handbook', 'reference', 'performance-test-reference.md');
@@ -1272,9 +1414,12 @@ const integrationTests = [
             try {
                 // No docs/ dir; the required config lives at a separately configured path.
                 const ckConfigPath = path.join(tmpDir, '.claude', '.ck.json');
-                fs.writeFileSync(ckConfigPath, JSON.stringify({
-                    portability: { projectConfigPath: 'config/project-config.json' }
-                }));
+                fs.writeFileSync(
+                    ckConfigPath,
+                    JSON.stringify({
+                        portability: { projectConfigPath: 'config/project-config.json' }
+                    })
+                );
                 const configPath = path.join(tmpDir, 'config', 'project-config.json');
                 fs.mkdirSync(path.dirname(configPath), { recursive: true });
                 fs.writeFileSync(configPath, JSON.stringify({ project: { name: 'Fixture' } }));

@@ -20,7 +20,9 @@ try {
             }
             const rootDir = path.resolve(String(explicit).trim());
             let exists = false;
-            try { exists = fs.statSync(rootDir).isDirectory(); } catch {}
+            try {
+                exists = fs.statSync(rootDir).isDirectory();
+            } catch {}
             if (!exists) throw new Error('CLAUDE_PROJECT_DIR must name an existing directory');
             return { rootDir, source: 'env-fallback' };
         }
@@ -52,11 +54,14 @@ const TEMPLATE_PATH = path.join(__dirname, '..', 'references', 'claude-md-templa
 // prettier fences older roots wrapped around the catalog block.
 const GATE_BLOCK_RE = /<!-- CK:WORKFLOW-GATE -->[\s\S]*?<!-- \/CK:WORKFLOW-GATE -->/g;
 const ROUTE_POINTER_BLOCK_RE = /<!-- CK:WORKFLOW-ROUTE-POINTER -->[\s\S]*?<!-- \/CK:WORKFLOW-ROUTE-POINTER -->/g;
-const SKILLS_BLOCK_RE = /(?:<!-- prettier-ignore-start -->\s*)?<!-- CK:WORKFLOW-SKILLS -->[\s\S]*?<!-- \/CK:WORKFLOW-SKILLS -->(?:\s*<!-- prettier-ignore-end -->)?/g;
+const SKILLS_BLOCK_RE =
+    /(?:<!-- prettier-ignore-start -->\s*)?<!-- CK:WORKFLOW-SKILLS -->[\s\S]*?<!-- \/CK:WORKFLOW-SKILLS -->(?:\s*<!-- prettier-ignore-end -->)?/g;
 const PROJECT_PROTOCOLS_BLOCK_RE = /<!-- CK:PROJECT-PROTOCOLS -->[\s\S]*?<!-- \/CK:PROJECT-PROTOCOLS -->/g;
 const CK_AIMP_CLOSE = '<!-- /CK:AI-MISTAKE-PREVENTION -->';
-const CK_CRIT_BLOCK_RE = /(?:<!-- prettier-ignore-start -->\s*)?<!-- CK:CRITICAL-THINKING -->[\s\S]*?<!-- \/CK:CRITICAL-THINKING -->(?:\s*<!-- prettier-ignore-end -->)?/g;
-const CK_AIMP_BLOCK_RE = /(?:<!-- prettier-ignore-start -->\s*)?<!-- CK:AI-MISTAKE-PREVENTION -->[\s\S]*?<!-- \/CK:AI-MISTAKE-PREVENTION -->(?:\s*<!-- prettier-ignore-end -->)?/g;
+const CK_CRIT_BLOCK_RE =
+    /(?:<!-- prettier-ignore-start -->\s*)?<!-- CK:CRITICAL-THINKING -->[\s\S]*?<!-- \/CK:CRITICAL-THINKING -->(?:\s*<!-- prettier-ignore-end -->)?/g;
+const CK_AIMP_BLOCK_RE =
+    /(?:<!-- prettier-ignore-start -->\s*)?<!-- CK:AI-MISTAKE-PREVENTION -->[\s\S]*?<!-- \/CK:AI-MISTAKE-PREVENTION -->(?:\s*<!-- prettier-ignore-end -->)?/g;
 // The completeness sentinel of older generated roots.
 const LEGACY_SENTINEL_RE = /<!--\s*CK:UNIVERSAL-GUIDES\s+v\d+\s*-->/gi;
 
@@ -102,8 +107,7 @@ const ROUTING_BODY_TEMPLATE =
     'Apply the single CK:WORKFLOW-GATE above. A skill named as a noun is not an invocation; ' +
     'explicit execution requests win. Mixed research/modification intent follows the modification route. ' +
     'Route choice grants no operation authority.';
-const ROUTING_BODY_MIGRATED =
-    'Apply the single CK:WORKFLOW-GATE above; route choice grants no operation authority.';
+const ROUTING_BODY_MIGRATED = 'Apply the single CK:WORKFLOW-GATE above; route choice grants no operation authority.';
 const ROUTING_BODY_DISABLED =
     'Workflow auto-detect is OFF for this project (`portability.workflowAutoDetect: false`), so this file ' +
     'carries no routing gate and no workflow catalog. Do not infer a workflow or skill route from the ' +
@@ -130,7 +134,10 @@ function removeManagedRoutingSection(content) {
     const managedAt = paragraphs.findIndex(part => MANAGED_ROUTING_BODIES.includes(part.trim()));
     if (managedAt === -1) return content;
     paragraphs.splice(managedAt, 1);
-    const remaining = paragraphs.join('').replace(/^\s*---\s*$/m, '').trim();
+    const remaining = paragraphs
+        .join('')
+        .replace(/^\s*---\s*$/m, '')
+        .trim();
     const tail = content.slice(bodyStart + bodyRaw.length);
     if (!remaining) return `${content.slice(0, heading.index)}${tail.replace(/^(?:\r?\n)+/, '')}`;
     return `${content.slice(0, bodyStart)}\n\n${remaining}\n\n${tail.replace(/^(?:\r?\n)+/, '')}`;
@@ -147,8 +154,7 @@ function migrateLegacyRouting(content) {
     ];
     for (const eol of ['\r\n', '\n']) {
         const heading = `## First Action Decision (before any tool call)${eol}${eol}`;
-        content = content.replace(heading + legacy.join(eol),
-            heading + 'Apply the single CK:WORKFLOW-GATE above; route choice grants no operation authority.');
+        content = content.replace(heading + legacy.join(eol), heading + 'Apply the single CK:WORKFLOW-GATE above; route choice grants no operation authority.');
     }
     return content;
 }
@@ -359,8 +365,9 @@ function buildSections(config) {
 function reportInlinePathRules(config) {
     const delivery = builders.pathRulesDelivery(config, PROJECT_DIR);
     if (delivery.requested && !delivery.compact && delivery.reason) {
-        console.warn(`[WARN] INLINE_PATH_RULES: portability.inlinePathRules is false but ${delivery.reason}; ` +
-            'SECTION:golden-rules keeps the path rules inline.');
+        console.warn(
+            `[WARN] INLINE_PATH_RULES: portability.inlinePathRules is false but ${delivery.reason}; ` + 'SECTION:golden-rules keeps the path rules inline.'
+        );
     }
 }
 
@@ -431,8 +438,7 @@ function normalizeMdEscapes(s) {
 // in the old body but is absent from the new builder output — converting the silent content-loss
 // that dropped the Windows/Design notes this session into a visible WARN that names the durable home.
 function updateMarkedSections(existing, sections, onWarn = msg => console.warn(msg)) {
-    const hasBuilder = key => Object.prototype.hasOwnProperty.call(sections, key)
-        && typeof sections[key] === 'string' && sections[key].length > 0;
+    const hasBuilder = key => Object.prototype.hasOwnProperty.call(sections, key) && typeof sections[key] === 'string' && sections[key].length > 0;
     const lines = existing.split('\n');
     let openKey = null;
     for (const line of lines) {
@@ -520,11 +526,7 @@ function backfillGeneratedE2eSection(content, sections) {
     const block = `<!-- SECTION:e2e-testing -->\n\n${e2e}\n\n<!-- /SECTION:e2e-testing -->`;
     // Keep the generated section near the other generated setup sections. Prefer the template's
     // stable location, then degrade safely for older roots that lack one of those markers.
-    const anchors = [
-        '<!-- /SECTION:dev-commands -->',
-        '<!-- /SECTION:integration-testing -->',
-        '<!-- /SECTION:tldr -->'
-    ];
+    const anchors = ['<!-- /SECTION:dev-commands -->', '<!-- /SECTION:integration-testing -->', '<!-- /SECTION:tldr -->'];
     for (const anchor of anchors) {
         const at = content.indexOf(anchor);
         if (at === -1) continue;
@@ -602,12 +604,16 @@ function buildUpdateOutput(existing, sections, { report = true, stripLegacy = fa
         const stripped = stripLegacyUniversalContent(output);
         output = stripped.text;
         if (report && stripped.removed.length) {
-            console.log(`[OK] Removed ${stripped.removed.length} legacy universal section(s) a generated root no longer carries: ${stripped.removed.join(' | ')}`);
+            console.log(
+                `[OK] Removed ${stripped.removed.length} legacy universal section(s) a generated root no longer carries: ${stripped.removed.join(' | ')}`
+            );
         }
     } else if (report) {
         const legacy = findLegacyUniversalContent(output);
         if (legacy.length) {
-            console.warn(`[WARN] LEGACY_UNIVERSAL_CONTENT: ${legacy.length} section(s) a generated root no longer carries are still in this root: ${legacy.join(' | ')}. Run --mode update --strip-legacy-universal to remove them (a backup is written first).`);
+            console.warn(
+                `[WARN] LEGACY_UNIVERSAL_CONTENT: ${legacy.length} section(s) a generated root no longer carries are still in this root: ${legacy.join(' | ')}. Run --mode update --strip-legacy-universal to remove them (a backup is written first).`
+            );
         }
     }
 
@@ -662,9 +668,8 @@ function parseBackupPath(args) {
         const parent = fs.realpathSync(path.dirname(value));
         destination = path.join(parent, path.basename(value));
         const projectReal = fs.realpathSync(PROJECT_DIR);
-        const comparable = p => process.platform === 'win32' ? p.toLowerCase() : p;
-        if (['CLAUDE.md', '.claude-md.backup'].some(name =>
-            comparable(destination) === comparable(path.join(projectReal, name)))) {
+        const comparable = p => (process.platform === 'win32' ? p.toLowerCase() : p);
+        if (['CLAUDE.md', '.claude-md.backup'].some(name => comparable(destination) === comparable(path.join(projectReal, name)))) {
             throw new Error('--backup-path must be separate from CLAUDE.md and the legacy default backup');
         }
     }
@@ -690,8 +695,10 @@ function createBackup(explicitPath = null) {
 function reportRootSize(output) {
     const bytes = Buffer.byteLength(output, 'utf8');
     if (bytes > 32768) {
-        console.warn(`[WARN] ROOT_OVERFLOW: ${bytes} bytes exceeds 32768-byte host reference budget; ` +
-            'full content preserved without truncation. Verify the host managed projection before use.');
+        console.warn(
+            `[WARN] ROOT_OVERFLOW: ${bytes} bytes exceeds 32768-byte host reference budget; ` +
+                'full content preserved without truncation. Verify the host managed projection before use.'
+        );
     }
 }
 
@@ -699,8 +706,7 @@ function main() {
     const args = process.argv.slice(2);
     const backupPath = parseBackupPath(args);
     const modeIndex = args.indexOf('--mode');
-    const modeFlag = args.find(a => a.startsWith('--mode='))?.slice('--mode='.length) ||
-        (modeIndex >= 0 ? args[modeIndex + 1] : undefined);
+    const modeFlag = args.find(a => a.startsWith('--mode='))?.slice('--mode='.length) || (modeIndex >= 0 ? args[modeIndex + 1] : undefined);
     const isDetect = args.includes('--detect');
 
     if (isDetect) {
@@ -713,8 +719,9 @@ function main() {
 
     // An unreadable config could hide `generateClaudeMd: false`, so nothing is generated from it.
     if (fs.existsSync(CONFIG_PATH)) {
-        try { JSON.parse(decodeConfigText(fs.readFileSync(CONFIG_PATH))); }
-        catch (error) {
+        try {
+            JSON.parse(decodeConfigText(fs.readFileSync(CONFIG_PATH)));
+        } catch (error) {
             console.error(`[ERROR] ${CONFIG_PATH} is not valid JSON (${error.message}); nothing generated or written.`);
             process.exitCode = 1;
             return;
@@ -817,5 +824,5 @@ module.exports = {
     removeManagedRoutingSection,
     ROUTING_BODY_TEMPLATE,
     ROUTING_BODY_MIGRATED,
-    ROUTING_BODY_DISABLED,
+    ROUTING_BODY_DISABLED
 };

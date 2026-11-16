@@ -92,7 +92,11 @@ function docSection(file, heading) {
             break;
         }
     }
-    return lines.slice(start + 1, end).join('\n').replace(/\n-{3,}\s*$/, '').trim();
+    return lines
+        .slice(start + 1, end)
+        .join('\n')
+        .replace(/\n-{3,}\s*$/, '')
+        .trim();
 }
 
 function relative(file) {
@@ -102,7 +106,10 @@ function relative(file) {
 function payload() {
     const sections = {};
     for (const section of DOC_SECTIONS) {
-        sections[section.id] = { source: `${relative(section.file)} → ${section.heading.replace(/^#+\s*/, '')}`, body: docSection(section.file, section.heading) };
+        sections[section.id] = {
+            source: `${relative(section.file)} → ${section.heading.replace(/^#+\s*/, '')}`,
+            body: docSection(section.file, section.heading)
+        };
     }
     return { options: ckOptions(), sections };
 }
@@ -115,7 +122,9 @@ function renderMarkdown(data) {
     const out = [];
     out.push('## Every `.ck.json` option');
     out.push('');
-    out.push('Set in `~/.claude/.ck.json` (you, every project), `./.claude/.ck.json` (team, committed) or `./.claude/.ck.local.json` (you, this project; wins). Generated from the settings schema.');
+    out.push(
+        'Set in `~/.claude/.ck.json` (you, every project), `./.claude/.ck.json` (team, committed) or `./.claude/.ck.local.json` (you, this project; wins). Generated from the settings schema.'
+    );
     out.push('');
     out.push('| Option | Type | Allowed | What it does |');
     out.push('| --- | --- | --- | --- |');
@@ -134,11 +143,15 @@ function renderMarkdown(data) {
     out.push('');
     out.push('## Feature switches and their effective values');
     out.push('');
-    out.push('`node .claude/scripts/framework-features.cjs` lists every framework switch with its default, effective value, the layer that set it and who may set it.');
+    out.push(
+        '`node .claude/scripts/framework-features.cjs` lists every framework switch with its default, effective value, the layer that set it and who may set it.'
+    );
     out.push('');
     out.push('## Every project-config option');
     out.push('');
-    out.push('Team options live in the project config (default `docs/project-config.json`; `portability.projectConfigPath` in `.ck.json` relocates it): routing tiers, code graph, token checkpoint, skill profile, commit trailer, conventions, testing and more. List them from their schema with:');
+    out.push(
+        'Team options live in the project config (default `docs/project-config.json`; `portability.projectConfigPath` in `.ck.json` relocates it): routing tiers, code graph, token checkpoint, skill profile, commit trailer, conventions, testing and more. List them from their schema with:'
+    );
     out.push('');
     out.push('```bash');
     out.push('node .claude/skills/project-config/scripts/project-config-help.cjs --sections        # every top-level option, one line each');

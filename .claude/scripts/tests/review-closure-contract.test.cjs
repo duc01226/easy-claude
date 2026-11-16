@@ -16,7 +16,10 @@ function readSkillParts(name) {
     const parts = [['SKILL.md', fs.readFileSync(path.join(dir, 'SKILL.md'), 'utf8')]];
     const refs = path.join(dir, 'references');
     if (fs.existsSync(refs)) {
-        for (const file of fs.readdirSync(refs).filter(entry => entry.endsWith('.md')).sort()) {
+        for (const file of fs
+            .readdirSync(refs)
+            .filter(entry => entry.endsWith('.md'))
+            .sort()) {
             parts.push([`references/${file}`, fs.readFileSync(path.join(refs, file), 'utf8')]);
         }
     }
@@ -97,12 +100,16 @@ function closureFixture(t) {
     baseline.captureBaseline({ rootDir, storeDir, runId: 'child', parentRunId: 'parent' });
     const retained = ['parent', 'sibling'].map(runId => ({
         file: path.join(storeDir, runId, 'baseline.json'),
-        bytes: fs.readFileSync(path.join(storeDir, runId, 'baseline.json')),
+        bytes: fs.readFileSync(path.join(storeDir, runId, 'baseline.json'))
     }));
-    const close = () => spawnSync(process.execPath, [path.resolve(__dirname, '../lib/workflow-baseline.cjs'), 'close'], {
-        input: JSON.stringify({ rootDir, storeDir, runId: 'child' }), encoding: 'utf8', windowsHide: true,
-        timeout: 10000, env: { ...process.env, CLAUDE_PROJECT_DIR: rootDir },
-    });
+    const close = () =>
+        spawnSync(process.execPath, [path.resolve(__dirname, '../lib/workflow-baseline.cjs'), 'close'], {
+            input: JSON.stringify({ rootDir, storeDir, runId: 'child' }),
+            encoding: 'utf8',
+            windowsHide: true,
+            timeout: 10000,
+            env: { ...process.env, CLAUDE_PROJECT_DIR: rootDir }
+        });
     return { rootDir, storeDir, retained, close };
 }
 

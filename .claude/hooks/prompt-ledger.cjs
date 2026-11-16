@@ -104,10 +104,7 @@ function run(input, deps = {}) {
             if (!input || typeof input !== 'object' || Array.isArray(input)) return finish('');
             const store = deps.store || require('./lib/prompt-ledger-store.cjs');
             const projectDir = deps.projectDir || defaultProjectDir(input, ctx.env);
-            const settings = store.resolveSettings(
-                deps.rawSettings !== undefined ? deps.rawSettings : store.loadRawSettings(projectDir),
-                ctx.env
-            );
+            const settings = store.resolveSettings(deps.rawSettings !== undefined ? deps.rawSettings : store.loadRawSettings(projectDir), ctx.env);
             if (!settings.enabled) {
                 note(ctx, 'skip: disabled');
                 return finish('');
@@ -122,15 +119,16 @@ function run(input, deps = {}) {
             const dir = store.sessionDir(root, sessionId);
             const ledgerMd = store.relativeDisplay(path.join(dir, 'ledger.md'), projectDir);
 
-            const presentNow = () => store.isPresent(
-                store.readDelivery(dir),
-                {
-                    lastCompactionAt: store.lastCompactionAt(root, sessionId, input, settings, ctx.now),
-                    transcriptSize: store.transcriptSize(input.transcript_path),
-                    now: ctx.now
-                },
-                settings
-            );
+            const presentNow = () =>
+                store.isPresent(
+                    store.readDelivery(dir),
+                    {
+                        lastCompactionAt: store.lastCompactionAt(root, sessionId, input, settings, ctx.now),
+                        transcriptSize: store.transcriptSize(input.transcript_path),
+                        now: ctx.now
+                    },
+                    settings
+                );
             const deliver = (message, why) => {
                 if (!message || !message.text) return finish('');
                 const payload = formatPayload(eventName, message.text);
@@ -220,6 +218,13 @@ if (require('./lib/hook-runner.cjs').isHookEntryPoint(module)) {
         input = null;
     }
     if (input) {
-        run(input).then(() => { process.exitCode = 0; }, () => { process.exitCode = 0; });
+        run(input).then(
+            () => {
+                process.exitCode = 0;
+            },
+            () => {
+                process.exitCode = 0;
+            }
+        );
     }
 }

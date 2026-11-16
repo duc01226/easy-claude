@@ -23,8 +23,14 @@ const { diffTrees, readTreeFiles } = await import(pathToFileURL(gatePath).href);
 
 // TC-SKILLFIX-020 — identical trees → no divergence (the in-sync PASS case).
 test('TC-SKILLFIX-020: identical maps produce no diffs', () => {
-    const a = new Map([['skill/SKILL.md', 'x\n'], ['skill/extra.md', 'y\n']]);
-    const b = new Map([['skill/SKILL.md', 'x\n'], ['skill/extra.md', 'y\n']]);
+    const a = new Map([
+        ['skill/SKILL.md', 'x\n'],
+        ['skill/extra.md', 'y\n']
+    ]);
+    const b = new Map([
+        ['skill/SKILL.md', 'x\n'],
+        ['skill/extra.md', 'y\n']
+    ]);
     assert.deepEqual(diffTrees(a, b), []);
 });
 
@@ -37,7 +43,10 @@ test('TC-SKILLFIX-021: differing content is flagged', () => {
 
 // TC-SKILLFIX-022 — source produced a file the mirror lacks (new skill, forgot to sync).
 test('TC-SKILLFIX-022: file missing from mirror is flagged', () => {
-    const expected = new Map([['a/SKILL.md', 'x\n'], ['b/SKILL.md', 'y\n']]);
+    const expected = new Map([
+        ['a/SKILL.md', 'x\n'],
+        ['b/SKILL.md', 'y\n']
+    ]);
     const actual = new Map([['a/SKILL.md', 'x\n']]);
     assert.deepEqual(diffTrees(expected, actual), [{ relPath: 'b/SKILL.md', kind: 'missing-in-mirror' }]);
 });
@@ -45,7 +54,10 @@ test('TC-SKILLFIX-022: file missing from mirror is flagged', () => {
 // TC-SKILLFIX-023 — mirror has an orphan/hand-added file with no source counterpart.
 test('TC-SKILLFIX-023: extra mirror file is flagged', () => {
     const expected = new Map([['a/SKILL.md', 'x\n']]);
-    const actual = new Map([['a/SKILL.md', 'x\n'], ['a/hand-edit.md', 'z\n']]);
+    const actual = new Map([
+        ['a/SKILL.md', 'x\n'],
+        ['a/hand-edit.md', 'z\n']
+    ]);
     assert.deepEqual(diffTrees(expected, actual), [{ relPath: 'a/hand-edit.md', kind: 'extra-in-mirror' }]);
 });
 
@@ -99,11 +111,24 @@ test('TC-SKILLFIX-024: readTreeFiles excludes sentinel and normalizes CRLF', asy
 // Determinism guard: diffTrees output ordering is stable (sorted by relPath then kind),
 // so CI failure lists don't churn between runs.
 test('TC-SKILLFIX-024b: diff ordering is stable and sorted', () => {
-    const expected = new Map([['z/SKILL.md', '1\n'], ['a/SKILL.md', '1\n'], ['m/SKILL.md', 'fresh\n']]);
-    const actual = new Map([['m/SKILL.md', 'stale\n'], ['a/SKILL.md', '1\n']]);
+    const expected = new Map([
+        ['z/SKILL.md', '1\n'],
+        ['a/SKILL.md', '1\n'],
+        ['m/SKILL.md', 'fresh\n']
+    ]);
+    const actual = new Map([
+        ['m/SKILL.md', 'stale\n'],
+        ['a/SKILL.md', '1\n']
+    ]);
     const diffs = diffTrees(expected, actual);
-    assert.deepEqual(diffs.map(d => d.relPath), ['m/SKILL.md', 'z/SKILL.md']);
-    assert.deepEqual(diffs.map(d => d.kind), ['content', 'missing-in-mirror']);
+    assert.deepEqual(
+        diffs.map(d => d.relPath),
+        ['m/SKILL.md', 'z/SKILL.md']
+    );
+    assert.deepEqual(
+        diffs.map(d => d.kind),
+        ['content', 'missing-in-mirror']
+    );
 });
 
 // TC-SKILLFIX-025 — OS metadata a desktop file browser writes on its own (macOS .DS_Store, Windows
@@ -131,12 +156,18 @@ test('TC-SKILLFIX-025: OS metadata files in either tree are not divergence; a re
         await fs.writeFile(path.join(expectedDir, 'a', 'desktop.ini'), '[.ShellClassInfo]\r\nIconResource=x\r\n');
 
         const expected = await readTreeFiles(expectedDir);
-        assert.deepEqual(describe(diffTrees(expected, await readTreeFiles(actualDir))), [],
-            'OS metadata must not register as extra-in-mirror, missing-in-mirror or content drift');
+        assert.deepEqual(
+            describe(diffTrees(expected, await readTreeFiles(actualDir))),
+            [],
+            'OS metadata must not register as extra-in-mirror, missing-in-mirror or content drift'
+        );
         // The rule belongs to the walk, not to the `exclude` default: a caller that supplies its
         // own exclusions must not switch it off.
-        assert.deepEqual(describe(diffTrees(expected, await readTreeFiles(actualDir, { exclude: new Set(), skip: () => false }))), [],
-            'a caller-supplied exclude/skip must not re-admit OS metadata');
+        assert.deepEqual(
+            describe(diffTrees(expected, await readTreeFiles(actualDir, { exclude: new Set(), skip: () => false }))),
+            [],
+            'a caller-supplied exclude/skip must not re-admit OS metadata'
+        );
 
         // Genuine extras stay reportable: a hand-added file, a file whose name merely CONTAINS a
         // metadata name, and content under a DIRECTORY named like one (only files are metadata).
@@ -145,11 +176,10 @@ test('TC-SKILLFIX-025: OS metadata files in either tree are not divergence; a re
         await fs.writeFile(path.join(actualDir, 'a', 'notes.DS_Store.md'), 'hand-added\n');
         await fs.writeFile(path.join(actualDir, 'Thumbs.db', 'hidden.md'), 'hand-added\n');
 
-        assert.deepEqual(describe(diffTrees(expected, await readTreeFiles(actualDir))), [
-            'extra-in-mirror Thumbs.db/hidden.md',
-            'extra-in-mirror a/notes.DS_Store.md',
-            'extra-in-mirror a/stray.md'
-        ].sort());
+        assert.deepEqual(
+            describe(diffTrees(expected, await readTreeFiles(actualDir))),
+            ['extra-in-mirror Thumbs.db/hidden.md', 'extra-in-mirror a/notes.DS_Store.md', 'extra-in-mirror a/stray.md'].sort()
+        );
     } finally {
         await fs.rm(expectedDir, { recursive: true, force: true });
         await fs.rm(actualDir, { recursive: true, force: true });
@@ -226,7 +256,10 @@ test('TC-CTXMIRROR-002: a stale committed AGENTS.md is flagged as content drift'
 // TC-CTXMIRROR-004 — a committed .codex/CODEX_CONTEXT.md no longer has a source: it is reported as an orphan.
 test('TC-CTXMIRROR-004: a leftover .codex/CODEX_CONTEXT.md is flagged as an orphan', () => {
     const fresh = new Map([['AGENTS.md', 'a\n']]);
-    const committed = new Map([['AGENTS.md', 'a\n'], ['.codex/CODEX_CONTEXT.md', 'c\n']]);
+    const committed = new Map([
+        ['AGENTS.md', 'a\n'],
+        ['.codex/CODEX_CONTEXT.md', 'c\n']
+    ]);
     assert.deepEqual(diffTrees(fresh, committed), [{ relPath: '.codex/CODEX_CONTEXT.md', kind: 'extra-in-mirror' }]);
 });
 
@@ -289,9 +322,7 @@ test('TC-HOOKMIRROR-001: importing a sync module in a fresh process does not wri
 
     const probeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'hookmirror-import-'));
     const probe = path.join(probeDir, 'import-only.mjs');
-    const importLines = SYNC_MODULES
-        .map(name => `await import(${JSON.stringify(pathToFileURL(path.resolve(thisDir, '..', name)).href)});`)
-        .join('\n');
+    const importLines = SYNC_MODULES.map(name => `await import(${JSON.stringify(pathToFileURL(path.resolve(thisDir, '..', name)).href)});`).join('\n');
     await fs.writeFile(probe, `${importLines}\n`);
 
     try {
@@ -512,12 +543,26 @@ test('TC-KNW-045: Codex registers the knowledge router only where it can fire (p
             .filter(([, groups]) => groups.some(group => group.hooks.some(hook => String(hook.command).includes('knowledge-route.cjs'))))
             .map(([event]) => event)
             .sort();
-        assert.deepEqual(eventsWith, ['SessionStart', 'SubagentStart', 'UserPromptSubmit'], 'the knowledge router mirrors on the prompt, helper-agent and compaction events only');
+        assert.deepEqual(
+            eventsWith,
+            ['SessionStart', 'SubagentStart', 'UserPromptSubmit'],
+            'the knowledge router mirrors on the prompt, helper-agent and compaction events only'
+        );
         const postToolUse = (rendered.hooks.PostToolUse || []).flatMap(group => group.hooks);
-        assert.ok(!postToolUse.some(hook => String(hook.command).includes('knowledge-route.cjs')), 'no Codex handler on Skill or Read, tools Codex never emits');
+        assert.ok(
+            !postToolUse.some(hook => String(hook.command).includes('knowledge-route.cjs')),
+            'no Codex handler on Skill or Read, tools Codex never emits'
+        );
         const skips = (report && report.skipped_groups) || [];
-        assert.ok(skips.some(skip => skip.reason === 'matcher-names-no-codex-tool' && skip.matcher === 'Skill' && skip.event === 'PostToolUse'), 'the Claude-only Skill group is reported, not silently dropped');
-        assert.deepEqual(skips.filter(skip => skip.event === 'UserPromptExpansion').map(skip => skip.reason), ['already-on-remap-target'], 'the expansion group is recorded as covered by the prompt registration, never as an unreviewed drop');
+        assert.ok(
+            skips.some(skip => skip.reason === 'matcher-names-no-codex-tool' && skip.matcher === 'Skill' && skip.event === 'PostToolUse'),
+            'the Claude-only Skill group is reported, not silently dropped'
+        );
+        assert.deepEqual(
+            skips.filter(skip => skip.event === 'UserPromptExpansion').map(skip => skip.reason),
+            ['already-on-remap-target'],
+            'the expansion group is recorded as covered by the prompt registration, never as an unreviewed drop'
+        );
     } finally {
         await fs.rm(staging, { recursive: true, force: true });
     }
@@ -546,7 +591,13 @@ test('TC-KNW-045: an expansion-only handler is still an unreviewed drop; one als
         const rendered = JSON.parse(await fs.readFile(path.join(root, '.codex', 'hooks.json'), 'utf8'));
         // Then the covered handler is recorded as covered and the other as the unreviewed drop
         const expansion = report.skipped_groups.filter(skip => skip.event === 'UserPromptExpansion');
-        assert.deepEqual(expansion.map(skip => [skip.group_index, skip.reason]), [[0, 'already-on-remap-target'], [1, 'remap-limited-to-protocol-entries']]);
+        assert.deepEqual(
+            expansion.map(skip => [skip.group_index, skip.reason]),
+            [
+                [0, 'already-on-remap-target'],
+                [1, 'remap-limited-to-protocol-entries']
+            ]
+        );
         // And only the uncovered one fails the gate
         const problems = unexpectedHookSkips(report).filter(problem => problem.includes('UserPromptExpansion['));
         assert.equal(problems.length, 1, problems.join('\n'));
@@ -554,7 +605,10 @@ test('TC-KNW-045: an expansion-only handler is still an unreviewed drop; one als
         // And neither is re-targeted: the covered handler runs once on the prompt event, the other nowhere
         const commands = Object.values(rendered.hooks).flatMap(groups => groups.flatMap(group => group.hooks.map(hook => String(hook.command))));
         assert.equal(commands.filter(command => command.includes('covered-router.cjs')).length, 1);
-        assert.equal(commands.some(command => command.includes('expansion-only.cjs')), false);
+        assert.equal(
+            commands.some(command => command.includes('expansion-only.cjs')),
+            false
+        );
     } finally {
         await fs.rm(root, { recursive: true, force: true });
     }
@@ -566,8 +620,7 @@ test('TC-HOOKMIRROR-003: a fresh render produces exactly the expected hook surfa
         await materializeHookMirror(staging);
         const rendered = JSON.parse(await fs.readFile(path.join(staging, 'hooks.json'), 'utf8'));
 
-        const actual = Object.entries(rendered.hooks)
-            .flatMap(([event, groups]) => groups.map(group => [event, group.matcher ?? null, group.hooks.length]));
+        const actual = Object.entries(rendered.hooks).flatMap(([event, groups]) => groups.map(group => [event, group.matcher ?? null, group.hooks.length]));
 
         // The table records this repository's own hook surface. An adopting project registers hooks of
         // its own, which framework updates keep, so there only the portable properties below apply.
@@ -604,15 +657,13 @@ test('TC-HOOKMIRROR-003: a fresh render produces exactly the expected hook surfa
         for (const group of settings.hooks.PreToolUse || []) {
             if (!group.matcher || group.matcher === '*') continue;
             assert.ok(
-                renderedMatchers.some(
-                    rendered => rendered === group.matcher || rendered.startsWith(`${group.matcher}|`)
-                ),
+                renderedMatchers.some(rendered => rendered === group.matcher || rendered.startsWith(`${group.matcher}|`)),
                 `PreToolUse matcher "${group.matcher}" is configured in settings.json but no rendered Codex matcher preserves it as a prefix (rendered: ${renderedMatchers.join(', ')})`
             );
         }
 
         const sessionEndAlertSource = (settings.hooks.SessionEnd || [])
-            .flatMap(group => Array.isArray(group.hooks) ? group.hooks : [])
+            .flatMap(group => (Array.isArray(group.hooks) ? group.hooks : []))
             .find(hook => hook.command?.includes('/notifications/notify.cjs'));
         assert.ok(sessionEndAlertSource, 'settings.json must register the SessionEnd notification hook');
         assert.equal(sessionEndAlertSource.timeout, 3, 'the SessionEnd notification timeout must stay within Codex’s 3-second budget');
@@ -646,11 +697,7 @@ test('TC-HOOKMIRROR-004: the skip guard accepts the reviewed baseline and reject
         { event: 'PostToolUseFailure', reason: 'unsupported-by-codex' }
     ];
 
-    assert.deepEqual(
-        unexpectedHookSkips({ skipped_events: BASELINE, skipped_groups: [] }),
-        [],
-        'the reviewed baseline must not fail the gate'
-    );
+    assert.deepEqual(unexpectedHookSkips({ skipped_events: BASELINE, skipped_groups: [] }), [], 'the reviewed baseline must not fail the gate');
 
     const newSkip = unexpectedHookSkips({
         skipped_events: [...BASELINE, { event: 'PreToolUse', reason: 'unsupported-by-codex' }],
@@ -660,8 +707,7 @@ test('TC-HOOKMIRROR-004: the skip guard accepts the reviewed baseline and reject
     assert.match(newSkip[0], /PreToolUse is now skipped/);
 
     const changedReason = unexpectedHookSkips({
-        skipped_events: BASELINE.map(entry =>
-            entry.event === 'Notification' ? { ...entry, reason: 'no-compatible-groups-after-filtering' } : entry),
+        skipped_events: BASELINE.map(entry => (entry.event === 'Notification' ? { ...entry, reason: 'no-compatible-groups-after-filtering' } : entry)),
         skipped_groups: []
     });
     assert.equal(changedReason.length, 1);
@@ -849,11 +895,7 @@ test('TC-CODEXSYNC-001: the remediation command regenerates every surface this g
     // judged against the stale tree it was printed about.
     const gateIndex = stages.findIndex(entry => entry.id === 'sync-divergence');
     assert.notEqual(gateIndex, -1, "the roster must end by re-running this gate ('sync-divergence')");
-    assert.equal(
-        gateIndex,
-        stages.length - 1,
-        'verify-sync-divergence must be the LAST stage — verification before the final generator proves nothing'
-    );
+    assert.equal(gateIndex, stages.length - 1, 'verify-sync-divergence must be the LAST stage — verification before the final generator proves nothing');
     const lastGeneratorIndex = Math.max(...GENERATOR_FOR_SURFACE.map(([, id]) => stages.findIndex(entry => entry.id === id)));
     assert.ok(lastGeneratorIndex < gateIndex, 'every generator must run BEFORE the verification stage, or the gate verifies output it has not regenerated');
 });
@@ -866,8 +908,13 @@ test('TC-CODEXSYNC-001: the remediation command regenerates every surface this g
 test('TC-CODEXSYNC-002: the printed remediation names a command that exists inside the bundle', async () => {
     const source = await fs.readFile(path.join(repoRoot, '.claude', 'scripts', 'codex', 'verify-sync-divergence.mjs'), 'utf8');
     assert.match(source, /run-codex-sync\.mjs/, 'the remediation must name the standalone runner');
-    assert.doesNotMatch(source, /npm run codex:sync/,
-        'the remediation must not name a host npm script — it does not exist in an adopting project');
+    assert.doesNotMatch(source, /npm run codex:sync/, 'the remediation must not name a host npm script — it does not exist in an adopting project');
     const runner = path.join(repoRoot, '.claude', 'skills', 'sync-codex', 'scripts', 'run-codex-sync.mjs');
-    assert.ok(await fs.access(runner).then(() => true, () => false), 'the named runner must exist on disk');
+    assert.ok(
+        await fs.access(runner).then(
+            () => true,
+            () => false
+        ),
+        'the named runner must exist on disk'
+    );
 });

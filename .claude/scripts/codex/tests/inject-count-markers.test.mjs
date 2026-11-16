@@ -47,11 +47,14 @@ test('TC-COUNTS-001 injects only listed documents that exist and carry a COUNT m
         // Then only the listed document with a marker reaches the catalog tool, and every listed
         // document is accounted for; the unlisted example is never touched.
         assert.deepEqual(calls, ['docs/with-marker.md']);
-        assert.deepEqual(results.map(result => [result.file, result.status]), [
-            ['docs/with-marker.md', 'injected'],
-            ['docs/plain.md', 'no-markers'],
-            ['docs/missing.md', 'missing']
-        ]);
+        assert.deepEqual(
+            results.map(result => [result.file, result.status]),
+            [
+                ['docs/with-marker.md', 'injected'],
+                ['docs/plain.md', 'no-markers'],
+                ['docs/missing.md', 'missing']
+            ]
+        );
     } finally {
         fs.rmSync(root, { recursive: true, force: true });
     }
@@ -66,11 +69,12 @@ test('TC-COUNTS-002 a failed injection names the document and carries the tool o
         // When the catalog tool exits non-zero, then the stage throws with both the file and the reason,
         // so the sync's abort line says what to fix instead of only "exit 1".
         assert.throws(
-            () => injectCountMarkers({
-                rootDir: root,
-                files: ['docs/index.md'],
-                runInject: () => ({ status: 1, stderr: 'ValueError: the markdown count kind needs git' })
-            }),
+            () =>
+                injectCountMarkers({
+                    rootDir: root,
+                    files: ['docs/index.md'],
+                    runInject: () => ({ status: 1, stderr: 'ValueError: the markdown count kind needs git' })
+                }),
             error => /docs\/index\.md/.test(error.message) && /needs git/.test(error.message)
         );
     } finally {

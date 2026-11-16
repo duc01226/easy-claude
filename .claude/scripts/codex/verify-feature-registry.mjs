@@ -209,9 +209,7 @@ function resolveProjectConfigPath(rootDir) {
     }
 
     const configured = ckConfig?.portability?.projectConfigPath;
-    const relativePath = typeof configured === 'string' && configured.trim()
-        ? configured.trim()
-        : 'docs/project-config.json';
+    const relativePath = typeof configured === 'string' && configured.trim() ? configured.trim() : 'docs/project-config.json';
     const configPath = path.resolve(rootDir, relativePath);
     const relativeConfigPath = path.relative(rootDir, configPath);
     if (relativeConfigPath.startsWith('..') || path.isAbsolute(relativeConfigPath)) {
@@ -230,13 +228,17 @@ function loadConfiguredRoots(rootDir, { optional = false } = {}) {
         throw new Error(`Cannot read feature-registry adoption config at ${configPath}: ${error.message}`);
     }
 
-    const hasAdoptionContract = config && Object.prototype.hasOwnProperty.call(config, 'specSystem') &&
+    const hasAdoptionContract =
+        config &&
+        Object.prototype.hasOwnProperty.call(config, 'specSystem') &&
         Object.prototype.hasOwnProperty.call(config.specSystem ?? {}, 'featureRegistryRoots');
     if (optional && !hasAdoptionContract) return null;
 
     const roots = config?.specSystem?.featureRegistryRoots;
     if (!Array.isArray(roots) || roots.length === 0 || roots.some(root => typeof root !== 'string' || !root.trim())) {
-        throw new Error(`${normalizePath(path.relative(rootDir, configPath))} specSystem.featureRegistryRoots must be a non-empty list of canonical parent spec paths.`);
+        throw new Error(
+            `${normalizePath(path.relative(rootDir, configPath))} specSystem.featureRegistryRoots must be a non-empty list of canonical parent spec paths.`
+        );
     }
     return [...new Set(roots.map(root => root.trim()))];
 }
@@ -286,11 +288,13 @@ async function main(resolvedRoot) {
 }
 
 if (isInvokedAsScript(process.argv[1], fileURLToPath(import.meta.url))) {
-    await main(resolveProjectRoot({
-        cwd: process.cwd(),
-        scriptPath: fileURLToPath(import.meta.url),
-        env: process.env,
-    }).rootDir);
+    await main(
+        resolveProjectRoot({
+            cwd: process.cwd(),
+            scriptPath: fileURLToPath(import.meta.url),
+            env: process.env
+        }).rootDir
+    );
 }
 
 export { serializeFeatureRegistry };

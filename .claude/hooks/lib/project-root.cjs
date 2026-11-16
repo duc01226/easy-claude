@@ -64,9 +64,7 @@ function nearestProjectRoot(start) {
  * @returns {{rootDir: string, source: string, error?: string}}
  */
 function resolveProjectRoot({ cwd = process.cwd(), scriptPath, env = process.env } = {}) {
-    const explicit = env && Object.prototype.hasOwnProperty.call(env, 'CLAUDE_PROJECT_DIR')
-        ? env.CLAUDE_PROJECT_DIR
-        : undefined;
+    const explicit = env && Object.prototype.hasOwnProperty.call(env, 'CLAUDE_PROJECT_DIR') ? env.CLAUDE_PROJECT_DIR : undefined;
 
     if (explicit !== undefined && explicit !== null && String(explicit).trim() !== '') {
         const explicitRoot = absoluteDirectory(String(explicit));

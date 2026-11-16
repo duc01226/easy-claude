@@ -49,7 +49,7 @@ function normalizeEol(markdown) {
  * @returns {number}
  */
 function findMarkerStart(md, marker) {
-    for (let from = 0; ; ) {
+    for (let from = 0; ;) {
         const idx = md.indexOf(marker, from);
         if (idx === -1) return -1;
         const atLineStart = idx === 0 || md[idx - 1] === '\n';

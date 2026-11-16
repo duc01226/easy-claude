@@ -21,7 +21,7 @@ const WRITER_ANCHORS = [
     [/^6\. \*\*Write journal entry\*\*/, 'writer workflow'],
     [/^\*\*Journal location:\*\*/, 'writer location'],
     [/^\*\*Journal output:\*\*/, 'writer output owner'],
-    [/^\*\*IMPORTANT MUST ATTENTION\*\* Write the journal file/, 'writer closing'],
+    [/^\*\*IMPORTANT MUST ATTENTION\*\* Write the journal file/, 'writer closing']
 ];
 
 function assertWriterDestination(source) {
@@ -41,7 +41,11 @@ function assertReportsDistinct(source) {
     assert.match(boundary, /`tmp\/reports\/`/, 'writer: assessment reports retain their destination');
     assert.match(boundary, /journal entries.*`\.\/docs\/journals\/`/, 'writer: durable journal stays separate');
     // The report task-tracking contract now lives in the agent-bootstrap block (canonical: SYNC:agent-bootstrap).
-    assert.match(source, /Producing a report\?\*\* Create the `tmp\/reports\/` file path BEFORE the first finding/, 'writer: report task-tracking contract retained');
+    assert.match(
+        source,
+        /Producing a report\?\*\* Create the `tmp\/reports\/` file path BEFORE the first finding/,
+        'writer: report task-tracking contract retained'
+    );
 }
 
 // TC-HARNESS-015 / S15: prompt-contract checks, not measured agent execution.
@@ -57,8 +61,10 @@ test('TC-HARNESS-015: writer journal destination and dated slug remain consisten
     const wrongDirectories = ['tmp/reports/', 'docs/journal/', 'docs/journals-extra/', 'docs/journals/../reports/', '../docs/journals/'];
     for (const [anchor] of WRITER_ANCHORS) {
         for (const directory of wrongDirectories) {
-            const mutant = writer.split(/\r?\n/).map(line => anchor.test(line)
-                ? line.replace(/(?:\.\/)?docs\/journals\//, directory) : line).join('\n');
+            const mutant = writer
+                .split(/\r?\n/)
+                .map(line => (anchor.test(line) ? line.replace(/(?:\.\/)?docs\/journals\//, directory) : line))
+                .join('\n');
             assert.notEqual(mutant, writer.replace(/\r?\n/g, '\n'), 'mutation must alter its target');
             assert.throws(() => assertWriterDestination(mutant), /journal destination must be docs\/journals/);
         }
@@ -70,8 +76,10 @@ test('TC-HARNESS-015: writer journal destination and dated slug remain consisten
 test('TC-HARNESS-015: intermediate reports remain distinct from journal entries', t => {
     assertReportsDistinct(writer);
     assertReportsDistinct(writer.replace(/\r?\n/g, '\r\n'));
-    const mutant = writer.split(/\r?\n/).map(line => /intermediate assessments/.test(line)
-        ? line.replace('tmp/reports/', './docs/journals/') : line).join('\n');
+    const mutant = writer
+        .split(/\r?\n/)
+        .map(line => (/intermediate assessments/.test(line) ? line.replace('tmp/reports/', './docs/journals/') : line))
+        .join('\n');
     assert.throws(() => assertReportsDistinct(mutant), /assessment reports retain their destination/);
     t.diagnostic('Killed the assessment-redirection mutant; report task-tracking contract retained.');
 });

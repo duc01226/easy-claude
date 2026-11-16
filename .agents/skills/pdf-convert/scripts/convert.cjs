@@ -27,8 +27,8 @@ const SKILL = 'pdf-convert';
 
 /** Conversion direction -> sub-directory holding that converter. */
 const DIRECTIONS = {
-  markdown: 'to-markdown',
-  pdf: 'to-pdf',
+    markdown: 'to-markdown',
+    pdf: 'to-pdf'
 };
 
 /**
@@ -39,28 +39,28 @@ const DIRECTIONS = {
  * @returns {{ to: string | null, rest: string[] }}
  */
 function parseArgs(argv) {
-  let to = null;
-  const rest = [];
+    let to = null;
+    const rest = [];
 
-  for (let i = 2; i < argv.length; i++) {
-    const arg = argv[i];
+    for (let i = 2; i < argv.length; i++) {
+        const arg = argv[i];
 
-    if (arg === '--to') {
-      // A trailing `--to` with no value leaves `to` null -> usage + exit 1.
-      to = i + 1 < argv.length ? argv[i + 1] : null;
-      i++;
-      continue;
+        if (arg === '--to') {
+            // A trailing `--to` with no value leaves `to` null -> usage + exit 1.
+            to = i + 1 < argv.length ? argv[i + 1] : null;
+            i++;
+            continue;
+        }
+
+        if (arg.startsWith('--to=')) {
+            to = arg.slice('--to='.length) || null;
+            continue;
+        }
+
+        rest.push(arg);
     }
 
-    if (arg.startsWith('--to=')) {
-      to = arg.slice('--to='.length) || null;
-      continue;
-    }
-
-    rest.push(arg);
-  }
-
-  return { to, rest };
+    return { to, rest };
 }
 
 /**
@@ -69,12 +69,10 @@ function parseArgs(argv) {
  * @returns {void}
  */
 function printUsage(to) {
-  const valid = Object.keys(DIRECTIONS).join('|');
-  const problem = to === null
-    ? 'Missing --to: pick a conversion direction.'
-    : `Unknown conversion direction: ${to}`;
+    const valid = Object.keys(DIRECTIONS).join('|');
+    const problem = to === null ? 'Missing --to: pick a conversion direction.' : `Unknown conversion direction: ${to}`;
 
-  console.error(`${problem}
+    console.error(`${problem}
 
 USAGE:
   node scripts/convert.cjs --to <${valid}> [options]
@@ -93,26 +91,26 @@ EXAMPLES:
 }
 
 function main() {
-  const { to, rest } = parseArgs(process.argv);
-  const direction = to === null ? null : DIRECTIONS[to];
+    const { to, rest } = parseArgs(process.argv);
+    const direction = to === null ? null : DIRECTIONS[to];
 
-  if (!direction) {
-    printUsage(to);
-    process.exit(1);
-  }
+    if (!direction) {
+        printUsage(to);
+        process.exit(1);
+    }
 
-  const target = path.join(__dirname, '..', direction, 'scripts', 'convert.cjs');
+    const target = path.join(__dirname, '..', direction, 'scripts', 'convert.cjs');
 
-  // argv array, no shell: nothing in `rest` can be interpreted as a command.
-  const result = spawnSync(process.execPath, [target, ...rest], { stdio: 'inherit' });
+    // argv array, no shell: nothing in `rest` can be interpreted as a command.
+    const result = spawnSync(process.execPath, [target, ...rest], { stdio: 'inherit' });
 
-  if (result.error) {
-    console.error(`Could not run the ${to} converter at ${target}: ${result.error.message}`);
-    process.exit(1);
-  }
+    if (result.error) {
+        console.error(`Could not run the ${to} converter at ${target}: ${result.error.message}`);
+        process.exit(1);
+    }
 
-  // A child killed by a signal reports status null; report it as a failure rather than success.
-  process.exit(result.status === null ? 1 : result.status);
+    // A child killed by a signal reports status null; report it as a failure rather than success.
+    process.exit(result.status === null ? 1 : result.status);
 }
 
 main();

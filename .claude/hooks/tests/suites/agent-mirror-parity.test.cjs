@@ -65,7 +65,8 @@ function blocksOf(text) {
 }
 
 function namesIn(dir, extension) {
-    return fs.readdirSync(dir)
+    return fs
+        .readdirSync(dir)
         .filter(file => file.endsWith(extension))
         .map(file => file.slice(0, -extension.length))
         .sort();
@@ -93,7 +94,7 @@ function compareBlocks(problems, label, claudeBlocks, hostBlocks, expected) {
     assertEqual(
         JSON.stringify(actualTags),
         JSON.stringify(expectedTags),
-        `${label}: SYNC tag set drifted\n  expected ${expectedTags.length}: ${expectedTags.join(', ')}\n  actual   ${actualTags.length}: ${actualTags.join(', ')}`,
+        `${label}: SYNC tag set drifted\n  expected ${expectedTags.length}: ${expectedTags.join(', ')}\n  actual   ${actualTags.length}: ${actualTags.join(', ')}`
     );
     for (const [tag, body] of claudeBlocks) {
         const want = normalize(body);
@@ -113,7 +114,7 @@ module.exports = {
                 const claude = namesIn(CLAUDE_AGENTS, '.md');
                 assertEqual(JSON.stringify(namesIn(CODEX_AGENTS, '.toml')), JSON.stringify(claude), 'Codex agent set');
                 assertEqual(JSON.stringify(namesIn(OPENCODE_AGENTS, '.md')), JSON.stringify(claude), 'OpenCode agent set');
-            },
+            }
         },
         {
             name: '[agent-mirror] TC-AMP-002 every agent carries the same SYNC tag set and bodies on all three hosts',
@@ -133,7 +134,7 @@ module.exports = {
                     assertEqual(JSON.stringify([...codex.keys()].sort()), JSON.stringify([...claude.keys()].sort()), `${name}: Codex SYNC tag set drifted`);
                 }
                 assertEqual(problems.length, 0, `agent protocol drift:\n  ${problems.join('\n  ')}`);
-            },
+            }
         },
         {
             name: '[agent-mirror] TC-AMP-003 every skill mirror carries the same SYNC blocks as its Claude source',
@@ -151,10 +152,10 @@ module.exports = {
                     assertEqual(
                         JSON.stringify([...codex.keys()].sort()),
                         JSON.stringify([...claude.keys()].sort()),
-                        `${name}: the .agents mirror SYNC tag set drifted`,
+                        `${name}: the .agents mirror SYNC tag set drifted`
                     );
                     for (const [tag, body] of claude) {
-                        if (normalize(codex.get(tag)) !== await expectedCodexBody(body)) {
+                        if (normalize(codex.get(tag)) !== (await expectedCodexBody(body))) {
                             problems.push(`${name}: '${tag}' is not the documented rewrite of its Claude source`);
                         }
                         compared++;
@@ -162,7 +163,7 @@ module.exports = {
                 }
                 assertTrue(compared > 300, `expected the whole skill corpus, compared ${compared} blocks`);
                 assertEqual(problems.length, 0, `skill protocol drift:\n  ${problems.join('\n  ')}`);
-            },
+            }
         },
         {
             name: '[agent-mirror] TC-AMP-004 every code-touching sub-agent carries the core quality gate on every host',
@@ -185,7 +186,7 @@ module.exports = {
                     }
                 }
                 assertEqual(problems.length, 0, `core gate missing from a mirrored role:\n  ${problems.join('\n  ')}`);
-            },
+            }
         },
         {
             name: '[agent-mirror] TC-AMP-005 mutation probe: a corrupted mirror body and a removed tag are both reported',
@@ -210,7 +211,7 @@ module.exports = {
                     threw = /SYNC tag set drifted/.test(error.message);
                 }
                 assertTrue(threw, 'a removed tag must fail the tag-set comparison');
-            },
+            }
         },
         {
             name: '[agent-mirror] TC-AMP-006 fail-closed: a mirror without a parseable fence is never a silent pass',
@@ -225,24 +226,25 @@ module.exports = {
                     threw = /SYNC tag set drifted/.test(error.message);
                 }
                 assertTrue(threw, 'zero parsed blocks against a non-empty source must fail');
-            },
+            }
         },
         {
             name: '[agent-mirror] TC-AMP-007 the agent/skill matrix validates clean, so a same-role gap fails the build',
             skip: SKIP,
             fn: () => {
                 const python = findPythonCommand({ cwd: ROOT });
-                const run = spawnSync(
-                    python.command,
-                    [...python.baseArgs, path.join(ROOT, '.claude/scripts/agent_protocol_matrix.py'), '--validate'],
-                    { cwd: ROOT, encoding: 'utf8', timeout: 120000, windowsHide: true },
-                );
+                const run = spawnSync(python.command, [...python.baseArgs, path.join(ROOT, '.claude/scripts/agent_protocol_matrix.py'), '--validate'], {
+                    cwd: ROOT,
+                    encoding: 'utf8',
+                    timeout: 120000,
+                    windowsHide: true
+                });
                 assertEqual(
                     run.status,
                     0,
-                    `agent_protocol_matrix --validate failed (it enforces same-role parity):\n${(run.stdout || '') + (run.stderr || '')}`,
+                    `agent_protocol_matrix --validate failed (it enforces same-role parity):\n${(run.stdout || '') + (run.stderr || '')}`
                 );
-            },
-        },
-    ],
+            }
+        }
+    ]
 };

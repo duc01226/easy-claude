@@ -20,8 +20,11 @@ const CHROME_WINDOWS_PATH = Object.freeze(['Google', 'Chrome', 'Application', 'c
 const CHROME_LINUX_COMMANDS = Object.freeze(['google-chrome', 'google-chrome-stable']);
 
 function regularFile(file) {
-    try { return fs.statSync(file).isFile(); }
-    catch { return false; }
+    try {
+        return fs.statSync(file).isFile();
+    } catch {
+        return false;
+    }
 }
 
 // A copied environment object is case-sensitive even where the operating system's own is not.
@@ -37,8 +40,12 @@ function chromeCommands(platform, env, isFile) {
     // Chrome is not on PATH on Windows, and asking `start` for a missing program shows an error dialog,
     // so only an existing executable is started, and directly. It is a window application: the hidden
     // start that suits a console launcher would ask it to start without showing its window.
-    if (platform === 'win32') return CHROME_WINDOWS_ROOTS.map(name => envValue(env, name)).filter(Boolean)
-        .map(base => path.win32.join(base, ...CHROME_WINDOWS_PATH)).filter(isFile).map(command => ({ command, args: [], window: true }));
+    if (platform === 'win32')
+        return CHROME_WINDOWS_ROOTS.map(name => envValue(env, name))
+            .filter(Boolean)
+            .map(base => path.win32.join(base, ...CHROME_WINDOWS_PATH))
+            .filter(isFile)
+            .map(command => ({ command, args: [], window: true }));
     if (platform === 'linux') return CHROME_LINUX_COMMANDS.map(command => ({ command, args: [] }));
     return [];
 }
@@ -46,8 +53,10 @@ function chromeCommands(platform, env, isFile) {
 /** Launch attempts in order: Chrome first, then the platform's default browser. */
 function launchPlan(url, { platform = process.platform, env = process.env, isFile = regularFile } = {}) {
     const fallback = openCommand(platform, url);
-    return [...chromeCommands(platform, env, isFile).map(({ command, args, window = false }) => ({ browser: 'chrome', command, args: [...args, url], window })),
-        ...(fallback ? [{ browser: 'default', command: fallback.command, args: fallback.args, window: false }] : [])];
+    return [
+        ...chromeCommands(platform, env, isFile).map(({ command, args, window = false }) => ({ browser: 'chrome', command, args: [...args, url], window })),
+        ...(fallback ? [{ browser: 'default', command: fallback.command, args: fallback.args, window: false }] : [])
+    ];
 }
 
 /** Resolves true when the launcher exited cleanly or is still running after the grace period. */
@@ -55,10 +64,17 @@ function start(attempt, spawn, graceMs) {
     return new Promise(resolve => {
         let child;
         // The address is a literal argument, never part of a shell string.
-        try { child = spawn(attempt.command, attempt.args, { detached: true, stdio: 'ignore', windowsHide: !attempt.window }); }
-        catch { resolve(false); return; }
+        try {
+            child = spawn(attempt.command, attempt.args, { detached: true, stdio: 'ignore', windowsHide: !attempt.window });
+        } catch {
+            resolve(false);
+            return;
+        }
         const timer = setTimeout(() => settle(true), graceMs);
-        function settle(started) { clearTimeout(timer); resolve(started); }
+        function settle(started) {
+            clearTimeout(timer);
+            resolve(started);
+        }
         child.once('error', () => settle(false));
         child.once('exit', code => settle(code === 0));
         if (typeof child.unref === 'function') child.unref();
@@ -70,8 +86,10 @@ function start(attempt, spawn, graceMs) {
  * page rendered, so the outcome never claims an observed viewer.
  * @returns {Promise<{status: 'requested' | 'not-opened', browser?: 'chrome' | 'default', reason?: string, observedViewer: 'unverified'}>}
  */
-async function launchBrowser(url, { platform = process.platform, env = process.env, spawn = childProcess.spawn,
-    isFile = regularFile, graceMs = START_GRACE_MS } = {}) {
+async function launchBrowser(
+    url,
+    { platform = process.platform, env = process.env, spawn = childProcess.spawn, isFile = regularFile, graceMs = START_GRACE_MS } = {}
+) {
     const outcome = (status, detail) => ({ status, ...detail, observedViewer: 'unverified' });
     if (typeof url !== 'string' || !LAUNCH_LINK.test(url)) return outcome('not-opened', { reason: 'address is not a launch link of this local workspace' });
     const skip = skipReason(platform, env);

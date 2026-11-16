@@ -222,7 +222,8 @@ function parseBlock(block, ownerLine) {
         const match = keyLine(line.text.trim());
         if (!match) fail(`Expected "key: value" (frontmatter line ${line.number})`);
         if (Object.prototype.hasOwnProperty.call(map, match.key)) fail(`Duplicate key "${match.key}" (frontmatter line ${line.number})`);
-        if (match.value === undefined || match.value.trim() === '') fail(`Nested blocks deeper than one level are not supported (frontmatter line ${ownerLine})`);
+        if (match.value === undefined || match.value.trim() === '')
+            fail(`Nested blocks deeper than one level are not supported (frontmatter line ${ownerLine})`);
         map[match.key] = parseValue(match.value);
     }
     return map;
@@ -238,7 +239,8 @@ function parseList(block, base) {
             const pair = keyLine(rest);
             if (pair && !rest.startsWith('"') && !rest.startsWith("'")) {
                 current = {};
-                if (pair.value === undefined || pair.value.trim() === '') fail(`Nested blocks deeper than one level are not supported (frontmatter line ${line.number})`);
+                if (pair.value === undefined || pair.value.trim() === '')
+                    fail(`Nested blocks deeper than one level are not supported (frontmatter line ${line.number})`);
                 current[pair.key] = parseValue(pair.value);
                 items.push(current);
             } else {
@@ -249,7 +251,8 @@ function parseList(block, base) {
         }
         if (line.indent > base && current) {
             const pair = keyLine(trimmed);
-            if (!pair || pair.value === undefined || pair.value.trim() === '') fail(`Expected "key: value" inside a list item (frontmatter line ${line.number})`);
+            if (!pair || pair.value === undefined || pair.value.trim() === '')
+                fail(`Expected "key: value" inside a list item (frontmatter line ${line.number})`);
             if (Object.prototype.hasOwnProperty.call(current, pair.key)) fail(`Duplicate key "${pair.key}" (frontmatter line ${line.number})`);
             current[pair.key] = parseValue(pair.value);
             continue;
@@ -294,7 +297,11 @@ function parseHeading(line, maxLevel = 6) {
     const open = /^(#{1,6})\s+/.exec(line);
     if (!open || open[1].length > maxLevel) return null;
     // The lookbehind starts the closing-hash match only at a run's first `#`, so a long `#` run is passed over once.
-    const text = line.slice(open[0].length).trimEnd().replace(/(?<!#)#+$/, '').trimEnd();
+    const text = line
+        .slice(open[0].length)
+        .trimEnd()
+        .replace(/(?<!#)#+$/, '')
+        .trimEnd();
     // A heading is one line: text that still holds a line terminator is not a heading.
     return /[\n\r\u2028\u2029]/.test(text) ? null : { level: open[1].length, text };
 }
@@ -353,8 +360,10 @@ function extractClauses(body) {
 // The checks below are a heuristic (BR-KNW-13): they catch common instruction shapes, not every one; the
 // person's confirmed review of a draft is the control. Each pattern is anchored on an imperative or on a
 // shape that ordinary reference prose does not take ("run the migration before deploying" passes).
-const BYPASS_VERBS = 'ignore|ignoring|skip|skipping|disable|disabling|bypass|bypassing|override|overriding|relax|relaxing|disregard|disregarding|suppress|suppressing|circumvent|turn off';
-const GUARD_NOUNS = 'rules?|gates?|reviews?|review steps?|tests?|checks?|confirmations?|instructions?|protocols?|polic(?:y|ies)|guardrails?|approvals?|validations?|safeguards?|restrictions?|steps?';
+const BYPASS_VERBS =
+    'ignore|ignoring|skip|skipping|disable|disabling|bypass|bypassing|override|overriding|relax|relaxing|disregard|disregarding|suppress|suppressing|circumvent|turn off';
+const GUARD_NOUNS =
+    'rules?|gates?|reviews?|review steps?|tests?|checks?|confirmations?|instructions?|protocols?|polic(?:y|ies)|guardrails?|approvals?|validations?|safeguards?|restrictions?|steps?';
 // An imperative may open with a softener or an adverb ("Always skip …", "Just push …").
 const LEAD = '(?:(?:please|always|just|simply|now|then)\\s+){0,2}';
 const IMPERATIVE_BYPASS = new RegExp(`^${LEAD}(?:${BYPASS_VERBS})\\b[^.\\n]{0,60}\\b(?:${GUARD_NOUNS})\\b`, 'i');
@@ -362,18 +371,28 @@ const IMPERATIVE_BYPASS = new RegExp(`^${LEAD}(?:${BYPASS_VERBS})\\b[^.\\n]{0,60
 const ADDRESSED_SUBJECT = '(?:you|assistants?|ai|agents?|models?|llms?|claude|codex|copilots?)';
 const ADDRESSED = `\\b${ADDRESSED_SUBJECT}\\b[^.\\n]{0,60}\\b(?:must|should|shall|can|may|need to|are (?:allowed|permitted|free) to|have to)\\b[^.\\n]{0,24}`;
 const ADDRESSED_BYPASS = new RegExp(`${ADDRESSED}\\b(?:${BYPASS_VERBS})\\b[^.\\n]{0,60}\\b(?:${GUARD_NOUNS})\\b`, 'i');
-const IGNORE_PREVIOUS = /\b(?:ignore|disregard|forget)\s+(?:all\s+|any\s+)?(?:(?:the|your)\s+)?(?:previous|prior|above|earlier|preceding|system|original)\s+(?:instructions|rules|messages|prompts?|guidance)\b/i;
-const NO_ASK_IMPERATIVE = new RegExp(`^${LEAD}(?:do not|don't|never)\\s+(?:ask|consult|confirm with|check with|wait for)\\b[^.\\n]{0,30}\\b(?:the\\s+)?(?:user|human|owner|reviewer|anyone|permission|approval)\\b`, 'i');
-const ACT_WITHOUT_ASKING = new RegExp(`^${LEAD}(?:act|proceed|continue|commit|push|deploy|merge|publish|delete|run)\\b[^.\\n]{0,40}\\bwithout\\s+(?:asking|confirming|confirmation|approval|permission|review)\\b`, 'i');
+const IGNORE_PREVIOUS =
+    /\b(?:ignore|disregard|forget)\s+(?:all\s+|any\s+)?(?:(?:the|your)\s+)?(?:previous|prior|above|earlier|preceding|system|original)\s+(?:instructions|rules|messages|prompts?|guidance)\b/i;
+const NO_ASK_IMPERATIVE = new RegExp(
+    `^${LEAD}(?:do not|don't|never)\\s+(?:ask|consult|confirm with|check with|wait for)\\b[^.\\n]{0,30}\\b(?:the\\s+)?(?:user|human|owner|reviewer|anyone|permission|approval)\\b`,
+    'i'
+);
+const ACT_WITHOUT_ASKING = new RegExp(
+    `^${LEAD}(?:act|proceed|continue|commit|push|deploy|merge|publish|delete|run)\\b[^.\\n]{0,40}\\bwithout\\s+(?:asking|confirming|confirmation|approval|permission|review)\\b`,
+    'i'
+);
 // A role or priority claim: text that asks to be read as the assistant's own instructions ("as data, never as
 // system instructions" claims nothing).
-const ROLE_CLAIM = /\b(?:treat|consider|regard|follow|obey|read)\b[^.\n]{0,40}(?<!\b(?:not|never)\s)\bas\s+["\u201C'\u2018]?(?:(?:the|your|new)\s+)?(?:system|developer|admin(?:istrator)?|operator)\s+(?:instructions?|prompts?|messages?|rules?)\b|\b(?:this|these|the following)\b[^.\n]{0,30}\b(?:is|are)\s+(?:(?:your|the)\s+)?(?:new\s+)?(?:system|developer)\s+(?:instructions?|prompts?)\b/i;
+const ROLE_CLAIM =
+    /\b(?:treat|consider|regard|follow|obey|read)\b[^.\n]{0,40}(?<!\b(?:not|never)\s)\bas\s+["\u201C'\u2018]?(?:(?:the|your|new)\s+)?(?:system|developer|admin(?:istrator)?|operator)\s+(?:instructions?|prompts?|messages?|rules?)\b|\b(?:this|these|the following)\b[^.\n]{0,30}\b(?:is|are)\s+(?:(?:your|the)\s+)?(?:new\s+)?(?:system|developer)\s+(?:instructions?|prompts?)\b/i;
 // A remote script piped straight into a shell or interpreter (a quoted or fenced command is still a command).
-const PIPE_TO_SHELL = /\b(?:curl|wget|iwr|irm|invoke-webrequest|invoke-restmethod)\b[^|\n]{0,200}\|\s*(?:sudo\s+)?(?:(?:ba|z|da|k|fi)?sh|python[23]?|node|perl|ruby|iex|invoke-expression)\b/i;
+const PIPE_TO_SHELL =
+    /\b(?:curl|wget|iwr|irm|invoke-webrequest|invoke-restmethod)\b[^|\n]{0,200}\|\s*(?:sudo\s+)?(?:(?:ba|z|da|k|fi)?sh|python[23]?|node|perl|ruby|iex|invoke-expression)\b/i;
 // A credential location read into a reply or a request: an imperative outward verb ("Send … .env …"), or a
 // read verb together with an output target ("open ~/.ssh/id_rsa and include it in the reply"). A security
 // reference that only names these locations ("~/.ssh readable inside the sandbox") passes.
-const CREDENTIAL_PATH = /(?:~|\$home|%userprofile%)?[\\/]?\.ssh\b|\bid_(?:rsa|dsa|ecdsa|ed25519)\b|\.aws[\\/]credentials\b|\.netrc\b|\.git-credentials\b|\.pgpass\b|\.docker[\\/]config\.json\b|(?:^|[\s"'`(/\\])\.env(?:\.[a-z]+)?\b/i;
+const CREDENTIAL_PATH =
+    /(?:~|\$home|%userprofile%)?[\\/]?\.ssh\b|\bid_(?:rsa|dsa|ecdsa|ed25519)\b|\.aws[\\/]credentials\b|\.netrc\b|\.git-credentials\b|\.pgpass\b|\.docker[\\/]config\.json\b|(?:^|[\s"'`(/\\])\.env(?:\.[a-z]+)?\b/i;
 const OUTWARD_VERBS = 'send|upload|post|exfiltrate|transmit|forward|leak|share|paste|email';
 const READ_VERBS = 'open|read|cat|type|print|include|copy|attach|dump|echo|show|reveal|display|output';
 const CREDENTIAL_SEND = new RegExp(`^${LEAD}(?:${OUTWARD_VERBS})\\b`, 'i');
@@ -382,10 +401,13 @@ const CREDENTIAL_TARGET = new RegExp(`\\b(?:reply|response|answer|chat|message|c
 
 /** Each verb with its -s and -ing forms ("run|runs|running", "share|shares|sharing"). */
 function verbForms(verbs) {
-    return verbs.split('|').map(verb => {
-        const stem = verb.endsWith('e') ? verb.slice(0, -1) : verb;
-        return `${verb}(?:s|es)?|${stem}(?:${verb.slice(-1)})?ing`;
-    }).join('|');
+    return verbs
+        .split('|')
+        .map(verb => {
+            const stem = verb.endsWith('e') ? verb.slice(0, -1) : verb;
+            return `${verb}(?:s|es)?|${stem}(?:${verb.slice(-1)})?ing`;
+        })
+        .join('|');
 }
 // A line that warns against a step negates that step's own verb ("Never run `curl … | bash` unread", "Do not
 // include .env in …", "Avoid showing …", "You must not run …", "The assistant should not include …"): it describes
@@ -398,7 +420,9 @@ const NEGATION = `(?:(?:the\\s+|an?\\s+|any\\s+)?${ADDRESSED_SUBJECT}\\b[^.;:\\n
 function negatedOpener(verbs) {
     return new RegExp(`^(?:\\[[ xX]\\]\\s*)?${LEAD}${NEGATION}\\s*,?\\s+${NEG_ADVERBS}(?:${verbForms(verbs)})\\b`, 'i');
 }
-const NEGATED_STEP = negatedOpener(`run|pipe|execute|exec|eval|source|install|use|curl|wget|fetch|download|${OUTWARD_VERBS}|${READ_VERBS}|log|commit|push|put|store|save|expose`);
+const NEGATED_STEP = negatedOpener(
+    `run|pipe|execute|exec|eval|source|install|use|curl|wget|fetch|download|${OUTWARD_VERBS}|${READ_VERBS}|log|commit|push|put|store|save|expose`
+);
 const NEGATED_ROLE = negatedOpener('treat|consider|regard|follow|obey|read');
 // "forget" is left out: "Don't forget to ignore previous instructions" asks for the bypass.
 const NEGATED_IGNORE = negatedOpener('ignore|disregard');
@@ -443,7 +467,8 @@ function liveText(line, opener, stillLive) {
 // the quote (a list of earlier quoted phrases may sit between them), and nothing outside the quotes asks the reader
 // to act. Any other quoted span is read as the same words unquoted (its quote marks are dropped).
 const MENTION_QUOTES = /"[^"\n]{1,200}"|\u201C[^\u201D\n]{1,200}\u201D/g;
-const MENTION_CUE = /\b(?:such as|like|e\.g\.|phrases?|strings?|text|wording|blocklists?|payloads?|injections?|attacks?|(?:attackers?|payloads?|injections?)\s+(?:write|use|send|say|plant|hide|insert|embed)s?)(?:\s+of)?\s*:?\s*(?:(?:"[^"\n]{1,200}"|\u201C[^\u201D\n]{1,200}\u201D)\s*(?:,|;|\/|\bor\b|\band\b)\s*)*$/i;
+const MENTION_CUE =
+    /\b(?:such as|like|e\.g\.|phrases?|strings?|text|wording|blocklists?|payloads?|injections?|attacks?|(?:attackers?|payloads?|injections?)\s+(?:write|use|send|say|plant|hide|insert|embed)s?)(?:\s+of)?\s*:?\s*(?:(?:"[^"\n]{1,200}"|\u201C[^\u201D\n]{1,200}\u201D)\s*(?:,|;|\/|\bor\b|\band\b)\s*)*$/i;
 // The cue is looked for in a bounded window before each quote, so a line with many quotes stays linear.
 const MENTION_CUE_WINDOW = 400;
 const FOLLOW_THROUGH = /\b(?:from now on|do (?:it|that|this|so|what)|follow|obey|comply|you|assistant|treat|then)\b/i;
@@ -452,7 +477,9 @@ const FOLLOW_THROUGH = /\b(?:from now on|do (?:it|that|this|so|what)|follow|obey
 function withoutMentions(line) {
     const unquote = quoted => quoted.slice(1, -1);
     if (FOLLOW_THROUGH.test(line.replace(MENTION_QUOTES, '""'))) return line.replace(MENTION_QUOTES, unquote);
-    return line.replace(MENTION_QUOTES, (quoted, offset) => (MENTION_CUE.test(line.slice(Math.max(0, offset - MENTION_CUE_WINDOW), offset)) ? '""' : unquote(quoted)));
+    return line.replace(MENTION_QUOTES, (quoted, offset) =>
+        MENTION_CUE.test(line.slice(Math.max(0, offset - MENTION_CUE_WINDOW), offset)) ? '""' : unquote(quoted)
+    );
 }
 
 /**
@@ -470,7 +497,8 @@ function leadText(line) {
 }
 
 /** "Push directly to main": an imperative (or addressed) push, commit, merge or deploy that skips the branch flow. */
-const DIRECT_TO_MAIN_TAIL = '(?:push|commit|merge|deploy)\\w*\\b[^.\\n]{0,30}\\b(?:directly|straight)\\s+(?:to|into|on)\\s+(?:the\\s+)?(?:main|master|production|prod|trunk)\\b';
+const DIRECT_TO_MAIN_TAIL =
+    '(?:push|commit|merge|deploy)\\w*\\b[^.\\n]{0,30}\\b(?:directly|straight)\\s+(?:to|into|on)\\s+(?:the\\s+)?(?:main|master|production|prod|trunk)\\b';
 const DIRECT_TO_MAIN = new RegExp(`^${LEAD}${DIRECT_TO_MAIN_TAIL}|${ADDRESSED}\\b${DIRECT_TO_MAIN_TAIL}`, 'i');
 
 /** A step written before its subject's negated modal is not governed by it ("You cat id_rsa into the reply and you must not log it"). */
@@ -481,7 +509,10 @@ const STEP_BEFORE_NEGATION = (clause, opened) => PIPE_TO_SHELL.test(opened) || C
  * must ignore …"); one a warning reports ("… tells you to ignore …", "… or ignore …", "and never ignore …") stays hidden.
  */
 function phraseBesideNegation(pattern) {
-    const ownStep = new RegExp(`(?:[,;\\u037E\\uFF1B\\u2014\\u2013\\u2015]|\\band)\\s*(?:${ADDRESSED_SUBJECT}\\s+(?:must|should|shall|will|can|may|need to|have to)\\s+)?${LEAD}(?:${pattern.source})`, pattern.flags);
+    const ownStep = new RegExp(
+        `(?:[,;\\u037E\\uFF1B\\u2014\\u2013\\u2015]|\\band)\\s*(?:${ADDRESSED_SUBJECT}\\s+(?:must|should|shall|will|can|may|need to|have to)\\s+)?${LEAD}(?:${pattern.source})`,
+        pattern.flags
+    );
     return (clause, opened) => pattern.test(opened) || ownStep.test(clause.slice(opened.length));
 }
 const IGNORE_BESIDE_NEGATION = phraseBesideNegation(IGNORE_PREVIOUS);
@@ -489,7 +520,9 @@ const ROLE_BESIDE_NEGATION = phraseBesideNegation(ROLE_CLAIM);
 
 /** A remote script piped into a shell, or a credential location read into a reply or a request. */
 function stepShape(text) {
-    return PIPE_TO_SHELL.test(text) || (CREDENTIAL_PATH.test(text) && (CREDENTIAL_SEND.test(text) || (CREDENTIAL_READ.test(text) && CREDENTIAL_TARGET.test(text))));
+    return (
+        PIPE_TO_SHELL.test(text) || (CREDENTIAL_PATH.test(text) && (CREDENTIAL_SEND.test(text) || (CREDENTIAL_READ.test(text) && CREDENTIAL_TARGET.test(text))))
+    );
 }
 
 /** True when one line (lead markers already stripped) reads as an instruction to the assistant. */
@@ -514,10 +547,12 @@ function isFlaggedLine(line) {
 function findFlaggedLines(text) {
     const found = [];
     // Code blocks are checked too: an instruction does not become harmless by sitting in a fence.
-    String(text || '').split('\n').forEach((raw, index) => {
-        const line = leadText(raw);
-        if (line && isFlaggedLine(line)) found.push({ line: index + 1, text: raw.trim().slice(0, 160) });
-    });
+    String(text || '')
+        .split('\n')
+        .forEach((raw, index) => {
+            const line = leadText(raw);
+            if (line && isFlaggedLine(line)) found.push({ line: index + 1, text: raw.trim().slice(0, 160) });
+        });
     return found;
 }
 
@@ -540,8 +575,14 @@ function proseFault(value, max = Infinity) {
 const SECRET_PATTERNS = Object.freeze([
     { name: 'private key block', re: /-----BEGIN (?:[A-Z]+ )*PRIVATE KEY-----/ },
     { name: 'access key', re: /\bAKIA[0-9A-Z]{16}\b/ },
-    { name: 'access token', re: /\b(?:ghp|gho|ghs|ghu|github_pat)_[A-Za-z0-9_]{20,}\b|\bxox[abprs]-[A-Za-z0-9-]{10,}\b|\bsk-[A-Za-z0-9_-]{20,}\b|\bAIza[0-9A-Za-z_-]{35}\b/ },
-    { name: 'assigned secret', re: /\b(?:password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|client[_-]?secret|private[_-]?key)\b\s*[:=]\s*["']?[A-Za-z0-9+/_\-.]{16,}/i }
+    {
+        name: 'access token',
+        re: /\b(?:ghp|gho|ghs|ghu|github_pat)_[A-Za-z0-9_]{20,}\b|\bxox[abprs]-[A-Za-z0-9-]{10,}\b|\bsk-[A-Za-z0-9_-]{20,}\b|\bAIza[0-9A-Za-z_-]{35}\b/
+    },
+    {
+        name: 'assigned secret',
+        re: /\b(?:password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|client[_-]?secret|private[_-]?key)\b\s*[:=]\s*["']?[A-Za-z0-9+/_\-.]{16,}/i
+    }
 ]);
 
 /**
@@ -550,10 +591,12 @@ const SECRET_PATTERNS = Object.freeze([
  */
 function findSecretLines(text) {
     const found = [];
-    String(text || '').split('\n').forEach((raw, index) => {
-        const hit = SECRET_PATTERNS.find(pattern => pattern.re.test(raw));
-        if (hit) found.push({ line: index + 1, kind: hit.name });
-    });
+    String(text || '')
+        .split('\n')
+        .forEach((raw, index) => {
+            const hit = SECRET_PATTERNS.find(pattern => pattern.re.test(raw));
+            if (hit) found.push({ line: index + 1, kind: hit.name });
+        });
     return found;
 }
 
@@ -626,13 +669,15 @@ function validatePack(pack, ctx = {}) {
 
     if (typeof pack.id !== 'string' || !pack.id) err('id is missing');
     else if (!isValidId(pack.id)) err(`id is invalid: use ${ID_MIN}–${ID_MAX} lowercase letters, digits and single hyphens, starting with a letter`);
-    if (ctx.file && typeof pack.id === 'string' && pack.id && path.basename(ctx.file, '.md') !== pack.id) err(`id must match the file name (${path.basename(ctx.file)})`);
+    if (ctx.file && typeof pack.id === 'string' && pack.id && path.basename(ctx.file, '.md') !== pack.id)
+        err(`id must match the file name (${path.basename(ctx.file)})`);
     // Frontmatter prose reaches readers (the title is in every pointer; title and description in the indexes and
     // reader lists), so it is held to one rule, `proseFault`, on its parsed value. A flagged value is named by the
     // line of its key. Trigger phrases are match signals quoted from the user's own words, not text addressed to
     // the assistant: they are checked for secrets only.
     const proseLines = frontmatterProseLines(pack.frontmatterText);
-    const flaggedProse = (key, line) => err(`${line ? `line ${line} (${key})` : key} reads as an instruction to the assistant — rewrite it as reference material`);
+    const flaggedProse = (key, line) =>
+        err(`${line ? `line ${line} (${key})` : key} reads as an instruction to the assistant — rewrite it as reference material`);
     const titleFault = proseFault(pack.title, TITLE_MAX);
     if (titleFault === 'missing') err('title is missing');
     else if (titleFault === 'too-long') err(`title is longer than ${TITLE_MAX} characters`);
@@ -659,9 +704,11 @@ function validatePack(pack, ctx = {}) {
         else if (refFault === 'flagged') flaggedProse('ref', proseLines.ref[index]);
     });
 
-    if (pack.rawTriggers !== undefined && pack.rawTriggers !== null && (typeof pack.rawTriggers !== 'object' || Array.isArray(pack.rawTriggers))) err('triggers must be a map of prompt, intent, skills, agents');
+    if (pack.rawTriggers !== undefined && pack.rawTriggers !== null && (typeof pack.rawTriggers !== 'object' || Array.isArray(pack.rawTriggers)))
+        err('triggers must be a map of prompt, intent, skills, agents');
     else if (pack.rawTriggers) {
-        for (const key of Object.keys(pack.rawTriggers)) if (!TRIGGER_KEYS.includes(key)) err(`triggers.${key} is not a known trigger (${TRIGGER_KEYS.join(', ')}); there is no file trigger`);
+        for (const key of Object.keys(pack.rawTriggers))
+            if (!TRIGGER_KEYS.includes(key)) err(`triggers.${key} is not a known trigger (${TRIGGER_KEYS.join(', ')}); there is no file trigger`);
     }
     for (const phrase of pack.triggers.prompt) {
         const fault = promptPhraseFault(phrase);
@@ -694,7 +741,15 @@ function validatePack(pack, ctx = {}) {
                 // The referred document reaches the reader too. It is often a long existing reference that quotes
                 // what it warns about, so its flagged lines warn and label the pointer instead of blocking (BR-KNW-13).
                 const flagged = findFlaggedLines(readReferred(resolved));
-                if (flagged.length) warn(`its document ${pack.body} has ${flagged.length} line${flagged.length > 1 ? 's' : ''} that read${flagged.length > 1 ? '' : 's'} as an instruction to the assistant (line ${flagged.slice(0, 5).map(item => item.line).join(', ')}${flagged.length > 5 ? ', …' : ''}); pointers label the pack "${FLAGGED_LABEL}" until ${flagged.length > 1 ? 'they are' : 'it is'} rewritten as reference material`);
+                if (flagged.length)
+                    warn(
+                        `its document ${pack.body} has ${flagged.length} line${flagged.length > 1 ? 's' : ''} that read${flagged.length > 1 ? '' : 's'} as an instruction to the assistant (line ${flagged
+                            .slice(0, 5)
+                            .map(item => item.line)
+                            .join(
+                                ', '
+                            )}${flagged.length > 5 ? ', …' : ''}); pointers label the pack "${FLAGGED_LABEL}" until ${flagged.length > 1 ? 'they are' : 'it is'} rewritten as reference material`
+                    );
             }
         }
     } else if (pack.text && pack.text.length > BODY_SOFT_MAX) {
@@ -708,7 +763,9 @@ function validatePack(pack, ctx = {}) {
         err(`line ${flagged.line + (pack.bodyStartLine || 1) - 1} reads as an instruction to the assistant — rewrite it as reference material`);
     }
     for (const secret of findSecretLines(pack.text)) {
-        warn(`line ${secret.line + (pack.bodyStartLine || 1) - 1} looks like a secret (${secret.kind}); replace it with a reference to where the secret is kept`);
+        warn(
+            `line ${secret.line + (pack.bodyStartLine || 1) - 1} looks like a secret (${secret.kind}); replace it with a reference to where the secret is kept`
+        );
     }
     if (pack.unknownKeys.length) warn(`unknown keys are ignored: ${pack.unknownKeys.join(', ')}`);
     return { errors, warnings };
@@ -720,11 +777,13 @@ function validatePack(pack, ctx = {}) {
  */
 function frontmatterProseLines(frontmatterText) {
     const lines = { title: [], description: [], ref: [] };
-    String(frontmatterText || '').split('\n').forEach((line, index) => {
-        const top = /^(title|description)\s*:/.exec(line);
-        if (top) lines[top[1]].push(index + 2);
-        else if (/^\s+(?:-\s+)?ref\s*:/.test(line)) lines.ref.push(index + 2);
-    });
+    String(frontmatterText || '')
+        .split('\n')
+        .forEach((line, index) => {
+            const top = /^(title|description)\s*:/.exec(line);
+            if (top) lines[top[1]].push(index + 2);
+            else if (/^\s+(?:-\s+)?ref\s*:/.test(line)) lines.ref.push(index + 2);
+        });
     return lines;
 }
 

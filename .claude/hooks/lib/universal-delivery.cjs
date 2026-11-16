@@ -135,7 +135,9 @@ function readHookInput(fd = 0) {
             if (total > MAX_INPUT_BYTES) return null;
             chunks.push(Buffer.from(buffer.subarray(0, bytesRead)));
         }
-        const raw = Buffer.concat(chunks, total).toString('utf8').replace(/^\uFEFF/, '');
+        const raw = Buffer.concat(chunks, total)
+            .toString('utf8')
+            .replace(/^\uFEFF/, '');
         if (!raw.trim()) return null;
         const parsed = JSON.parse(raw);
         return isPlainObject(parsed) ? parsed : null;
@@ -187,10 +189,13 @@ function loadBundle(root, read, options = {}) {
         layout = null;
     }
     if (!layout) return { bins: [], problem: 'protocol-groups.json has no universal bins layout' };
-    const index = delivery.loadIndex({ root, read: file => {
-        const text = read(file);
-        return typeof text === 'string' ? text.replace(/\r\n/g, '\n') : null;
-    } });
+    const index = delivery.loadIndex({
+        root,
+        read: file => {
+            const text = read(file);
+            return typeof text === 'string' ? text.replace(/\r\n/g, '\n') : null;
+        }
+    });
     if (!index) return { bins: [], problem: 'protocols/index.json is unreadable or malformed' };
     const context = require('./context-delivery.cjs');
     const concise = context.resolveProfile(root, options).profile === 'concise';
@@ -289,16 +294,26 @@ function conciseCoreIsPresent(root, input, read = defaultRead, now = Date.now(),
         const settings = getLedgerSettings();
         const record = ledger.readRecord(store, input.session_id, scope, 'universal-bin-1');
         const hash = require('node:crypto').createHash('sha256').update(bin.text, 'utf8').digest('hex');
-        return ledger.isPresent(record, hash, {
-            now, transcriptSize: ledger.transcriptSize(ledger.transcriptPathFor(input)),
-            lastCompactionAt: ledger.lastCompactionAt(store, input.session_id, scope, input, settings, now)
-        }, settings);
-    } catch { return false; }
+        return ledger.isPresent(
+            record,
+            hash,
+            {
+                now,
+                transcriptSize: ledger.transcriptSize(ledger.transcriptPathFor(input)),
+                lastCompactionAt: ledger.lastCompactionAt(store, input.session_id, scope, input, settings, now)
+            },
+            settings
+        );
+    } catch {
+        return false;
+    }
 }
 
 // The independent principles hook can recover an unsuccessful universal delivery,
 // including a PostToolUse event, through the same successful-write ledger.
-function ensureConciseCore(input, deps = {}) { return deliverBin(1, input, deps); }
+function ensureConciseCore(input, deps = {}) {
+    return deliverBin(1, input, deps);
+}
 
 /**
  * Remove the main conversation's delivery record of `group`. Never throws: an unusable store has no
@@ -396,18 +411,20 @@ function deliverBin(number, input, deps) {
             // writes no boundary line and expects none.
             const isSessionStart = input.hook_event_name === SESSION_START_EVENT;
             if (isSessionStart) forgetRecord(ledger, store, input, group);
-            ledger.deliverOnce({
-                root: store,
-                input: scopedInput(input),
-                group,
-                hash: crypto.createHash('sha256').update(bin.text, 'utf8').digest('hex'),
-                payload,
-                settings: getLedgerSettings(),
-                now,
-                write,
-                failOpen: true,
-                expectBoundary: isSessionStart && input.source === 'compact'
-            }).then(resolve, () => resolve(''));
+            ledger
+                .deliverOnce({
+                    root: store,
+                    input: scopedInput(input),
+                    group,
+                    hash: crypto.createHash('sha256').update(bin.text, 'utf8').digest('hex'),
+                    payload,
+                    settings: getLedgerSettings(),
+                    now,
+                    write,
+                    failOpen: true,
+                    expectBoundary: isSessionStart && input.source === 'compact'
+                })
+                .then(resolve, () => resolve(''));
         } catch {
             unavailable('the delivery code failed to run');
         }
@@ -436,7 +453,15 @@ function runHook(number, deps = {}) {
             const input = options.input !== undefined ? options.input : readHookInput();
             if (!isDeliverableEvent(input)) return finish('');
             const rootDir = require('./protocol-delivery.cjs').resolveRoot(input, options);
-            if (!rootDir || !require('./framework-runtime.cjs').isHookEnabled(`protocol-inject-universal-${number}.cjs`, { rootDir, homeDir: options.homeDir, env: options.env })) return finish('');
+            if (
+                !rootDir ||
+                !require('./framework-runtime.cjs').isHookEnabled(`protocol-inject-universal-${number}.cjs`, {
+                    rootDir,
+                    homeDir: options.homeDir,
+                    env: options.env
+                })
+            )
+                return finish('');
             deliverBin(number, input, options).then(finish, () => finish(''));
         } catch {
             finish('');

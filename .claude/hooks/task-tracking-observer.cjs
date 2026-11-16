@@ -16,10 +16,16 @@ function observe(event) {
         const root = claimRoot(event, selected.rootDir);
         const nudge = observeEdit(event, root, observedPaths(event, root));
         let hint = null;
-        try { hint = observerHint(event, selected.rootDir); } catch { /* Tracking hint unavailable; the nudge still stands. */ }
+        try {
+            hint = observerHint(event, selected.rootDir);
+        } catch {
+            /* Tracking hint unavailable; the nudge still stands. */
+        }
         const text = [nudge, hint].filter(Boolean).join('\n');
         if (text) return { hookSpecificOutput: { hookEventName: 'PostToolUse', additionalContext: text } };
-    } catch { /* Optional tracking must never block the primary tool or fabricate progress. */ }
+    } catch {
+        /* Optional tracking must never block the primary tool or fabricate progress. */
+    }
 }
 
 if (isHookEntryPoint(module)) runHook('task-tracking-observer', observe, { timeout: 3000, outputResult: true });

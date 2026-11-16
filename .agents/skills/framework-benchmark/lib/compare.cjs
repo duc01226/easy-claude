@@ -19,8 +19,10 @@ const SIGNIFICANCE = 0.05;
 const MAX_RUNS = 200;
 
 // Two-sided 95% Student t quantiles for 1..30 degrees of freedom; 1.96 beyond (normal approximation).
-const T975 = [12.706, 4.303, 3.182, 2.776, 2.571, 2.447, 2.365, 2.306, 2.262, 2.228, 2.201, 2.179, 2.160, 2.145, 2.131,
-    2.120, 2.110, 2.101, 2.093, 2.086, 2.080, 2.074, 2.069, 2.064, 2.060, 2.056, 2.052, 2.048, 2.045, 2.042];
+const T975 = [
+    12.706, 4.303, 3.182, 2.776, 2.571, 2.447, 2.365, 2.306, 2.262, 2.228, 2.201, 2.179, 2.16, 2.145, 2.131, 2.12, 2.11, 2.101, 2.093, 2.086, 2.08, 2.074,
+    2.069, 2.064, 2.06, 2.056, 2.052, 2.048, 2.045, 2.042
+];
 
 // Paired mean difference with a 95% t interval over tasks (each task is one cluster); null below two tasks.
 function pairedInterval(deltas) {
@@ -29,7 +31,7 @@ function pairedInterval(deltas) {
     if (n < 2) return null;
     const mean = values.reduce((a, b) => a + b, 0) / n;
     const sd = Math.sqrt(values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / (n - 1));
-    const half = (T975[n - 2] ?? 1.96) * sd / Math.sqrt(n);
+    const half = ((T975[n - 2] ?? 1.96) * sd) / Math.sqrt(n);
     return { tasks: n, mean, low: mean - half, high: mean + half };
 }
 
@@ -41,7 +43,7 @@ function treatmentKind(spec) {
 
 function binomial(n, k) {
     let value = 1;
-    for (let i = 1; i <= k; i += 1) value = value * (n - k + i) / i;
+    for (let i = 1; i <= k; i += 1) value = (value * (n - k + i)) / i;
     return value;
 }
 
@@ -51,11 +53,13 @@ function signTest(wins, losses) {
     if (!n) return null;
     let tail = 0;
     for (let k = 0; k <= Math.min(wins, losses); k += 1) tail += binomial(n, k);
-    return Math.min(1, 2 * tail / 2 ** n);
+    return Math.min(1, (2 * tail) / 2 ** n);
 }
 
 // Null when nothing was measured, so an unreported cost never reads as zero.
-function sum(values) { return values.length ? values.reduce((a, b) => a + b, 0) : null; }
+function sum(values) {
+    return values.length ? values.reduce((a, b) => a + b, 0) : null;
+}
 
 function ratio(numerator, denominator) {
     return Number.isFinite(numerator) && Number.isFinite(denominator) && denominator > 0 ? numerator / denominator : null;
@@ -67,7 +71,13 @@ function tokens(arm, keys) {
 }
 
 function runtimeKey(runtime) {
-    return JSON.stringify([runtimeBackend(runtime), runtime.host || 'claude', runtime.cliVersion || runtime.claudeVersion || null, runtime.model, runtime.judgeModel]);
+    return JSON.stringify([
+        runtimeBackend(runtime),
+        runtime.host || 'claude',
+        runtime.cliVersion || runtime.claudeVersion || null,
+        runtime.model,
+        runtime.judgeModel
+    ]);
 }
 
 function outcome(delta, band = 0) {
@@ -84,7 +94,7 @@ function taskRow(entries) {
     const recorded = entries.reduce((sum, { state }) => sum + (state.pairs || []).length, 0);
     const arm = name => {
         const arms = pairs.map(pair => pair[name]);
-        const known = (values) => values.filter(Number.isFinite);
+        const known = values => values.filter(Number.isFinite);
         return {
             successRate: arms.length ? arms.filter(a => a.success).length / arms.length : null,
             meanQuality: mean(known(arms.map(quality))),
@@ -94,16 +104,27 @@ function taskRow(entries) {
             knownCostUsd: sum(known(arms.map(a => a.solver?.measurements?.costUsd)))
         };
     };
-    const raw = arm('raw'); const framework = arm('framework');
+    const raw = arm('raw');
+    const framework = arm('framework');
     const sub = (a, b) => (a === null || b === null ? null : b - a);
     const successDelta = sub(raw.successRate, framework.successRate);
     const qualityDelta = sub(raw.meanQuality, framework.meanQuality);
     return {
-        caseId: first.case.id, taskKind: first.case.kind, projectMode: first.case.projectMode, treatment: treatmentKind(first.case),
-        runs: entries.map(entry => entry.label), frameworkHash: first.identity?.frameworkHash || null,
-        recordedPairs: recorded, validPairs: pairs.length, invalidPairs: recorded - pairs.length,
-        raw, framework, successDelta, qualityDelta,
-        successOutcome: outcome(successDelta), qualityOutcome: outcome(qualityDelta, QUALITY_TIE_BAND),
+        caseId: first.case.id,
+        taskKind: first.case.kind,
+        projectMode: first.case.projectMode,
+        treatment: treatmentKind(first.case),
+        runs: entries.map(entry => entry.label),
+        frameworkHash: first.identity?.frameworkHash || null,
+        recordedPairs: recorded,
+        validPairs: pairs.length,
+        invalidPairs: recorded - pairs.length,
+        raw,
+        framework,
+        successDelta,
+        qualityDelta,
+        successOutcome: outcome(successDelta),
+        qualityOutcome: outcome(qualityDelta, QUALITY_TIE_BAND),
         wallRatio: ratio(framework.medianSolverWallMs, raw.medianSolverWallMs),
         tokenRatio: ratio(framework.meanUncachedTokens, raw.meanUncachedTokens),
         cacheReadRatio: ratio(framework.meanCacheReadTokens, raw.meanCacheReadTokens)
@@ -112,11 +133,18 @@ function taskRow(entries) {
 
 function tally(rows, key) {
     const count = value => rows.filter(row => row[key] === value).length;
-    const wins = count('framework'); const losses = count('raw');
+    const wins = count('framework');
+    const losses = count('raw');
     const p = signTest(wins, losses);
     const decisive = wins + losses;
-    const verdict = decisive < MIN_DECISIVE_TASKS ? 'insufficient-evidence'
-        : p < SIGNIFICANCE ? (wins > losses ? 'framework-better' : 'raw-better') : 'no-detected-difference';
+    const verdict =
+        decisive < MIN_DECISIVE_TASKS
+            ? 'insufficient-evidence'
+            : p < SIGNIFICANCE
+              ? wins > losses
+                  ? 'framework-better'
+                  : 'raw-better'
+              : 'no-detected-difference';
     return { frameworkWins: wins, rawWins: losses, ties: count('tie'), unknown: count('unknown'), signTestP: p, verdict };
 }
 
@@ -126,12 +154,28 @@ function groupSummary(rows, { breakdown = true } = {}) {
     const kinds = [...new Set(rows.map(row => row.treatment))];
     return {
         qualityInterval: pairedInterval(scored.map(row => row.qualityDelta)),
-        ...(breakdown ? { byTreatment: Object.fromEntries(kinds.map(kind => {
-            const { rows: _rows, byTreatment: _nested, ...summary } = groupSummary(rows.filter(row => row.treatment === kind), { breakdown: false });
-            return [kind, summary];
-        })) } : {}),
-        tasks: rows.length, scoredTasks: scored.length, unscoredTasks: rows.filter(row => !row.validPairs).map(row => row.caseId),
-        success: tally(scored, 'successOutcome'), quality: tally(scored, 'qualityOutcome'),
+        ...(breakdown
+            ? {
+                  byTreatment: Object.fromEntries(
+                      kinds.map(kind => {
+                          const {
+                              rows: _rows,
+                              byTreatment: _nested,
+                              ...summary
+                          } = groupSummary(
+                              rows.filter(row => row.treatment === kind),
+                              { breakdown: false }
+                          );
+                          return [kind, summary];
+                      })
+                  )
+              }
+            : {}),
+        tasks: rows.length,
+        scoredTasks: scored.length,
+        unscoredTasks: rows.filter(row => !row.validPairs).map(row => row.caseId),
+        success: tally(scored, 'successOutcome'),
+        quality: tally(scored, 'qualityOutcome'),
         medianQualityDelta: median(known(scored.map(row => row.qualityDelta))),
         medianWallRatio: median(known(scored.map(row => row.wallRatio))),
         medianTokenRatio: median(known(scored.map(row => row.tokenRatio))),
@@ -156,8 +200,14 @@ function compareRuns(loaded) {
     return {
         schemaVersion: 1,
         comparison: 'framework minus raw; each task counts once; repeats of a task are pooled, never counted as separate tasks',
-        rules: { qualityTieBand: QUALITY_TIE_BAND, minDecisiveTasks: MIN_DECISIVE_TASKS, significance: SIGNIFICANCE, test: 'exact two-sided sign test over non-tied tasks',
-            interval: 'paired mean quality difference with a 95% t interval over tasks (one cluster per task)', treatment: 'workflow when a workflow-* skill is required, otherwise single skill' },
+        rules: {
+            qualityTieBand: QUALITY_TIE_BAND,
+            minDecisiveTasks: MIN_DECISIVE_TASKS,
+            significance: SIGNIFICANCE,
+            test: 'exact two-sided sign test over non-tied tasks',
+            interval: 'paired mean quality difference with a 95% t interval over tasks (one cluster per task)',
+            treatment: 'workflow when a workflow-* skill is required, otherwise single skill'
+        },
         groups: [...groups.entries()].map(([key, tasks]) => {
             const [backend, host, cliVersion, model, judgeModel] = JSON.parse(key);
             return { runtime: { backend, host, cliVersion, model, judgeModel }, ...groupSummary([...tasks.values()].map(taskRow)) };
@@ -176,31 +226,74 @@ const pct = value => (value === null ? 'unknown' : `${Math.round(value * 100)}%`
 
 function comparisonMarkdown(result) {
     // Fixed prose is trusted; only values read from saved runs pass through inertMarkdown.
-    const lines = ['# Framework benchmark comparison', '', `${result.comparison}.`, '',
-        `Rules: quality tie band ±${result.rules.qualityTieBand}/100; at least ${result.rules.minDecisiveTasks} non-tied tasks before any verdict; ${result.rules.test}, p < ${result.rules.significance}.`];
+    const lines = [
+        '# Framework benchmark comparison',
+        '',
+        `${result.comparison}.`,
+        '',
+        `Rules: quality tie band ±${result.rules.qualityTieBand}/100; at least ${result.rules.minDecisiveTasks} non-tied tasks before any verdict; ${result.rules.test}, p < ${result.rules.significance}.`
+    ];
     for (const group of result.groups) {
         const r = group.runtime;
-        lines.push('', `## ${inertMarkdown(`${r.host} ${r.cliVersion || ''}`.trim())} — solver ${inertMarkdown(r.model)}, reviewer ${inertMarkdown(r.judgeModel)}`, '',
-            `Tasks: ${group.tasks} (${group.scoredTasks} with valid pairs${group.unscoredTasks.length ? `; unscored: ${group.unscoredTasks.map(inertMarkdown).join(', ')}` : ''}).`, '',
-            '| Measure | Framework wins | Raw wins | Ties | Sign test p | Verdict |', '|---|---:|---:|---:|---:|---|');
-        for (const [name, t] of [['Task success', group.success], ['Review quality', group.quality]]) {
+        lines.push(
+            '',
+            `## ${inertMarkdown(`${r.host} ${r.cliVersion || ''}`.trim())} — solver ${inertMarkdown(r.model)}, reviewer ${inertMarkdown(r.judgeModel)}`,
+            '',
+            `Tasks: ${group.tasks} (${group.scoredTasks} with valid pairs${group.unscoredTasks.length ? `; unscored: ${group.unscoredTasks.map(inertMarkdown).join(', ')}` : ''}).`,
+            '',
+            '| Measure | Framework wins | Raw wins | Ties | Sign test p | Verdict |',
+            '|---|---:|---:|---:|---:|---|'
+        );
+        for (const [name, t] of [
+            ['Task success', group.success],
+            ['Review quality', group.quality]
+        ]) {
             lines.push(`| ${name} | ${t.frameworkWins} | ${t.rawWins} | ${t.ties} | ${fmt(t.signTestP, 3)} | ${t.verdict} |`);
         }
         const ci = group.qualityInterval;
-        lines.push('', ci ? `Paired quality difference: ${fmt(ci.mean, 1)}/100, 95% interval ${fmt(ci.low, 1)} to ${fmt(ci.high, 1)} over ${ci.tasks} graded tasks${ci.low <= 0 && ci.high >= 0 ? ' (includes no difference)' : ''}.` : 'Paired quality difference: needs at least two graded tasks.');
-        lines.push('', '| Treatment | Tasks | Success F/R/T | Quality F/R/T | Quality verdict | Median time × | Median tokens × |', '|---|---:|---|---|---|---:|---:|');
+        lines.push(
+            '',
+            ci
+                ? `Paired quality difference: ${fmt(ci.mean, 1)}/100, 95% interval ${fmt(ci.low, 1)} to ${fmt(ci.high, 1)} over ${ci.tasks} graded tasks${ci.low <= 0 && ci.high >= 0 ? ' (includes no difference)' : ''}.`
+                : 'Paired quality difference: needs at least two graded tasks.'
+        );
+        lines.push(
+            '',
+            '| Treatment | Tasks | Success F/R/T | Quality F/R/T | Quality verdict | Median time × | Median tokens × |',
+            '|---|---:|---|---|---|---:|---:|'
+        );
         for (const [kind, sub] of Object.entries(group.byTreatment || {})) {
-            lines.push(`| ${kind === 'workflow' ? 'workflow' : 'single skill'} | ${sub.tasks} | ${sub.success.frameworkWins}/${sub.success.rawWins}/${sub.success.ties} | ${sub.quality.frameworkWins}/${sub.quality.rawWins}/${sub.quality.ties} | ${sub.quality.verdict} | ${fmt(sub.medianWallRatio)} | ${fmt(sub.medianTokenRatio)} |`);
+            lines.push(
+                `| ${kind === 'workflow' ? 'workflow' : 'single skill'} | ${sub.tasks} | ${sub.success.frameworkWins}/${sub.success.rawWins}/${sub.success.ties} | ${sub.quality.frameworkWins}/${sub.quality.rawWins}/${sub.quality.ties} | ${sub.quality.verdict} | ${fmt(sub.medianWallRatio)} | ${fmt(sub.medianTokenRatio)} |`
+            );
         }
-        lines.push('', `Median quality delta: ${fmt(group.medianQualityDelta, 1)}/100. Median framework/raw solver time: ${fmt(group.medianWallRatio)}×. Median framework/raw uncached tokens: ${fmt(group.medianTokenRatio)}×.`,
-            '', '| Task | Kind | Mode | Treatment | Valid/invalid pairs | Success raw → framework | Quality raw → framework | Time × | Tokens × | Cache read × |', '|---|---|---|---|---|---|---|---:|---:|---:|');
+        lines.push(
+            '',
+            `Median quality delta: ${fmt(group.medianQualityDelta, 1)}/100. Median framework/raw solver time: ${fmt(group.medianWallRatio)}×. Median framework/raw uncached tokens: ${fmt(group.medianTokenRatio)}×.`,
+            '',
+            '| Task | Kind | Mode | Treatment | Valid/invalid pairs | Success raw → framework | Quality raw → framework | Time × | Tokens × | Cache read × |',
+            '|---|---|---|---|---|---|---|---:|---:|---:|'
+        );
         for (const row of group.rows) {
-            lines.push(`| ${inertMarkdown(row.caseId)} | ${inertMarkdown(row.taskKind)} | ${inertMarkdown(row.projectMode)} | ${row.treatment} | ${row.validPairs}/${row.invalidPairs} | ${pct(row.raw.successRate)} → ${pct(row.framework.successRate)} | ${fmt(row.raw.meanQuality, 1)} → ${fmt(row.framework.meanQuality, 1)} | ${fmt(row.wallRatio)} | ${fmt(row.tokenRatio)} | ${fmt(row.cacheReadRatio)} |`);
+            lines.push(
+                `| ${inertMarkdown(row.caseId)} | ${inertMarkdown(row.taskKind)} | ${inertMarkdown(row.projectMode)} | ${row.treatment} | ${row.validPairs}/${row.invalidPairs} | ${pct(row.raw.successRate)} → ${pct(row.framework.successRate)} | ${fmt(row.raw.meanQuality, 1)} → ${fmt(row.framework.meanQuality, 1)} | ${fmt(row.wallRatio)} | ${fmt(row.tokenRatio)} | ${fmt(row.cacheReadRatio)} |`
+            );
         }
-        if (group.frameworkHashes.length > 1) lines.push('', `Framework installations differ across tasks (${group.frameworkHashes.length} identities); the verdict covers each task's own installed framework.`);
+        if (group.frameworkHashes.length > 1)
+            lines.push(
+                '',
+                `Framework installations differ across tasks (${group.frameworkHashes.length} identities); the verdict covers each task's own installed framework.`
+            );
     }
-    lines.push('', '## Limits', '', ...result.limitations.map(item => `- ${item}`), '',
-        'Bias check: framework-better, raw-better and no-difference verdicts use the same test; insufficient evidence is reported as such rather than as a lean in either direction.', '');
+    lines.push(
+        '',
+        '## Limits',
+        '',
+        ...result.limitations.map(item => `- ${item}`),
+        '',
+        'Bias check: framework-better, raw-better and no-difference verdicts use the same test; insufficient evidence is reported as such rather than as a lean in either direction.',
+        ''
+    );
     return lines.join('\n');
 }
 
@@ -211,7 +304,11 @@ function writeComparison(outputRoot, loaded) {
     const mdPath = path.join(outputRoot, 'COMPARISON.md');
     fs.writeFileSync(jsonPath, JSON.stringify(result, null, 2) + '\n');
     fs.writeFileSync(mdPath, comparisonMarkdown(result));
-    return { comparison: jsonPath, report: mdPath, groups: result.groups.map(g => ({ runtime: g.runtime, tasks: g.tasks, success: g.success.verdict, quality: g.quality.verdict })) };
+    return {
+        comparison: jsonPath,
+        report: mdPath,
+        groups: result.groups.map(g => ({ runtime: g.runtime, tasks: g.tasks, success: g.success.verdict, quality: g.quality.verdict }))
+    };
 }
 
 module.exports = { QUALITY_TIE_BAND, MIN_DECISIVE_TASKS, signTest, pairedInterval, treatmentKind, compareRuns, comparisonMarkdown, writeComparison };

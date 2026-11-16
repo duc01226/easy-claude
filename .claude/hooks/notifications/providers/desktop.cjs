@@ -118,8 +118,7 @@ function getNotificationContent(input) {
  */
 function notifyWindows(title, message, showDialog) {
     const scriptPath = path.resolve(__dirname, '..', '..', 'lib', 'notify-windows.ps1');
-    const args = ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', scriptPath,
-        '-Title', title, '-Message', message];
+    const args = ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', scriptPath, '-Title', title, '-Message', message];
     if (showDialog) args.push('-ShowDialog');
 
     // A dialog is awaited until the developer clicks it; a toast is detached (see TOAST_TIMEOUT_MS).
@@ -230,13 +229,12 @@ module.exports = {
 
         // Stop completion and direct input requests use dialogs; SessionEnd and the Codex Stop fallback use toasts.
         const showDialog =
-            !isCodexStopQuestion && (
-                hookType === 'Stop' ||
+            !isCodexStopQuestion &&
+            (hookType === 'Stop' ||
                 hookType === 'AskUserQuestion' ||
                 notificationType === 'idle_prompt' ||
                 notificationType === 'AskUserPrompt' ||
-                notificationType === 'permission_prompt'
-            );
+                notificationType === 'permission_prompt');
 
         return sendNotification(title, message, showDialog);
     }

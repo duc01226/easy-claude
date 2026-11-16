@@ -79,24 +79,24 @@ const isPathWithinRoot =
     });
 
 /** doc filename -> the scan invocation that fully regenerates it. */
-const SCAN_SKILL_MAP = (referenceRegistry && referenceRegistry.SCAN_SKILL_MAP) || (helpers && helpers.SCAN_SKILL_MAP) || {
-    'project-structure-reference.md': 'scan --target=project-structure',
-    'backend-patterns-reference.md': 'scan --target=backend-patterns',
-    'seed-test-data-reference.md': 'scan --target=seed-test-data',
-    'frontend-patterns-reference.md': 'scan --target=frontend-patterns',
-    'integration-test-reference.md': 'scan --target=integration-tests',
-    'performance-test-reference.md': 'scan --target=performance-tests',
-    'feature-spec-reference.md': 'scan --target=feature-spec',
-    'code-review-rules.md': 'scan --target=code-review-rules',
-    'scss-styling-guide.md': 'scan --target=scss-styling',
-    'design-system/README.md': 'scan --target=design-system',
-    'e2e-test-reference.md': 'scan --target=e2e-tests',
-    'domain-entities-reference.md': 'scan --target=domain-entities',
-    'docs-index-reference.md': 'scan --target=docs-index'
-};
+const SCAN_SKILL_MAP = (referenceRegistry && referenceRegistry.SCAN_SKILL_MAP) ||
+    (helpers && helpers.SCAN_SKILL_MAP) || {
+        'project-structure-reference.md': 'scan --target=project-structure',
+        'backend-patterns-reference.md': 'scan --target=backend-patterns',
+        'seed-test-data-reference.md': 'scan --target=seed-test-data',
+        'frontend-patterns-reference.md': 'scan --target=frontend-patterns',
+        'integration-test-reference.md': 'scan --target=integration-tests',
+        'performance-test-reference.md': 'scan --target=performance-tests',
+        'feature-spec-reference.md': 'scan --target=feature-spec',
+        'code-review-rules.md': 'scan --target=code-review-rules',
+        'scss-styling-guide.md': 'scan --target=scss-styling',
+        'design-system/README.md': 'scan --target=design-system',
+        'e2e-test-reference.md': 'scan --target=e2e-tests',
+        'domain-entities-reference.md': 'scan --target=domain-entities',
+        'docs-index-reference.md': 'scan --target=docs-index'
+    };
 
-const REFERENCE_DOCS_DIR =
-    (helpers && helpers.REFERENCE_DOCS_DIR) || path.join(PROJECT_DIR, 'docs', 'project-reference');
+const REFERENCE_DOCS_DIR = (helpers && helpers.REFERENCE_DOCS_DIR) || path.join(PROJECT_DIR, 'docs', 'project-reference');
 
 const LAST_SCANNED_RE = (helpers && helpers.LAST_SCANNED_RE) || /<!--\s*Last scanned:\s*(\d{4}-\d{2}-\d{2})\s*-->/;
 
@@ -252,9 +252,7 @@ function collectChangedFiles(baseRef) {
 function refDoc(name) {
     // design-system/README.md style keys keep their subpath.
     try {
-        const abs = helpers && typeof helpers.getReferenceDocPath === 'function'
-            ? helpers.getReferenceDocPath(name)
-            : path.join(REFERENCE_DOCS_DIR, name);
+        const abs = helpers && typeof helpers.getReferenceDocPath === 'function' ? helpers.getReferenceDocPath(name) : path.join(REFERENCE_DOCS_DIR, name);
         return toRepoRel(abs);
     } catch (error) {
         warnings.push(`Unsafe project-reference path ${name}: ${error.message}`);
@@ -300,9 +298,7 @@ function buildRules(config) {
     let selectedFilenames = new Set();
     if (selectionAvailable) {
         try {
-            selectedFilenames = new Set(
-                (helpers.getReferenceDocs(config) || []).map(doc => doc && doc.filename).filter(Boolean)
-            );
+            selectedFilenames = new Set((helpers.getReferenceDocs(config) || []).map(doc => doc && doc.filename).filter(Boolean));
         } catch (error) {
             // Fail-open: a broken resolver must not silently erase every task-specific route.
             warnings.push(`reference selection failed: ${error.message}`);
@@ -335,9 +331,7 @@ function buildRules(config) {
     for (const group of config.contextGroups || []) {
         const regexes = (group.pathRegexes || []).map(safeRegex).filter(Boolean);
         if (!regexes.length) continue;
-        const docs = [group.guideDoc, group.patternsDoc, group.stylingDoc, group.designSystemDoc]
-            .filter(d => typeof d === 'string' && d.trim())
-            .map(plainDoc);
+        const docs = [group.guideDoc, group.patternsDoc, group.stylingDoc, group.designSystemDoc].filter(d => typeof d === 'string' && d.trim()).map(plainDoc);
         add({
             id: `contextGroup:${group.name || 'unnamed'}`,
             reason: `context group "${group.name}" owns this path — its guidance docs describe the patterns and rules here`,
@@ -376,39 +370,40 @@ function buildRules(config) {
         docs: [builtinRefDoc('integration-test-reference.md')],
         configSections: ['testing', 'integrationTestVerify'],
         checks: ['claims', 'coverage', 'commands'],
-        match: rel =>
-            testMatchers.some(m => m.test(rel)) ||
-            /(^|\/)(tests?|__tests__|spec)\//i.test(rel) ||
-            /\.(test|spec)\.[a-z]+$/i.test(rel)
+        match: rel => testMatchers.some(m => m.test(rel)) || /(^|\/)(tests?|__tests__|spec)\//i.test(rel) || /\.(test|spec)\.[a-z]+$/i.test(rel)
     });
 
-    const performanceMatchers = [].concat(config.testing?.filePatterns?.performance || [])
+    const performanceMatchers = []
+        .concat(config.testing?.filePatterns?.performance || [])
         .filter(pattern => typeof pattern === 'string')
-        .map(pattern => fileConventions && typeof fileConventions.globToRegExp === 'function'
-            ? fileConventions.globToRegExp(pattern.includes('/') ? pattern : `**/${pattern}`)
-            : fragmentMatcher(pattern))
+        .map(pattern =>
+            fileConventions && typeof fileConventions.globToRegExp === 'function'
+                ? fileConventions.globToRegExp(pattern.includes('/') ? pattern : `**/${pattern}`)
+                : fragmentMatcher(pattern)
+        )
         .filter(Boolean);
     const performanceDoc = builtinRefDoc('performance-test-reference.md');
     // System and resource changes can invalidate the performance contract as well as scenario edits.
-    if (performanceDoc) add({
-        id: 'performance-tests',
-        reason: 'performance contract can drift after system, harness or resource changes',
-        suppressesFallback: false,
-        docs: [performanceDoc],
-        configSections: ['testing', 'framework'],
-        checks: ['claims', 'coverage', 'commands'],
-        match: rel => !/^(tmp|temp)\//i.test(rel) &&
-            (performanceMatchers.some(matcher => matcher.test(rel)) ||
-                /\.(?:cjs|mjs|js|jsx|ts|tsx|py|go|rs|cs|java|kt|sql|rb|php|ex|exs|swift)$/i.test(rel) ||
-                MANIFESTS.test(rel) || INFRA.test(rel) ||
-                /(^|\/)(?:perf(?:ormance)?|bench(?:marks?)?|load-tests?)(\/|\.)/i.test(rel))
-    });
+    if (performanceDoc)
+        add({
+            id: 'performance-tests',
+            reason: 'performance contract can drift after system, harness or resource changes',
+            suppressesFallback: false,
+            docs: [performanceDoc],
+            configSections: ['testing', 'framework'],
+            checks: ['claims', 'coverage', 'commands'],
+            match: rel =>
+                !/^(tmp|temp)\//i.test(rel) &&
+                (performanceMatchers.some(matcher => matcher.test(rel)) ||
+                    /\.(?:cjs|mjs|js|jsx|ts|tsx|py|go|rs|cs|java|kt|sql|rb|php|ex|exs|swift)$/i.test(rel) ||
+                    MANIFESTS.test(rel) ||
+                    INFRA.test(rel) ||
+                    /(^|\/)(?:perf(?:ormance)?|bench(?:marks?)?|load-tests?)(\/|\.)/i.test(rel))
+        });
 
     // R4 — e2e surface.
     const e2e = config.e2eTesting || {};
-    const e2eMatchers = [e2e.testsPath, e2e.pageObjectsPath, e2e.fixturesPath, e2e.configFile]
-        .map(fragmentMatcher)
-        .filter(Boolean);
+    const e2eMatchers = [e2e.testsPath, e2e.pageObjectsPath, e2e.fixturesPath, e2e.configFile].map(fragmentMatcher).filter(Boolean);
     if (e2eMatchers.length) {
         add({
             id: 'e2e',
@@ -495,10 +490,7 @@ function buildRules(config) {
     // A single-segment root has no parent to climb to; it resolves to ITSELF rather
     // than to the repo root, or this rule would route every changed file in the repo.
     const docsTree = (() => {
-        const refRoot = toRepoRel(
-            (loader && loader.getDocsRoot && loader.getDocsRoot('projectReference', config)) ||
-                'docs/project-reference'
-        );
+        const refRoot = toRepoRel((loader && loader.getDocsRoot && loader.getDocsRoot('projectReference', config)) || 'docs/project-reference');
         if (!refRoot) return 'docs';
         const parent = refRoot.replace(/\/+$/, '').split('/').slice(0, -1).join('/');
         return parent || refRoot;
@@ -548,9 +540,7 @@ function buildRules(config) {
     // Their purpose/sections decide what the scan records; because the config has no
     // path-scope declaration, every non-disposable project change can affect the doc.
     // Curated/manual docs are deliberately excluded from automatic freshness claims.
-    const selectedReferenceDocs = helpers && typeof helpers.getReferenceDocs === 'function'
-        ? helpers.getReferenceDocs(config)
-        : [];
+    const selectedReferenceDocs = helpers && typeof helpers.getReferenceDocs === 'function' ? helpers.getReferenceDocs(config) : [];
     const disposablePath = /(^|\/)(\.git|node_modules|\.next|dist|build|coverage|tmp|temp|vendor|target)(\/|$)/i;
     for (const doc of selectedReferenceDocs) {
         const target = helpers.getReferenceDocScanTarget(doc);
@@ -574,10 +564,7 @@ function buildRules(config) {
 
     // R12 — any source file that reached none of the above still carries
     // conventions. Applied only as a fallback so it never floods the wave.
-    const CODE_EXT = new Set([
-        '.cs', '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.py', '.go',
-        '.java', '.kt', '.rb', '.php', '.rs', '.vue', '.svelte'
-    ]);
+    const CODE_EXT = new Set(['.cs', '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.py', '.go', '.java', '.kt', '.rb', '.php', '.rs', '.vue', '.svelte']);
     add({
         id: 'code-conventions',
         fallback: true,
@@ -637,12 +624,9 @@ function docMeta(relDocPath, config) {
 function resolveDocScanTarget(filename, config) {
     if (!filename) return null;
     if (helpers && typeof helpers.getReferenceDocScanTarget === 'function') {
-        const selected = typeof helpers.getReferenceDocs === 'function'
-            ? helpers.getReferenceDocs(config).find(doc => doc.filename === filename)
-            : null;
-        const alwaysOn = !!selected
-            || (typeof helpers.getAlwaysOnReferenceDocs === 'function'
-                && helpers.getAlwaysOnReferenceDocs().some(doc => doc.filename === filename));
+        const selected = typeof helpers.getReferenceDocs === 'function' ? helpers.getReferenceDocs(config).find(doc => doc.filename === filename) : null;
+        const alwaysOn =
+            !!selected || (typeof helpers.getAlwaysOnReferenceDocs === 'function' && helpers.getAlwaysOnReferenceDocs().some(doc => doc.filename === filename));
         if (!selected && !alwaysOn) return null;
         const resolved = helpers.getReferenceDocScanTarget(selected || filename);
         return (resolved && resolved.command) || null;
@@ -670,9 +654,7 @@ function mapChanges(rows, config) {
         // OWNS a document. A heuristic hit is a guess; a generic repo-wide hit is possible
         // staleness, not ownership (`suppressesFallback: false`); and a rule whose selected docs
         // were all filtered out owns nothing. None of them may shrink the verified surface.
-        const suppressors = hits.filter(
-            h => !h.fallback && !h.heuristic && h.suppressesFallback !== false && (h.docs || []).length > 0
-        );
+        const suppressors = hits.filter(h => !h.fallback && !h.heuristic && h.suppressesFallback !== false && (h.docs || []).length > 0);
         const applied = suppressors.length ? hits.filter(h => !h.fallback) : hits;
 
         if (!applied.length) {
@@ -776,12 +758,13 @@ let workspacePackagesCache = null;
 function repoFiles() {
     if (repoFilesCache) return repoFilesCache;
     const listed = tryGit(['ls-files']);
-    repoFilesCache = listed === null
-        ? projectTreeFiles()
-        : listed
-            .split('\n')
-            .map(l => l.trim().replace(/\\/g, '/'))
-            .filter(Boolean);
+    repoFilesCache =
+        listed === null
+            ? projectTreeFiles()
+            : listed
+                  .split('\n')
+                  .map(l => l.trim().replace(/\\/g, '/'))
+                  .filter(Boolean);
     return repoFilesCache;
 }
 
@@ -820,8 +803,7 @@ function exportValueForSubpath(exportsField, subpath) {
         return { value: exportsField[subpath], wildcard: null };
     }
 
-    const wildcardKeys = keys.filter(key => key.includes('*'))
-        .sort((a, b) => b.length - a.length);
+    const wildcardKeys = keys.filter(key => key.includes('*')).sort((a, b) => b.length - a.length);
     for (const pattern of wildcardKeys) {
         const [prefix, suffix] = pattern.split('*');
         if (!subpath.startsWith(prefix) || !subpath.endsWith(suffix)) continue;
@@ -848,9 +830,7 @@ function isWorkspacePackageReference(claim) {
 
     const { root, manifest } = candidates[0];
     const exportsField = Object.prototype.hasOwnProperty.call(manifest, 'exports') ? manifest.exports : undefined;
-    const selected = exportsField === undefined
-        ? { value: `./${subpath}`, wildcard: null }
-        : exportValueForSubpath(exportsField, `./${subpath}`);
+    const selected = exportsField === undefined ? { value: `./${subpath}`, wildcard: null } : exportValueForSubpath(exportsField, `./${subpath}`);
     if (!selected) return false;
 
     return exportTargets(selected.value, selected.wildcard).some(target => {
@@ -865,11 +845,13 @@ function isWorkspacePackageReference(claim) {
 
 function isSafeRelativeClaim(claim) {
     const normalized = String(claim || '').replace(/\\/g, '/');
-    return Boolean(normalized) &&
+    return (
+        Boolean(normalized) &&
         !normalized.startsWith('/') &&
         !/^[a-zA-Z]:/.test(normalized) &&
         !normalized.includes('\0') &&
-        !normalized.split('/').includes('..');
+        !normalized.split('/').includes('..')
+    );
 }
 
 /**
@@ -884,8 +866,7 @@ const isAbsolutePathWithin =
         if (typeof root !== 'string' || typeof candidate !== 'string' || !root || !candidate) return false;
         if (root.includes('\0') || candidate.includes('\0')) return false;
         const relative = path.relative(path.resolve(root), path.resolve(candidate));
-        return relative === '' ||
-            (relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative));
+        return relative === '' || (relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative));
     });
 
 /**
@@ -905,8 +886,7 @@ function existingPathWithin(rootAbs, relativePath) {
         const realProjectRoot = fs.realpathSync(projectRoot);
         const realRoot = fs.realpathSync(root);
         const realCandidate = fs.realpathSync(candidate);
-        return isAbsolutePathWithin(realProjectRoot, realRoot) &&
-            isAbsolutePathWithin(realRoot, realCandidate);
+        return isAbsolutePathWithin(realProjectRoot, realRoot) && isAbsolutePathWithin(realRoot, realCandidate);
     } catch {
         return false;
     }
@@ -1092,9 +1072,7 @@ function renderClaimsText(results) {
             lines.push(`${r.doc}: MISSING`);
             continue;
         }
-        lines.push(
-            `${r.doc}: ${r.checked} path claim(s), ${r.missing.length} dead, ${(r.ambiguous || []).length} short-form`
-        );
+        lines.push(`${r.doc}: ${r.checked} path claim(s), ${r.missing.length} dead, ${(r.ambiguous || []).length} short-form`);
         for (const f of r.missing) lines.push(`  x ${f}`);
         for (const f of r.ambiguous || []) lines.push(`  ~ ${f} (resolves by suffix — repo-root it)`);
     }

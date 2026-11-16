@@ -62,7 +62,10 @@ function cleanEnv(dir, extra = {}) {
 
 function runHook(dir, payload, extraEnv = {}) {
     return spawnSync(process.execPath, [HOOK_PATH], {
-        input: JSON.stringify(payload), encoding: 'utf8', windowsHide: true, env: cleanEnv(dir, extraEnv)
+        input: JSON.stringify(payload),
+        encoding: 'utf8',
+        windowsHide: true,
+        env: cleanEnv(dir, extraEnv)
     });
 }
 
@@ -70,7 +73,14 @@ function runHook(dir, payload, extraEnv = {}) {
 async function deliver(store, input, now = T0, extra = {}) {
     const written = [];
     const out = await hook.run(input, {
-        ...ISOLATED, storeRoot: store, now, write: (text, done) => { written.push(text); done(true); }, ...extra
+        ...ISOLATED,
+        storeRoot: store,
+        now,
+        write: (text, done) => {
+            written.push(text);
+            done(true);
+        },
+        ...extra
     });
     return { out, written };
 }
@@ -183,7 +193,10 @@ module.exports = {
                 for (const [prompt, signal] of POSITIVE) {
                     const detection = hook.detectAiFeature(prompt);
                     assertTrue(detection !== null, `expected a route for ${JSON.stringify(prompt)}`);
-                    assertTrue(detection.signals.includes(signal), `expected signal ${signal} for ${JSON.stringify(prompt)}, got ${JSON.stringify(detection.signals)}`);
+                    assertTrue(
+                        detection.signals.includes(signal),
+                        `expected signal ${signal} for ${JSON.stringify(prompt)}, got ${JSON.stringify(detection.signals)}`
+                    );
                 }
             }
         },
@@ -194,9 +207,15 @@ module.exports = {
             name: '[ai-feature-route] TC-AIR-002 framework vocabulary, bare questions, unrelated uses, code, host envelopes and explicit review calls stay silent',
             fn: () => {
                 for (const prompt of NEGATIVE) {
-                    assertTrue(!hook.isAiFeaturePrompt(prompt), `expected no route: ${JSON.stringify(prompt)} (got ${JSON.stringify(hook.detectAiFeature(prompt))})`);
+                    assertTrue(
+                        !hook.isAiFeaturePrompt(prompt),
+                        `expected no route: ${JSON.stringify(prompt)} (got ${JSON.stringify(hook.detectAiFeature(prompt))})`
+                    );
                 }
-                assertTrue(hook.detectAiFeature(undefined) === null && hook.detectAiFeature(null) === null && hook.detectAiFeature(42) === null, 'non-string prompts stay silent');
+                assertTrue(
+                    hook.detectAiFeature(undefined) === null && hook.detectAiFeature(null) === null && hook.detectAiFeature(42) === null,
+                    'non-string prompts stay silent'
+                );
             }
         },
         {
@@ -219,7 +238,10 @@ module.exports = {
                     assertContains(text, 'ai-engineering-reviewer');
                     assertContains(text, 'never memory');
                     assertContains(text, 'Otherwise ignore');
-                    assertTrue(!/ai-engineering-(?:review-checklist|knowledge|calibration)/.test(text), `${kind}: never points at the checklist, knowledge or calibration docs`);
+                    assertTrue(
+                        !/ai-engineering-(?:review-checklist|knowledge|calibration)/.test(text),
+                        `${kind}: never points at the checklist, knowledge or calibration docs`
+                    );
                     const reads = text.match(/\.claude\/skills\/shared\/protocols\/[\w-]+\.md/g) || [];
                     assertTrue(reads.length === 1, `${kind}: exactly one read pointer, got ${JSON.stringify(reads)}`);
                 }
@@ -231,26 +253,49 @@ module.exports = {
                 assertTrue(hook.detectAiFeature('add a RAG retrieval step').intent === hook.INTENTS.BUILD, 'build intent');
                 assertTrue(hook.detectAiFeature('design a RAG assistant for support').intent === hook.INTENTS.PLAN, 'plan intent');
                 // Even with the longest signal names the directive stays inside the limit
-                const longest = hook.buildDirective({ signals: ['prompt injection', 'OpenAI / GPT', 'provider API', 'fine-tuning'], intent: hook.INTENTS.PLAN });
+                const longest = hook.buildDirective({
+                    signals: ['prompt injection', 'OpenAI / GPT', 'provider API', 'fine-tuning'],
+                    intent: hook.INTENTS.PLAN
+                });
                 assertTrue(longest.length <= 700, `longest directive is ${longest.length} chars`);
                 // The cap holds by construction: a prompt that matches every technique names at most MAX_SIGNALS_SHOWN of them
-                const everything = 'build a RAG pipeline with embeddings on pgvector, protect it against prompt injection, enable prompt caching, use OpenAI and GPT-4o, integrate the Anthropic API, add function calling, fine-tune a model on our training data dataset, add semantic search and model routing, plus LLM guardrails, hallucination checks, an MCP server, tool calling and a system prompt for the AI feature';
+                const everything =
+                    'build a RAG pipeline with embeddings on pgvector, protect it against prompt injection, enable prompt caching, use OpenAI and GPT-4o, integrate the Anthropic API, add function calling, fine-tune a model on our training data dataset, add semantic search and model routing, plus LLM guardrails, hallucination checks, an MCP server, tool calling and a system prompt for the AI feature';
                 const detection = hook.detectAiFeature(everything);
-                assertTrue(detection !== null && detection.signals.length > 12, `the probe prompt matches many techniques, got ${detection && detection.signals.length}`);
+                assertTrue(
+                    detection !== null && detection.signals.length > 12,
+                    `the probe prompt matches many techniques, got ${detection && detection.signals.length}`
+                );
                 for (const intent of Object.values(hook.INTENTS)) {
                     const wide = hook.buildDirective({ ...detection, intent });
-                    assertTrue(wide.length <= hook.MAX_DIRECTIVE_CHARS, `${intent}: a many-signal directive is ${wide.length} chars (limit ${hook.MAX_DIRECTIVE_CHARS})`);
+                    assertTrue(
+                        wide.length <= hook.MAX_DIRECTIVE_CHARS,
+                        `${intent}: a many-signal directive is ${wide.length} chars (limit ${hook.MAX_DIRECTIVE_CHARS})`
+                    );
                     const named = (/AI-feature work \(([^)]*)\)/.exec(wide) || [null, ''])[1].split(', ').filter(Boolean);
-                    assertTrue(named.length > 0 && named.length <= hook.MAX_SIGNALS_SHOWN, `${intent}: at most ${hook.MAX_SIGNALS_SHOWN} signals are named, got ${named.length}`);
+                    assertTrue(
+                        named.length > 0 && named.length <= hook.MAX_SIGNALS_SHOWN,
+                        `${intent}: at most ${hook.MAX_SIGNALS_SHOWN} signals are named, got ${named.length}`
+                    );
                 }
                 // ... and by trimming when the names themselves are long: names are dropped from the end until the whole text fits
-                for (const [length, count] of [[250, 3], [300, 2], [900, 1]]) {
-                    const long = hook.buildDirective({ signals: Array.from({ length: count }, (_, i) => `${'x'.repeat(length)}${i}`), intent: hook.INTENTS.PLAN });
+                for (const [length, count] of [
+                    [250, 3],
+                    [300, 2],
+                    [900, 1]
+                ]) {
+                    const long = hook.buildDirective({
+                        signals: Array.from({ length: count }, (_, i) => `${'x'.repeat(length)}${i}`),
+                        intent: hook.INTENTS.PLAN
+                    });
                     assertTrue(long.length <= 700, `${count} signals of ${length} chars: directive is ${long.length} chars`);
                     assertContains(long, hook.MARKER_END);
                     assertContains(long, hook.FRAMING_FILE);
                 }
-                assertTrue(!/AI-feature work \(/.test(hook.buildDirective({ signals: ['x'.repeat(900)], intent: hook.INTENTS.BUILD })), 'a signal list that cannot fit is omitted, not cut mid-name');
+                assertTrue(
+                    !/AI-feature work \(/.test(hook.buildDirective({ signals: ['x'.repeat(900)], intent: hook.INTENTS.BUILD })),
+                    'a signal list that cannot fit is omitted, not cut mid-name'
+                );
             }
         },
         {
@@ -287,7 +332,9 @@ module.exports = {
                 const ask = event('add an LLM call to the reply service');
                 const enabledDir = makeProject();
                 const disabledDir = makeProject({ settings: { '.ck.json': { aiFeatureRoute: { enabled: false } } } });
-                const localOnDir = makeProject({ settings: { '.ck.json': { aiFeatureRoute: { enabled: false } }, '.ck.local.json': { aiFeatureRoute: { enabled: true } } } });
+                const localOnDir = makeProject({
+                    settings: { '.ck.json': { aiFeatureRoute: { enabled: false } }, '.ck.local.json': { aiFeatureRoute: { enabled: true } } }
+                });
                 try {
                     assertContains(hook.evaluate(ask, { env: CLEAN_ENV, projectDir: enabledDir }), hook.MARKER_START);
                     assertTrue(hook.evaluate(ask, { env: CLEAN_ENV, projectDir: disabledDir }) === '', '.ck.json enabled:false must silence');
@@ -322,7 +369,11 @@ module.exports = {
                     "const input = { hook_event_name: 'UserPromptSubmit', get prompt() { throw new Error('probe-failure'); } };",
                     'process.stdout.write(hook.evaluate(input));'
                 ].join(' ');
-                const run = debug => spawnSync(process.execPath, ['-e', driver, HOOK_PATH], { encoding: 'utf8', env: childEnv({ CK_AI_FEATURE_ROUTE: undefined, CLAUDE_HOOK_DEBUG: undefined, CK_DEBUG: debug }) });
+                const run = debug =>
+                    spawnSync(process.execPath, ['-e', driver, HOOK_PATH], {
+                        encoding: 'utf8',
+                        env: childEnv({ CK_AI_FEATURE_ROUTE: undefined, CLAUDE_HOOK_DEBUG: undefined, CK_DEBUG: debug })
+                    });
                 const quiet = run('');
                 const loud = run('1');
                 assertTrue(quiet.status === 0 && quiet.stdout === '' && !quiet.stderr.includes('probe-failure'), 'no diagnostic without CK_DEBUG');
@@ -343,11 +394,17 @@ module.exports = {
                     const payload = JSON.stringify(event('add an LLM call to the reply service'));
                     const out = execFileSync(process.execPath, [HOOK_PATH], { input: payload, encoding: 'utf8', env });
                     assertContains(out, hook.MARKER_START);
-                    assertTrue(execFileSync(process.execPath, [HOOK_PATH], { input: 'not json', encoding: 'utf8', env, stdio: ['pipe', 'pipe', 'pipe'] }) === '', 'unparseable stdin stays silent');
+                    assertTrue(
+                        execFileSync(process.execPath, [HOOK_PATH], { input: 'not json', encoding: 'utf8', env, stdio: ['pipe', 'pipe', 'pipe'] }) === '',
+                        'unparseable stdin stays silent'
+                    );
                     // Codex runs hooks through `node -e … require(hook)` with the hook path as argv[1]; a second session, so the first delivery does not mute it
                     const launchedPayload = JSON.stringify(event('add an LLM call to the reply service', 's2'));
-                    const launched = spawnSync(process.execPath, ['-e', 'process.chdir(process.env.CLAUDE_PROJECT_DIR); require(process.argv[1]);', HOOK_PATH],
-                        { input: launchedPayload, encoding: 'utf8', env, windowsHide: true });
+                    const launched = spawnSync(
+                        process.execPath,
+                        ['-e', 'process.chdir(process.env.CLAUDE_PROJECT_DIR); require(process.argv[1]);', HOOK_PATH],
+                        { input: launchedPayload, encoding: 'utf8', env, windowsHide: true }
+                    );
                     assertTrue(launched.status === 0, `launcher exit ${launched.status}: ${launched.stderr}`);
                     assertContains(launched.stdout, hook.MARKER_START);
                 } finally {
@@ -363,15 +420,22 @@ module.exports = {
             fn: () => {
                 if (!isFrameworkRepo(REPO_ROOT)) return;
                 const settings = require(path.join(REPO_ROOT, '.claude', 'settings.json'));
-                const wired = (event, matcher) => (settings.hooks[event] || [])
-                    .filter(group => matcher === undefined || group.matcher === matcher)
-                    .some(group => group.hooks.some(h => h.command.includes('ai-feature-route.cjs')));
+                const wired = (event, matcher) =>
+                    (settings.hooks[event] || [])
+                        .filter(group => matcher === undefined || group.matcher === matcher)
+                        .some(group => group.hooks.some(h => h.command.includes('ai-feature-route.cjs')));
                 assertTrue(wired('UserPromptSubmit'), 'hook must be wired on prompts');
                 assertTrue(wired('SubagentStart') && wired('SessionStart', 'compact'), 'hook must be wired on every sub-agent start and the compaction report');
                 const { CK_SCHEMA } = require(path.join(HOOKS_DIR, 'lib', 'ck-config-schema.cjs'));
-                assertTrue(CK_SCHEMA[hook.SETTINGS_SECTION] && CK_SCHEMA[hook.SETTINGS_SECTION].properties.enabled.type === 'boolean', 'aiFeatureRoute.enabled is a schema field');
+                assertTrue(
+                    CK_SCHEMA[hook.SETTINGS_SECTION] && CK_SCHEMA[hook.SETTINGS_SECTION].properties.enabled.type === 'boolean',
+                    'aiFeatureRoute.enabled is a schema field'
+                );
                 const { CK_CONFIG_DESCRIBES } = require(path.join(REPO_ROOT, '.claude', 'scripts', 'lib', 'config-option-describes.cjs'));
-                assertTrue(Boolean(CK_CONFIG_DESCRIBES[hook.SETTINGS_SECTION]) && Boolean(CK_CONFIG_DESCRIBES[`${hook.SETTINGS_SECTION}.enabled`]), 'both options carry help text');
+                assertTrue(
+                    Boolean(CK_CONFIG_DESCRIBES[hook.SETTINGS_SECTION]) && Boolean(CK_CONFIG_DESCRIBES[`${hook.SETTINGS_SECTION}.enabled`]),
+                    'both options carry help text'
+                );
                 assertContains(CK_CONFIG_DESCRIBES[`${hook.SETTINGS_SECTION}.enabled`], hook.ENV_SWITCH);
             }
         },
@@ -448,7 +512,10 @@ module.exports = {
                     const inputWith = (session, extra) => ({ ...event(prompt, session), transcript_path: transcript, ...extra });
                     assertContains((await deliver(store, inputWith('sess-c'), T0)).out, hook.MARKER_START);
                     assertTrue((await deliver(store, inputWith('sess-c'), T0 + MINUTE)).out === '', 'transcript without a compaction: silent');
-                    fs.appendFileSync(transcript, `${JSON.stringify({ type: 'system', subtype: 'compact_boundary', timestamp: new Date(T0 + 2 * MINUTE).toISOString() })}\n`);
+                    fs.appendFileSync(
+                        transcript,
+                        `${JSON.stringify({ type: 'system', subtype: 'compact_boundary', timestamp: new Date(T0 + 2 * MINUTE).toISOString() })}\n`
+                    );
                     assertContains((await deliver(store, inputWith('sess-c'), T0 + 3 * MINUTE)).out, hook.MARKER_START);
                 } finally {
                     removeDir(dir);
@@ -467,7 +534,7 @@ module.exports = {
                     const driver = [
                         'const hook = require(process.argv[1]);',
                         "const out = hook.evaluate({ hook_event_name: 'UserPromptSubmit', session_id: 's', prompt: 'refactor the settings loader and rename the helper' }, { env: {}, rawSettings: {} });",
-                        "const heavy = Object.keys(require.cache).filter(f => /prompt-route-utils|prompt-ledger-store|convention-ledger|file-conventions/.test(f));",
+                        'const heavy = Object.keys(require.cache).filter(f => /prompt-route-utils|prompt-ledger-store|convention-ledger|file-conventions/.test(f));',
                         'process.stdout.write(JSON.stringify({ out, heavy }));'
                     ].join(' ');
                     const result = spawnSync(process.execPath, ['-e', driver, HOOK_PATH], { encoding: 'utf8', env: cleanEnv(project), windowsHide: true });
@@ -504,7 +571,10 @@ module.exports = {
                     assertTrue((await deliver(store, agentStart('a1'), T0 + MINUTE, deps)).out === '', 'the same spawn is deduplicated');
                     assertContains((await deliver(store, agentStart('a2'), T0 + MINUTE, deps)).out, hook.MARKER_START);
                     // The main scope has its own record: a prompt delivers, then a compaction delivers again at once
-                    assertContains((await deliver(store, event('add a RAG pipeline with embeddings to the search service', 'sess-p'), T0, deps)).out, hook.MARKER_START);
+                    assertContains(
+                        (await deliver(store, event('add a RAG pipeline with embeddings to the search service', 'sess-p'), T0, deps)).out,
+                        hook.MARKER_START
+                    );
                     const compacted = context(await deliver(store, compaction, T0 + 2 * MINUTE, deps));
                     assertTrue(compacted.hookEventName === 'SessionStart', 'compaction answers with its own envelope');
                     assertContains(compacted.additionalContext, hook.MARKER_START);

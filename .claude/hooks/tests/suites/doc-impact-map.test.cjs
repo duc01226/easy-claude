@@ -135,9 +135,7 @@ const DIRECTORY_LINK_SKIP = (() => {
 
 /** Run `checkClaims` against a throwaway repo — PROJECT_DIR is fixed at module load, so spawn. */
 function checkClaimsIn(dir, relDoc) {
-    const driver =
-        'const m = require(process.argv[1]);' +
-        'process.stdout.write(JSON.stringify(m.checkClaims(process.argv[2])));';
+    const driver = 'const m = require(process.argv[1]);' + 'process.stdout.write(JSON.stringify(m.checkClaims(process.argv[2])));';
     const out = spawnSync('node', ['-e', driver, SCRIPT, relDoc], {
         cwd: dir,
         env: { ...process.env, CLAUDE_PROJECT_DIR: dir },
@@ -425,10 +423,7 @@ const tests = [
                     !result.missing.some(m => m.includes('node ')),
                     `Command spans must not be treated as paths. Got: ${JSON.stringify(result.missing)}`
                 );
-                assertTrue(
-                    !result.missing.some(m => m.includes('*')),
-                    `Globs must not be treated as paths. Got: ${JSON.stringify(result.missing)}`
-                );
+                assertTrue(!result.missing.some(m => m.includes('*')), `Globs must not be treated as paths. Got: ${JSON.stringify(result.missing)}`);
             } finally {
                 if (fs.existsSync(fixture)) fs.unlinkSync(fixture);
             }
@@ -490,15 +485,8 @@ const tests = [
                 encoding: 'utf8'
             });
             const result = JSON.parse(out.stdout);
-            assertTrue(
-                result.docs.length > 0,
-                `A .claude/** edit must impact at least one doc. Got: ${JSON.stringify(result.docs)}`
-            );
-            assertEqual(
-                result.fastExit,
-                false,
-                'A change with impacted docs must NEVER fast-exit — Phase 1 would skip verifying them.'
-            );
+            assertTrue(result.docs.length > 0, `A .claude/** edit must impact at least one doc. Got: ${JSON.stringify(result.docs)}`);
+            assertEqual(result.fastExit, false, 'A change with impacted docs must NEVER fast-exit — Phase 1 would skip verifying them.');
         }
     },
     {
@@ -520,9 +508,7 @@ const tests = [
                 fs.mkdirSync(path.join(dir, 'docs', 'project-reference'), { recursive: true });
                 fs.writeFileSync(path.join(dir, NEW_FILE), '# new\n', 'utf8');
 
-                const driver =
-                    'const m = require(process.argv[1]);' +
-                    'process.stdout.write(JSON.stringify(m.collectChangedFiles(null)));';
+                const driver = 'const m = require(process.argv[1]);' + 'process.stdout.write(JSON.stringify(m.collectChangedFiles(null)));';
                 const out = spawnSync('node', ['-e', driver, SCRIPT], {
                     cwd: dir,
                     env: { ...process.env, CLAUDE_PROJECT_DIR: dir },
@@ -531,10 +517,7 @@ const tests = [
                 const collected = JSON.parse(out.stdout);
                 const row = collected.rows.find(r => r.file === NEW_FILE);
 
-                assertTrue(
-                    !!row,
-                    `An untracked file must be collected, not dropped. Got: ${JSON.stringify(collected.rows)}`
-                );
+                assertTrue(!!row, `An untracked file must be collected, not dropped. Got: ${JSON.stringify(collected.rows)}`);
                 assertEqual(row.status, 'A', 'An untracked file is an ADDITION, so coverage gaps are reported as such');
                 assertEqual(
                     collected.rows.filter(r => r.file === NEW_FILE).length,
@@ -577,14 +560,8 @@ const tests = [
                     `${where}: short form "${SHORT_FORM}" must be ambiguous. missing=${JSON.stringify(result.missing)} ` +
                         `ambiguous=${JSON.stringify(result.ambiguous)}`
                 );
-                assertTrue(
-                    !result.missing.includes(SHORT_FORM),
-                    `${where}: a resolvable short form must NEVER be reported dead — that is a false F1 failure.`
-                );
-                assertTrue(
-                    result.missing.includes(DEAD),
-                    `${where}: a genuinely dead path must still be reported. Got: ${JSON.stringify(result.missing)}`
-                );
+                assertTrue(!result.missing.includes(SHORT_FORM), `${where}: a resolvable short form must NEVER be reported dead — that is a false F1 failure.`);
+                assertTrue(result.missing.includes(DEAD), `${where}: a genuinely dead path must still be reported. Got: ${JSON.stringify(result.missing)}`);
             };
 
             const { dir, g } = makeRepo();
@@ -648,9 +625,7 @@ const tests = [
                     // Given: same-named copies at the repo root (untracked) or under project-reference
                     // (tracked), and nothing under the configured business-spec root.
                     writeFixtureFile(dir, 'docs/project-config.json', JSON.stringify(configuredBusinessSpecConfig('custom-specs')));
-                    const files = claims.map(claim =>
-                        collisionRoot === 'repo-root' ? claim : `docs/project-reference/${claim}`
-                    );
+                    const files = claims.map(claim => (collisionRoot === 'repo-root' ? claim : `docs/project-reference/${claim}`));
                     for (const relativePath of files) writeFixtureFile(dir, relativePath);
                     if (collisionRoot === 'project-reference') {
                         g(['add', '--', ...files]);
@@ -662,10 +637,7 @@ const tests = [
                     const result = checkFixtureClaims(dir, claims);
                     // Then: the collisions satisfy nothing — each claim is dead, never ambiguous.
                     for (const claim of claims) {
-                        assertTrue(
-                            result.missing.includes(claim),
-                            `${collisionRoot} copies must not satisfy the configured business-spec claim ${claim}.`
-                        );
+                        assertTrue(result.missing.includes(claim), `${collisionRoot} copies must not satisfy the configured business-spec claim ${claim}.`);
                         assertTrue(
                             !result.ambiguous.includes(claim),
                             `${collisionRoot} copies must not turn a canonical business-spec claim into a short-form citation.`
@@ -716,7 +688,10 @@ const tests = [
                 fs.unlinkSync(path.join(dir, 'specs/INDEX.md'));
                 fs.rmdirSync(path.join(dir, 'specs'));
                 fs.symlinkSync(outside, path.join(dir, 'specs'), process.platform === 'win32' ? 'junction' : 'dir');
-                assertTrue(checkFixtureClaims(dir, ['specs/INDEX.md']).missing.includes('specs/INDEX.md'), 'The configured root and its index must remain physically inside the project.');
+                assertTrue(
+                    checkFixtureClaims(dir, ['specs/INDEX.md']).missing.includes('specs/INDEX.md'),
+                    'The configured root and its index must remain physically inside the project.'
+                );
             } finally {
                 cleanupRepo(dir);
                 cleanupRepo(outside);
@@ -754,21 +729,14 @@ const tests = [
             const claims = ['InvalidBucket/INDEX.md', 'InvalidBucket/README.Feature.md'];
             try {
                 // Given: an escaping (invalid) business root and valid copies under the DEFAULT root.
-                writeFixtureFile(
-                    dir,
-                    'docs/project-config.json',
-                    JSON.stringify(configuredBusinessSpecConfig('../outside-specs'))
-                );
+                writeFixtureFile(dir, 'docs/project-config.json', JSON.stringify(configuredBusinessSpecConfig('../outside-specs')));
                 for (const claim of claims) writeFixtureFile(dir, `docs/specs/${claim}`);
 
                 // When: the claims are checked.
                 const result = checkFixtureClaims(dir, claims);
                 // Then: the invalid config is not silently replaced by the default — every claim is dead.
                 for (const claim of claims) {
-                    assertTrue(
-                        result.missing.includes(claim),
-                        `Invalid declared config must not use a default-root copy to satisfy ${claim}.`
-                    );
+                    assertTrue(result.missing.includes(claim), `Invalid declared config must not use a default-root copy to satisfy ${claim}.`);
                     assertTrue(!result.ambiguous.includes(claim), `${claim} is canonical, not an ambiguous suffix.`);
                 }
             } finally {
@@ -885,11 +853,7 @@ const tests = [
             try {
                 const BAD = '[unclosed(';
                 fs.mkdirSync(path.join(dir, 'docs'), { recursive: true });
-                fs.writeFileSync(
-                    path.join(dir, 'docs', 'project-config.json'),
-                    JSON.stringify({ modules: [{ name: 'Broken', pathRegex: BAD }] }),
-                    'utf8'
-                );
+                fs.writeFileSync(path.join(dir, 'docs', 'project-config.json'), JSON.stringify({ modules: [{ name: 'Broken', pathRegex: BAD }] }), 'utf8');
                 fs.mkdirSync(path.join(dir, 'src'), { recursive: true });
                 fs.writeFileSync(path.join(dir, 'src', 'thing.cjs'), '// x\n', 'utf8');
                 g(['add', '-A']);
@@ -904,11 +868,7 @@ const tests = [
                     `The dropped rule must be named in warnings — it is the only signal that routing ` +
                         `silently narrowed. Got: ${JSON.stringify(result.warnings)}`
                 );
-                assertEqual(
-                    result.fastExit,
-                    false,
-                    'A broken config must NEVER collapse into a fast exit — that would skip verifying every doc.'
-                );
+                assertEqual(result.fastExit, false, 'A broken config must NEVER collapse into a fast exit — that would skip verifying every doc.');
             } finally {
                 cleanupRepo(dir);
             }
@@ -931,9 +891,7 @@ const tests = [
                 g(['mv', 'docs/old-name.md', 'docs/new-name.md']);
                 g(['commit', '-qm', 'rename']);
 
-                const driver =
-                    'const m = require(process.argv[1]);' +
-                    'process.stdout.write(JSON.stringify(m.collectChangedFiles(null)));';
+                const driver = 'const m = require(process.argv[1]);' + 'process.stdout.write(JSON.stringify(m.collectChangedFiles(null)));';
                 const out = spawnSync('node', ['-e', driver, SCRIPT], {
                     cwd: dir,
                     env: { ...process.env, CLAUDE_PROJECT_DIR: dir },
@@ -942,14 +900,10 @@ const tests = [
                 const collected = JSON.parse(out.stdout);
                 const files = collected.rows.map(r => r.file);
 
-                assertTrue(
-                    files.includes('docs/new-name.md'),
-                    `A rename must be collected under its NEW path. Got: ${JSON.stringify(collected.rows)}`
-                );
+                assertTrue(files.includes('docs/new-name.md'), `A rename must be collected under its NEW path. Got: ${JSON.stringify(collected.rows)}`);
                 assertTrue(
                     !files.includes('docs/old-name.md'),
-                    `The pre-rename path must NOT be collected — it no longer exists, so routing it is a dead end. ` +
-                        `Got: ${JSON.stringify(collected.rows)}`
+                    `The pre-rename path must NOT be collected — it no longer exists, so routing it is a dead end. ` + `Got: ${JSON.stringify(collected.rows)}`
                 );
             } finally {
                 cleanupRepo(dir);
@@ -1038,25 +992,37 @@ const tests = [
                     fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
                     fs.writeFileSync(path.join(dir, rel), text, 'utf8');
                 };
-                write('packages/survey-runner/package.json', JSON.stringify({ name: '@example/survey-runner', exports: { './styles.css': './dist/styles.css' } }));
+                write(
+                    'packages/survey-runner/package.json',
+                    JSON.stringify({ name: '@example/survey-runner', exports: { './styles.css': './dist/styles.css' } })
+                );
                 write('packages/survey-runner/dist/styles.css', 'body{}\n');
                 write('packages/web/package.json', JSON.stringify({ name: '@example/web' }));
                 write('packages/web/app/page.tsx', 'export default null;\n');
-                write('docs/claims.md', [
-                    'Public export: `@example/survey-runner/styles.css`.',
-                    'Missing export: `@example/survey-runner/no-such-d15.css`.',
-                    'Existing path in package without exports: `@example/web/app/page.tsx`.',
-                    'Missing path in package without exports: `@example/web/no-such-d16.ts`.',
-                    ''
-                ].join('\n'));
+                write(
+                    'docs/claims.md',
+                    [
+                        'Public export: `@example/survey-runner/styles.css`.',
+                        'Missing export: `@example/survey-runner/no-such-d15.css`.',
+                        'Existing path in package without exports: `@example/web/app/page.tsx`.',
+                        'Missing path in package without exports: `@example/web/no-such-d16.ts`.',
+                        ''
+                    ].join('\n')
+                );
                 g(['add', '-A']);
                 g(['commit', '-qm', 'seed']);
 
                 const result = checkClaimsIn(dir, 'docs/claims.md');
                 assertTrue(!result.missing.includes('@example/survey-runner/styles.css'), 'an exported workspace subpath with an existing target is valid');
                 assertTrue(result.missing.includes('@example/survey-runner/no-such-d15.css'), 'a missing package export must remain visible');
-                assertTrue(!result.missing.includes('@example/web/app/page.tsx'), 'an existing in-package path remains valid when the package has no exports map');
-                assertTrue(result.missing.includes('@example/web/no-such-d16.ts'), 'a missing in-package path remains visible when the package has no exports map');
+                assertTrue(
+                    !result.missing.includes('@example/web/app/page.tsx'),
+                    'an existing in-package path remains valid when the package has no exports map'
+                );
+                assertTrue(
+                    result.missing.includes('@example/web/no-such-d16.ts'),
+                    'a missing in-package path remains visible when the package has no exports map'
+                );
             } finally {
                 cleanupRepo(dir);
             }
@@ -1073,12 +1039,16 @@ const tests = [
                 fs.mkdirSync(path.dirname(target), { recursive: true });
                 fs.writeFileSync(target, '// fixture\n', 'utf8');
                 fs.mkdirSync(path.join(dir, 'docs'), { recursive: true });
-                fs.writeFileSync(path.join(dir, 'docs', 'claims.md'), [
-                    'ASCII elision: `packages/.../idempotency.test.ts`.',
-                    'Unicode elision: `packages/…/idempotency.test.ts`.',
-                    'Full citation: `packages/platform/src/jobs/__tests__/idempotency.integration.test.ts`.',
-                    ''
-                ].join('\n'), 'utf8');
+                fs.writeFileSync(
+                    path.join(dir, 'docs', 'claims.md'),
+                    [
+                        'ASCII elision: `packages/.../idempotency.test.ts`.',
+                        'Unicode elision: `packages/…/idempotency.test.ts`.',
+                        'Full citation: `packages/platform/src/jobs/__tests__/idempotency.integration.test.ts`.',
+                        ''
+                    ].join('\n'),
+                    'utf8'
+                );
                 g(['add', '-A']);
                 g(['commit', '-qm', 'seed']);
 
@@ -1095,11 +1065,13 @@ const tests = [
         fn: () => {
             const genericConfig = {
                 project: { name: 'Generic Reference Fixture' },
-                referenceDocs: [{
-                    filename: 'guides/architecture.md',
-                    purpose: 'Repository architecture evidence',
-                    scanTarget: 'generic'
-                }]
+                referenceDocs: [
+                    {
+                        filename: 'guides/architecture.md',
+                        purpose: 'Repository architecture evidence',
+                        scanTarget: 'generic'
+                    }
+                ]
             };
             const generic = mapper.mapChanges([{ status: 'M', file: 'src/app.ts' }], genericConfig);
             const genericDoc = generic.docs.find(entry => entry.doc.endsWith('/guides/architecture.md'));
@@ -1132,16 +1104,21 @@ const tests = [
             const config = {
                 project: { name: 'Relocated Generic Reference Fixture' },
                 docsRoots: { projectReference: { path: 'knowledge/references' } },
-                referenceDocs: [{
-                    filename: 'guides/architecture.md',
-                    purpose: 'Repository architecture evidence',
-                    scanTarget: 'generic'
-                }]
+                referenceDocs: [
+                    {
+                        filename: 'guides/architecture.md',
+                        purpose: 'Repository architecture evidence',
+                        scanTarget: 'generic'
+                    }
+                ]
             };
-            const out = inFakeProject(config, `
+            const out = inFakeProject(
+                config,
+                `
                 const mapper = require(REPO + '/.claude/scripts/doc-impact-map.cjs');
                 return mapper.mapChanges([{ status: 'M', file: 'src/app.ts' }], ${JSON.stringify(config)});
-            `);
+            `
+            );
             const doc = out.docs.find(entry => entry.doc === 'knowledge/references/guides/architecture.md');
             assertTrue(doc, `The generic output must use the configured root exactly: ${JSON.stringify(out.docs)}`);
             assertEqual(
@@ -1214,11 +1191,7 @@ const tests = [
             ];
             for (const [file, label] of cases) {
                 const result = mapWith([file], empty);
-                assertEqual(
-                    result.docs.length,
-                    0,
-                    `${label}: exact empty selection must emit no task-specific doc. Got: ${JSON.stringify(docNames(result))}`
-                );
+                assertEqual(result.docs.length, 0, `${label}: exact empty selection must emit no task-specific doc. Got: ${JSON.stringify(docNames(result))}`);
             }
         }
     },
@@ -1228,7 +1201,10 @@ const tests = [
             const empty = { ...MINIMAL_CONFIG, referenceDocs: [] };
             const result = mapWith(['.claude/skills/x/SKILL.md'], empty);
             const docs = docNames(result);
-            assertTrue(docs.some(d => d.endsWith('CLAUDE.md')), `Root instructions stay always-on. Got: ${docs.join(', ')}`);
+            assertTrue(
+                docs.some(d => d.endsWith('CLAUDE.md')),
+                `Root instructions stay always-on. Got: ${docs.join(', ')}`
+            );
             assertTrue(
                 result.docs.some(d => d.scanTarget === 'scan --target=docs-index'),
                 `The docs index stays always-on and keeps its command. Got: ${JSON.stringify(result.docs.map(d => [d.doc, d.scanTarget]))}`
@@ -1271,7 +1247,10 @@ const tests = [
                 referenceDocs: [{ filename: 'guides/arch.md', purpose: 'architecture evidence', scanTarget: 'generic' }]
             };
             const docs = docNames(mapWith(['src/Billing/Entities/Invoice.cs'], genericOnly));
-            assertTrue(docs.some(d => d.endsWith('/guides/arch.md')), `The selected generic doc must route. Got: ${docs.join(', ')}`);
+            assertTrue(
+                docs.some(d => d.endsWith('/guides/arch.md')),
+                `The selected generic doc must route. Got: ${docs.join(', ')}`
+            );
             assertTrue(!docs.some(d => d.endsWith('domain-entities-reference.md')), `An unselected heuristic built-in must not leak. Got: ${docs.join(', ')}`);
             assertTrue(!docs.some(d => d.endsWith('code-review-rules.md')), `An unselected conventions owner must not be fabricated. Got: ${docs.join(', ')}`);
         }
@@ -1286,15 +1265,8 @@ const tests = [
             };
             const result = mapWith(['src/app.ts'], config);
             const doc = result.docs.find(d => d.doc.endsWith('code-review-rules.md'));
-            assertTrue(
-                doc,
-                `A directly configured context-group doc remains a reader-impact route. Got: ${JSON.stringify(docNames(result))}`
-            );
-            assertEqual(
-                doc.scanTarget,
-                null,
-                'An unselected built-in filename must not inherit a scan command from its basename'
-            );
+            assertTrue(doc, `A directly configured context-group doc remains a reader-impact route. Got: ${JSON.stringify(docNames(result))}`);
+            assertEqual(doc.scanTarget, null, 'An unselected built-in filename must not inherit a scan command from its basename');
         }
     },
     {
@@ -1312,8 +1284,14 @@ const tests = [
             };
             const docs = docNames(mapWith(['apps/web/app/styles/theme.scss'], config));
             assertTrue(!docs.some(d => d.endsWith('scss-styling-guide.md')), `The unselected legacy SCSS guide must not route. Got: ${docs.join(', ')}`);
-            assertTrue(docs.some(d => d.endsWith('/guides/styling.md')), `The selected generic styling doc must still route. Got: ${docs.join(', ')}`);
-            assertTrue(docs.some(d => d.endsWith('design-system/README.md')), `The selected design-system doc must still route. Got: ${docs.join(', ')}`);
+            assertTrue(
+                docs.some(d => d.endsWith('/guides/styling.md')),
+                `The selected generic styling doc must still route. Got: ${docs.join(', ')}`
+            );
+            assertTrue(
+                docs.some(d => d.endsWith('design-system/README.md')),
+                `The selected design-system doc must still route. Got: ${docs.join(', ')}`
+            );
         }
     },
     // --- F4: the always-on docs index resolves through its configured path -----------
@@ -1349,7 +1327,10 @@ const tests = [
                     !harnessOut.docs.some(d => d.doc.endsWith('docs-index-reference.md')),
                     `No default-basename sibling may be emitted. Got: ${JSON.stringify(harnessOut.docs.map(d => d.doc))}`
                 );
-                assertTrue(harnessOut.docs.some(d => d.doc.endsWith('CLAUDE.md')), 'Root instructions remain a separate always-on output');
+                assertTrue(
+                    harnessOut.docs.some(d => d.doc.endsWith('CLAUDE.md')),
+                    'Root instructions remain a separate always-on output'
+                );
 
                 const tree = runMapper(dir, ['--json', 'docs/guide.md']);
                 const treeOut = JSON.parse(tree.stdout);
@@ -1395,20 +1376,13 @@ function inFakeProject(projectConfig, body) {
     try {
         fs.mkdirSync(path.join(dir, '.claude'), { recursive: true });
         fs.mkdirSync(path.join(dir, 'docs'), { recursive: true });
-        fs.writeFileSync(
-            path.join(dir, 'docs', 'project-config.json'),
-            JSON.stringify(projectConfig, null, 2),
-            'utf8'
-        );
+        fs.writeFileSync(path.join(dir, 'docs', 'project-config.json'), JSON.stringify(projectConfig, null, 2), 'utf8');
         const script = path.join(dir, 'probe.cjs');
         fs.writeFileSync(
             script,
-            [
-                "'use strict';",
-                `const REPO = ${JSON.stringify(REPO)};`,
-                `const out = (() => { ${body} })();`,
-                'process.stdout.write(JSON.stringify(out));'
-            ].join('\n'),
+            ["'use strict';", `const REPO = ${JSON.stringify(REPO)};`, `const out = (() => { ${body} })();`, 'process.stdout.write(JSON.stringify(out));'].join(
+                '\n'
+            ),
             'utf8'
         );
         const res = spawnSync(process.execPath, [script], {
@@ -1439,16 +1413,9 @@ const docrootTests = [
                 };
                 `
             );
-            assertEqual(
-                out.dir,
-                'spec-library/Cap/',
-                'A slash-free configured root must build `spec-library/Cap/` — never `spec-libraryCap/`.'
-            );
+            assertEqual(out.dir, 'spec-library/Cap/', 'A slash-free configured root must build `spec-library/Cap/` — never `spec-libraryCap/`.');
             assertTrue(out.hit, 'A doc under the CONFIGURED spec root must classify as a feature spec.');
-            assertTrue(
-                out.oldRootMiss,
-                'Once the root is relocated, the literal `docs/specs/` tree is no longer the spec root.'
-            );
+            assertTrue(out.oldRootMiss, 'Once the root is relocated, the literal `docs/specs/` tree is no longer the spec root.');
         }
     },
     {
@@ -1467,11 +1434,7 @@ const docrootTests = [
                 };
                 `
             );
-            assertEqual(
-                out.dir,
-                'docs/specs/Cap/',
-                'The default trailing-slash root must be unchanged.'
-            );
+            assertEqual(out.dir, 'docs/specs/Cap/', 'The default trailing-slash root must be unchanged.');
             assertTrue(out.hit, 'A default-rooted feature spec must still classify under a valid minimal project config.');
             assertTrue(out.otherAreaMiss, 'A doc outside every enforced bucket must still miss.');
             assertTrue(out.siblingMiss, 'Segment boundary: bucket `Cap` must NOT swallow the sibling `CapLegacy` — the fail-open case.');
@@ -1506,8 +1469,7 @@ const docrootTests = [
             const result = mapper.mapChanges([{ status: 'M', file: 'docs/specifications/x.md' }], cfg);
             assertTrue(
                 docNames(result).some(d => d.endsWith(CONFIGURED_INDEX_NAME)),
-                `Root \`docs/spec\` must NOT exclude \`docs/specifications/\` from the docs-tree rule. ` +
-                    `Got: ${docNames(result).join(', ')}`
+                `Root \`docs/spec\` must NOT exclude \`docs/specifications/\` from the docs-tree rule. ` + `Got: ${docNames(result).join(', ')}`
             );
             const inside = mapper.mapChanges([{ status: 'M', file: 'docs/spec/x.md' }], cfg);
             assertTrue(
@@ -1536,10 +1498,7 @@ const docrootTests = [
                     `neither, so it must route. Got: ${docNames(overMatch).join(', ')}`
             );
             const business = mapper.mapChanges([{ status: 'M', file: 'docs/specs/x.md' }], cfg);
-            assertTrue(
-                !docNames(business).some(d => d.endsWith(CONFIGURED_INDEX_NAME)),
-                'A real business-spec path must still be excluded.'
-            );
+            assertTrue(!docNames(business).some(d => d.endsWith(CONFIGURED_INDEX_NAME)), 'A real business-spec path must still be excluded.');
             const technical = mapper.mapChanges([{ status: 'M', file: 'docs/specs-technical/x.md' }], cfg);
             assertTrue(
                 !docNames(technical).some(d => d.endsWith(CONFIGURED_INDEX_NAME)),
@@ -1555,23 +1514,16 @@ const docrootTests = [
             });
             assertTrue(
                 !docNames(backslashed).some(d => d.endsWith(CONFIGURED_INDEX_NAME)),
-                `A backslashed configured root (\`docs\\\\specs\`) must still match \`docs/specs/x.md\`. ` +
-                    `Got: ${docNames(backslashed).join(', ')}`
+                `A backslashed configured root (\`docs\\\\specs\`) must still match \`docs/specs/x.md\`. ` + `Got: ${docNames(backslashed).join(', ')}`
             );
             const trailing = mapper.mapChanges([{ status: 'M', file: 'docs/specs/x.md' }], {
                 specRoots: { business: { path: 'docs/specs/' } }
             });
-            assertTrue(
-                !docNames(trailing).some(d => d.endsWith(CONFIGURED_INDEX_NAME)),
-                'A trailing-slash configured root must still match.'
-            );
+            assertTrue(!docNames(trailing).some(d => d.endsWith(CONFIGURED_INDEX_NAME)), 'A trailing-slash configured root must still match.');
             const cased = mapper.mapChanges([{ status: 'M', file: 'docs/specs/x.md' }], {
                 specRoots: { business: { path: 'Docs/Specs' } }
             });
-            assertTrue(
-                !docNames(cased).some(d => d.endsWith(CONFIGURED_INDEX_NAME)),
-                'A case-variant configured root must still match.'
-            );
+            assertTrue(!docNames(cased).some(d => d.endsWith(CONFIGURED_INDEX_NAME)), 'A case-variant configured root must still match.');
         }
     },
     {
@@ -1579,22 +1531,13 @@ const docrootTests = [
         fn: () => {
             const cfg = { docsRoots: { projectReference: { path: 'documentation/reference' } } };
             assertEqual(loader.getKnowledgeRoot(cfg), 'documentation/knowledge');
-            assertTrue(
-                loader.isKnowledgePath('documentation/knowledge/x.md', cfg),
-                'A relocated docs tree must still route its knowledge workspace.'
-            );
-            assertTrue(
-                !loader.isKnowledgePath('docs/knowledge/x.md', cfg),
-                'Once relocated, the literal `docs/knowledge/` is no longer the workspace.'
-            );
+            assertTrue(loader.isKnowledgePath('documentation/knowledge/x.md', cfg), 'A relocated docs tree must still route its knowledge workspace.');
+            assertTrue(!loader.isKnowledgePath('docs/knowledge/x.md', cfg), 'Once relocated, the literal `docs/knowledge/` is no longer the workspace.');
             assertTrue(
                 !loader.isKnowledgePath('documentation/knowledge-archive/x.md', cfg),
                 'Segment boundary: a prefix-sharing sibling must NOT fail open into the workspace.'
             );
-            assertTrue(
-                loader.isKnowledgePath('documentation\\knowledge\\x.md', cfg),
-                'Backslashed input (a real win32 path) must still match.'
-            );
+            assertTrue(loader.isKnowledgePath('documentation\\knowledge\\x.md', cfg), 'Backslashed input (a real win32 path) must still match.');
         }
     },
     {
@@ -1637,27 +1580,29 @@ const docrootTests = [
 
             // getReportsPath composition is FROZEN: `${plansDir}/${reportsDir}/`.
             // Only plansDir's SOURCE changed. Exercised through the real call site.
-            const out = inFakeProject({ docsRoots: { plans: { path: 'work/plans' } } }, `
+            const out = inFakeProject(
+                { docsRoots: { plans: { path: 'work/plans' } } },
+                `
                 const r = require(REPO + '/.claude/hooks/lib/ck-plan-resolver.cjs');
                 return {
                     tier1: r.getReportsPath(null, null, { reportsDir: 'reports' }, { plans: 'ck-plans' }),
                     session: r.getReportsPath('work/plans/260917-x', 'session', { reportsDir: 'reports' }, {})
                 };
-            `);
-            assertEqual(out.tier1, 'work/plans/reports/', 'getReportsPath must compose from the tier-1 plansDir.');
-            assertEqual(
-                out.session,
-                'work/plans/260917-x/reports/',
-                'Session-resolved plans keep their plan-specific reports path unchanged.'
+            `
             );
+            assertEqual(out.tier1, 'work/plans/reports/', 'getReportsPath must compose from the tier-1 plansDir.');
+            assertEqual(out.session, 'work/plans/260917-x/reports/', 'Session-resolved plans keep their plan-specific reports path unchanged.');
 
-            const out2 = inFakeProject({}, `
+            const out2 = inFakeProject(
+                {},
+                `
                 const r = require(REPO + '/.claude/hooks/lib/ck-plan-resolver.cjs');
                 return {
                     tier2: r.getReportsPath(null, null, { reportsDir: 'reports' }, { plans: 'ck-plans' }),
                     tier3: r.getReportsPath(null, null, {}, {})
                 };
-            `);
+            `
+            );
             assertEqual(out2.tier2, 'ck-plans/reports/', 'With no project-config root, `.ck.json` still drives it.');
             assertEqual(out2.tier3, 'plans/reports/', 'With neither source, the default composition is unchanged.');
         }

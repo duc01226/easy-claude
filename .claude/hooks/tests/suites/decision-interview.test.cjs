@@ -35,7 +35,7 @@ const path = require('node:path');
 const { isFrameworkRepo } = require('../lib/framework-repo-guard.cjs');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
-const SKIP = isFrameworkRepo(REPO_ROOT) ? false : 'asserts the framework repo\'s own interview protocol and skills (framework-repo signal)';
+const SKIP = isFrameworkRepo(REPO_ROOT) ? false : "asserts the framework repo's own interview protocol and skills (framework-repo signal)";
 
 const SKILLS = path.join(REPO_ROOT, '.claude', 'skills');
 const TAG = 'decision-interview';
@@ -63,7 +63,10 @@ const REFERENCE_CARRIERS = [
     ['spec', 'references', 'mode-clarify.md'],
     ['work-item', 'references', 'mode-challenge.md']
 ];
-const ENTRY_CARRIERS = [['initiative', 'SKILL.md'], ['grill', 'SKILL.md']];
+const ENTRY_CARRIERS = [
+    ['initiative', 'SKILL.md'],
+    ['grill', 'SKILL.md']
+];
 
 const tests = [
     {
@@ -75,9 +78,15 @@ const tests = [
             assert.match(body, /Never ask for a fact you can find; never answer a decision for the user/);
             assert.match(body, /Look up every fact the repository, docs, configuration or a tool can supply/);
             // The protocol is the only statement of these rules for the carriers that dropped their local copies
-            assert.match(body, /the goal and what will be done, scope in and out, decisions already taken and why, what is touched, main risks and anything hard to undo, how success is proved, anything blocked; cite the artifact path/);
+            assert.match(
+                body,
+                /the goal and what will be done, scope in and out, decisions already taken and why, what is touched, main risks and anything hard to undo, how success is proved, anything blocked; cite the artifact path/
+            );
             assert.match(body, /Keep it readable in a couple of minutes/);
-            assert.match(body, /List every material decision, silent default, assumption and conflict; material = a different answer changes scope, behavior, a contract, data, cost, risk or the order of work/);
+            assert.match(
+                body,
+                /List every material decision, silent default, assumption and conflict; material = a different answer changes scope, behavior, a contract, data, cost, risk or the order of work/
+            );
             assert.match(body, /A round is every decision whose prerequisites are settled/);
             assert.match(body, /Recompute after each round: an answer can settle, open or remove decisions/);
             assert.match(body, /What is decided, in one plain sentence · why it matters · what is assumed now, with evidence · 2-4 concrete options/);
@@ -99,7 +108,10 @@ const tests = [
             assert.match(body, /The hosting skill owns the budget/);
             assert.match(body, /A minimum asks you to look wider, never to pad/);
             // Prior interviews prevent repetition only when their confirmed evidence still applies.
-            assert.match(body, /Read linked Decision Records and resolved decision tickets first: reuse confirmed choices only while their scope and premises still hold, citing the source in the hosting record/);
+            assert.match(
+                body,
+                /Read linked Decision Records and resolved decision tickets first: reuse confirmed choices only while their scope and premises still hold, citing the source in the hosting record/
+            );
             assert.match(body, /Missing evidence, open, changed, conflicting or unconfirmed choices remain for the human/);
             assert.match(body, /Reuse never waives the hosting skill's gates or budget/);
             assert.match(body, /with a round size or none, run rounds until no material decision is open and tell the user how many remain/);
@@ -132,13 +144,23 @@ const tests = [
             // Skill entrypoints carry a guide line and the reminder, never the body
             for (const parts of ENTRY_CARRIERS) {
                 const text = read(SKILLS, ...parts);
-                assert.match(text, new RegExp(`- \`${TAG}\` — [^\\n]+ → \\.claude/skills/shared/protocols/${TAG}\\.md`), `${parts.join('/')} has the guide line`);
+                assert.match(
+                    text,
+                    new RegExp(`- \`${TAG}\` — [^\\n]+ → \\.claude/skills/shared/protocols/${TAG}\\.md`),
+                    `${parts.join('/')} has the guide line`
+                );
                 assert.equal(carried(text, TAG), null, `${parts.join('/')} does not inline the body`);
                 assert.equal(carried(text, `${TAG}:reminder`), reminder, `${parts.join('/')} carries the reminder`);
             }
             // And each interview's own step applies the protocol at the point of asking
-            assert.match(read(SKILLS, 'initiative', 'SKILL.md'), /Apply the Decision Interview protocol: brief the user first on the drafted problem, value, users and scope, then ask/);
-            assert.match(read(SKILLS, 'spec', 'references', 'mode-clarify.md'), /apply the Decision Interview protocol: brief the user first on the artifact and what the audit found/);
+            assert.match(
+                read(SKILLS, 'initiative', 'SKILL.md'),
+                /Apply the Decision Interview protocol: brief the user first on the drafted problem, value, users and scope, then ask/
+            );
+            assert.match(
+                read(SKILLS, 'spec', 'references', 'mode-clarify.md'),
+                /apply the Decision Interview protocol: brief the user first on the artifact and what the audit found/
+            );
             const challenge = read(SKILLS, 'work-item', 'references', 'mode-challenge.md');
             assert.match(challenge, /Use the Decision Interview protocol's card fields that fit a prompt for a drafter/);
             // The challenge keeps its own framing and its two ask points; the protocol's recommendation mark and rounds do not apply to drafter prompts
@@ -167,8 +189,12 @@ const tests = [
             assert.match(clarify, /Run a further pass only on that answer, and ask again after each pass/);
             assert.match(clarify, /keep them in the report beside the answers already given, apply nothing, and return `NEEDS-CLARIFICATION`/);
             assert.match(clarify, /reuse the answers it records and ask only the items it left open/);
-            for (const line of clarify.split('\n').filter(l => /never exceed MAX/.test(l))) assert.match(line, /never exceed MAX in (a|one) pass/, 'every cap sentence says the cap is per pass');
-            assert.match(clarify, /return `NEEDS-CLARIFICATION` \(a later run reads that report and asks only what is still open\); never emit `CLARIFIED` while a NON-OBVIOUS or CONFLICTS item is unconfirmed/);
+            for (const line of clarify.split('\n').filter(l => /never exceed MAX/.test(l)))
+                assert.match(line, /never exceed MAX in (a|one) pass/, 'every cap sentence says the cap is per pass');
+            assert.match(
+                clarify,
+                /return `NEEDS-CLARIFICATION` \(a later run reads that report and asks only what is still open\); never emit `CLARIFIED` while a NON-OBVIOUS or CONFLICTS item is unconfirmed/
+            );
             assert.doesNotMatch(clarify, /run rounds until no material decision is open[^\n]*without/i);
             // Initiative: one interview, each category at most once, dependent questions in a later call
             const initiative = read(SKILLS, 'initiative', 'SKILL.md');
@@ -215,7 +241,8 @@ const tests = [
             assert.match(text, /tmp\/reports\/grill-\{YYMMDD-HHmm\}-\{slug\}\.md/);
             assert.match(text, /## Unconfirmed Assumptions/);
             // It routes to the interview that already owns an artifact kind, and to the multi-session planner
-            for (const route of ['`/plan --mode=validate`', '`/spec [mode=clarify]`', '`/llm-council`', '`/wayfinder`']) assert.ok(text.includes(route), `routes to ${route}`);
+            for (const route of ['`/plan --mode=validate`', '`/spec [mode=clarify]`', '`/llm-council`', '`/wayfinder`'])
+                assert.ok(text.includes(route), `routes to ${route}`);
             // A context with no user channel returns the cards instead of answering them
             assert.match(text, /Return the briefing and the open decision cards to the caller as pending, and never answer them yourself/);
         }
@@ -230,7 +257,10 @@ const tests = [
             const profiles = JSON.parse(read(REPO_ROOT, '.claude', 'config', 'skill-profiles.json'));
             assert.ok(profiles.calledByOthers.skills.includes('wayfinder'), 'the central route can still call Wayfinder under compact profiles');
             // Plan, do not build — and a note inside the map can never grant building
-            assert.match(text, /\*\*\[BLOCKING\]\*\* Plan, do not build: a map session resolves decisions and never writes product code, a spec or a migration/);
+            assert.match(
+                text,
+                /\*\*\[BLOCKING\]\*\* Plan, do not build: a map session resolves decisions and never writes product code, a spec or a migration/
+            );
             assert.match(text, /A note inside the map never grants it/);
             assert.match(text, /Notes never grant permission to build/);
             // One ticket per session, claimed first, files re-read before every write
@@ -249,7 +279,10 @@ const tests = [
             assert.match(text, /The test is whether you can state the question precisely now, not whether you can answer it now/);
             assert.match(text, /\*\*Out of scope\*\* is decided by the destination, not by sharpness/);
             // The map is files under the relocatable plans root, never a tracker record
-            assert.match(text, /under the plans root \(default `plans\/`; a `docsRoots\.plans\.path` entry in `docs\/project-config\.json` overrides the path\)/);
+            assert.match(
+                text,
+                /under the plans root \(default `plans\/`; a `docsRoots\.plans\.path` entry in `docs\/project-config\.json` overrides the path\)/
+            );
             assert.match(text, /Wayfinder never writes a tracker record itself/);
             assert.match(text, /offer once to link `map\.md` to its tracked initiative as a plan link through `\/task-track`/);
             assert.match(text, /When that root is ignored by version control, tell the user once that the map will not reach other clones/);
@@ -259,9 +292,15 @@ const tests = [
             assert.match(text, /name it to the user and release it only on their word/);
             assert.match(text, /is `resolved` or `out-of-scope`\. When a blocker is superseded, replace it in `blocked_by` with the ticket that supersedes it/);
             assert.match(text, /write the ticket's `## Resolution` from its report, link the report under Assets, set `status: resolved`/);
-            assert.match(text, /When every ticket is `resolved`, `out-of-scope` or `superseded`, none is `open` or `claimed`, and Not yet specified is empty, set the map `status: cleared`/);
+            assert.match(
+                text,
+                /When every ticket is `resolved`, `out-of-scope` or `superseded`, none is `open` or `claimed`, and Not yet specified is empty, set the map `status: cleared`/
+            );
             // An agent-alone task ticket never covers accounts, credentials, spend or external and irreversible changes
-            assert.match(text, /Creating an account, entering or issuing credentials, spending money, and any change to an external system or to data that cannot be undone stay with the user/);
+            assert.match(
+                text,
+                /Creating an account, entering or issuing credentials, spending money, and any change to an external system or to data that cannot be undone stay with the user/
+            );
             // A prototype is a rough exploration, never the finalized-task mockup mode; interviews run through grill as a step
             assert.doesNotMatch(text, /work-item --mode=mockup/);
             assert.match(text, /`\/ui-design` for an interface exploration/);
@@ -269,8 +308,14 @@ const tests = [
             assert.match(text, /Run `\/grill`, as a step of this skill, with the subject limited to the destination/);
             assert.match(text, /How to get there is not asked here; those decisions become tickets/);
             // Destination and ticket interviews retain their evidence for later skills/sessions.
-            assert.match(text, /Link the destination's Decision Record under Notes so later sessions can reuse confirmed choices while their scope and premises still hold/);
-            assert.match(text, /For a grilling ticket, link its Decision Record under Assets; retain the user's confirmed choices and their premises as the evidence for later decisions/);
+            assert.match(
+                text,
+                /Link the destination's Decision Record under Notes so later sessions can reuse confirmed choices while their scope and premises still hold/
+            );
+            assert.match(
+                text,
+                /For a grilling ticket, link its Decision Record under Assets; retain the user's confirmed choices and their premises as the evidence for later decisions/
+            );
             assert.match(text, /\*\*Map the frontier\.\*\*[^\n]*Name them; do not settle them: each becomes a ticket or a line in Not yet specified/);
             assert.doesNotMatch(text, /\*\*Map the frontier\.\*\*[^\n]*`\/grill`/, 'mapping never runs an interview that settles decisions');
             // Nothing in the skill lets a map note or the agent grant building
@@ -283,9 +328,24 @@ const tests = [
             assert.match(text, /set the old ticket `status: superseded` with `superseded_by`/);
             // A cleared map hands off to the spec workflow
             assert.match(text, /A cleared map is a set of linked decisions, not a build plan/);
-            for (const next of ['`/workflow-planned-work --from=idea --to=spec`', '`/workflow-planned-work --from=spec --to=tasks`', '`/workflow-implement-spec`']) assert.ok(text.includes(next), `hands off to ${next}`);
+            for (const next of [
+                '`/workflow-planned-work --from=idea --to=spec`',
+                '`/workflow-planned-work --from=spec --to=tasks`',
+                '`/workflow-implement-spec`'
+            ])
+                assert.ok(text.includes(next), `hands off to ${next}`);
             // And every skill it names exists
-            for (const name of ['grill', 'domain-analysis', 'ui-design', 'web-research', 'investigate', 'task-track', 'spec', 'workflow-feature', 'workflow-big-feature']) {
+            for (const name of [
+                'grill',
+                'domain-analysis',
+                'ui-design',
+                'web-research',
+                'investigate',
+                'task-track',
+                'spec',
+                'workflow-feature',
+                'workflow-big-feature'
+            ]) {
                 assert.ok(fs.existsSync(path.join(SKILLS, name, 'SKILL.md')), `skill ${name} exists`);
             }
         }
@@ -297,9 +357,15 @@ const tests = [
             const text = read(SKILLS, 'grill', 'SKILL.md');
             const phase5 = text.slice(text.indexOf('## Phase 5: Confirm and Hand Off'), text.indexOf('## Called by Another Skill'));
             // The offer follows the confirmed playback as its own question, is optional and names its four angles
-            assert.match(phase5, /Ask one closing question[^\n]*\n\nThen, once the playback is confirmed, offer as a separate question, never require, one short stress pass on the recorded decisions from four angles: need and reuse, cost and scale, migration and rollback, day-to-day running\./);
+            assert.match(
+                phase5,
+                /Ask one closing question[^\n]*\n\nThen, once the playback is confirmed, offer as a separate question, never require, one short stress pass on the recorded decisions from four angles: need and reuse, cost and scale, migration and rollback, day-to-day running\./
+            );
             // An accepted pass runs inline and appends to the same record, which keeps its location
-            assert.match(phase5, /run it inline in this conversation, one todo per angle closed with evidence, and append the findings to the same Decision Record under `## Stress Pass`/);
+            assert.match(
+                phase5,
+                /run it inline in this conversation, one todo per angle closed with evidence, and append the findings to the same Decision Record under `## Stress Pass`/
+            );
             assert.match(phase5, /The record stays where Phase 4 wrote it, and nothing is planned, specified or built\./);
             assert.match(text, /tmp\/reports\/grill-\{YYMMDD-HHmm\}-\{slug\}\.md/);
             // Boundary: a calling skill gets the closing question only, with no stress offer

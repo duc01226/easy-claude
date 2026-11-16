@@ -18,7 +18,7 @@ const { getSessionStatePath } = require('./ck-paths.cjs');
  * @returns {string} Path to session temp file (/tmp/ck/session/{id}.json)
  */
 function getSessionTempPath(sessionId) {
-  return getSessionStatePath(sessionId);
+    return getSessionStatePath(sessionId);
 }
 
 /**
@@ -27,14 +27,14 @@ function getSessionTempPath(sessionId) {
  * @returns {Object|null} Session state or null
  */
 function readSessionState(sessionId) {
-  if (!sessionId) return null;
-  const tempPath = getSessionTempPath(sessionId);
-  try {
-    if (!fs.existsSync(tempPath)) return null;
-    return JSON.parse(fs.readFileSync(tempPath, 'utf8'));
-  } catch (e) {
-    return null;
-  }
+    if (!sessionId) return null;
+    const tempPath = getSessionTempPath(sessionId);
+    try {
+        if (!fs.existsSync(tempPath)) return null;
+        return JSON.parse(fs.readFileSync(tempPath, 'utf8'));
+    } catch (e) {
+        return null;
+    }
 }
 
 /**
@@ -44,26 +44,34 @@ function readSessionState(sessionId) {
  * @returns {boolean} Success status
  */
 function writeSessionState(sessionId, state) {
-  if (!sessionId) return false;
-  const tempPath = getSessionTempPath(sessionId);
-  const tmpFile = tempPath + '.' + Math.random().toString(36).slice(2);
-  try {
-    fs.writeFileSync(tmpFile, JSON.stringify(state, null, 2));
+    if (!sessionId) return false;
+    const tempPath = getSessionTempPath(sessionId);
+    const tmpFile = tempPath + '.' + Math.random().toString(36).slice(2);
     try {
-      fs.renameSync(tmpFile, tempPath);
-    } catch (renameErr) {
-      if (renameErr.code === 'EEXIST' || renameErr.code === 'EPERM') {
-        fs.copyFileSync(tmpFile, tempPath);
-        try { fs.unlinkSync(tmpFile); } catch (_) { /* ignore cleanup failure */ }
-      } else {
-        throw renameErr;
-      }
+        fs.writeFileSync(tmpFile, JSON.stringify(state, null, 2));
+        try {
+            fs.renameSync(tmpFile, tempPath);
+        } catch (renameErr) {
+            if (renameErr.code === 'EEXIST' || renameErr.code === 'EPERM') {
+                fs.copyFileSync(tmpFile, tempPath);
+                try {
+                    fs.unlinkSync(tmpFile);
+                } catch (_) {
+                    /* ignore cleanup failure */
+                }
+            } else {
+                throw renameErr;
+            }
+        }
+        return true;
+    } catch (e) {
+        try {
+            fs.unlinkSync(tmpFile);
+        } catch (_) {
+            /* ignore */
+        }
+        return false;
     }
-    return true;
-  } catch (e) {
-    try { fs.unlinkSync(tmpFile); } catch (_) { /* ignore */ }
-    return false;
-  }
 }
 
 /**
@@ -72,21 +80,21 @@ function writeSessionState(sessionId, state) {
  * @returns {boolean} Success status
  */
 function deleteSessionState(sessionId) {
-  if (!sessionId) return false;
-  const tempPath = getSessionTempPath(sessionId);
-  try {
-    if (fs.existsSync(tempPath)) {
-      fs.unlinkSync(tempPath);
+    if (!sessionId) return false;
+    const tempPath = getSessionTempPath(sessionId);
+    try {
+        if (fs.existsSync(tempPath)) {
+            fs.unlinkSync(tempPath);
+        }
+        return true;
+    } catch (e) {
+        return false;
     }
-    return true;
-  } catch (e) {
-    return false;
-  }
 }
 
 module.exports = {
-  getSessionTempPath,
-  readSessionState,
-  writeSessionState,
-  deleteSessionState
+    getSessionTempPath,
+    readSessionState,
+    writeSessionState,
+    deleteSessionState
 };

@@ -88,8 +88,13 @@ const spawnLog = dir => path.join(dir, 'graph-spawns.jsonl');
  */
 function isolatedEnv(dir) {
     const overrides = {
-        HOME: dir, USERPROFILE: dir, TMPDIR: dir, TEMP: dir, TMP: dir,
-        LOCALAPPDATA: dir, XDG_CACHE_HOME: dir,
+        HOME: dir,
+        USERPROFILE: dir,
+        TMPDIR: dir,
+        TEMP: dir,
+        TMP: dir,
+        LOCALAPPDATA: dir,
+        XDG_CACHE_HOME: dir,
         CLAUDE_PROJECT_DIR: dir,
         CLAUDE_HOOK_DEBUG: undefined
     };
@@ -118,7 +123,11 @@ function runHookIn(dir, hookFile, payload) {
 /** Every process start the graph tooling attempted in this fixture. */
 function spawnsIn(dir) {
     try {
-        return fs.readFileSync(spawnLog(dir), 'utf8').split('\n').filter(Boolean).map(line => JSON.parse(line));
+        return fs
+            .readFileSync(spawnLog(dir), 'utf8')
+            .split('\n')
+            .filter(Boolean)
+            .map(line => JSON.parse(line));
     } catch {
         return [];
     }
@@ -138,7 +147,10 @@ const promptWithoutSession = text => ({ hook_event_name: 'UserPromptSubmit', pro
 const markersDir = dir => path.join(dir, 'ck', 'markers');
 const graphNoteMarkers = dir => {
     try {
-        return fs.readdirSync(markersDir(dir)).filter(name => name.startsWith('graph-note-')).sort();
+        return fs
+            .readdirSync(markersDir(dir))
+            .filter(name => name.startsWith('graph-note-'))
+            .sort();
     } catch {
         return [];
     }
@@ -174,7 +186,11 @@ const tests = [
                     assertEqual(codeGraphMode({ config: { hooks: {} }, projectDir: dir }), expectAuto, `codeGraph omitted means auto, graph=${graphBuilt}`);
                     // Outside the contract (validation rejects it): stay inert rather than guess.
                     assertEqual(codeGraphMode({ config: cfg('yes'), projectDir: dir }), 'off', `unknown value is inert, graph=${graphBuilt}`);
-                    assertEqual(codeGraphMode({ config: { hooks: { codeGraph: 'on' } }, projectDir: dir }), 'off', `non-object section is inert, graph=${graphBuilt}`);
+                    assertEqual(
+                        codeGraphMode({ config: { hooks: { codeGraph: 'on' } }, projectDir: dir }),
+                        'off',
+                        `non-object section is inert, graph=${graphBuilt}`
+                    );
                 } finally {
                     cleanupTempDir(dir);
                 }
@@ -240,7 +256,11 @@ const tests = [
                 assertContains(first.stdout, '/graph-code --mode=build', 'the note routes to the graph build');
                 // And without the toolchain (the spawn seam finds no Python) the note leaves the install to
                 // /graph-code --mode=build, never to a system-wide pip install
-                assertContains(first.stdout, 'Python 3.10+ required; `/graph-code --mode=build` installs the rest', 'the no-toolchain note names the prerequisite and the install route');
+                assertContains(
+                    first.stdout,
+                    'Python 3.10+ required; `/graph-code --mode=build` installs the rest',
+                    'the no-toolchain note names the prerequisite and the install route'
+                );
                 assertFalse(first.stdout.includes('pip install'), 'the note must not tell the user to pip install into the system Python');
                 assertEqual(count(second.stdout, NOTE), 0, 'the second prompt of the same session carries no note');
                 // Edge: a new session may show it once again.
@@ -291,7 +311,7 @@ const tests = [
     {
         // Guards temp hygiene: one marker is written per session and nothing else deletes them, so writing a
         // new one removes this project's markers past their 24 h lifetime and leaves everything else alone.
-        name: '[code-graph-opt-in] TC-ADS-003 writing a note marker prunes this project\'s markers older than 24 h',
+        name: "[code-graph-opt-in] TC-ADS-003 writing a note marker prunes this project's markers older than 24 h",
         fn() {
             // Given a project in mode on without a built graph, whose first session left a marker
             withProject({ mode: 'on', graphBuilt: false }, dir => {
@@ -315,7 +335,7 @@ const tests = [
                 assertFalse(left.includes(own), 'the stale first-session marker is pruned');
                 assertTrue(left.includes(freshOwn), 'a fresh marker of this project is kept');
                 assertTrue(left.includes(`${prefix}session-b`), 'the new session marker is written');
-                assertTrue(left.includes(staleOther), 'another project\'s marker is never touched');
+                assertTrue(left.includes(staleOther), "another project's marker is never touched");
             });
         }
     },
@@ -341,8 +361,9 @@ const tests = [
             });
             // Edge: off without any graph is silent too — not even an answer to "skip graph".
             withProject({ mode: 'off', graphBuilt: false }, dir => {
-                const out = runHookIn(dir, 'init-prompt-gate.cjs', prompt('implement feature X')).stdout
-                    + runHookIn(dir, 'init-prompt-gate.cjs', prompt('skip graph')).stdout;
+                const out =
+                    runHookIn(dir, 'init-prompt-gate.cjs', prompt('implement feature X')).stdout +
+                    runHookIn(dir, 'init-prompt-gate.cjs', prompt('skip graph')).stdout;
                 assertNoGraphText(out, 'off without a graph');
                 assertFalse(fs.existsSync(path.join(dir, 'tmp', 'claude-temp', '.graph-dismissed')), 'off: no dismissal state is written');
             });
@@ -367,7 +388,10 @@ const tests = [
                 assertEqual(JSON.stringify(spawnsIn(dir)), '[]', 'neither step starts a process');
             });
             // Controls: with the graph active each step does reach a process start, one hook at a time.
-            for (const [hook, payload] of [['graph-auto-update.cjs', editEvent], ['graph-prompt-sync.cjs', () => prompt('implement feature X')]]) {
+            for (const [hook, payload] of [
+                ['graph-auto-update.cjs', editEvent],
+                ['graph-prompt-sync.cjs', () => prompt('implement feature X')]
+            ]) {
                 withProject({ mode: 'auto', graphBuilt: true }, dir => {
                     runHookIn(dir, hook, payload(dir));
                     assertTrue(spawnsIn(dir).length > 0, `control: ${hook} with an active graph starts a process`);

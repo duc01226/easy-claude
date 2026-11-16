@@ -25,9 +25,8 @@ const projectConfig = projectConfigLoader.loadProjectConfig();
 
 function getProtocolIndexFilename(config) {
     const entries = Array.isArray(config?.referenceDocs) ? config.referenceDocs : [];
-    const entry = entries.find((doc) =>
-        typeof doc?.filename === 'string' &&
-        (/skill-protocol/i.test(doc.filename) || /skill-protocol overlay/i.test(doc.purpose || ''))
+    const entry = entries.find(
+        doc => typeof doc?.filename === 'string' && (/skill-protocol/i.test(doc.filename) || /skill-protocol overlay/i.test(doc.purpose || ''))
     );
     return path.posix.basename((entry?.filename || 'skill-protocols-reference.md').replace(/\\/g, '/'));
 }
@@ -53,14 +52,14 @@ const FIX = 'Fix: correct the row in the overlay registry index (see .claude/ski
 
 function splitRow(line) {
     // `| a | b |` -> ['a', 'b']. Leading/trailing pipes produce empty edge cells.
-    const cells = line.split('|').map((c) => c.trim());
+    const cells = line.split('|').map(c => c.trim());
     if (cells.length && cells[0] === '') cells.shift();
     if (cells.length && cells[cells.length - 1] === '') cells.pop();
     return cells;
 }
 
 function isSeparatorRow(cells) {
-    return cells.length > 0 && cells.every((c) => /^:?-{3,}:?$/.test(c));
+    return cells.length > 0 && cells.every(c => /^:?-{3,}:?$/.test(c));
 }
 
 /**
@@ -148,7 +147,7 @@ const tests = [
         // TC-PSP-041
         name: '[project-protocol-drift] the framework root file carries no overlay block the runtime hook replaced',
         skip: !selfCheck,
-        skipReason: 'framework-repo self-check: reads this repository\'s own CLAUDE.md',
+        skipReason: "framework-repo self-check: reads this repository's own CLAUDE.md",
         fn: () => {
             assertTrue(
                 !claudeMdText.includes(RETIRED_BLOCK_OPEN),
@@ -163,17 +162,16 @@ const tests = [
         fn: () => {
             const fixtureConfig = {
                 docsRoots: { projectReference: { path: 'handbook/agent-context' } },
-                referenceDocs: [{
-                    filename: 'team-overlays.md',
-                    purpose: 'Index of project skill-protocol overlays.'
-                }]
+                referenceDocs: [
+                    {
+                        filename: 'team-overlays.md',
+                        purpose: 'Index of project skill-protocol overlays.'
+                    }
+                ]
             };
             const resolved = getProtocolIndexPath(path.join('portable-fixture'), fixtureConfig);
             const expected = path.join('portable-fixture', 'handbook', 'agent-context', 'team-overlays.md');
-            assertTrue(
-                resolved === expected,
-                `Expected configured registry path ${expected}, got ${resolved}`
-            );
+            assertTrue(resolved === expected, `Expected configured registry path ${expected}, got ${resolved}`);
         }
     },
     {
@@ -208,18 +206,13 @@ const tests = [
             const { rows, malformed } = parseRegistryRows(fixture);
             assertTrue(rows.length === 1, `Expected 1 well-formed row, got ${rows.length}`);
             assertTrue(malformed.length === 1, `Expected 1 malformed row, got ${malformed.length}`);
-            assertTrue(
-                malformed[0].cellCount === 5,
-                `Malformed row must report its actual cell count; got ${malformed[0].cellCount}`
-            );
+            assertTrue(malformed[0].cellCount === 5, `Malformed row must report its actual cell count; got ${malformed[0].cellCount}`);
 
             // The real index must itself be well-formed.
             assertTrue(
                 parsed.malformed.length === 0,
                 `Malformed row(s) in ${INDEX_RELATIVE_PATH}:\n` +
-                    parsed.malformed
-                        .map((r) => `  line ${r.line}: ${r.cellCount} cell(s) — ${r.text}`)
-                        .join('\n') +
+                    parsed.malformed.map(r => `  line ${r.line}: ${r.cellCount} cell(s) — ${r.text}`).join('\n') +
                     `\nEvery data row needs exactly ${REGISTRY_COLUMNS} columns.\n${FIX}`
             );
         }
@@ -251,17 +244,11 @@ const tests = [
         // test.skip before calling fn(). A runtime early-return would report PASS, not SKIP.
         name: '[project-protocol-drift] every gated test exposes a static boolean skip at module load',
         fn: () => {
-            const gated = tests.filter((t) => Object.prototype.hasOwnProperty.call(t, 'skip'));
+            const gated = tests.filter(t => Object.prototype.hasOwnProperty.call(t, 'skip'));
             assertTrue(gated.length > 0, 'At least one test must be gated (non-vacuous)');
             for (const t of gated) {
-                assertTrue(
-                    typeof t.skip === 'boolean',
-                    `${t.name}: skip must be a boolean computed at module load, got ${typeof t.skip}`
-                );
-                assertTrue(
-                    typeof t.skipReason === 'string' && t.skipReason.length > 0,
-                    `${t.name}: a gated test must state WHY it skipped`
-                );
+                assertTrue(typeof t.skip === 'boolean', `${t.name}: skip must be a boolean computed at module load, got ${typeof t.skip}`);
+                assertTrue(typeof t.skipReason === 'string' && t.skipReason.length > 0, `${t.name}: a gated test must state WHY it skipped`);
             }
         }
     }

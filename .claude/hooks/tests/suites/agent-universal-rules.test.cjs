@@ -93,40 +93,40 @@ const SYNC_INLINE_PATH = path.resolve(process.env.CLAUDE_PROJECT_DIR, '.claude',
 const GROUPS_PATH = path.resolve(process.env.CLAUDE_PROJECT_DIR, '.claude', 'skills', 'shared', 'protocol-groups.json');
 
 // ── Tier constants — mirror sync-hooks-to-skills.py tier sets verbatim ────────
-const CORE_TAGS = [
-    'sequential-thinking-protocol',
-    'agent-bootstrap',
-];
+const CORE_TAGS = ['sequential-thinking-protocol', 'agent-bootstrap'];
 // Never on an agent: task-tracking-external-report is folded into agent-bootstrap (mirror of
 // sync_blocks.AGENT_FOLDED_TAGS); the universal tags come from the universal group (TC-UAR-011).
 const AGENT_FOLDED_TAGS = ['task-tracking-external-report'];
 // CODE_TAGS splits into two axes for the readonly-code sub-tier:
 //   READONLY_CODE_TAGS — shared by CODE and READONLY_CODE agents (reading discipline).
 //   MUTATION_CODE_TAGS — CODE agents ONLY; readonly-code agents must NOT carry them.
-const READONLY_CODE_TAGS = [
-    'understand-code-first',
-    'evidence-based-reasoning',
-];
-const MUTATION_CODE_TAGS = [
-    'cross-service-check',
-    'fix-layer-accountability',
-];
+const READONLY_CODE_TAGS = ['understand-code-first', 'evidence-based-reasoning'];
+const MUTATION_CODE_TAGS = ['cross-service-check', 'fix-layer-accountability'];
 const CODE_TAGS = [...READONLY_CODE_TAGS, ...MUTATION_CODE_TAGS];
 const CODE_AGENTS = new Set([
-    'ai-engineering-reviewer', 'architect', 'backend-developer', 'code-reviewer', 'code-simplifier',
-    'database-admin', 'debugger', 'e2e-runner', 'framework-maintainer', 'frontend-developer',
-    'fullstack-developer', 'integration-tester', 'performance-optimizer', 'performance-tester',
-    'planner', 'security-auditor',
-    'solution-architect', 'spec-compliance-reviewer', 'tester',
+    'ai-engineering-reviewer',
+    'architect',
+    'backend-developer',
+    'code-reviewer',
+    'code-simplifier',
+    'database-admin',
+    'debugger',
+    'e2e-runner',
+    'framework-maintainer',
+    'frontend-developer',
+    'fullstack-developer',
+    'integration-tester',
+    'performance-optimizer',
+    'performance-tester',
+    'planner',
+    'security-auditor',
+    'solution-architect',
+    'spec-compliance-reviewer',
+    'tester'
 ]);
 // Read-only/design agents: READONLY_CODE_TAGS only, NOT MUTATION_CODE_TAGS.
-const READONLY_CODE_AGENTS = new Set([
-    'researcher', 'ui-ux-designer',
-]);
-const CORE_ONLY_AGENTS = new Set([
-    'docs-manager', 'git-manager', 'journal-writer',
-    'knowledge-worker',
-]);
+const READONLY_CODE_AGENTS = new Set(['researcher', 'ui-ux-designer']);
+const CORE_ONLY_AGENTS = new Set(['docs-manager', 'git-manager', 'journal-writer', 'knowledge-worker']);
 
 // ── TC-UAR-017 agent-adoption triage gate ────────────────────────────────────
 // The drift this catches: a new canonical SYNC block gets propagated across the
@@ -141,44 +141,61 @@ const AGENT_ADOPTION_MIN_SKILL_REACH = 3;
 // Orchestration blocks a headless leaf sub-agent structurally CANNOT act on.
 // Mirrors agent_protocol_matrix.py EXCLUDED_ORCHESTRATION -- keep the two in step.
 const AGENT_ADOPTION_EXEMPT = new Set([
-    'subagent-return-contract',    // instructs ITS sub-agents how to return (inverted for a leaf)
-    'parallel-phase-advancement',  // all-return barrier across a parallel phase group
-    'sub-agent-selection',         // a dispatcher choosing which sub-agents to spawn
+    'subagent-return-contract', // instructs ITS sub-agents how to return (inverted for a leaf)
+    'parallel-phase-advancement', // all-return barrier across a parallel phase group
+    'sub-agent-selection', // a dispatcher choosing which sub-agents to spawn
     'goal-contract-satisfaction-loop', // session goal file + convergence loop + user escalation
     'task-tracking-external-report', // folded into agent-bootstrap: an agent keeps one statement of the task and report rules (sync_blocks.AGENT_FOLDED_TAGS)
-    'project-protocol-overlay',    // overlay resolution is performed by whoever INVOKES the skill; a headless leaf sub-agent receives one already-scoped brief whose overlay the dispatching orchestrator already resolved
-    'session-goal-ledger',         // tracks the USER's session prompts; a headless leaf never sees the user conversation (its brief already carries the goal) and the prompt-ledger hook injects nothing inside a helper agent
-    'verify-last-order',           // orders test runs ACROSS a task's steps (build, static review, one verify); the orchestrator owns it, and the leaf rules are written into fullstack-developer.md / frontend-developer.md (agent_protocol_matrix.py EXCLUDED_ORCHESTRATION)
-    'workflow-registry-binding',   // binds a workflow SKILL.md to its .claude/workflows.json entry so whoever RESOLVES a step reads both projections; a headless leaf gets one already-resolved brief and never evaluates a sequence's applicability
+    'project-protocol-overlay', // overlay resolution is performed by whoever INVOKES the skill; a headless leaf sub-agent receives one already-scoped brief whose overlay the dispatching orchestrator already resolved
+    'session-goal-ledger', // tracks the USER's session prompts; a headless leaf never sees the user conversation (its brief already carries the goal) and the prompt-ledger hook injects nothing inside a helper agent
+    'verify-last-order', // orders test runs ACROSS a task's steps (build, static review, one verify); the orchestrator owns it, and the leaf rules are written into fullstack-developer.md / frontend-developer.md (agent_protocol_matrix.py EXCLUDED_ORCHESTRATION)
+    'workflow-registry-binding', // binds a workflow SKILL.md to its .claude/workflows.json entry so whoever RESOLVES a step reads both projections; a headless leaf gets one already-resolved brief and never evaluates a sequence's applicability
     // Review-loop orchestration: the orchestrating review skill runs batching, the round loop,
     // reviewer-prompt construction and the round record; a leaf reviewer gets one scoped brief with
     // the rules it applies already embedded (agent_protocol_matrix.py EXCLUDED_ORCHESTRATION).
     'review-protocol-injection',
     'systematic-review-batching',
-    'review-policy',
+    'review-policy'
 ]);
 const AGENT_SKILL_CONNECTIONS_OPEN = '<!-- AGENT-SKILL-CONNECTIONS:START -->';
 const AGENT_SKILL_CONNECTIONS_CLOSE = '<!-- AGENT-SKILL-CONNECTIONS:END -->';
 const TEST_ARCHITECTURE_SKILLS = [
     'architecture',
-    'scaffold', 'harness-setup', 'workflow-greenfield-init',
-    'integration-test', 'performance-test',
-    'e2e-test', 'workflow-e2e',
-    'workflow-integration-test', 'test',
-    'seed-test-data',
+    'scaffold',
+    'harness-setup',
+    'workflow-greenfield-init',
+    'integration-test',
+    'performance-test',
+    'e2e-test',
+    'workflow-e2e',
+    'workflow-integration-test',
+    'test',
+    'seed-test-data'
 ];
 // agent-code-standards audience — SEPARATE axis (mirror sync-hooks-to-skills.py
 // CODE_STANDARDS_AGENTS verbatim). NOT the same set as CODE_AGENTS.
 const CODE_STANDARDS_AGENTS = new Set([
-    'ai-engineering-reviewer', 'architect', 'backend-developer', 'code-reviewer', 'code-simplifier',
-    'database-admin', 'debugger', 'e2e-runner', 'framework-maintainer',
-    'frontend-developer', 'fullstack-developer', 'integration-tester',
-    'performance-optimizer', 'performance-tester', 'planner', 'security-auditor', 'solution-architect',
-    'spec-compliance-reviewer', 'tester',
+    'ai-engineering-reviewer',
+    'architect',
+    'backend-developer',
+    'code-reviewer',
+    'code-simplifier',
+    'database-admin',
+    'debugger',
+    'e2e-runner',
+    'framework-maintainer',
+    'frontend-developer',
+    'fullstack-developer',
+    'integration-tester',
+    'performance-optimizer',
+    'performance-tester',
+    'planner',
+    'security-auditor',
+    'solution-architect',
+    'spec-compliance-reviewer',
+    'tester'
 ]);
-const REVIEW_CYCLE_TAGS = [
-    'review-protocol-injection',
-];
+const REVIEW_CYCLE_TAGS = ['review-protocol-injection'];
 const REVIEW_CYCLE_AGENTS = new Set([
     'architect',
     'code-reviewer',
@@ -186,7 +203,7 @@ const REVIEW_CYCLE_AGENTS = new Set([
     'planner',
     'security-auditor',
     'spec-compliance-reviewer',
-    'ui-ux-designer',
+    'ui-ux-designer'
 ]);
 
 const diskAgents = fs
@@ -195,8 +212,7 @@ const diskAgents = fs
     .map(f => f.replace(/\.md$/, ''));
 
 const read = name => fs.readFileSync(path.join(AGENTS_DIR, `${name}.md`), 'utf8');
-const hasBlock = (body, tag) =>
-    body.includes(`<!-- SYNC:${tag} -->`) && body.includes(`<!-- /SYNC:${tag} -->`);
+const hasBlock = (body, tag) => body.includes(`<!-- SYNC:${tag} -->`) && body.includes(`<!-- /SYNC:${tag} -->`);
 
 // Skills carrying a SKILL.md (a subdir like `shared/` without one is excluded).
 const skillNames = fs
@@ -206,7 +222,7 @@ const skillNames = fs
 const readSkill = name => fs.readFileSync(path.join(SKILLS_DIR, name, 'SKILL.md'), 'utf8');
 const instructionDocs = () => [
     ...diskAgents.map(name => ({ kind: 'agent', name, body: read(name) })),
-    ...skillNames.map(name => ({ kind: 'skill', name, body: readSkill(name) })),
+    ...skillNames.map(name => ({ kind: 'skill', name, body: readSkill(name) }))
 ];
 
 const canonicalBody = tag => {
@@ -217,15 +233,16 @@ const canonicalBody = tag => {
 };
 
 const blockBody = (body, tag) => {
-    const match = new RegExp(`<!-- ${tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} -->\\s*([\\s\\S]*?)\\s*<!-- /${tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} -->`).exec(body);
+    const match = new RegExp(
+        `<!-- ${tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} -->\\s*([\\s\\S]*?)\\s*<!-- /${tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} -->`
+    ).exec(body);
     return match ? match[1].trim() : null;
 };
 
-const aiMistakeDigestLines = body => body
-    .split(/\r?\n/)
-    .filter(line => line.includes('AI Mistake Prevention:'));
+const aiMistakeDigestLines = body => body.split(/\r?\n/).filter(line => line.includes('AI Mistake Prevention:'));
 
-const codeSpecificAiMistakePattern = /\b(holistic[- ]first|debugging|debug\b|fix(?:es|ing)?\s+(?:at|the|responsible|owning)|owning layer|responsible layer|surgical diff|surgical diffs|symptom site|crash site)\b/i;
+const codeSpecificAiMistakePattern =
+    /\b(holistic[- ]first|debugging|debug\b|fix(?:es|ing)?\s+(?:at|the|responsible|owning)|owning layer|responsible layer|surgical diff|surgical diffs|symptom site|crash site)\b/i;
 const managedProtocolDigestAliases = new Map([
     ['Cross-Cutting Quality', 'SYNC:cross-cutting-quality'],
     ['Scaffold Production Readiness', 'SYNC:scaffold-production-readiness'],
@@ -235,7 +252,7 @@ const managedProtocolDigestAliases = new Map([
     ['End-to-Start Debugger Trace', 'SYNC:end-to-start-debugger-trace'],
     ['Fix-Layer Accountability', 'SYNC:fix-layer-accountability'],
     ['UI Action & Density', 'SYNC:ui-action-density-gate'],
-    ['Prototype Design System', 'SYNC:prototype-design-system'],
+    ['Prototype Design System', 'SYNC:prototype-design-system']
 ]);
 const protocolDigestLinePattern = /^\s*-\s+\*\*([^:*]+):\*\*/;
 
@@ -249,8 +266,7 @@ const guideCarrier = require(path.join(__dirname, '..', '..', '..', 'scripts', '
 const skillGuides = (body, tag, skillsDir = SKILLS_DIR) =>
     guideCarrier.hasGuideEntry(body, tag) && fs.existsSync(path.join(skillsDir, 'shared', 'protocols', `${tag}.md`));
 // Full block, `:reminder` or (skills) a guide entry: the TC-UAR-009/-010 notion of "carries".
-const skillCarriesAnyForm = (body, tag, skillsDir = SKILLS_DIR) =>
-    body.includes(`<!-- SYNC:${tag}`) || skillGuides(body, tag, skillsDir);
+const skillCarriesAnyForm = (body, tag, skillsDir = SKILLS_DIR) => body.includes(`<!-- SYNC:${tag}`) || skillGuides(body, tag, skillsDir);
 // TC-UAR-009: a skill demanding code reading must also demand evidence discipline.
 const missesEvidencePair = (body, skillsDir = SKILLS_DIR) =>
     skillCarriesAnyForm(body, 'understand-code-first', skillsDir) && !skillCarriesAnyForm(body, 'evidence-based-reasoning', skillsDir);
@@ -278,7 +294,7 @@ function digestAliasProblems(doc, skillsDir = SKILLS_DIR) {
 // so `^` is exact — a genuinely missing or indented close is still caught.
 const fenceBalance = body => ({
     opens: (body.match(/^<!-- SYNC:/gm) || []).length,
-    closes: (body.match(/^<!-- \/SYNC:/gm) || []).length,
+    closes: (body.match(/^<!-- \/SYNC:/gm) || []).length
 });
 
 const connectedSkills = body => {
@@ -294,7 +310,10 @@ const nativeFrontmatterSkills = body => {
     if (!frontmatter) return [];
     const match = /^skills:\s*(.+)$/m.exec(frontmatter[1]);
     if (!match || match[1].trim() === '[]') return [];
-    return match[1].split(',').map(skill => skill.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean);
+    return match[1]
+        .split(',')
+        .map(skill => skill.trim().replace(/^['"]|['"]$/g, ''))
+        .filter(Boolean);
 };
 
 module.exports = {
@@ -311,7 +330,7 @@ module.exports = {
                     }
                 }
                 assertEqual(missing.length, 0, `agents missing Core-2 blocks:\n  ${missing.join('\n  ')}`);
-            },
+            }
         },
         {
             name: '[agent-universal-rules] TC-UAR-004 code agents carry all 4 code tags; readonly-code carry 2 reading tags but not the 2 mutation tags; core-only carry none',
@@ -338,7 +357,7 @@ module.exports = {
                     }
                 }
                 assertEqual(problems.length, 0, `code-tier violations:\n  ${problems.join('\n  ')}`);
-            },
+            }
         },
         {
             name: '[agent-universal-rules] TC-UAR-005 disk agent set == classified set, pairwise disjoint (new-agent guard)',
@@ -355,17 +374,15 @@ module.exports = {
                 const classified = new Set([...CODE_AGENTS, ...READONLY_CODE_AGENTS, ...CORE_ONLY_AGENTS]);
                 const unclassified = diskAgents.filter(a => !classified.has(a));
                 assertEqual(
-                    unclassified.length, 0,
-                    `unclassified agent(s) on disk — add to CODE_AGENTS, READONLY_CODE_AGENTS, or CORE_ONLY_AGENTS in this suite AND sync-hooks-to-skills.py: ${unclassified.join(', ')}`,
+                    unclassified.length,
+                    0,
+                    `unclassified agent(s) on disk — add to CODE_AGENTS, READONLY_CODE_AGENTS, or CORE_ONLY_AGENTS in this suite AND sync-hooks-to-skills.py: ${unclassified.join(', ')}`
                 );
 
                 const onDisk = new Set(diskAgents);
                 const ghosts = [...classified].filter(a => !onDisk.has(a));
-                assertEqual(
-                    ghosts.length, 0,
-                    `classified agent(s) not on disk (renamed/deleted?): ${ghosts.join(', ')}`,
-                );
-            },
+                assertEqual(ghosts.length, 0, `classified agent(s) not on disk (renamed/deleted?): ${ghosts.join(', ')}`);
+            }
         },
         {
             name: '[agent-universal-rules] TC-UAR-006 SYNC open/close tags balance per agent',
@@ -376,7 +393,7 @@ module.exports = {
                     if (opens !== closes) unbalanced.push(`${name}: ${opens} open / ${closes} close`);
                 }
                 assertTrue(unbalanced.length === 0, `unbalanced SYNC tags:\n  ${unbalanced.join('\n  ')}`);
-            },
+            }
         },
         {
             name: '[agent-universal-rules] TC-UAR-008 SYNC open/close tags balance per skill',
@@ -388,7 +405,7 @@ module.exports = {
                     if (opens !== closes) unbalanced.push(`${name}: ${opens} open / ${closes} close`);
                 }
                 assertTrue(unbalanced.length === 0, `unbalanced SYNC tags in skills:\n  ${unbalanced.join('\n  ')}`);
-            },
+            }
         },
         {
             name: '[agent-universal-rules] TC-UAR-007 agent-code-standards present iff agent in CODE_STANDARDS_AGENTS',
@@ -406,7 +423,7 @@ module.exports = {
                 const onDisk = new Set(diskAgents);
                 const ghosts = [...CODE_STANDARDS_AGENTS].filter(a => !onDisk.has(a));
                 assertEqual(ghosts.length, 0, `CODE_STANDARDS_AGENTS not on disk: ${ghosts.join(', ')}`);
-            },
+            }
         },
         {
             name: '[agent-universal-rules] TC-UAR-009 skills with understand-code-first also carry evidence-based-reasoning',
@@ -417,10 +434,11 @@ module.exports = {
                 // reading must also demand evidence discipline.
                 const missing = skillNames.filter(name => missesEvidencePair(readSkill(name)));
                 assertEqual(
-                    missing.length, 0,
-                    `skill(s) carry understand-code-first but NOT evidence-based-reasoning (add the EBR block — full or :reminder):\n  ${missing.join('\n  ')}`,
+                    missing.length,
+                    0,
+                    `skill(s) carry understand-code-first but NOT evidence-based-reasoning (add the EBR block — full or :reminder):\n  ${missing.join('\n  ')}`
                 );
-            },
+            }
         },
         {
             name: '[agent-universal-rules] TC-UAR-010 web-research carries its own SYNC:web-research domain block',
@@ -429,9 +447,9 @@ module.exports = {
                 const body = readSkill('web-research');
                 assertTrue(
                     skillCarriesAnyForm(body, 'web-research'),
-                    'web-research/SKILL.md is missing its own SYNC:web-research domain block (or its guide entry)',
+                    'web-research/SKILL.md is missing its own SYNC:web-research domain block (or its guide entry)'
                 );
-            },
+            }
         },
         {
             name: '[agent-universal-rules] TC-UAR-011 the universal bundle is hook-delivered only: no skill or agent holds a body, reminder, guide line or pointer line for it',
@@ -450,7 +468,8 @@ module.exports = {
                     const banned = doc.kind === 'agent' ? [...universalTags, ...AGENT_FOLDED_TAGS] : universalTags;
                     for (const tag of banned) {
                         for (const variant of [tag, `${tag}:reminder`]) {
-                            if (new RegExp(`^<!-- SYNC:${escapeTag(variant)} -->`, 'm').test(doc.body)) problems.push(`${doc.kind}:${doc.name} carries SYNC:${variant}`);
+                            if (new RegExp(`^<!-- SYNC:${escapeTag(variant)} -->`, 'm').test(doc.body))
+                                problems.push(`${doc.kind}:${doc.name} carries SYNC:${variant}`);
                         }
                         if (guideCarrier.hasGuideEntry(doc.body, tag)) problems.push(`${doc.kind}:${doc.name} carries a guide line for ${tag}`);
                     }
@@ -461,9 +480,9 @@ module.exports = {
                 assertEqual(
                     problems.length,
                     0,
-                    `universal-bundle contract violations:\n  ${problems.join('\n  ')}\n  Fix: py -3 .claude/scripts/sync-update-blocks.py --mode=strip-root-pointer (python3 on macOS/Linux)`,
+                    `universal-bundle contract violations:\n  ${problems.join('\n  ')}\n  Fix: py -3 .claude/scripts/sync-update-blocks.py --mode=strip-root-pointer (python3 on macOS/Linux)`
                 );
-            },
+            }
         },
         {
             name: '[agent-universal-rules] TC-UAR-012 universal AI mistake prevention stays role-neutral',
@@ -487,24 +506,16 @@ module.exports = {
                         }
                     }
                 }
-                assertEqual(
-                    problems.length,
-                    0,
-                    `universal AI mistake prevention carries code/debug-specific wording:\n  ${problems.join('\n  ')}`,
-                );
-            },
+                assertEqual(problems.length, 0, `universal AI mistake prevention carries code/debug-specific wording:\n  ${problems.join('\n  ')}`);
+            }
         },
         {
             name: '[agent-universal-rules] TC-UAR-013 protocol digest aliases require matching managed SYNC blocks',
             fn: () => {
                 // A skill's guide entry counts as the managed block (N8); an agent's never does.
                 const problems = instructionDocs().flatMap(doc => digestAliasProblems(doc));
-                assertEqual(
-                    problems.length,
-                    0,
-                    `protocol digest references absent managed block(s):\n  ${problems.join('\n  ')}`,
-                );
-            },
+                assertEqual(problems.length, 0, `protocol digest references absent managed block(s):\n  ${problems.join('\n  ')}`);
+            }
         },
         {
             // Sensor rows N6, N7, N8 (P26 scratch run): each check accepts a skill guide entry backed by
@@ -519,14 +530,31 @@ module.exports = {
                     const skillsDir = path.join(tmp, 'skills');
                     const projectionFile = tag => path.join(skillsDir, 'shared', 'protocols', `${tag}.md`);
                     fs.mkdirSync(path.dirname(projectionFile('x')), { recursive: true });
-                    for (const tag of ['evidence-based-reasoning', 'web-research', 'ui-system-context']) fs.writeFileSync(projectionFile(tag), `> ${tag} fixture body.\n`);
-                    const guides = (...tags) => [guideCarrier.GUIDE_BLOCK_START, '',
-                        ...tags.map(tag => guideCarrier.formatGuideLine({ tag, summary: 'Fixture summary', when: 'fixture work', path: `.claude/skills/shared/protocols/${tag}.md` })),
-                        '', guideCarrier.GUIDE_BLOCK_END].join('\n');
+                    for (const tag of ['evidence-based-reasoning', 'web-research', 'ui-system-context'])
+                        fs.writeFileSync(projectionFile(tag), `> ${tag} fixture body.\n`);
+                    const guides = (...tags) =>
+                        [
+                            guideCarrier.GUIDE_BLOCK_START,
+                            '',
+                            ...tags.map(tag =>
+                                guideCarrier.formatGuideLine({
+                                    tag,
+                                    summary: 'Fixture summary',
+                                    when: 'fixture work',
+                                    path: `.claude/skills/shared/protocols/${tag}.md`
+                                })
+                            ),
+                            '',
+                            guideCarrier.GUIDE_BLOCK_END
+                        ].join('\n');
                     const understand = '<!-- SYNC:understand-code-first:reminder -->\n\n> read first\n\n<!-- /SYNC:understand-code-first:reminder -->\n';
 
                     // When TC-UAR-009 checks a skill whose evidence protocol is a guide, Then it passes
-                    assertEqual(missesEvidencePair(`${understand}${guides('evidence-based-reasoning')}`, skillsDir), false, 'N6: guide carrier must satisfy the pair');
+                    assertEqual(
+                        missesEvidencePair(`${understand}${guides('evidence-based-reasoning')}`, skillsDir),
+                        false,
+                        'N6: guide carrier must satisfy the pair'
+                    );
                     // When both forms of the evidence protocol are missing, Then it fails
                     assertEqual(missesEvidencePair(understand, skillsDir), true, 'N6: a missing evidence protocol must fail');
 
@@ -537,9 +565,17 @@ module.exports = {
                     // When TC-UAR-013 checks a digest alias whose protocol is a guide, Then only a skill passes
                     const digest = '- **UI System Context:** resolve UI conventions first.';
                     const doc = (kind, body) => ({ kind, name: 'fx', body: `${body}\n${digest}\n` });
-                    assertEqual(digestAliasProblems(doc('skill', guides('ui-system-context')), skillsDir).length, 0, 'N8: skill guide carrier must satisfy the alias');
+                    assertEqual(
+                        digestAliasProblems(doc('skill', guides('ui-system-context')), skillsDir).length,
+                        0,
+                        'N8: skill guide carrier must satisfy the alias'
+                    );
                     assertEqual(digestAliasProblems(doc('skill', '# fx'), skillsDir).length, 1, 'N8: an alias with no block and no guide must fail');
-                    assertEqual(digestAliasProblems(doc('agent', guides('ui-system-context')), skillsDir).length, 1, 'N8: an agent guide must not satisfy the alias');
+                    assertEqual(
+                        digestAliasProblems(doc('agent', guides('ui-system-context')), skillsDir).length,
+                        1,
+                        'N8: an agent guide must not satisfy the alias'
+                    );
 
                     // When the projection files are removed, Then every guide carrier stops counting
                     for (const tag of ['evidence-based-reasoning', 'web-research', 'ui-system-context']) fs.rmSync(projectionFile(tag));
@@ -549,7 +585,7 @@ module.exports = {
                 } finally {
                     fs.rmSync(tmp, { recursive: true, force: true });
                 }
-            },
+            }
         },
         {
             name: '[agent-universal-rules] TC-UAR-014 scaffold production-readiness wording uses 5 foundations',
@@ -557,19 +593,14 @@ module.exports = {
                 const scaffold = readSkill('scaffold');
                 assertTrue(
                     scaffold.includes('Project Foundation Selection (MANDATORY assessment'),
-                    'scaffold must keep the mandatory foundation-selection assessment',
+                    'scaffold must keep the mandatory foundation-selection assessment'
                 );
                 assertTrue(
-                    scaffold.includes('### 1. Code Quality Tooling') &&
-                    scaffold.includes('### 5. Integration Points'),
-                    'scaffold must enumerate foundations 1..5, ending at Integration Points',
+                    scaffold.includes('### 1. Code Quality Tooling') && scaffold.includes('### 5. Integration Points'),
+                    'scaffold must enumerate foundations 1..5, ending at Integration Points'
                 );
-                assertEqual(
-                    /\b(?:all\s+)?4 foundations\b/i.test(scaffold),
-                    false,
-                    'scaffold must not retain stale 4-foundation wording',
-                );
-            },
+                assertEqual(/\b(?:all\s+)?4 foundations\b/i.test(scaffold), false, 'scaffold must not retain stale 4-foundation wording');
+            }
         },
         {
             name: '[agent-universal-rules] TC-UAR-015 review-cycle protocols stay on review-capable agents',
@@ -582,12 +613,8 @@ module.exports = {
                         problems.push(`${name}: ${carried.join(', ')}`);
                     }
                 }
-                assertEqual(
-                    problems.length,
-                    0,
-                    `review-cycle protocol(s) assigned to non-review agent(s):\n  ${problems.join('\n  ')}`,
-                );
-            },
+                assertEqual(problems.length, 0, `review-cycle protocol(s) assigned to non-review agent(s):\n  ${problems.join('\n  ')}`);
+            }
         },
         {
             name: '[agent-universal-rules] TC-UAR-016 off-role protocol trims stay removed; validated keeps stay present',
@@ -598,8 +625,13 @@ module.exports = {
                 const removed = [
                     { kind: 'agent', name: 'architect', tag: 'source-test-drift-check', labels: ['Source-Test Drift Check', 'Source Test Drift'] },
                     { kind: 'agent', name: 'architect', tag: 'scaffold-production-readiness', label: 'Scaffold Production Readiness' },
-                    { kind: 'skill-file', name: 'work-item/references/mode-refine.md', tag: 'scaffold-production-readiness', label: 'Scaffold Production Readiness' },
-                    { kind: 'skill-file', name: 'work-item/references/mode-refine.md', tag: 'cross-cutting-quality', label: 'Cross-Cutting Quality' },
+                    {
+                        kind: 'skill-file',
+                        name: 'work-item/references/mode-refine.md',
+                        tag: 'scaffold-production-readiness',
+                        label: 'Scaffold Production Readiness'
+                    },
+                    { kind: 'skill-file', name: 'work-item/references/mode-refine.md', tag: 'cross-cutting-quality', label: 'Cross-Cutting Quality' }
                 ];
                 for (const { kind, name, tag, label, labels } of removed) {
                     const body = kind === 'agent' ? read(name) : kind === 'skill-file' ? fs.readFileSync(path.join(SKILLS_DIR, name), 'utf8') : readSkill(name);
@@ -619,7 +651,7 @@ module.exports = {
                     { name: 'architect', tag: 'fix-layer-accountability' },
                     { name: 'solution-architect', tag: 'fix-layer-accountability' },
                     { name: 'architect', tag: 'graph-assisted-investigation' },
-                    { name: 'ui-ux-designer', tag: 'graph-assisted-investigation' },
+                    { name: 'ui-ux-designer', tag: 'graph-assisted-investigation' }
                 ];
                 for (const { name, tag } of kept) {
                     if (!hasBlock(read(name), tag)) {
@@ -627,22 +659,14 @@ module.exports = {
                     }
                 }
 
-                assertEqual(
-                    problems.length,
-                    0,
-                    `off-role-trim regression:\n  ${problems.join('\n  ')}`,
-                );
-            },
+                assertEqual(problems.length, 0, `off-role-trim regression:\n  ${problems.join('\n  ')}`);
+            }
         },
         {
             name: '[agent-universal-rules] TC-UAR-017 every canonical block with real skill reach is triaged for agents (no silent skill-only drift)',
             fn: () => {
                 const source = fs.readFileSync(SYNC_INLINE_PATH, 'utf8');
-                const canonTags = [
-                    ...new Set(
-                        [...source.matchAll(/^## SYNC:([a-z0-9-]+)\s*$/gm)].map(m => m[1]),
-                    ),
-                ];
+                const canonTags = [...new Set([...source.matchAll(/^## SYNC:([a-z0-9-]+)\s*$/gm)].map(m => m[1]))];
 
                 const skillBodies = skillNames.map(readSkill);
                 const agentBodies = diskAgents.map(read);
@@ -662,15 +686,15 @@ module.exports = {
                 assertEqual(
                     unclassified.length,
                     0,
-                    'skill-only protocol drift — a canonical block propagated to skills but no agent.\n  '
-                        + unclassified.join('\n  ')
-                        + '\n  Resolve by EITHER adding the tag to the relevant agent row(s) in'
-                        + ' .claude/scripts/agent_protocol_matrix.py AGENT_QUALITY_BLOCKS (then run'
-                        + ' inject_agent_protocol_blocks.py), OR — if it is orchestration a headless'
-                        + ' leaf sub-agent structurally cannot act on — adding it to that file\'s'
-                        + ' EXCLUDED_ORCHESTRATION and to AGENT_ADOPTION_EXEMPT here, with a reason.',
+                    'skill-only protocol drift — a canonical block propagated to skills but no agent.\n  ' +
+                        unclassified.join('\n  ') +
+                        '\n  Resolve by EITHER adding the tag to the relevant agent row(s) in' +
+                        ' .claude/scripts/agent_protocol_matrix.py AGENT_QUALITY_BLOCKS (then run' +
+                        ' inject_agent_protocol_blocks.py), OR — if it is orchestration a headless' +
+                        " leaf sub-agent structurally cannot act on — adding it to that file's" +
+                        ' EXCLUDED_ORCHESTRATION and to AGENT_ADOPTION_EXEMPT here, with a reason.'
                 );
-            },
+            }
         },
         {
             name: '[agent-universal-rules] TC-UAR-018 every agent has valid connected skill contracts and test architecture carriers have owners',
@@ -704,12 +728,8 @@ module.exports = {
                     if (owners.length === 0) problems.push(`${skill}: no connected agent owner`);
                 }
 
-                assertEqual(
-                    problems.length,
-                    0,
-                    `agent-to-skill connection violations:\n  ${problems.join('\n  ')}`,
-                );
-            },
-        },
-    ],
+                assertEqual(problems.length, 0, `agent-to-skill connection violations:\n  ${problems.join('\n  ')}`);
+            }
+        }
+    ]
 };

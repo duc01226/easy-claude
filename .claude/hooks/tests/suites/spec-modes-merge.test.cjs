@@ -38,7 +38,7 @@ const { liveSourceFiles } = require('../lib/live-source-files.cjs');
 const { resolveAllWorkflowManifests, resolveWorkflowManifest } = require('../../../scripts/lib/workflow-manifest.cjs');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
-const SKIP = isFrameworkRepo(REPO_ROOT) ? false : 'asserts the framework repo\'s own spec skill and workflow registry (framework-repo signal)';
+const SKIP = isFrameworkRepo(REPO_ROOT) ? false : "asserts the framework repo's own spec skill and workflow registry (framework-repo signal)";
 
 const SKILLS = path.join(REPO_ROOT, '.claude', 'skills');
 const read = (...parts) => fs.readFileSync(path.join(...parts), 'utf8').replace(/\r\n/g, '\n');
@@ -62,16 +62,12 @@ function guideTags(text) {
     return tags;
 }
 
-const fixtureDocument = (entry) => ({ version: '1', workflows: { fixture: entry } });
-const resolveFixture = (entry) => resolveWorkflowManifest(fixtureDocument(entry), 'fixture', { availableSkills: ['spec', 'test'] });
+const fixtureDocument = entry => ({ version: '1', workflows: { fixture: entry } });
+const resolveFixture = entry => resolveWorkflowManifest(fixtureDocument(entry), 'fixture', { availableSkills: ['spec', 'test'] });
 
 const LIVE_SOURCE_ROOTS = ['.claude', 'docs/specs', 'docs/project-reference', 'README.md'];
 // Generated catalogs are rebuilt from the skill folders; history stays in ADRs and release notes.
-const SCAN_EXCLUDED = new Set([
-    '.claude/SKILLS.yaml',
-    '.claude/scripts/skills_data.yaml',
-    '.claude/hooks/tests/suites/spec-modes-merge.test.cjs'
-]);
+const SCAN_EXCLUDED = new Set(['.claude/SKILLS.yaml', '.claude/scripts/skills_data.yaml', '.claude/hooks/tests/suites/spec-modes-merge.test.cjs']);
 const SCAN_EXCLUDED_DIRS = new Set(['node_modules', '.git', '.code-graph', 'tmp', 'temp', 'plans']);
 const SCAN_EXTENSIONS = new Set(['.md', '.cjs', '.mjs', '.js', '.py', '.json', '.yaml', '.yml', '.html', '.toml']);
 
@@ -104,13 +100,18 @@ const tests = [
             for (const mode of MERGED_MODES) assert.ok(text.includes(`[mode=${mode}]`), `[mode=${mode}] is documented`);
             // And each merged mode has a mandatory full-read line naming an existing reference
             for (const mode of MERGED_MODES) {
-                assert.match(text, new RegExp(`\\*\\*\\[BLOCKING\\]\\*\\* When \`\\[mode=${mode}\\]\`, read \`references/mode-${mode}\\.md\` in full FIRST`), `mandatory read line for ${mode}`);
+                assert.match(
+                    text,
+                    new RegExp(`\\*\\*\\[BLOCKING\\]\\*\\* When \`\\[mode=${mode}\\]\`, read \`references/mode-${mode}\\.md\` in full FIRST`),
+                    `mandatory read line for ${mode}`
+                );
                 assert.ok(fs.existsSync(path.join(SKILLS, 'spec', 'references', `mode-${mode}.md`)), `references/mode-${mode}.md exists`);
             }
             // And the removed slash commands resolve through a prominent "formerly" mapping
             assert.match(text, /former `\/[a-z-]+`, `\/[a-z-]+` and `\/[a-z-]+`: those slash commands no longer exist/);
             // And the existing authoring references are untouched siblings
-            for (const file of ['author.md', 'tests.md', 'sync.md', 'clarify-interview.md']) assert.ok(fs.existsSync(path.join(SKILLS, 'spec', 'references', file)), `${file} exists`);
+            for (const file of ['author.md', 'tests.md', 'sync.md', 'clarify-interview.md'])
+                assert.ok(fs.existsSync(path.join(SKILLS, 'spec', 'references', file)), `${file} exists`);
         }
     },
     {
@@ -121,8 +122,16 @@ const tests = [
             const text = specSkill();
             // Then none of the mode-only contract markers appear in it
             const markers = {
-                discovery: ['### Step 0.5: Declare the Discovery Wave', '## Phase 0: Classify Corpus & Short-Circuit', '### Step 5: Scope-Decision Gate (BLOCKING `ask user question tool`)'],
-                clarify: ['## Phase 0: Profile and Spec-Context Detection (run FIRST)', '## Why This Skill Exists', '## Artifact and Case Profile Gate (BLOCKING)'],
+                discovery: [
+                    '### Step 0.5: Declare the Discovery Wave',
+                    '## Phase 0: Classify Corpus & Short-Circuit',
+                    '### Step 5: Scope-Decision Gate (BLOCKING `ask user question tool`)'
+                ],
+                clarify: [
+                    '## Phase 0: Profile and Spec-Context Detection (run FIRST)',
+                    '## Why This Skill Exists',
+                    '## Artifact and Case Profile Gate (BLOCKING)'
+                ],
                 index: ['## Step 0 — Project Context and Scope Gate (MANDATORY)', '## Step 3 — Stamp & Write', '## Ownership Boundary (NON-NEGOTIABLE)']
             };
             for (const mode of MERGED_MODES) {
@@ -145,10 +154,14 @@ const tests = [
             assert.match(text, /NEVER auto-pick — OVERLAPS detection is the whole reason this skill exists/);
             assert.match(text, /\*\*Optional input `--investigation=<report path>`\*\*/);
             assert.match(text, /delegate to `\/investigate` ONLY for keyword slices the report does not cover/);
-            assert.match(text, /\*\*Optional graph hint\*\* — when grep and reading alone may not reveal a high-risk blast radius and `\.code-graph\/graph\.db` exists/);
+            assert.match(
+                text,
+                /\*\*Optional graph hint\*\* — when grep and reading alone may not reveal a high-risk blast radius and `\.code-graph\/graph\.db` exists/
+            );
             assert.match(text, /INLINE execution — the step 5 user gate is BLOCKING and only works inline/);
             assert.match(text, /Greenfield \/ empty-corpus short-circuit/);
-            for (const relation of ['EXTENDS', 'OVERLAPS', 'DEPENDS-ON', 'AFFECTED', 'UNRELATED']) assert.ok(text.includes(`**${relation}`), `relationship ${relation}`);
+            for (const relation of ['EXTENDS', 'OVERLAPS', 'DEPENDS-ON', 'AFFECTED', 'UNRELATED'])
+                assert.ok(text.includes(`**${relation}`), `relationship ${relation}`);
             // The report paths stay identical so downstream consumers keep resolving them
             assert.ok(text.includes('research/spec' + '-discovery-{slug}.md'), 'plans-root report path');
             assert.ok(text.includes('tmp/reports/spec' + '-discovery-{YYMMDD}-{HHmm}-{slug}.md'), 'fallback report path');
@@ -163,11 +176,15 @@ const tests = [
             const text = reference('clarify');
             assert.match(text, /\*\*Clarification gate \(BLOCKING user-confirmation tool\)\*\*/);
             assert.match(text, /NEVER silently pick a non-obvious decision/);
-            assert.match(text, /preserve the unresolved questions and return `BLOCKED`\/`NEEDS-CLARIFICATION`; NEVER mutate the artifact, infer a choice, or emit `CLARIFIED`/);
+            assert.match(
+                text,
+                /preserve the unresolved questions and return `BLOCKED`\/`NEEDS-CLARIFICATION`; NEVER mutate the artifact, infer a choice, or emit `CLARIFIED`/
+            );
             assert.match(text, /\*\*Runs INLINE, not as a sub-agent\*\*/);
             for (const label of ['OBVIOUS', 'NON-OBVIOUS', 'CONFLICTS']) assert.ok(text.includes(`**${label}**`), `classification ${label}`);
             assert.match(text, /\/why-review --validate-findings/);
-            for (const verdict of ['CLARIFIED', 'NEEDS-AUTHORING-FIX', 'BLOCKED / NEEDS-CLARIFICATION']) assert.ok(text.includes(verdict), `verdict ${verdict}`);
+            for (const verdict of ['CLARIFIED', 'NEEDS-AUTHORING-FIX', 'BLOCKED / NEEDS-CLARIFICATION'])
+                assert.ok(text.includes(verdict), `verdict ${verdict}`);
             // The catalog it loads sits beside the mode body and its budget defaults survive
             assert.ok(text.includes('[`references/clarify-interview.md`](./clarify-interview.md)'), 'catalog link resolves beside the mode body');
             // Every markdown link to the catalog resolves relative to references/ (the catalog is a sibling): none may add a second references/ hop
@@ -247,7 +264,13 @@ const tests = [
             const specTags = guideTags(specText);
             const bodyOf = (text, tag) => text.includes(`<!-- SYNC:${tag} -->`) && text.includes(`<!-- /SYNC:${tag} -->`);
             const modeOnly = {
-                discovery: ['graph-assisted-investigation', 'incremental-persistence', 'rationalization-prevention', 'subagent-return-contract', 'task-tracking-external-report'],
+                discovery: [
+                    'graph-assisted-investigation',
+                    'incremental-persistence',
+                    'rationalization-prevention',
+                    'subagent-return-contract',
+                    'task-tracking-external-report'
+                ],
                 clarify: ['review-protocol-injection', 'severity-rubric', 'task-tracking-external-report', 'understand-code-first'],
                 index: []
             };
@@ -289,7 +312,9 @@ const tests = [
             assert.ok(scanned > 500, `tripwire: the scan covers the framework sources (${scanned} files)`);
             assert.deepEqual(offenders, [], 'replace each with `spec [mode=discovery]` / `spec [mode=clarify]` / `spec [mode=index]`');
             // The allow-list is live: spec/SKILL.md names the removed commands only as "formerly"
-            const formerly = specSkill().split('\n').filter(line => REMOVED.some(name => line.includes(name)));
+            const formerly = specSkill()
+                .split('\n')
+                .filter(line => REMOVED.some(name => line.includes(name)));
             assert.ok(formerly.length >= 1 && formerly.every(line => /former/i.test(line)), 'spec/SKILL.md names the removed commands only as "formerly"');
         }
     },
@@ -303,7 +328,13 @@ const tests = [
             assert.match(description, /^\[Documentation\] Use when a workflow step or the user asks for \S/);
             assert.ok(description.length <= 250, `description is ${description.length} chars, over 250`);
             for (const mode of ['discovery', 'clarify', 'index']) assert.match(description, new RegExp(`\\b${mode}\\b`), `description advertises ${mode}`);
-            for (const intent of [/canonical feature specs/, /test scenarios/, /discovery[^;]*overlaps/, /clarify[^;]*decisions/, /index[^.]*navigation\/ERD/]) {
+            for (const intent of [
+                /canonical feature specs/,
+                /test scenarios/,
+                /discovery[^;]*overlaps/,
+                /clarify[^;]*decisions/,
+                /index[^.]*navigation\/ERD/
+            ]) {
                 assert.match(description, intent, `description retains routing intent ${intent}`);
             }
         }
@@ -320,7 +351,10 @@ const tests = [
             const ok = resolveFixture({ sequence: [discovery, clarify, sync], outcomeGates: gate('spec [mode=sync]') });
             assert.deepEqual(ok.outcomeGates[0].satisfiedBy, ['spec [mode=sync]']);
             // And a workflow whose spec steps are only discovery, clarify or index cannot prove the gate
-            assert.throws(() => resolveFixture({ sequence: [discovery, clarify, index], outcomeGates: gate('spec [mode=sync]') }), /names a skill not in the sequence/);
+            assert.throws(
+                () => resolveFixture({ sequence: [discovery, clarify, index], outcomeGates: gate('spec [mode=sync]') }),
+                /names a skill not in the sequence/
+            );
             // And a bare `spec` satisfier would be met by any of them, which is why the live gates name the mode
             assert.doesNotThrow(() => resolveFixture({ sequence: [clarify], outcomeGates: gate('spec') }));
         }
@@ -341,7 +375,10 @@ const tests = [
                 if (!runsMergedMode || !gate) continue;
                 const names = gate.satisfiedBy.filter(satisfier => satisfier === 'spec' || satisfier.startsWith('spec '));
                 // A workflow may satisfy the gate through another skill (docs-manager --mode=update); when it names spec, it names the sync mode
-                assert.ok(names.every(satisfier => satisfier === 'spec [mode=sync]'), `${id}: spec-synced must be satisfied by "spec [mode=sync]", found ${names.join(', ')}`);
+                assert.ok(
+                    names.every(satisfier => satisfier === 'spec [mode=sync]'),
+                    `${id}: spec-synced must be satisfied by "spec [mode=sync]", found ${names.join(', ')}`
+                );
                 checked.push(id);
             }
             assert.ok(checked.length >= 4, `tripwire: the gate check saw the workflows that run these modes (${checked.join(', ')})`);

@@ -99,7 +99,7 @@ const LOCK_OUTCOMES = Object.freeze({
 function defaultSleep(ms) {
     // Promise-based, not Atomics.wait: the manager runs as a real child process
     // whose exit event needs a live event loop, so the waiter must yield.
-    return new Promise((resolve) => setTimeout(resolve, Math.max(0, ms)));
+    return new Promise(resolve => setTimeout(resolve, Math.max(0, ms)));
 }
 
 function isSupportedPlatform(platform) {
@@ -112,16 +112,12 @@ function windowsPowerShellPath() {
 
 function runPowerShell(script, extraEnv) {
     try {
-        const result = spawnSync(
-            windowsPowerShellPath(),
-            ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script],
-            {
-                env: Object.assign({}, process.env, extraEnv || {}),
-                encoding: 'utf8',
-                windowsHide: true,
-                timeout: 10000
-            }
-        );
+        const result = spawnSync(windowsPowerShellPath(), ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script], {
+            env: Object.assign({}, process.env, extraEnv || {}),
+            encoding: 'utf8',
+            windowsHide: true,
+            timeout: 10000
+        });
         if (!result || result.status !== 0 || typeof result.stdout !== 'string') return null;
         return result.stdout;
     } catch {
@@ -147,10 +143,10 @@ function windowsPathFacts(target) {
     return parseWindowsProbe(
         runPowerShell(
             "$ErrorActionPreference='Stop';" +
-                "$p=$env:CK_LOCK_PROBE_PATH;" +
-                "$i=[System.IO.DirectoryInfo]::new($p);" +
-                "$sid=[System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value;" +
-                "$sddl=[System.IO.Directory]::GetAccessControl($p).GetSecurityDescriptorSddlForm([System.Security.AccessControl.AccessControlSections]::All);" +
+                '$p=$env:CK_LOCK_PROBE_PATH;' +
+                '$i=[System.IO.DirectoryInfo]::new($p);' +
+                '$sid=[System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value;' +
+                '$sddl=[System.IO.Directory]::GetAccessControl($p).GetSecurityDescriptorSddlForm([System.Security.AccessControl.AccessControlSections]::All);' +
                 "Write-Output ('SID=' + $sid);" +
                 "Write-Output ('ATTR=' + [int]$i.Attributes);" +
                 "Write-Output ('SDDL=' + $sddl);",
@@ -195,7 +191,7 @@ function windowsSddlIsPrivate(facts) {
     if (!ownerMatch || !windowsTrustedSid(ownerMatch[1], facts.sid)) return false;
     const aces = parseSddlAces(facts.sddl);
     if (!aces) return false;
-    return aces.every((ace) => ace.type === 'A' && windowsTrustedSid(ace.trustee, facts.sid));
+    return aces.every(ace => ace.type === 'A' && windowsTrustedSid(ace.trustee, facts.sid));
 }
 
 function defaultPathSafety(target, platform = process.platform) {
@@ -240,7 +236,10 @@ function defaultProcessAlive(pid) {
 function parseLinuxStat(pid, text) {
     const closing = String(text).lastIndexOf(')');
     if (closing < 0) return null;
-    const fields = String(text).slice(closing + 1).trim().split(/\s+/);
+    const fields = String(text)
+        .slice(closing + 1)
+        .trim()
+        .split(/\s+/);
     if (!fields[1] || !fields[19]) return null;
     const ppid = Number(fields[1]);
     if (!Number.isInteger(ppid) || ppid < 0) return null;
@@ -299,10 +298,10 @@ function defaultProcessCensus(platform = process.platform) {
     if (platform === 'win32') {
         const stdout = runPowerShell(
             "$ErrorActionPreference='Stop';" +
-                "Get-CimInstance -ClassName Win32_Process | ForEach-Object {" +
+                'Get-CimInstance -ClassName Win32_Process | ForEach-Object {' +
                 "if ($null -eq $_.CreationDate) { throw 'missing process identity' };" +
                 "Write-Output (('{0}|{1}|{2}' -f $_.ProcessId,$_.ParentProcessId,$_.CreationDate.ToUniversalTime().Ticks))" +
-                "}"
+                '}'
         );
         if (!stdout) return null;
         const census = new Map();
@@ -407,11 +406,11 @@ function defaultTerminateTree(group) {
         }
         return true;
     }
-    const taskkill = spawnSync(
-        path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'taskkill.exe'),
-        ['/T', '/F', '/PID', String(group.id)],
-        { encoding: 'utf8', windowsHide: true, timeout: 10000 }
-    );
+    const taskkill = spawnSync(path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'taskkill.exe'), ['/T', '/F', '/PID', String(group.id)], {
+        encoding: 'utf8',
+        windowsHide: true,
+        timeout: 10000
+    });
     return Boolean(taskkill && (taskkill.status === 0 || taskkill.status === 128));
 }
 
@@ -433,9 +432,7 @@ function defaultProbeParentProtection(dir, platform = process.platform) {
     if (!safety.ok) return safety;
     if (platform === 'win32') {
         const facts = windowsPathFacts(dir);
-        return windowsSddlIsPrivate(facts)
-            ? { ok: true }
-            : { ok: false, code: LOCK_OUTCOMES.PRIVACY_UNPROVABLE };
+        return windowsSddlIsPrivate(facts) ? { ok: true } : { ok: false, code: LOCK_OUTCOMES.PRIVACY_UNPROVABLE };
     }
     let info;
     try {
@@ -465,9 +462,7 @@ function defaultProbeChildPrivacy(dir, platform = process.platform) {
     if (!safety.ok) return { ok: false, code: LOCK_OUTCOMES.UNSAFE_LOCK_CHILD };
     if (platform === 'win32') {
         const facts = windowsPathFacts(dir);
-        return windowsSddlIsPrivate(facts)
-            ? { ok: true }
-            : { ok: false, code: LOCK_OUTCOMES.PRIVACY_UNPROVABLE };
+        return windowsSddlIsPrivate(facts) ? { ok: true } : { ok: false, code: LOCK_OUTCOMES.PRIVACY_UNPROVABLE };
     }
     let info;
     try {
@@ -489,16 +484,16 @@ const DEFAULT_SEAMS = Object.freeze({
     now: () => Date.now(),
     sleep: defaultSleep,
     tempParent: () => defaultTempParent(process.platform),
-    realpath: (p) => fs.realpathSync(p),
-    lstat: (p) => fs.lstatSync(p),
-    stat: (p) => fs.statSync(p),
+    realpath: p => fs.realpathSync(p),
+    lstat: p => fs.lstatSync(p),
+    stat: p => fs.statSync(p),
     mkdir: (p, mode) => fs.mkdirSync(p, { mode }),
     openExclusive: (p, mode) => fs.openSync(p, 'wx', mode),
     writeFd: (fd, text) => fs.writeSync(fd, text),
-    closeFd: (fd) => fs.closeSync(fd),
-    readFile: (p) => fs.readFileSync(p, 'utf8'),
+    closeFd: fd => fs.closeSync(fd),
+    readFile: p => fs.readFileSync(p, 'utf8'),
     writeOwnedFile: (p, text) => fs.writeFileSync(p, text, { mode: LOCK_FILE_MODE }),
-    unlink: (p) => fs.unlinkSync(p),
+    unlink: p => fs.unlinkSync(p),
     userKey: () => {
         try {
             return String(os.userInfo().username || 'unknown');
@@ -655,7 +650,8 @@ function parseRecord(text) {
                     member.ppid < 0 ||
                     typeof member.start !== 'string' ||
                     !member.start
-                ) return null;
+                )
+                    return null;
             }
         }
         return parsed;
@@ -910,7 +906,7 @@ async function withProjectLock(options) {
         }
         if (complete) return { outcome: LOCK_OUTCOMES.REPAIRED_BY_PEER, lockPath };
 
-        const publishGroup = (value) => {
+        const publishGroup = value => {
             group = value || null;
             record.group = group;
             record.launching = false;
@@ -938,7 +934,7 @@ async function withProjectLock(options) {
             writeCurrentRecord();
         }
 
-        const proof = await proveTreeStopped(seams, group, tree, (nextTree) => {
+        const proof = await proveTreeStopped(seams, group, tree, nextTree => {
             tree = nextTree;
             record.tree = nextTree;
             record.launching = false;

@@ -40,8 +40,7 @@ const own = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
 const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 function text(value, field, errors, max = 1024) {
-    if (typeof value !== 'string' || value.length === 0 || value.length > max ||
-        value.trim() !== value || /[\x00-\x1f\x7f]/.test(value)) {
+    if (typeof value !== 'string' || value.length === 0 || value.length > max || value.trim() !== value || /[\x00-\x1f\x7f]/.test(value)) {
         errors.push(`${field} must be a bounded printable string`);
         return false;
     }
@@ -120,16 +119,14 @@ function validateJudgments(value, errors) {
         }
         text(judgment.summary, `${field}.summary`, errors, 4096);
         stringArray(judgment.evidenceRefs, `${field}.evidenceRefs`, errors);
-        if (judgment.confidence !== undefined &&
-            (!Number.isFinite(judgment.confidence) || judgment.confidence < 0 || judgment.confidence > 100)) {
+        if (judgment.confidence !== undefined && (!Number.isFinite(judgment.confidence) || judgment.confidence < 0 || judgment.confidence > 100)) {
             errors.push(`${field}.confidence must be a number from 0 to 100; confidence is not acceptance`);
         }
     });
 }
 
 function validTimestamp(value) {
-    return typeof value === 'string' && value.length > 0 && value.trim() === value &&
-        !/[\x00-\x1f\x7f]/.test(value) && Number.isFinite(Date.parse(value));
+    return typeof value === 'string' && value.length > 0 && value.trim() === value && !/[\x00-\x1f\x7f]/.test(value) && Number.isFinite(Date.parse(value));
 }
 
 function validateAcceptance(acceptance, record, errors) {
@@ -257,34 +254,52 @@ function classifyBaselineComparison(input = {}) {
         return { decision: 'UNVERIFIED', requiresAcceptance: false, action: 'collect the missing evidence; do not change expectations' };
     }
     if (input.reviewStatus === 'NOT-APPLICABLE') {
-        return { decision: 'NOT-APPLICABLE', requiresAcceptance: false, action: 'retain any unrelated accepted evidence and do not create or change a baseline for this surface' };
+        return {
+            decision: 'NOT-APPLICABLE',
+            requiresAcceptance: false,
+            action: 'retain any unrelated accepted evidence and do not create or change a baseline for this surface'
+        };
     }
     if (input.reviewStatus === 'INVALID-RECORD') {
-        return { decision: 'UNVERIFIED', requiresAcceptance: false, action: 'repair the invalid record and collect the required evidence; do not change expectations' };
+        return {
+            decision: 'UNVERIFIED',
+            requiresAcceptance: false,
+            action: 'repair the invalid record and collect the required evidence; do not change expectations'
+        };
     }
-    const comparison = input.baselineExists ?
-        normalizeChoice(input.comparison, ['MATCH', 'DIFFERENCE', 'NOT-RUN', 'INCOMPARABLE'], 'comparison') : input.comparison;
+    const comparison = input.baselineExists
+        ? normalizeChoice(input.comparison, ['MATCH', 'DIFFERENCE', 'NOT-RUN', 'INCOMPARABLE'], 'comparison')
+        : input.comparison;
     if (comparison === 'NOT-RUN') {
-        return { decision: input.environmentBlocked ? 'ENVIRONMENT-BLOCKED' : 'UNVERIFIED', requiresAcceptance: false,
-            action: 'preserve the accepted baseline and report why comparison did not run' };
+        return {
+            decision: input.environmentBlocked ? 'ENVIRONMENT-BLOCKED' : 'UNVERIFIED',
+            requiresAcceptance: false,
+            action: 'preserve the accepted baseline and report why comparison did not run'
+        };
     }
     if (input.testCondition === 'INVALID') {
         return { decision: 'TEST-CONDITION-INVALID', requiresAcceptance: false, action: 'repair the test condition and rerun; do not update the baseline' };
     }
     if (!input.baselineExists) {
-        return { decision: 'CANDIDATE-BASELINE-PENDING-ACCEPTANCE', requiresAcceptance: true, action: 'retain candidate evidence until a human/owner accepts it' };
+        return {
+            decision: 'CANDIDATE-BASELINE-PENDING-ACCEPTANCE',
+            requiresAcceptance: true,
+            action: 'retain candidate evidence until a human/owner accepts it'
+        };
     }
     if (comparison === 'MATCH') return { decision: 'NO-REGRESSION', requiresAcceptance: false, action: 'retain the accepted baseline' };
     if (comparison === 'INCOMPARABLE') {
         return { decision: 'AMBIGUOUS', requiresAcceptance: false, action: 'resolve conditions or intent before changing expectations' };
     }
     if (input.intent === 'INTENDED') {
-        return { decision: 'INTENDED-CHANGE-PENDING-ACCEPTANCE', requiresAcceptance: true,
-            action: 'review the changed experience and obtain explicit acceptance before promotion' };
+        return {
+            decision: 'INTENDED-CHANGE-PENDING-ACCEPTANCE',
+            requiresAcceptance: true,
+            action: 'review the changed experience and obtain explicit acceptance before promotion'
+        };
     }
     if (input.intent === 'UNCHANGED') {
-        return { decision: 'POTENTIAL-REGRESSION', requiresAcceptance: false,
-            action: 'investigate source, test, and environment; keep the accepted baseline' };
+        return { decision: 'POTENTIAL-REGRESSION', requiresAcceptance: false, action: 'investigate source, test, and environment; keep the accepted baseline' };
     }
     return { decision: 'AMBIGUOUS', requiresAcceptance: false, action: 'resolve intent and evidence before changing expectations' };
 }
@@ -296,8 +311,8 @@ function runCli() {
             throw new Error('Use validate|promote|compare with a JSON object on stdin');
         }
         const input = JSON.parse(require('node:fs').readFileSync(0, 'utf8'));
-        const result = command === 'validate' ? validateEvidenceRecord(input) :
-            command === 'promote' ? canPromoteBaseline(input) : classifyBaselineComparison(input);
+        const result =
+            command === 'validate' ? validateEvidenceRecord(input) : command === 'promote' ? canPromoteBaseline(input) : classifyBaselineComparison(input);
         process.stdout.write(`${JSON.stringify(result)}\n`);
         process.exitCode = 0;
     } catch (error) {

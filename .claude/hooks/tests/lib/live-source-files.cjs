@@ -20,7 +20,12 @@ const { spawnSync } = require('node:child_process');
 
 function git(root, env, args) {
     return spawnSync('git', args, {
-        cwd: root, env, encoding: 'utf8', timeout: 30000, windowsHide: true, maxBuffer: 64 * 1024 * 1024
+        cwd: root,
+        env,
+        encoding: 'utf8',
+        timeout: 30000,
+        windowsHide: true,
+        maxBuffer: 64 * 1024 * 1024
     });
 }
 
@@ -42,7 +47,11 @@ function matchesExtension(file, extensions) {
 /** A folder name the caller excludes, below the scanned root (the root's own path segments never count). */
 function underExcludedFolder(rel, file, excludedDirs) {
     if (file === rel) return false;
-    return file.slice(rel.length + 1).split('/').slice(0, -1).some(segment => excludedDirs.has(segment));
+    return file
+        .slice(rel.length + 1)
+        .split('/')
+        .slice(0, -1)
+        .some(segment => excludedDirs.has(segment));
 }
 
 function* walk(root, rel, options) {

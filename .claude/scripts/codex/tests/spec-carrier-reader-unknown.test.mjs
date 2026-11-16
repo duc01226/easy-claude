@@ -1,15 +1,25 @@
-import test from "node:test";
-import assert from "node:assert/strict";
-import os from "node:os";
-import path from "node:path";
-import { carrierTestProfile, diskReader, readSpecCarriers, skipMissingCarrierParsers, withTempProject, writeProjectFile } from "./support/spec-carrier-test-support.mjs";
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import os from 'node:os';
+import path from 'node:path';
+import {
+    carrierTestProfile,
+    diskReader,
+    readSpecCarriers,
+    skipMissingCarrierParsers,
+    withTempProject,
+    writeProjectFile
+} from './support/spec-carrier-test-support.mjs';
 
-test("dynamic titles, computed metadata and ownerless references stay UNKNOWN instead of disappearing", async t => {
-  if (skipMissingCarrierParsers(t, "typescript")) return;
-  await withTempProject(t, async rootDir => {
-    const file = "checks/unit/invalid.spec.js";
-    await writeProjectFile(rootDir, "spec-library/ledger/019-ledger.md", "# Ledger\n");
-    await writeProjectFile(rootDir, file, `
+test('dynamic titles, computed metadata and ownerless references stay UNKNOWN instead of disappearing', async t => {
+    if (skipMissingCarrierParsers(t, 'typescript')) return;
+    await withTempProject(t, async rootDir => {
+        const file = 'checks/unit/invalid.spec.js';
+        await writeProjectFile(rootDir, 'spec-library/ledger/019-ledger.md', '# Ledger\n');
+        await writeProjectFile(
+            rootDir,
+            file,
+            `
 // it('CASE-900 fake comment', () => {});
 const cases = [
   { id: 'valid', scn: 'CASE-1', reqs: 'ledger/019 RULE-1', why: 'valid literal', input: makeInput() },
@@ -21,42 +31,55 @@ describe('ledger (ledger/019 RULE-1)', () => {
   it(\`CASE-\${suffix}\`, () => {});
 });
 it('CASE-3: ownerless selected case', () => {});
-`);
-    const profile = {
-      specRoots: { business: { path: "spec-library", authorship: "hand" } },
-      specArtifacts: {
-        version: 1,
-        kind: "engineering-contract",
-        sections: { intent: ["Intent"], contracts: ["Contract"], evidence: ["Proof"] },
-        identifiers: {
-          requirement: { prefix: "RULE-", grammar: "decimal-lower-suffix" },
-          acceptance: { prefix: "CHECK-", grammar: "decimal-lower-suffix" },
-          scenario: { prefix: "CASE-", grammar: "hyphen-tokens" },
-        },
-        ownership: "spec-path-and-case-id",
-        carriers: [
-          { dialect: "js-title-v1", roots: ["checks"], extensions: [".spec.js"], suiteCalls: ["describe"], caseCalls: ["it"] },
-          { dialect: "js-keyed-cases-v1", roots: ["checks"], extensions: [".spec.js"], binding: "cases", fields: { variant: "id", scenario: "scn", requirements: "reqs", rationale: "why", input: "input" } },
-        ],
-      },
-    };
-    const result = await readSpecCarriers({ rootDir, profile, selectedFiles: [file], readText: diskReader(rootDir) });
+`
+        );
+        const profile = {
+            specRoots: { business: { path: 'spec-library', authorship: 'hand' } },
+            specArtifacts: {
+                version: 1,
+                kind: 'engineering-contract',
+                sections: { intent: ['Intent'], contracts: ['Contract'], evidence: ['Proof'] },
+                identifiers: {
+                    requirement: { prefix: 'RULE-', grammar: 'decimal-lower-suffix' },
+                    acceptance: { prefix: 'CHECK-', grammar: 'decimal-lower-suffix' },
+                    scenario: { prefix: 'CASE-', grammar: 'hyphen-tokens' }
+                },
+                ownership: 'spec-path-and-case-id',
+                carriers: [
+                    { dialect: 'js-title-v1', roots: ['checks'], extensions: ['.spec.js'], suiteCalls: ['describe'], caseCalls: ['it'] },
+                    {
+                        dialect: 'js-keyed-cases-v1',
+                        roots: ['checks'],
+                        extensions: ['.spec.js'],
+                        binding: 'cases',
+                        fields: { variant: 'id', scenario: 'scn', requirements: 'reqs', rationale: 'why', input: 'input' }
+                    }
+                ]
+            }
+        };
+        const result = await readSpecCarriers({ rootDir, profile, selectedFiles: [file], readText: diskReader(rootDir) });
 
-    assert.ok(result.unknown.some(item => item.reason.includes("computed case metadata")));
-    assert.ok(result.unknown.some(item => item.reason.includes("dynamic or compound test title")));
-    assert.ok(result.unknown.some(item => item.reason.includes("no explicit or inherited canonical spec owner") && item.file === file), "CASE-3 has no owner and remains visible as UNKNOWN");
-    assert.ok(!result.records.some(record => record.scenarioId === "CASE-900"), "comment text is not a test declaration");
-    assert.ok(!result.records.some(record => record.variantId === "hidden metadata"));
-    assert.ok(result.unknown.some(item => item.code === "UNKNOWN" && item.reason.includes("multiple possible test executors") && item.file === file));
-  });
+        assert.ok(result.unknown.some(item => item.reason.includes('computed case metadata')));
+        assert.ok(result.unknown.some(item => item.reason.includes('dynamic or compound test title')));
+        assert.ok(
+            result.unknown.some(item => item.reason.includes('no explicit or inherited canonical spec owner') && item.file === file),
+            'CASE-3 has no owner and remains visible as UNKNOWN'
+        );
+        assert.ok(!result.records.some(record => record.scenarioId === 'CASE-900'), 'comment text is not a test declaration');
+        assert.ok(!result.records.some(record => record.variantId === 'hidden metadata'));
+        assert.ok(result.unknown.some(item => item.code === 'UNKNOWN' && item.reason.includes('multiple possible test executors') && item.file === file));
+    });
 });
 
-test("duplicate owner+scenario+variant rows are excluded from records and reported explicitly", async t => {
-  if (skipMissingCarrierParsers(t, "typescript")) return;
-  await withTempProject(t, async rootDir => {
-    const file = "checks/duplicate.spec.js";
-    await writeProjectFile(rootDir, "spec-library/payments/017-owner.md", "# Payments\n");
-    await writeProjectFile(rootDir, file, `
+test('duplicate owner+scenario+variant rows are excluded from records and reported explicitly', async t => {
+    if (skipMissingCarrierParsers(t, 'typescript')) return;
+    await withTempProject(t, async rootDir => {
+        const file = 'checks/duplicate.spec.js';
+        await writeProjectFile(rootDir, 'spec-library/payments/017-owner.md', '# Payments\n');
+        await writeProjectFile(
+            rootDir,
+            file,
+            `
 const rows = [
   { id: 'same', scn: 'CASE-4', reqs: 'payments/017 RULE-4', why: 'first', input: one() },
   { id: 'same', scn: 'CASE-4', reqs: 'payments/017 RULE-4', why: 'second', input: two() },
@@ -64,105 +87,126 @@ const rows = [
 describe('payments (payments/017 RULE-4)', () => {
   it('runs rows', () => rows.forEach(run));
 });
-`);
-    const profile = {
-      specRoots: { business: { path: "spec-library", authorship: "hand" } },
-      specArtifacts: {
-        version: 1, kind: "engineering-contract",
-        sections: { intent: ["Intent"], contracts: ["Contract"], evidence: ["Proof"] },
-        identifiers: { requirement: { prefix: "RULE-", grammar: "decimal-lower-suffix" }, acceptance: { prefix: "CHECK-", grammar: "decimal-lower-suffix" }, scenario: { prefix: "CASE-", grammar: "hyphen-tokens" } },
-        ownership: "spec-path-and-case-id",
-        carriers: [
-          { dialect: "js-title-v1", roots: ["checks"], extensions: [".spec.js"], suiteCalls: ["describe"], caseCalls: ["it"] },
-          { dialect: "js-keyed-cases-v1", roots: ["checks"], extensions: [".spec.js"], binding: "rows", fields: { variant: "id", scenario: "scn", requirements: "reqs", rationale: "why", input: "input" } },
-        ],
-      },
-    };
-    const result = await readSpecCarriers({ rootDir, profile, selectedFiles: [file], readText: diskReader(rootDir) });
+`
+        );
+        const profile = {
+            specRoots: { business: { path: 'spec-library', authorship: 'hand' } },
+            specArtifacts: {
+                version: 1,
+                kind: 'engineering-contract',
+                sections: { intent: ['Intent'], contracts: ['Contract'], evidence: ['Proof'] },
+                identifiers: {
+                    requirement: { prefix: 'RULE-', grammar: 'decimal-lower-suffix' },
+                    acceptance: { prefix: 'CHECK-', grammar: 'decimal-lower-suffix' },
+                    scenario: { prefix: 'CASE-', grammar: 'hyphen-tokens' }
+                },
+                ownership: 'spec-path-and-case-id',
+                carriers: [
+                    { dialect: 'js-title-v1', roots: ['checks'], extensions: ['.spec.js'], suiteCalls: ['describe'], caseCalls: ['it'] },
+                    {
+                        dialect: 'js-keyed-cases-v1',
+                        roots: ['checks'],
+                        extensions: ['.spec.js'],
+                        binding: 'rows',
+                        fields: { variant: 'id', scenario: 'scn', requirements: 'reqs', rationale: 'why', input: 'input' }
+                    }
+                ]
+            }
+        };
+        const result = await readSpecCarriers({ rootDir, profile, selectedFiles: [file], readText: diskReader(rootDir) });
 
-    assert.deepEqual(result.records, []);
-    assert.equal(result.unknown.filter(item => item.code === "DUPLICATE_IDENTITY").length, 2);
-  });
+        assert.deepEqual(result.records, []);
+        assert.equal(result.unknown.filter(item => item.code === 'DUPLICATE_IDENTITY').length, 2);
+    });
 });
 
-test("configured identifier prefixes and grammars remain adopter-owned after context extraction", async t => {
-  if (skipMissingCarrierParsers(t, "typescript")) return;
-  await withTempProject(t, async rootDir => {
-    const ownerPath = "specs/library/043-adopter-carriers.md";
-    const file = "checks/context.spec.js";
-    await writeProjectFile(rootDir, ownerPath, "# Adopter carriers\n");
-    await writeProjectFile(rootDir, file, `
+test('configured identifier prefixes and grammars remain adopter-owned after context extraction', async t => {
+    if (skipMissingCarrierParsers(t, 'typescript')) return;
+    await withTempProject(t, async rootDir => {
+        const ownerPath = 'specs/library/043-adopter-carriers.md';
+        const file = 'checks/context.spec.js';
+        await writeProjectFile(rootDir, ownerPath, '# Adopter carriers\n');
+        await writeProjectFile(
+            rootDir,
+            file,
+            `
 describe('library/043 RULE-1 CHECK-2a', () => {
   it('CASE-auth-1 valid', () => {});
   it('CASE-auth--2 malformed', () => {});
 });
-`);
-    const profile = structuredClone(carrierTestProfile);
-    profile.specArtifacts.identifiers = {
-      requirement: { prefix: "RULE-", grammar: "decimal-lower-suffix" },
-      acceptance: { prefix: "CHECK-", grammar: "decimal-lower-suffix" },
-      scenario: { prefix: "CASE-", grammar: "hyphen-tokens" },
-    };
-    profile.specArtifacts.carriers = [
-      { dialect: "js-title-v1", roots: ["checks"], extensions: [".spec.js"], suiteCalls: ["describe"], caseCalls: ["it"] },
-    ];
+`
+        );
+        const profile = structuredClone(carrierTestProfile);
+        profile.specArtifacts.identifiers = {
+            requirement: { prefix: 'RULE-', grammar: 'decimal-lower-suffix' },
+            acceptance: { prefix: 'CHECK-', grammar: 'decimal-lower-suffix' },
+            scenario: { prefix: 'CASE-', grammar: 'hyphen-tokens' }
+        };
+        profile.specArtifacts.carriers = [{ dialect: 'js-title-v1', roots: ['checks'], extensions: ['.spec.js'], suiteCalls: ['describe'], caseCalls: ['it'] }];
 
-    const result = await readSpecCarriers({ rootDir, profile, selectedFiles: [file], readText: diskReader(rootDir) });
+        const result = await readSpecCarriers({ rootDir, profile, selectedFiles: [file], readText: diskReader(rootDir) });
 
-    assert.equal(result.records.length, 1);
-    assert.equal(result.records[0].scenarioId, "CASE-auth-1");
-    assert.equal(result.records[0].ownerPath, ownerPath);
-    assert.deepEqual(result.records[0].requirementIds, ["RULE-1"]);
-    assert.deepEqual(result.records[0].acceptanceIds, ["CHECK-2a"]);
-    assert.ok(result.unknown.some(item => item.reason === "test title contains a malformed configured scenario identifier"));
-  });
-});
-
-test("malformed JavaScript reports UNKNOWN with a source span", async t => {
-  if (skipMissingCarrierParsers(t, "typescript")) return;
-  const malformedFile = "checks/malformed-ast.test.js";
-  await withTempProject(t, async rootDir => {
-    const malformed = await readSpecCarriers({
-      rootDir,
-      profile: carrierTestProfile,
-      selectedFiles: [malformedFile],
-      listFiles: async () => [malformedFile],
-      readText: async () => "describe('catalog/040 REQ-14', () => { it('SCN-BATCH-001', () => {});",
+        assert.equal(result.records.length, 1);
+        assert.equal(result.records[0].scenarioId, 'CASE-auth-1');
+        assert.equal(result.records[0].ownerPath, ownerPath);
+        assert.deepEqual(result.records[0].requirementIds, ['RULE-1']);
+        assert.deepEqual(result.records[0].acceptanceIds, ['CHECK-2a']);
+        assert.ok(result.unknown.some(item => item.reason === 'test title contains a malformed configured scenario identifier'));
     });
-    assert.deepEqual(malformed.records, []);
-    assert.ok(malformed.unknown.some(item => item.code === "UNKNOWN" && item.file === malformedFile && item.span));
-  });
 });
 
-test("an unavailable TypeScript parser reports MISSING_PARSER", async () => {
-  const missingFile = "checks/missing-parser.test.ts";
-  const missing = await readSpecCarriers({
-    rootDir: path.join(os.tmpdir(), `framework-fit-no-typescript-${process.pid}`),
-    profile: carrierTestProfile,
-    selectedFiles: [missingFile],
-    listFiles: async () => [missingFile],
-    readText: async () => "describe('SCN-BATCH-001', () => {});",
-  });
-  assert.deepEqual(missing.records, []);
-  assert.ok(missing.unknown.some(item => item.code === "MISSING_PARSER" && item.file === missingFile));
+test('malformed JavaScript reports UNKNOWN with a source span', async t => {
+    if (skipMissingCarrierParsers(t, 'typescript')) return;
+    const malformedFile = 'checks/malformed-ast.test.js';
+    await withTempProject(t, async rootDir => {
+        const malformed = await readSpecCarriers({
+            rootDir,
+            profile: carrierTestProfile,
+            selectedFiles: [malformedFile],
+            listFiles: async () => [malformedFile],
+            readText: async () => "describe('catalog/040 REQ-14', () => { it('SCN-BATCH-001', () => {});"
+        });
+        assert.deepEqual(malformed.records, []);
+        assert.ok(malformed.unknown.some(item => item.code === 'UNKNOWN' && item.file === malformedFile && item.span));
+    });
 });
 
-test("a TypeScript package without the JavaScript compiler API reports MISSING_PARSER, not a parse failure", async t => {
-  // Given: the adopter root resolves a `typescript` package that exports only its version, as TypeScript 7+ does.
-  // When: the reader parses a selected JS carrier from that root.
-  // Then: the carrier is MISSING_PARSER with no records, the same outcome as an absent package.
-  // Business Intent / Invariant Guarded: an installed package counts as a parser only when it can build a syntax tree.
-  // Failure Signal: an UNKNOWN "TypeScript parser failed" entry, any record, or no MISSING_PARSER entry fails this test.
-  await withTempProject(t, async rootDir => {
-    const file = "checks/unit/native-only.test.ts";
-    await writeProjectFile(rootDir, "node_modules/typescript/package.json", JSON.stringify({ name: "typescript", version: "7.0.2", main: "lib/version.cjs" }));
-    await writeProjectFile(rootDir, "node_modules/typescript/lib/version.cjs", "module.exports = { version: '7.0.2', versionMajorMinor: '7.0' };\n");
-    await writeProjectFile(rootDir, file, "describe('SCN-BATCH-001', () => { it('runs', () => {}); });\n");
+test('an unavailable TypeScript parser reports MISSING_PARSER', async () => {
+    const missingFile = 'checks/missing-parser.test.ts';
+    const missing = await readSpecCarriers({
+        rootDir: path.join(os.tmpdir(), `framework-fit-no-typescript-${process.pid}`),
+        profile: carrierTestProfile,
+        selectedFiles: [missingFile],
+        listFiles: async () => [missingFile],
+        readText: async () => "describe('SCN-BATCH-001', () => {});"
+    });
+    assert.deepEqual(missing.records, []);
+    assert.ok(missing.unknown.some(item => item.code === 'MISSING_PARSER' && item.file === missingFile));
+});
 
-    const result = await readSpecCarriers({ rootDir, profile: carrierTestProfile, selectedFiles: [file], readText: diskReader(rootDir) });
+test('a TypeScript package without the JavaScript compiler API reports MISSING_PARSER, not a parse failure', async t => {
+    // Given: the adopter root resolves a `typescript` package that exports only its version, as TypeScript 7+ does.
+    // When: the reader parses a selected JS carrier from that root.
+    // Then: the carrier is MISSING_PARSER with no records, the same outcome as an absent package.
+    // Business Intent / Invariant Guarded: an installed package counts as a parser only when it can build a syntax tree.
+    // Failure Signal: an UNKNOWN "TypeScript parser failed" entry, any record, or no MISSING_PARSER entry fails this test.
+    await withTempProject(t, async rootDir => {
+        const file = 'checks/unit/native-only.test.ts';
+        await writeProjectFile(
+            rootDir,
+            'node_modules/typescript/package.json',
+            JSON.stringify({ name: 'typescript', version: '7.0.2', main: 'lib/version.cjs' })
+        );
+        await writeProjectFile(rootDir, 'node_modules/typescript/lib/version.cjs', "module.exports = { version: '7.0.2', versionMajorMinor: '7.0' };\n");
+        await writeProjectFile(rootDir, file, "describe('SCN-BATCH-001', () => { it('runs', () => {}); });\n");
 
-    assert.deepEqual(result.records, []);
-    assert.ok(result.unknown.some(item => item.code === "MISSING_PARSER" && item.file === file), JSON.stringify(result.unknown));
-    assert.ok(!result.unknown.some(item => /TypeScript parser failed/.test(item.reason ?? "")), JSON.stringify(result.unknown));
-  });
+        const result = await readSpecCarriers({ rootDir, profile: carrierTestProfile, selectedFiles: [file], readText: diskReader(rootDir) });
+
+        assert.deepEqual(result.records, []);
+        assert.ok(
+            result.unknown.some(item => item.code === 'MISSING_PARSER' && item.file === file),
+            JSON.stringify(result.unknown)
+        );
+        assert.ok(!result.unknown.some(item => /TypeScript parser failed/.test(item.reason ?? '')), JSON.stringify(result.unknown));
+    });
 });

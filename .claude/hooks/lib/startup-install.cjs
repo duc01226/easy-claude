@@ -69,7 +69,8 @@ const STARTUP_INSTALL_TRUST_ENV = 'CK_STARTUP_INSTALL_TRUST';
 // a credential-bearing user config. Without the host trust grant they must not
 // cross into an automatic install child. The suffix rule also covers npm's
 // registry-key-shaped names such as NPM_CONFIG_//REGISTRY/:_AUTHTOKEN.
-const REGISTRY_CREDENTIAL_ENV = /^(?:NPM_TOKEN|NODE_AUTH_TOKEN|YARN_NPM_AUTH_TOKEN|BUN_AUTH_TOKEN|NPM_CONFIG_USERCONFIG|NPM_CONFIG_GLOBALCONFIG|NPM_CONFIG_.*(?:AUTH|TOKEN|PASSWORD|PASSWD|SECRET|CREDENTIAL|API[_-]?KEY)|YARN_NPM_.*(?:AUTH|TOKEN|PASSWORD|PASSWD|SECRET|CREDENTIAL)|BUN_.*(?:AUTH|TOKEN|PASSWORD|PASSWD|SECRET|CREDENTIAL)|.*(?:TOKEN|PASSWORD|PASSWD|SECRET|CREDENTIAL|API[_-]?KEY|AUTHTOKEN))$/i;
+const REGISTRY_CREDENTIAL_ENV =
+    /^(?:NPM_TOKEN|NODE_AUTH_TOKEN|YARN_NPM_AUTH_TOKEN|BUN_AUTH_TOKEN|NPM_CONFIG_USERCONFIG|NPM_CONFIG_GLOBALCONFIG|NPM_CONFIG_.*(?:AUTH|TOKEN|PASSWORD|PASSWD|SECRET|CREDENTIAL|API[_-]?KEY)|YARN_NPM_.*(?:AUTH|TOKEN|PASSWORD|PASSWD|SECRET|CREDENTIAL)|BUN_.*(?:AUTH|TOKEN|PASSWORD|PASSWD|SECRET|CREDENTIAL)|.*(?:TOKEN|PASSWORD|PASSWD|SECRET|CREDENTIAL|API[_-]?KEY|AUTHTOKEN))$/i;
 
 /**
  * Fixed outcome vocabulary. Every diagnostic is built from one of these codes
@@ -165,12 +166,7 @@ const CONTROL_CHARS = /[\u0000-\u001F\u007F-\u009F]/g;
  */
 function sanitizeToken(value, maxLength = 80) {
     if (value === undefined || value === null) return '';
-    return String(value)
-        .replace(ANSI_SEQUENCE, '')
-        .replace(CONTROL_CHARS, ' ')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .slice(0, maxLength);
+    return String(value).replace(ANSI_SEQUENCE, '').replace(CONTROL_CHARS, ' ').replace(/\s+/g, ' ').trim().slice(0, maxLength);
 }
 
 /** Manager ids only ever leave this module through the fixed allowlist. */
@@ -273,7 +269,7 @@ function npm12LockState(present) {
 }
 
 function singleLockState(name) {
-    return (present) => (present.has(name) ? { mode: 'locked' } : { mode: 'lockless' });
+    return present => (present.has(name) ? { mode: 'locked' } : { mode: 'lockless' });
 }
 
 function bunLockState(present) {
@@ -287,7 +283,7 @@ const MATRIX = Object.freeze([
     {
         id: 'npm@10-11',
         manager: 'npm',
-        matches: (v) => /^1[01]\./.test(v),
+        matches: v => /^1[01]\./.test(v),
         lockState: npmLockState,
         locked: ['ci'],
         lockless: ['install'],
@@ -299,7 +295,7 @@ const MATRIX = Object.freeze([
     {
         id: 'npm@12',
         manager: 'npm',
-        matches: (v) => /^12\./.test(v),
+        matches: v => /^12\./.test(v),
         lockState: npm12LockState,
         locked: ['ci'],
         lockless: ['install'],
@@ -310,7 +306,7 @@ const MATRIX = Object.freeze([
     {
         id: 'pnpm@9.15.0',
         manager: 'pnpm',
-        matches: (v) => v === '9.15.0',
+        matches: v => v === '9.15.0',
         lockState: singleLockState('pnpm-lock.yaml'),
         locked: ['install', '--frozen-lockfile'],
         lockless: ['install'],
@@ -321,7 +317,7 @@ const MATRIX = Object.freeze([
     {
         id: 'pnpm@12',
         manager: 'pnpm',
-        matches: (v) => /^12\./.test(v),
+        matches: v => /^12\./.test(v),
         lockState: singleLockState('pnpm-lock.yaml'),
         locked: ['install', '--frozen-lockfile'],
         lockless: ['install'],
@@ -332,7 +328,7 @@ const MATRIX = Object.freeze([
     {
         id: 'yarn@1',
         manager: 'yarn',
-        matches: (v) => /^1\./.test(v),
+        matches: v => /^1\./.test(v),
         lockState: singleLockState('yarn.lock'),
         locked: ['install', '--frozen-lockfile'],
         lockless: ['install'],
@@ -343,7 +339,7 @@ const MATRIX = Object.freeze([
         id: 'yarn@2.4',
         manager: 'yarn',
         // Berry 2.0-2.3 has no fixed build-suppression flag and is unsupported.
-        matches: (v) => /^2\.4\./.test(v),
+        matches: v => /^2\.4\./.test(v),
         lockState: singleLockState('yarn.lock'),
         locked: ['install', '--immutable'],
         lockless: ['install'],
@@ -353,7 +349,7 @@ const MATRIX = Object.freeze([
     {
         id: 'yarn@3-4',
         manager: 'yarn',
-        matches: (v) => /^[34]\./.test(v),
+        matches: v => /^[34]\./.test(v),
         lockState: singleLockState('yarn.lock'),
         locked: ['install', '--immutable'],
         lockless: ['install'],
@@ -365,7 +361,7 @@ const MATRIX = Object.freeze([
     {
         id: 'bun@1.2',
         manager: 'bun',
-        matches: (v) => /^1\.2\./.test(v),
+        matches: v => /^1\.2\./.test(v),
         lockState: bunLockState,
         locked: ['install', '--frozen-lockfile'],
         lockless: ['install'],
@@ -377,7 +373,7 @@ const MATRIX = Object.freeze([
 ]);
 
 function findMatrixRow(managerId, version) {
-    return MATRIX.find((row) => row.manager === managerId && row.matches(version)) || null;
+    return MATRIX.find(row => row.manager === managerId && row.matches(version)) || null;
 }
 
 /**
@@ -485,10 +481,10 @@ function resolveManager({ settings, manifest, config, present, pnpDetected }) {
 
     if (pnpDetected) signals.push({ source: 'yarn-pnp', manager: 'yarn', version: null });
 
-    const managers = new Set(signals.map((s) => s.manager));
+    const managers = new Set(signals.map(s => s.manager));
     if (managers.size > 1) return { skip: OUTCOMES.SKIP_MANAGER_CONFLICT };
 
-    const versions = new Set(signals.filter((s) => s.version).map((s) => s.version));
+    const versions = new Set(signals.filter(s => s.version).map(s => s.version));
     if (versions.size > 1) return { skip: OUTCOMES.SKIP_MANAGER_CONFLICT };
 
     if (managers.size === 0) {
@@ -566,13 +562,13 @@ function collectDependencyNames(manifest) {
 /** `@scope/name` maps to `node_modules/@scope/name` by splitting on `/`. */
 function missingFromNodeModules({ projectRoot, names, seams }) {
     const nodeModules = path.join(projectRoot, 'node_modules');
-    return names.filter((name) => !seams.exists(path.join(nodeModules, ...name.split('/'))));
+    return names.filter(name => !seams.exists(path.join(nodeModules, ...name.split('/'))));
 }
 
 const PNP_LOADERS = ['.pnp.cjs', '.pnp.js'];
 
 function detectPnp(projectRoot, seams) {
-    return PNP_LOADERS.some((name) => seams.exists(path.join(projectRoot, name)));
+    return PNP_LOADERS.some(name => seams.exists(path.join(projectRoot, name)));
 }
 
 /**
@@ -723,7 +719,7 @@ function isCorepackShim(execPath) {
  */
 function buildLaunchPlan({ managerId, execPath, args, cwd, env, platform }) {
     if (!SUPPORTED_MANAGERS.includes(managerId)) return { skip: OUTCOMES.SKIP_UNSAFE_LAUNCH };
-    if (!Array.isArray(args) || !args.every((a) => SAFE_ARGUMENT.test(a))) {
+    if (!Array.isArray(args) || !args.every(a => SAFE_ARGUMENT.test(a))) {
         return { skip: OUTCOMES.SKIP_UNSAFE_LAUNCH };
     }
     if (platform !== 'win32') {
@@ -849,7 +845,7 @@ function defaultReadManagerVersion({ managerId, execPath, viaCorepack, env, plat
  * manager output can reach a log.
  */
 function defaultSpawnManager(plan, { publishGroup }) {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
         let child;
         try {
             child = spawn(plan.command, plan.args, {
@@ -874,7 +870,7 @@ function defaultSpawnManager(plan, { publishGroup }) {
         if (child.stderr) child.stderr.resume();
 
         let settled = false;
-        const finish = (value) => {
+        const finish = value => {
             if (settled) return;
             settled = true;
             clearTimeout(timer);
@@ -888,7 +884,7 @@ function defaultSpawnManager(plan, { publishGroup }) {
         if (typeof timer.unref === 'function') timer.unref();
 
         child.on('error', () => finish({ outcome: OUTCOMES.INSTALL_FAILED, exitCode: null }));
-        child.on('close', (code) =>
+        child.on('close', code =>
             finish({
                 outcome: code === 0 ? OUTCOMES.INSTALLED : OUTCOMES.INSTALL_FAILED,
                 exitCode: typeof code === 'number' ? code : null
@@ -903,9 +899,9 @@ function defaultSpawnManager(plan, { publishGroup }) {
 
 const DEFAULT_SEAMS = Object.freeze({
     now: () => Date.now(),
-    exists: (p) => fs.existsSync(p),
-    readFile: (p) => fs.readFileSync(p, 'utf8'),
-    realpath: (p) => fs.realpathSync(p),
+    exists: p => fs.existsSync(p),
+    readFile: p => fs.readFileSync(p, 'utf8'),
+    realpath: p => fs.realpathSync(p),
     platform: () => process.platform,
     env: () => process.env,
     resolveExecutable: defaultResolveExecutable,
@@ -973,9 +969,7 @@ function buildInstallRequest(options) {
     if (names.length === 0) return { outcome: OUTCOMES.NOOP_NO_DEPENDENCIES };
 
     const pnpDetected = detectPnp(projectRoot, seams);
-    const completeness = pnpDetected
-        ? inspectPnp({ projectRoot, names, seams })
-        : { missing: missingFromNodeModules({ projectRoot, names, seams }) };
+    const completeness = pnpDetected ? inspectPnp({ projectRoot, names, seams }) : { missing: missingFromNodeModules({ projectRoot, names, seams }) };
     if (completeness.skip) return { outcome: completeness.skip };
     if (completeness.missing.length === 0) return { outcome: OUTCOMES.NOOP_DEPENDENCIES_PRESENT };
 
@@ -992,7 +986,7 @@ function buildInstallRequest(options) {
 
     // A lockfile owned by ANOTHER manager is already a conflict above; this only
     // narrows the set handed to the row's lock-state classifier.
-    const ownLockfiles = new Set([...present].filter((name) => LOCKFILE_OWNERS[name] === managerId));
+    const ownLockfiles = new Set([...present].filter(name => LOCKFILE_OWNERS[name] === managerId));
 
     const extensions = detectProjectExtensions({ projectRoot, managerId, env, seams });
     if (extensions.blocked) return { outcome: OUTCOMES.SKIP_PROJECT_EXTENSION, manager: managerId };

@@ -75,7 +75,11 @@ function hasRootPointer(text) {
 /** Every pointer-shaped line in the text (a duplicate counts), the twin of `sync_blocks.root_pointer_lines`. */
 function rootPointerLines(text) {
     const re = new RegExp(ROOT_POINTER_RE.source, 'gm');
-    return String(text ?? '').replace(/\r\n?/g, '\n').match(re) || [];
+    return (
+        String(text ?? '')
+            .replace(/\r\n?/g, '\n')
+            .match(re) || []
+    );
 }
 
 /**

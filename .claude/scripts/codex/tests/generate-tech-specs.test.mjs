@@ -113,7 +113,7 @@ async function makeProject({
     fileExtension = '.cs',
     fileName = 'OrderTests.cs',
     fileExtensions = [fileExtension],
-    annotationPattern = ANNOTATION_PATTERN,
+    annotationPattern = ANNOTATION_PATTERN
 } = {}) {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tech-spec-gen-'));
     await fs.mkdir(path.join(root, '.claude'));
@@ -129,11 +129,7 @@ async function makeProject({
     );
     if (configPath !== 'docs/project-config.json') {
         await fs.mkdir(path.join(root, '.claude'), { recursive: true });
-        await fs.writeFile(
-            path.join(root, '.claude', '.ck.json'),
-            JSON.stringify({ portability: { projectConfigPath: configPath } }),
-            'utf8'
-        );
+        await fs.writeFile(path.join(root, '.claude', '.ck.json'), JSON.stringify({ portability: { projectConfigPath: configPath } }), 'utf8');
     }
     if (withSource) {
         await fs.mkdir(path.join(root, sourceRoot, 'Services', 'Orders'), { recursive: true });
@@ -260,8 +256,9 @@ test('generate-tech-specs regenerates cleanly when every file is derived (TC-TSP
 });
 
 test('long derived views link every real section while compact views remain compact', async () => {
-    const longSource = `public class OrderTests\n{\n${Array.from({ length: 100 }, (_, index) =>
-        `    [Trait("TechnicalSpec", "TS-NAV-${index}")]\n    public Task ShouldPersist${index}() => Task.CompletedTask;`
+    const longSource = `public class OrderTests\n{\n${Array.from(
+        { length: 100 },
+        (_, index) => `    [Trait("TechnicalSpec", "TS-NAV-${index}")]\n    public Task ShouldPersist${index}() => Task.CompletedTask;`
     ).join('\n')}\n}\n`;
 
     for (const source of [ANNOTATED_SOURCE, longSource]) {
@@ -278,12 +275,17 @@ test('long derived views link every real section while compact views remain comp
                 const contentsLine = lines.indexOf('## Contents');
                 assert.ok(contentsLine > 0 && contentsLine < 100, 'navigation belongs near the title');
                 assert.ok(contentsLine < lines.indexOf('## 1. Component Boundary'));
-                const sections = lines.filter((line) => line.startsWith('## ') && line !== '## Contents')
-                    .map((line) => line.slice(3));
+                const sections = lines.filter(line => line.startsWith('## ') && line !== '## Contents').map(line => line.slice(3));
                 const links = [...markdown.matchAll(/^- \[([^\]]+)\]\(#[^)]+\)$/gm)];
-                assert.deepEqual(links.map((link) => link[1]), sections, 'every real section is linked in order');
-                assert.ok(markdown.includes('[3. TC ↔ Test Map](#3-tc--test-map)'),
-                    'the arrow is omitted from the anchor while both adjacent spaces remain hyphens');
+                assert.deepEqual(
+                    links.map(link => link[1]),
+                    sections,
+                    'every real section is linked in order'
+                );
+                assert.ok(
+                    markdown.includes('[3. TC ↔ Test Map](#3-tc--test-map)'),
+                    'the arrow is omitted from the anchor while both adjacent spaces remain hyphens'
+                );
             }
             const repeated = runGenerator(root);
             assert.equal(repeated.status, 0, repeated.stderr);
@@ -302,9 +304,7 @@ test('generate-tech-specs preserves semantically unchanged views and their date/
 
         const outputPath = await generatedMarkdownPath(root);
         const initial = await fs.readFile(outputPath, 'utf8');
-        const preserved = initial
-            .replace(/Regenerated:\s*\d{4}-\d{2}-\d{2}\./, 'Regenerated: 2000-01-01.')
-            .replace(/\r?\n/g, '\r\n');
+        const preserved = initial.replace(/Regenerated:\s*\d{4}-\d{2}-\d{2}\./, 'Regenerated: 2000-01-01.').replace(/\r?\n/g, '\r\n');
         await fs.writeFile(outputPath, preserved, 'utf8');
 
         const second = runGenerator(root);
@@ -347,7 +347,7 @@ public class SecondTests
     }
 }
 `,
-            'utf8',
+            'utf8'
         );
         // A directory at the expected file path makes preflight fail after the
         // first group has been planned as changed. The prior tree must still win.
@@ -363,7 +363,7 @@ public class SecondTests
     }
 });
 
-test('generate-tech-specs refuses symlinked output parents before writing outside the project (TC-TSPEC-019)', async (t) => {
+test('generate-tech-specs refuses symlinked output parents before writing outside the project (TC-TSPEC-019)', async t => {
     const root = await makeProject();
     const outside = await fs.mkdtemp(path.join(os.tmpdir(), 'tech-spec-symlink-out-'));
     const outputParent = path.join(root, 'out', 'Orders');
@@ -401,7 +401,7 @@ test('generate-tech-specs supports documented TypeScript test-call annotations (
         fileName: 'order.test.ts',
         fileExtensions: ['.ts'],
         annotationPattern: TYPESCRIPT_ANNOTATION_PATTERN,
-        source: TYPESCRIPT_SOURCE,
+        source: TYPESCRIPT_SOURCE
     });
     try {
         const result = runGenerator(root);
@@ -420,7 +420,7 @@ test('generate-tech-specs supports documented Kotlin-style @Tag declarations (TC
         fileName: 'OrderTests.kt',
         fileExtensions: ['.kt'],
         annotationPattern: KOTLIN_ANNOTATION_PATTERN,
-        source: KOTLIN_SOURCE,
+        source: KOTLIN_SOURCE
     });
     try {
         const result = runGenerator(root);
@@ -439,7 +439,7 @@ test('generate-tech-specs preserves documented Java @Tag declarations (TC-TSPEC-
         fileName: 'OrderTests.java',
         fileExtensions: ['.java'],
         annotationPattern: KOTLIN_ANNOTATION_PATTERN,
-        source: JAVA_SOURCE,
+        source: JAVA_SOURCE
     });
     try {
         const result = runGenerator(root);
@@ -551,7 +551,7 @@ test('generate-tech-specs --check detects missing, extra, content, and occurrenc
 
 // Business Intent / Invariant Guarded: CI can run the freshness oracle against the actual repo
 // without modifying derived documentation, whether the current verdict is fresh or actionable stale.
-test('generate-tech-specs --check is read-only against the live repository (TC-TSPEC-010)', async (t) => {
+test('generate-tech-specs --check is read-only against the live repository (TC-TSPEC-010)', async t => {
     if (!isFrameworkRepo(repoRoot)) {
         t.skip('live framework-repository check is not part of an adopting project copy');
         return;
@@ -598,7 +598,7 @@ test('direct tech-spec generation resolves the consuming project from a nested c
         const result = spawnSync(process.execPath, [SCRIPT], {
             cwd: nested,
             encoding: 'utf8',
-            env: ambient,
+            env: ambient
         });
         assert.equal(result.status, 0, result.stderr);
         assert.match(await fs.readFile(await generatedMarkdownPath(root), 'utf8'), /TS-ORDER-001/);

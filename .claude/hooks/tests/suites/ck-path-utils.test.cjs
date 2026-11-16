@@ -76,7 +76,14 @@ const tests = [
             // Given: missing, non-string and NUL-bearing inputs. When: containment is asked.
             // Then: the guard fails closed instead of resolving an empty side against the cwd.
             const root = path.resolve(REPO);
-            for (const [r, c] of [['', root], [root, ''], [undefined, root], [root, null], [root, 42], [root, `${root}${path.sep}a\0b`]]) {
+            for (const [r, c] of [
+                ['', root],
+                [root, ''],
+                [undefined, root],
+                [root, null],
+                [root, 42],
+                [root, `${root}${path.sep}a\0b`]
+            ]) {
                 assertEqual(isAbsolutePathWithin(r, c), false, `invalid input must not be contained: ${JSON.stringify([r, c])}`);
             }
         }

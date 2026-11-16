@@ -43,7 +43,7 @@ const { resolveProjectRoot, isInvokedAsScript } = require('../lib/project-root.c
 const rootDir = resolveProjectRoot({
     cwd: process.cwd(),
     scriptPath: fileURLToPath(import.meta.url),
-    env: process.env,
+    env: process.env
 }).rootDir;
 const TAG = '[codex-verify-sync-adoption-parity]';
 
@@ -56,10 +56,9 @@ const PROTOCOL_TAG_RE = /^[a-z0-9][a-z0-9-]*$/;
 // Loaded lazily — only when a declared carrier has no main block — because this verifier is also
 // copied into isolated roots with only its root resolver beside it (`verifier-root-contract.test.mjs`).
 let guideCarrier = null;
-const recognizerHasGuideEntry = (text, tag) =>
-    (guideCarrier ??= require('../lib/protocol-guide-carrier.cjs')).hasGuideEntry(text, tag);
+const recognizerHasGuideEntry = (text, tag) => (guideCarrier ??= require('../lib/protocol-guide-carrier.cjs')).hasGuideEntry(text, tag);
 
-const normalizeEol = (s) => s.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+const normalizeEol = s => s.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
 /**
  * Parse the adoption matrix out of the Python injector.
@@ -74,7 +73,7 @@ export function parseAdoptionMatrix(py) {
     // Direct list literals: NAME = [ "a", "b", ... ]  (multi-line, comments tolerated)
     for (const m of py.matchAll(/^([A-Z_][A-Z0-9_]*)\s*=\s*\[([^\]]*)\]/gm)) {
         const [, name, body] = m;
-        const items = [...body.matchAll(/"([^"]+)"/g)].map((x) => x[1]);
+        const items = [...body.matchAll(/"([^"]+)"/g)].map(x => x[1]);
         if (items.length) lists.set(name, items);
     }
     // Alias form: NAME = list(OTHER)
@@ -99,10 +98,10 @@ export function parseAdoptionMatrix(py) {
 /** Canonical body for `## SYNC:tag` in sync-inline-versions.md (stops at the next `## SYNC:` heading). */
 export function canonicalBody(canonicalMd, tag) {
     const lines = canonicalMd.split('\n');
-    const start = lines.findIndex((l) => l.trim() === `## ${tag}`);
+    const start = lines.findIndex(l => l.trim() === `## ${tag}`);
     if (start === -1) return null;
     const rest = lines.slice(start + 1);
-    let end = rest.findIndex((l) => /^## SYNC:/.test(l.trim()));
+    let end = rest.findIndex(l => /^## SYNC:/.test(l.trim()));
     if (end === -1) end = rest.length;
     return rest
         .slice(0, end)
@@ -145,13 +144,7 @@ export function blockPairs(md, tag) {
  *          hasGuideEntry?: (text: string, tag: string) => boolean, projectionExists?: (tag: string) => boolean}} input
  * @returns {{missing: string[], undeclared: string[], drifted: string[], warnings: string[], pairsChecked: number}}
  */
-export function findParityViolations({
-    matrix,
-    canonicalMd,
-    skillText,
-    hasGuideEntry = recognizerHasGuideEntry,
-    projectionExists = () => false,
-}) {
+export function findParityViolations({ matrix, canonicalMd, skillText, hasGuideEntry = recognizerHasGuideEntry, projectionExists = () => false }) {
     const missing = [];
     const undeclared = [];
     const drifted = [];
@@ -179,14 +172,19 @@ export function findParityViolations({
                 continue;
             }
             pairsChecked += 1;
-            for (const [t, want] of [[tag, wantMain], [reminderTag, wantReminder]]) {
+            for (const [t, want] of [
+                [tag, wantMain],
+                [reminderTag, wantReminder]
+            ]) {
                 const found = blockPairs(md, t);
                 // Guide carrier for the MAIN block only; parity (3) then applies to the reminder.
                 if (t === tag && found.length === 0) {
                     const baseTag = tag.replace(/^SYNC:/, '');
                     if (PROTOCOL_TAG_RE.test(baseTag) && hasGuideEntry(md, baseTag)) {
                         if (!projectionExists(baseTag)) {
-                            missing.push(`${skill} :: ${t} — guide entry present but its projection file shared/protocols/${baseTag}.md is missing  [declared in ${listName}]`);
+                            missing.push(
+                                `${skill} :: ${t} — guide entry present but its projection file shared/protocols/${baseTag}.md is missing  [declared in ${listName}]`
+                            );
                         }
                         continue;
                     }
@@ -194,7 +192,7 @@ export function findParityViolations({
                 if (found.length !== 1 || found[0].unterminated) {
                     missing.push(
                         `${skill} :: ${t} — expected exactly 1 complete block, found ${found.length}` +
-                        `${found[0]?.unterminated ? ' (unterminated)' : ''}  [declared in ${listName}]`,
+                            `${found[0]?.unterminated ? ' (unterminated)' : ''}  [declared in ${listName}]`
                     );
                     continue;
                 }
@@ -246,9 +244,7 @@ async function main() {
     // Enumerate every skill dir once so undeclared carriers are discoverable.
     let allSkills = [];
     try {
-        allSkills = (await fs.readdir(SKILLS_DIR, { withFileTypes: true }))
-            .filter((d) => d.isDirectory())
-            .map((d) => d.name);
+        allSkills = (await fs.readdir(SKILLS_DIR, { withFileTypes: true })).filter(d => d.isDirectory()).map(d => d.name);
     } catch {
         console.error(`${TAG} FAIL — cannot enumerate ${path.relative(rootDir, SKILLS_DIR)}`);
         return 1;
@@ -256,17 +252,14 @@ async function main() {
 
     const skillText = new Map();
     for (const name of allSkills) {
-        const md = (await readIfExists(path.join(SKILLS_DIR, name, 'SKILL.md')))
-            ?? (await readIfExists(path.join(SKILLS_DIR, name, 'skill.md')));
+        const md = (await readIfExists(path.join(SKILLS_DIR, name, 'SKILL.md'))) ?? (await readIfExists(path.join(SKILLS_DIR, name, 'skill.md')));
         if (md !== null) skillText.set(name, md);
     }
 
     // The tag is validated before it is joined under the projection directory; a path is never
     // taken from a guide line.
-    const projectionExists = (baseTag) =>
-        PROTOCOL_TAG_RE.test(baseTag) && fsSync.existsSync(path.join(PROTOCOLS_DIR, `${baseTag}.md`));
-    const { missing, undeclared, drifted, warnings, pairsChecked } =
-        findParityViolations({ matrix, canonicalMd, skillText, projectionExists });
+    const projectionExists = baseTag => PROTOCOL_TAG_RE.test(baseTag) && fsSync.existsSync(path.join(PROTOCOLS_DIR, `${baseTag}.md`));
+    const { missing, undeclared, drifted, warnings, pairsChecked } = findParityViolations({ matrix, canonicalMd, skillText, projectionExists });
 
     for (const w of warnings) console.warn(`${TAG} WARN — ${w}`);
 
@@ -274,7 +267,7 @@ async function main() {
     if (!fail) {
         console.log(
             `${TAG} PASS (${matrix.length} tag(s), ${pairsChecked} declared carrier(s) checked; ` +
-            `adoption matrix parsed from the injector — no second list maintained here)`,
+                `adoption matrix parsed from the injector — no second list maintained here)`
         );
         return 0;
     }
@@ -301,10 +294,10 @@ async function main() {
 // must not execute the verification — matches verify-review-validate-coverage.mjs.
 if (isInvokedAsScript(process.argv[1], fileURLToPath(import.meta.url))) {
     await main().then(
-        (code) => process.exit(code),
-        (err) => {
+        code => process.exit(code),
+        err => {
             console.error(`${TAG} FAIL — unexpected error: ${err?.stack ?? err}`);
             process.exit(1);
-        },
+        }
     );
 }

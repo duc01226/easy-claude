@@ -50,29 +50,29 @@ const COMMIT_RE = /(?:^|&&|\|\||;)\s*git\s+commit\b/m;
 
 /** Run a read-only git command in the repo; advisory errors stay fail-open but visible. */
 function git(args) {
-  try {
-    return execFileSync('git', args, {
-      cwd: PROJECT_DIR,
-      encoding: 'utf-8',
-      stdio: ['pipe', 'pipe', 'pipe']
-    });
-  } catch (error) {
-    reportHookInternalError('doc-sync-gate', `git ${args.join(' ')}`, error);
-    return '';
-  }
+    try {
+        return execFileSync('git', args, {
+            cwd: PROJECT_DIR,
+            encoding: 'utf-8',
+            stdio: ['pipe', 'pipe', 'pipe']
+        });
+    } catch (error) {
+        reportHookInternalError('doc-sync-gate', `git ${args.join(' ')}`, error);
+        return '';
+    }
 }
 
 /** Resolve a numstat path token to its post-change (new) path, handling renames. */
 function resolveNumstatPath(token) {
-  if (!token.includes('=>')) return token.trim();
-  // Brace form: pre{old => new}post
-  const brace = token.match(/^(.*)\{(.*?) => (.*?)\}(.*)$/);
-  if (brace) {
-    return (brace[1] + brace[3] + brace[4]).replace(/\/\//g, '/').trim();
-  }
-  // Plain form: old => new
-  const parts = token.split('=>');
-  return parts[parts.length - 1].trim();
+    if (!token.includes('=>')) return token.trim();
+    // Brace form: pre{old => new}post
+    const brace = token.match(/^(.*)\{(.*?) => (.*?)\}(.*)$/);
+    if (brace) {
+        return (brace[1] + brace[3] + brace[4]).replace(/\/\//g, '/').trim();
+    }
+    // Plain form: old => new
+    const parts = token.split('=>');
+    return parts[parts.length - 1].trim();
 }
 
 /**
@@ -81,121 +81,126 @@ function resolveNumstatPath(token) {
  * renames and whitespace/format-only edits resolve to 0/0 and are excluded.
  */
 function stagedBehavioralPaths() {
-  const out = git(['diff', '--cached', '-M', '--numstat', '--ignore-all-space']);
-  const paths = [];
-  for (const line of out.split('\n')) {
-    if (!line.trim()) continue;
-    const m = line.match(/^(\d+|-)\t(\d+|-)\t(.+)$/);
-    if (!m) continue;
-    const added = m[1];
-    const deleted = m[2];
-    const changed = added === '-' || deleted === '-' || Number(added) > 0 || Number(deleted) > 0;
-    if (changed) paths.push(cls.toRepoRel(resolveNumstatPath(m[3])));
-  }
-  return paths;
+    const out = git(['diff', '--cached', '-M', '--numstat', '--ignore-all-space']);
+    const paths = [];
+    for (const line of out.split('\n')) {
+        if (!line.trim()) continue;
+        const m = line.match(/^(\d+|-)\t(\d+|-)\t(.+)$/);
+        if (!m) continue;
+        const added = m[1];
+        const deleted = m[2];
+        const changed = added === '-' || deleted === '-' || Number(added) > 0 || Number(deleted) > 0;
+        if (changed) paths.push(cls.toRepoRel(resolveNumstatPath(m[3])));
+    }
+    return paths;
 }
 
 /** All staged paths (added/copied/modified/renamed) — used for doc-touched check. */
 function stagedNames() {
-  const out = git(['diff', '--cached', '--name-only', '--diff-filter=ACMR']);
-  return out.split('\n').map(s => cls.toRepoRel(s)).filter(Boolean);
+    const out = git(['diff', '--cached', '--name-only', '--diff-filter=ACMR']);
+    return out
+        .split('\n')
+        .map(s => cls.toRepoRel(s))
+        .filter(Boolean);
 }
 
 function appendAuditLog(cfg, message) {
-  try {
-    const rel = cfg.auditLogRelPath || 'tmp/claude-temp/doc-sync-override.log';
-    const abs = path.join(PROJECT_DIR, rel);
-    fs.mkdirSync(path.dirname(abs), { recursive: true });
-    fs.appendFileSync(abs, message + '\n');
-  } catch (error) {
-    reportHookInternalError('doc-sync-gate', 'audit log write failed', error);
-  }
+    try {
+        const rel = cfg.auditLogRelPath || 'tmp/claude-temp/doc-sync-override.log';
+        const abs = path.join(PROJECT_DIR, rel);
+        fs.mkdirSync(path.dirname(abs), { recursive: true });
+        fs.appendFileSync(abs, message + '\n');
+    } catch (error) {
+        reportHookInternalError('doc-sync-gate', 'audit log write failed', error);
+    }
 }
 
 /** ISO-ish timestamp without Date.now in a way that survives sandboxes. */
 function stamp() {
-  try {
-    return new Date().toISOString();
-  } catch (error) {
-    reportHookInternalError('doc-sync-gate', `timestamp failed`, error);
-    return 'unknown-time';
-  }
+    try {
+        return new Date().toISOString();
+    } catch (error) {
+        reportHookInternalError('doc-sync-gate', `timestamp failed`, error);
+        return 'unknown-time';
+    }
 }
 
 // ---------------------------------------------------------------------------
 // Commit-time WARN path
 // ---------------------------------------------------------------------------
 function handleCommit(cfg) {
-  const behavioral = stagedBehavioralPaths();
-  if (behavioral.length === 0) return undefined; // pure rename/format/noop or nothing staged
+    const behavioral = stagedBehavioralPaths();
+    if (behavioral.length === 0) return undefined; // pure rename/format/noop or nothing staged
 
-  // Bucket behavioral code hits by enforced area.
-  const hitsByArea = new Map(); // areaName -> {area, files: []}
-  for (const rel of behavioral) {
-    const hit = cls.behavioralCodeHit(rel, cfg);
-    if (!hit) continue;
-    const key = hit.area.name;
-    if (!hitsByArea.has(key)) hitsByArea.set(key, { area: hit.area, files: [] });
-    hitsByArea.get(key).files.push(rel);
-  }
-  if (hitsByArea.size === 0) return undefined; // no enforced behavioral code → allow
+    // Bucket behavioral code hits by enforced area.
+    const hitsByArea = new Map(); // areaName -> {area, files: []}
+    for (const rel of behavioral) {
+        const hit = cls.behavioralCodeHit(rel, cfg);
+        if (!hit) continue;
+        const key = hit.area.name;
+        if (!hitsByArea.has(key)) hitsByArea.set(key, { area: hit.area, files: [] });
+        hitsByArea.get(key).files.push(rel);
+    }
+    if (hitsByArea.size === 0) return undefined; // no enforced behavioral code → allow
 
-  // Which areas had a Feature Spec touched in this same commit?
-  const staged = stagedNames();
-  const docTouchedAreas = new Set();
-  for (const rel of staged) {
-    const area = cls.areaForFeatureDoc(rel, cfg);
-    if (area) docTouchedAreas.add(area.name);
-  }
+    // Which areas had a Feature Spec touched in this same commit?
+    const staged = stagedNames();
+    const docTouchedAreas = new Set();
+    for (const rel of staged) {
+        const area = cls.areaForFeatureDoc(rel, cfg);
+        if (area) docTouchedAreas.add(area.name);
+    }
 
-  const violations = [...hitsByArea.values()].filter(h => !docTouchedAreas.has(h.area.name));
-  if (violations.length === 0) return undefined; // every enforced area's doc was touched → allow
+    const violations = [...hitsByArea.values()].filter(h => !docTouchedAreas.has(h.area.name));
+    if (violations.length === 0) return undefined; // every enforced area's doc was touched → allow
 
-  // Audited emergency escape.
-  if (process.env.DOC_SYNC_OVERRIDE === '1') {
-    appendAuditLog(
-      cfg,
-      `${stamp()} OVERRIDE git-commit doc-sync gate | areas=${violations
-        .map(v => v.area.name)
-        .join(',')} | files=${violations.flatMap(v => v.files).join(',')}`
+    // Audited emergency escape.
+    if (process.env.DOC_SYNC_OVERRIDE === '1') {
+        appendAuditLog(
+            cfg,
+            `${stamp()} OVERRIDE git-commit doc-sync gate | areas=${violations
+                .map(v => v.area.name)
+                .join(',')} | files=${violations.flatMap(v => v.files).join(',')}`
+        );
+        return undefined;
+    }
+
+    const lines = ['[doc-sync] Behavioral code is staged without a Feature Spec update.', ''];
+    for (const v of violations) {
+        lines.push(`Area "${v.area.name}": ${v.files.length} behavioral file(s) changed, but no Feature Spec under`);
+        lines.push(`  ${cls.featureSpecDirForArea(v.area)}  was staged.`);
+        for (const f of v.files.slice(0, 8)) lines.push(`    • ${f}`);
+        if (v.files.length > 8) lines.push(`    • …and ${v.files.length - 8} more`);
+    }
+    lines.push('');
+    lines.push('Auto-route before or immediately after this commit when behavior changed:');
+    lines.push('  1. Update the matching README.{Feature}.md — §3 Acceptance Criteria, §4 Business Rules,');
+    lines.push('     and/or §8 Test Specifications — for the behavior you changed, then stage it.');
+    lines.push(
+        '  2. Run /spec [mode=amend], /spec [mode=tests], or /docs-manager --mode=update for the touched module (if the host refuses a skill call, read the SKILL.md of that skill and follow it).'
     );
-    return undefined;
-  }
-
-  const lines = ['[doc-sync] Behavioral code is staged without a Feature Spec update.', ''];
-  for (const v of violations) {
-    lines.push(`Area "${v.area.name}": ${v.files.length} behavioral file(s) changed, but no Feature Spec under`);
-    lines.push(`  ${cls.featureSpecDirForArea(v.area)}  was staged.`);
-    for (const f of v.files.slice(0, 8)) lines.push(`    • ${f}`);
-    if (v.files.length > 8) lines.push(`    • …and ${v.files.length - 8} more`);
-  }
-  lines.push('');
-  lines.push('Auto-route before or immediately after this commit when behavior changed:');
-  lines.push('  1. Update the matching README.{Feature}.md — §3 Acceptance Criteria, §4 Business Rules,');
-  lines.push('     and/or §8 Test Specifications — for the behavior you changed, then stage it.');
-  lines.push('  2. Run /spec [mode=amend], /spec [mode=tests], or /docs-manager --mode=update for the touched module (if the host refuses a skill call, read the SKILL.md of that skill and follow it).');
-  lines.push('  3. If the change is doc-neutral, mention that in the final review evidence.');
-  return { stderr: `${lines.join('\n')}\n`, decision: 'advisory-warning' };
+    lines.push('  3. If the change is doc-neutral, mention that in the final review evidence.');
+    return { stderr: `${lines.join('\n')}\n`, decision: 'advisory-warning' };
 }
 
 // ---------------------------------------------------------------------------
 // Per-edit WARN path (never blocks)
 // ---------------------------------------------------------------------------
 function listMarkdownDeep(dir, depth, acc) {
-  if (depth < 0) return acc;
-  let entries = [];
-  try {
-    entries = fs.readdirSync(dir, { withFileTypes: true });
-  } catch (error) {
-    if (error.code !== 'ENOENT') reportHookInternalError('doc-sync-gate', `cannot read ${dir}`, error);
+    if (depth < 0) return acc;
+    let entries = [];
+    try {
+        entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch (error) {
+        if (error.code !== 'ENOENT') reportHookInternalError('doc-sync-gate', `cannot read ${dir}`, error);
+        return acc;
+    }
+    for (const e of entries) {
+        const full = path.join(dir, e.name);
+        if (e.isDirectory()) listMarkdownDeep(full, depth - 1, acc);
+        else if (e.isFile() && e.name.toLowerCase().endsWith('.md')) acc.push(full);
+    }
     return acc;
-  }
-  for (const e of entries) {
-    const full = path.join(dir, e.name);
-    if (e.isDirectory()) listMarkdownDeep(full, depth - 1, acc);
-    else if (e.isFile() && e.name.toLowerCase().endsWith('.md')) acc.push(full);
-  }
-  return acc;
 }
 
 /**
@@ -215,22 +220,22 @@ const LAST_SYNC_RE = /(?:last_synced|last_updated):\s*['"]?(\d{4}-\d{2}-\d{2})/g
 
 /** Max last-sync date across an area's feature docs, or null. */
 function areaLastSynced(area) {
-  const dir = path.join(PROJECT_DIR, cls.featureSpecDirForArea(area));
-  const files = listMarkdownDeep(dir, 3, []);
-  let max = null;
-  for (const f of files) {
-    try {
-      const head = fs.readFileSync(f, 'utf-8').slice(0, 1500);
-      LAST_SYNC_RE.lastIndex = 0;
-      let m;
-      while ((m = LAST_SYNC_RE.exec(head)) !== null) {
-        if (!max || m[1] > max) max = m[1];
-      }
-    } catch (error) {
-      if (error.code !== 'ENOENT') reportHookInternalError('doc-sync-gate', `cannot read ${f}`, error);
+    const dir = path.join(PROJECT_DIR, cls.featureSpecDirForArea(area));
+    const files = listMarkdownDeep(dir, 3, []);
+    let max = null;
+    for (const f of files) {
+        try {
+            const head = fs.readFileSync(f, 'utf-8').slice(0, 1500);
+            LAST_SYNC_RE.lastIndex = 0;
+            let m;
+            while ((m = LAST_SYNC_RE.exec(head)) !== null) {
+                if (!max || m[1] > max) max = m[1];
+            }
+        } catch (error) {
+            if (error.code !== 'ENOENT') reportHookInternalError('doc-sync-gate', `cannot read ${f}`, error);
+        }
     }
-  }
-  return max;
+    return max;
 }
 
 /**
@@ -243,81 +248,81 @@ function areaLastSynced(area) {
  * independent copies of a guess drift apart.
  */
 function editTargets(input, toolInput) {
-  if (input?.tool_name === 'apply_patch') {
-    try {
-      // Lazy: only Codex runs this path, and the module is only needed for it.
-      const { extractTargets } = require('./lib/file-conventions.cjs');
-      return extractTargets(input, PROJECT_DIR);
-    } catch (error) {
-      reportHookInternalError('doc-sync-gate', 'apply_patch target extraction', error);
-      return [];
+    if (input?.tool_name === 'apply_patch') {
+        try {
+            // Lazy: only Codex runs this path, and the module is only needed for it.
+            const { extractTargets } = require('./lib/file-conventions.cjs');
+            return extractTargets(input, PROJECT_DIR);
+        } catch (error) {
+            reportHookInternalError('doc-sync-gate', 'apply_patch target extraction', error);
+            return [];
+        }
     }
-  }
-  const rel = cls.toRepoRel(toolInput.file_path || toolInput.path || '');
-  return rel ? [rel] : [];
+    const rel = cls.toRepoRel(toolInput.file_path || toolInput.path || '');
+    return rel ? [rel] : [];
 }
 
 function handleEdit(cfg, input) {
-  const toolInput = input?.tool_input || {};
-  for (const rel of editTargets(input, toolInput)) {
-    const warning = warnForPath(cfg, rel);
-    if (warning) return warning;
-  }
-  return undefined;
+    const toolInput = input?.tool_input || {};
+    for (const rel of editTargets(input, toolInput)) {
+        const warning = warnForPath(cfg, rel);
+        if (warning) return warning;
+    }
+    return undefined;
 }
 
 function warnForPath(cfg, rel) {
-  if (!rel) return undefined;
+    if (!rel) return undefined;
 
-  // FR-4: never warn/block on the Feature Spec doc itself.
-  if (cls.areaForFeatureDoc(rel, cfg)) return undefined;
+    // FR-4: never warn/block on the Feature Spec doc itself.
+    if (cls.areaForFeatureDoc(rel, cfg)) return undefined;
 
-  const hit = cls.behavioralCodeHit(rel, cfg);
-  if (!hit) return undefined;
+    const hit = cls.behavioralCodeHit(rel, cfg);
+    if (!hit) return undefined;
 
-  // Drift signal: code changed since the area's docs were last synced.
-  const lastSynced = areaLastSynced(hit.area);
-  if (!lastSynced) return undefined; // no signal → stay silent
+    // Drift signal: code changed since the area's docs were last synced.
+    const lastSynced = areaLastSynced(hit.area);
+    if (!lastSynced) return undefined; // no signal → stay silent
 
-  const drift = git(['log', '-1', `--since=${lastSynced}`, '--format=%h', '--', ...hit.area.codePathPrefixes]);
-  if (!drift.trim()) return undefined; // no commits since last sync → no drift
+    const drift = git(['log', '-1', `--since=${lastSynced}`, '--format=%h', '--', ...hit.area.codePathPrefixes]);
+    if (!drift.trim()) return undefined; // no commits since last sync → no drift
 
-  return {
-    stderr: `${[
-      `[doc-sync] Heads-up: "${hit.area.name}" code has changed since its Feature Spec was last synced (${lastSynced}).`,
-      `Before you commit, update the matching README.{Feature}.md (§3 AC / §4 BR / §8 TC) for any behavior change —`,
-      `the commit-time check repeats this reminder with auto-route steps (it never blocks). Your edit proceeds.`
-    ].join('\n')}\n`,
-    decision: 'advisory-warning'
-  }; // WARN only — never blocks the edit
+    return {
+        stderr: `${[
+            `[doc-sync] Heads-up: "${hit.area.name}" code has changed since its Feature Spec was last synced (${lastSynced}).`,
+            `Before you commit, update the matching README.{Feature}.md (§3 AC / §4 BR / §8 TC) for any behavior change —`,
+            `the commit-time check repeats this reminder with auto-route steps (it never blocks). Your edit proceeds.`
+        ].join('\n')}\n`,
+        decision: 'advisory-warning'
+    }; // WARN only — never blocks the edit
 }
 
 // ---------------------------------------------------------------------------
 function evaluate(input) {
-  const toolName = input?.tool_name || '';
-  const toolInput = input?.tool_input || {};
-  const cfg = cls.loadConfig();
-  if (!cfg.enabled) return undefined;
+    const toolName = input?.tool_name || '';
+    const toolInput = input?.tool_input || {};
+    const cfg = cls.loadConfig();
+    if (!cfg.enabled) return undefined;
 
-  if (toolName === 'Bash') {
-    const command = typeof toolInput.command === 'string' ? toolInput.command : '';
-    if (!COMMIT_RE.test(command)) return undefined;
-    return handleCommit(cfg);
-  }
+    if (toolName === 'Bash') {
+        const command = typeof toolInput.command === 'string' ? toolInput.command : '';
+        if (!COMMIT_RE.test(command)) return undefined;
+        return handleCommit(cfg);
+    }
 
-  if (toolName === 'Write' || toolName === 'Edit' || toolName === 'MultiEdit' || toolName === 'apply_patch') {
-    return handleEdit(cfg, input);
-  }
+    if (toolName === 'Write' || toolName === 'Edit' || toolName === 'MultiEdit' || toolName === 'apply_patch') {
+        return handleEdit(cfg, input);
+    }
 
-  return undefined;
+    return undefined;
 }
 
 // Entry-point check covers the Codex `node -e … require(hook)` launcher too (require.main is undefined there).
 if (isHookEntryPoint(module)) {
-  runPreToolHookSync('doc-sync-gate', evaluate, {
-    inputErrorCode: 0,
-    errorExitCode: 0
-  });
+    runPreToolHookSync('doc-sync-gate', evaluate, {
+        inputErrorCode: 0,
+        errorExitCode: 0
+    });
 }
 
 module.exports = { evaluate, handleCommit, handleEdit };

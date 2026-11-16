@@ -15,7 +15,8 @@ function secretValues(value) {
             else if (child && typeof child === 'object') walk(child);
         }
     };
-    walk(value); return [...new Set(found)];
+    walk(value);
+    return [...new Set(found)];
 }
 
 function readCredential(file) {
@@ -28,8 +29,17 @@ function readClaudeLogin({ env, home, platform, runCommand }) {
     const file = path.join(env.CLAUDE_CONFIG_DIR || path.join(home, '.claude'), '.credentials.json');
     if (fs.existsSync(file)) return readCredential(file);
     if (platform !== 'darwin') return null;
-    try { return JSON.parse(runCommand('security', ['find-generic-password', '-s', 'Claude Code-credentials', '-w'], { encoding: 'utf8', timeout: 10000, maxBuffer: 2 * 1024 * 1024 })); }
-    catch { throw new Error('ENVIRONMENT-BLOCKED: native Claude login credential store unavailable; run claude auth login'); }
+    try {
+        return JSON.parse(
+            runCommand('security', ['find-generic-password', '-s', 'Claude Code-credentials', '-w'], {
+                encoding: 'utf8',
+                timeout: 10000,
+                maxBuffer: 2 * 1024 * 1024
+            })
+        );
+    } catch {
+        throw new Error('ENVIRONMENT-BLOCKED: native Claude login credential store unavailable; run claude auth login');
+    }
 }
 
 // The stored access token only refreshes when the user's own CLI runs, and a
@@ -39,16 +49,37 @@ function readClaudeLogin({ env, home, platform, runCommand }) {
 function refreshClaudeLogin({ env, refreshModel, runCommand }) {
     const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'framework-bench-refresh-'));
     try {
-        runCommand('claude', ['-p', 'Reply with the single word ok', '--model', refreshModel, '--max-turns', '1', '--output-format', 'json'],
-            { cwd, env, encoding: 'utf8', timeout: 120000, maxBuffer: 2 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] });
-    } catch { /* The re-read below decides; a failed refresh stays a blocked login. */ }
-    finally { fs.rmSync(cwd, { recursive: true, force: true }); }
+        runCommand('claude', ['-p', 'Reply with the single word ok', '--model', refreshModel, '--max-turns', '1', '--output-format', 'json'], {
+            cwd,
+            env,
+            encoding: 'utf8',
+            timeout: 120000,
+            maxBuffer: 2 * 1024 * 1024,
+            stdio: ['ignore', 'pipe', 'pipe']
+        });
+    } catch {
+        /* The re-read below decides; a failed refresh stays a blocked login. */
+    } finally {
+        fs.rmSync(cwd, { recursive: true, force: true });
+    }
 }
 
-function credentials(host, { env = process.env, home = os.homedir(), platform = process.platform, runCommand = execFileSync, now = Date.now, minValidityMs = 0, refreshModel = null } = {}) {
+function credentials(
+    host,
+    {
+        env = process.env,
+        home = os.homedir(),
+        platform = process.platform,
+        runCommand = execFileSync,
+        now = Date.now,
+        minValidityMs = 0,
+        refreshModel = null
+    } = {}
+) {
     if (host === 'codex') {
         const file = path.join(env.CODEX_HOME || path.join(home, '.codex'), 'auth.json');
-        if (!fs.existsSync(file)) throw new Error('ENVIRONMENT-BLOCKED: native Codex auth.json cache unavailable; sign in with the CLI using its file credential store');
+        if (!fs.existsSync(file))
+            throw new Error('ENVIRONMENT-BLOCKED: native Codex auth.json cache unavailable; sign in with the CLI using its file credential store');
         const value = readCredential(file);
         return { source: 'native-codex-login', auth: value, secrets: secretValues(value) };
     }
@@ -60,19 +91,43 @@ function credentials(host, { env = process.env, home = os.homedir(), platform = 
     const stale = login => minValidityMs > 0 && Number.isFinite(login?.claudeAiOauth?.expiresAt) && login.claudeAiOauth.expiresAt - now() < minValidityMs;
     let value = readClaudeLogin(ports);
     let refreshed = false;
-    if (stale(value) && refreshModel) { refreshClaudeLogin({ env, refreshModel, runCommand }); value = readClaudeLogin(ports); refreshed = true; }
+    if (stale(value) && refreshModel) {
+        refreshClaudeLogin({ env, refreshModel, runCommand });
+        value = readClaudeLogin(ports);
+        refreshed = true;
+    }
     const token = value?.claudeAiOauth?.accessToken;
     if (typeof token !== 'string' || !token) throw new Error('ENVIRONMENT-BLOCKED: native Claude subscription login unavailable; run claude auth login');
-    if (stale(value)) throw new Error('ENVIRONMENT-BLOCKED: native Claude access token expires before this session can finish; run any claude command to refresh it, or export CLAUDE_CODE_OAUTH_TOKEN from claude setup-token');
+    if (stale(value))
+        throw new Error(
+            'ENVIRONMENT-BLOCKED: native Claude access token expires before this session can finish; run any claude command to refresh it, or export CLAUDE_CODE_OAUTH_TOKEN from claude setup-token'
+        );
     return { source: 'native-claude-login', token, secrets: secretValues(value), refreshed };
 }
 
 function environment(profile, login, source = process.env) {
-    fs.mkdirSync(profile, { recursive: true, mode: 0o700 }); protect(profile);
-    const env = Object.fromEntries(Object.entries(source).filter(([key]) => /^(?:PATH|PATHEXT|SYSTEMROOT|WINDIR|COMSPEC|LANG|LC_ALL|HTTPS?_PROXY|NO_PROXY|SSL_CERT_FILE|NODE_EXTRA_CA_CERTS)$/i.test(key)));
-    Object.assign(env, { HOME: profile, USERPROFILE: profile, APPDATA: path.join(profile, 'appdata'), LOCALAPPDATA: path.join(profile, 'localappdata'),
-        TMPDIR: profile, TEMP: profile, TMP: profile, CODEX_HOME: path.join(profile, '.codex'), CLAUDE_CONFIG_DIR: path.join(profile, '.claude'),
-        CLAUDE_CODE_DISABLE_AUTO_MEMORY: '1', DISABLE_AUTOUPDATER: '1', CK_FRAMEWORK_MODE: 'on', CK_NOTIFY: '0' });
+    fs.mkdirSync(profile, { recursive: true, mode: 0o700 });
+    protect(profile);
+    const env = Object.fromEntries(
+        Object.entries(source).filter(([key]) =>
+            /^(?:PATH|PATHEXT|SYSTEMROOT|WINDIR|COMSPEC|LANG|LC_ALL|HTTPS?_PROXY|NO_PROXY|SSL_CERT_FILE|NODE_EXTRA_CA_CERTS)$/i.test(key)
+        )
+    );
+    Object.assign(env, {
+        HOME: profile,
+        USERPROFILE: profile,
+        APPDATA: path.join(profile, 'appdata'),
+        LOCALAPPDATA: path.join(profile, 'localappdata'),
+        TMPDIR: profile,
+        TEMP: profile,
+        TMP: profile,
+        CODEX_HOME: path.join(profile, '.codex'),
+        CLAUDE_CONFIG_DIR: path.join(profile, '.claude'),
+        CLAUDE_CODE_DISABLE_AUTO_MEMORY: '1',
+        DISABLE_AUTOUPDATER: '1',
+        CK_FRAMEWORK_MODE: 'on',
+        CK_NOTIFY: '0'
+    });
     for (const key of ['CODEX_HOME', 'CLAUDE_CONFIG_DIR', 'APPDATA', 'LOCALAPPDATA']) fs.mkdirSync(env[key], { recursive: true, mode: 0o700 });
     if (login.auth) fs.writeFileSync(path.join(env.CODEX_HOME, 'auth.json'), JSON.stringify(login.auth), { mode: 0o600 });
     if (login.token) env.CLAUDE_CODE_OAUTH_TOKEN = login.token;

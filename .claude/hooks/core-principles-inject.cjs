@@ -62,7 +62,7 @@ const DEFAULT_REINJECT_TOKENS = 150000;
 // Used only when the canonical file cannot be read, so the reminder is never empty. Must equal the
 // canonical `SYNC:core-engineering-principles:reminder` body (parity asserted by the hook suite).
 const FALLBACK_BODY =
-    '**MUST ATTENTION** Core Engineering Principles — every plan, implementation and review must be **Easy to change** (purpose: one place per change — reuse first, one owner per rule, interface/DI at volatile boundaries, adapter/wrapper for libraries, factory/strategy for real variants, no speculative abstraction) · **Easy to scale** (extend by addition, bounded growth, explicit boundaries, sized to the project\'s real profile) · **Easy to maintain** (intent-named tests that fail when the rule breaks across happy/error/edge paths; harness green locally and in CI). Before done: next change → how many edit sites? 10× → what breaks? which test goes red? Full gate: `.claude/skills/shared/protocols/core-engineering-principles.md`.';
+    "**MUST ATTENTION** Core Engineering Principles — every plan, implementation and review must be **Easy to change** (purpose: one place per change — reuse first, one owner per rule, interface/DI at volatile boundaries, adapter/wrapper for libraries, factory/strategy for real variants, no speculative abstraction) · **Easy to scale** (extend by addition, bounded growth, explicit boundaries, sized to the project's real profile) · **Easy to maintain** (intent-named tests that fail when the rule breaks across happy/error/edge paths; harness green locally and in CI). Before done: next change → how many edit sites? 10× → what breaks? which test goes red? Full gate: `.claude/skills/shared/protocols/core-engineering-principles.md`.";
 
 function nonBlank(value) {
     return typeof value === 'string' && value.trim().length > 0;
@@ -182,7 +182,9 @@ function run(input, deps = {}) {
             if (contextDelivery.conciseCore(projectDir, contextDelivery.profileOptions(deps))) {
                 // Bin 1 is registered on agent start and compaction itself; a second carrier would race it.
                 if (kind === 'agent' || kind === 'compaction') return finish('');
-                return require('./lib/universal-delivery.cjs').ensureConciseCore(input, { ...deps, projectRoot: projectDir }).then(finish, () => finish(''));
+                return require('./lib/universal-delivery.cjs')
+                    .ensureConciseCore(input, { ...deps, projectRoot: projectDir })
+                    .then(finish, () => finish(''));
             }
             const routeUtils = require('./lib/prompt-route-utils.cjs');
             // One settings read serves both the switch and the interval.
@@ -193,16 +195,18 @@ function run(input, deps = {}) {
             const content = deps.content || buildContent(projectDir);
             const target = recordTarget(projectDir, crypto.createHash('sha256').update(content, 'utf8').digest('hex'));
             const ledger = deps.ledger || require('./lib/convention-ledger.cjs');
-            ledger.deliverWithCompaction({
-                root: deps.storeRoot || target.root,
-                input: ledger.agentStartInput(input),
-                group: RECORD_GROUP,
-                hash: target.hash,
-                payload: formatPayload(input, content),
-                settings,
-                now,
-                write: deps.write || defaultWrite
-            }).then(finish, () => finish(''));
+            ledger
+                .deliverWithCompaction({
+                    root: deps.storeRoot || target.root,
+                    input: ledger.agentStartInput(input),
+                    group: RECORD_GROUP,
+                    hash: target.hash,
+                    payload: formatPayload(input, content),
+                    settings,
+                    now,
+                    write: deps.write || defaultWrite
+                })
+                .then(finish, () => finish(''));
         } catch {
             finish('');
         }
@@ -235,5 +239,13 @@ if (require('./lib/hook-runner.cjs').isHookEntryPoint(module)) {
     } catch {
         input = null;
     }
-    if (input) run(input).then(() => { process.exitCode = 0; }, () => { process.exitCode = 0; });
+    if (input)
+        run(input).then(
+            () => {
+                process.exitCode = 0;
+            },
+            () => {
+                process.exitCode = 0;
+            }
+        );
 }

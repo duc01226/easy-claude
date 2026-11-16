@@ -18,9 +18,14 @@
 'use strict';
 
 // Decide before reading any input: with autoApplyNative off (the default) the hook is inert.
-if ((require.main === module || !require.main) && (require('./lib/framework-runtime.cjs').skipHook(module) ||
-    !require('./lib/framework-runtime.cjs').resolveAutoApplyNative({
-        rootDir: require('./lib/project-root.cjs').resolveProjectRoot({ scriptPath: __filename }).rootDir }).enabled)) return;
+if (
+    (require.main === module || !require.main) &&
+    (require('./lib/framework-runtime.cjs').skipHook(module) ||
+        !require('./lib/framework-runtime.cjs').resolveAutoApplyNative({
+            rootDir: require('./lib/project-root.cjs').resolveProjectRoot({ scriptPath: __filename }).rootDir
+        }).enabled)
+)
+    return;
 
 const fs = require('fs');
 const path = require('path');
@@ -31,26 +36,30 @@ const { resolveFrameworkMode, resolveAutoApplyNative } = require('./lib/framewor
 
 const CLI = 'node .claude/scripts/framework-mode.cjs apply';
 
-runHookSync('framework-native-sync', event => {
-    const resolution = resolveProjectRoot({ cwd: event.cwd || process.cwd(), scriptPath: __filename, env: process.env });
-    if (resolution.error) return undefined;
-    const root = resolution.rootDir;
-    if (!resolveAutoApplyNative({ rootDir: root }).enabled) return undefined;
-    // A linked worktree has a `.git` file pointing at the main repository, not a directory.
-    if (fs.lstatSync(path.join(root, '.git'), { throwIfNoEntry: false })?.isFile()) return undefined;
+runHookSync(
+    'framework-native-sync',
+    event => {
+        const resolution = resolveProjectRoot({ cwd: event.cwd || process.cwd(), scriptPath: __filename, env: process.env });
+        if (resolution.error) return undefined;
+        const root = resolution.rootDir;
+        if (!resolveAutoApplyNative({ rootDir: root }).enabled) return undefined;
+        // A linked worktree has a `.git` file pointing at the main repository, not a directory.
+        if (fs.lstatSync(path.join(root, '.git'), { throwIfNoEntry: false })?.isFile()) return undefined;
 
-    const native = require('../scripts/lib/framework-native-skills.cjs');
-    try {
-        if (!native.nativeStatus(root).needsApply) return undefined;
-        native.withNativeLock(() => native.applyNativeSkills(native.planNativeSkills({ rootDir: root, scope: 'checkout' })));
-    } catch (error) {
-        // Another session applying at the same moment is not a failure worth reporting.
-        if (/operation may be active/.test(error.message)) {
-            debug('framework-native-sync', error.message);
-            return undefined;
+        const native = require('../scripts/lib/framework-native-skills.cjs');
+        try {
+            if (!native.nativeStatus(root).needsApply) return undefined;
+            native.withNativeLock(() => native.applyNativeSkills(native.planNativeSkills({ rootDir: root, scope: 'checkout' })));
+        } catch (error) {
+            // Another session applying at the same moment is not a failure worth reporting.
+            if (/operation may be active/.test(error.message)) {
+                debug('framework-native-sync', error.message);
+                return undefined;
+            }
+            return { systemMessage: `Framework mode: could not update skill and agent visibility for this checkout (${error.message}). Run: ${CLI}` };
         }
-        return { systemMessage: `Framework mode: could not update skill and agent visibility for this checkout (${error.message}). Run: ${CLI}` };
-    }
-    const { mode } = resolveFrameworkMode({ rootDir: root });
-    return { systemMessage: `Framework mode ${mode}: skill and agent visibility updated for this checkout; it takes effect from your next session.` };
-}, { outputResult: true });
+        const { mode } = resolveFrameworkMode({ rootDir: root });
+        return { systemMessage: `Framework mode ${mode}: skill and agent visibility updated for this checkout; it takes effect from your next session.` };
+    },
+    { outputResult: true }
+);

@@ -92,13 +92,14 @@ function initRepo(dir) {
     git(dir, ['config', 'commit.gpgsign', 'false']);
 }
 
-const bashCommit = (command, cwd) => JSON.stringify({
-    hook_event_name: 'PreToolUse',
-    tool_name: 'Bash',
-    tool_input: { command, ...(cwd ? { cwd } : {}) },
-    session_id: 'codex-launcher-test',
-    cwd
-});
+const bashCommit = (command, cwd) =>
+    JSON.stringify({
+        hook_event_name: 'PreToolUse',
+        tool_name: 'Bash',
+        tool_input: { command, ...(cwd ? { cwd } : {}) },
+        session_id: 'codex-launcher-test',
+        cwd
+    });
 
 const unitTests = [
     {
@@ -109,8 +110,11 @@ const unitTests = [
             const foreign = { filename: path.join(os.tmpdir(), 'runner.cjs') };
             // When / Then: the entry is only ever the module require.main names — argv is not consulted
             assertEqual(isHookEntryPoint(mod, { main: mod }), true, 'node <hook>: require.main is the hook');
-            assertEqual(isHookEntryPoint(mod, { main: foreign, argv: ['node', mod.filename] }), false,
-                'a hook required by a test runner is never the entry, even when argv names it');
+            assertEqual(
+                isHookEntryPoint(mod, { main: foreign, argv: ['node', mod.filename] }),
+                false,
+                'a hook required by a test runner is never the entry, even when argv names it'
+            );
             assertEqual(isHookEntryPoint(null), false, 'no module → false');
             assertEqual(isHookEntryPoint({}), false, 'module without filename → false');
         }
@@ -160,8 +164,11 @@ const unitTests = [
                 // When argv[1] names the linked path / Then both sides are canonicalized and match
                 assertEqual(isHookEntryPoint(mod, { main: undefined, argv: ['node', linkedArgv] }), true, 'linked argv must match');
                 // And the defect it prevents: comparing uncanonicalized paths misses the entry point
-                assertEqual(isHookEntryPoint(mod, { main: undefined, argv: ['node', linkedArgv], realpath: p => p }), false,
-                    'without canonicalization the linked argv does not match (the silent Codex no-op)');
+                assertEqual(
+                    isHookEntryPoint(mod, { main: undefined, argv: ['node', linkedArgv], realpath: p => p }),
+                    false,
+                    'without canonicalization the linked argv does not match (the silent Codex no-op)'
+                );
             } finally {
                 removeTemp(dir);
             }
@@ -246,8 +253,11 @@ const launcherTests = [
             try {
                 writeFile(root, 'docs/project-config.json', { project: {} });
                 // When Codex launches the gate on an ordinary prompt
-                const result = runCodexLauncher('init-prompt-gate.cjs',
-                    JSON.stringify({ hook_event_name: 'UserPromptSubmit', session_id: 'codex-launcher-test', prompt: 'hello' }), { cwd: root });
+                const result = runCodexLauncher(
+                    'init-prompt-gate.cjs',
+                    JSON.stringify({ hook_event_name: 'UserPromptSubmit', session_id: 'codex-launcher-test', prompt: 'hello' }),
+                    { cwd: root }
+                );
                 // Then it adds a warning for the model and lets the prompt through
                 assertEqual(result.code, 0, `stderr: ${result.stderr}`);
                 assertTrue(!/"decision"\s*:\s*"block"/.test(result.stdout), 'invalid declared config must not block the prompt');
@@ -272,8 +282,11 @@ const launcherTests = [
                 const guide = path.join(root, 'docs', 'project-reference', 'my-guide.md');
                 assertTrue(!fs.existsSync(guide), 'precondition: the reference doc is absent');
                 // When Codex launches the SessionStart hook
-                const result = runCodexLauncher('session-init-docs.cjs',
-                    JSON.stringify({ hook_event_name: 'SessionStart', source: 'startup', session_id: 'codex-launcher-test' }), { cwd: root });
+                const result = runCodexLauncher(
+                    'session-init-docs.cjs',
+                    JSON.stringify({ hook_event_name: 'SessionStart', source: 'startup', session_id: 'codex-launcher-test' }),
+                    { cwd: root }
+                );
                 // Then it creates the configured placeholder doc with its declared section
                 assertEqual(result.code, 0, `stderr: ${result.stderr}`);
                 assertTrue(fs.existsSync(guide), 'session-init-docs must create docs/project-reference/my-guide.md');
@@ -294,9 +307,11 @@ const launcherTests = [
             try {
                 linkDirectory(path.join(install, '.claude'), link);
                 // When Codex launches an advisory router from the linked project root
-                const result = runCodexLauncher('commit-skill-route.cjs',
+                const result = runCodexLauncher(
+                    'commit-skill-route.cjs',
                     JSON.stringify({ hook_event_name: 'UserPromptSubmit', session_id: 'codex-launcher-test', prompt: 'stage and commit' }),
-                    { cwd: project, env: { ...HOOK_ENV_RESET, CK_COMMIT_SKILL_ROUTE: undefined } });
+                    { cwd: project, env: { ...HOOK_ENV_RESET, CK_COMMIT_SKILL_ROUTE: undefined } }
+                );
                 // Then the hook recognises itself as the entry point and emits its directive
                 assertEqual(result.code, 0, `stderr: ${result.stderr}`);
                 assertContains(result.stdout, '<!-- CK:COMMIT-SKILL-ROUTE -->');
@@ -313,7 +328,7 @@ const launcherTests = [
         }
     },
     {
-        name: '[codex-launcher] TC-CXL-006 file-convention-inject under the Codex launcher delivers the touched file\'s convention digest and records it',
+        name: "[codex-launcher] TC-CXL-006 file-convention-inject under the Codex launcher delivers the touched file's convention digest and records it",
         fn: () => {
             // Given a fixture project that opts in to convention injection with one class for its hook files
             const root = makeHookProject('conventions');
@@ -322,13 +337,15 @@ const launcherTests = [
                 writeFile(root, 'docs/project-config.json', {
                     project: { name: 'Fixture' },
                     conventionInjection: { enabled: true },
-                    contextGroups: [{
-                        name: 'fixture-hooks',
-                        pathRegexes: ['[\\\\/]\\.claude[\\\\/]hooks[\\\\/].*\\.cjs$'],
-                        fileExtensions: ['.cjs'],
-                        referenceDocs: ['docs/fixture-hooks-guide.md'],
-                        rules: ['Fixture hooks rule: CommonJS only']
-                    }]
+                    contextGroups: [
+                        {
+                            name: 'fixture-hooks',
+                            pathRegexes: ['[\\\\/]\\.claude[\\\\/]hooks[\\\\/].*\\.cjs$'],
+                            fileExtensions: ['.cjs'],
+                            referenceDocs: ['docs/fixture-hooks-guide.md'],
+                            rules: ['Fixture hooks rule: CommonJS only']
+                        }
+                    ]
                 });
                 const edit = {
                     hook_event_name: 'PostToolUse',
@@ -338,8 +355,10 @@ const launcherTests = [
                     tool_input: { command: ['*** Begin Patch', '*** Update File: .claude/hooks/commit-skill-route.cjs', '*** End Patch'].join('\n') }
                 };
                 // When Codex launches the PostToolUse hook for an apply_patch on a hook file
-                const result = runCodexLauncher('file-convention-inject.cjs', JSON.stringify(edit),
-                    { cwd: root, env: { ...HOOK_ENV_RESET, CK_CONVENTIONS_DIR: store } });
+                const result = runCodexLauncher('file-convention-inject.cjs', JSON.stringify(edit), {
+                    cwd: root,
+                    env: { ...HOOK_ENV_RESET, CK_CONVENTIONS_DIR: store }
+                });
                 // Then it emits its own additionalContext digest naming the class, its reference doc and rule
                 assertEqual(result.code, 0, `stderr: ${result.stderr}`);
                 assertTrue(result.stdout.trim() !== '', 'the launched hook must emit its digest (empty = silent no-op)');
@@ -364,9 +383,11 @@ const launcherTests = [
             const prompt = 'Add export to the fixture report page';
             try {
                 // When Codex launches the UserPromptSubmit hook on the session's first prompt
-                const result = runCodexLauncher('prompt-ledger.cjs',
+                const result = runCodexLauncher(
+                    'prompt-ledger.cjs',
                     JSON.stringify({ hook_event_name: 'UserPromptSubmit', session_id: sessionId, cwd: root, prompt }),
-                    { cwd: root, env: { ...HOOK_ENV_RESET, CK_PROMPT_LEDGER: undefined, CK_PROMPT_LEDGER_DIR: undefined } });
+                    { cwd: root, env: { ...HOOK_ENV_RESET, CK_PROMPT_LEDGER: undefined, CK_PROMPT_LEDGER_DIR: undefined } }
+                );
                 // Then it prints its own pin notice for P1
                 assertEqual(result.code, 0, `stderr: ${result.stderr}`);
                 assertContains(result.stdout, 'Session prompt ledger: P1 pinned as the original goal');
@@ -381,7 +402,7 @@ const launcherTests = [
         }
     },
     {
-        name: '[codex-launcher] TC-CXL-008 workflow-route-inject under the Codex launcher emits the project\'s route gate and records the delivery',
+        name: "[codex-launcher] TC-CXL-008 workflow-route-inject under the Codex launcher emits the project's route gate and records the delivery",
         fn: () => {
             // Given a fixture project carrying its own workflow gate text, the workflow catalog and its script libraries
             const root = makeHookProject('route');
@@ -397,9 +418,11 @@ const launcherTests = [
                     if (/^CK_/i.test(key)) env[key] = undefined;
                 }
                 // When Codex launches the UserPromptSubmit hook on a prompt
-                const result = runCodexLauncher('workflow-route-inject.cjs',
+                const result = runCodexLauncher(
+                    'workflow-route-inject.cjs',
                     JSON.stringify({ hook_event_name: 'UserPromptSubmit', session_id: sessionId, cwd: root, prompt: 'add a retry to the fetcher' }),
-                    { cwd: root, env });
+                    { cwd: root, env }
+                );
                 // Then it emits its own route block built from the FIXTURE project's gate text, in the default mode
                 assertEqual(result.code, 0, `stderr: ${result.stderr}`);
                 assertContains(result.stdout, 'Route mode: ask (default)');
@@ -412,8 +435,10 @@ const launcherTests = [
                 // And records the delivery in the fixture project's route ledger
                 const record = conventionLedger.readRecord(path.join(root, 'tmp', 'workflow-routing'), sessionId, 'main', 'workflow-route');
                 assertTrue(Boolean(record && record.hash), 'delivery must be recorded under <fixture>/tmp/workflow-routing');
-                assertTrue(!conventionLedger.readRecord(path.join(root, 'tmp', 'workflow-routing'), sessionId, 'main', 'workflow-catalog'),
-                    'the route hook must not record a catalog delivery');
+                assertTrue(
+                    !conventionLedger.readRecord(path.join(root, 'tmp', 'workflow-routing'), sessionId, 'main', 'workflow-catalog'),
+                    'the route hook must not record a catalog delivery'
+                );
             } finally {
                 removeTemp(root);
             }
@@ -423,7 +448,7 @@ const launcherTests = [
         // Intent: the workflow catalog is the second output of the route. On Codex it must arrive too, and as
         // the catalog ALONE: both entry files call one delivery module, which would write a second route
         // block (or nothing at all) if the catalog entry named the wrong part.
-        name: '[codex-launcher] TC-CXL-010 workflow-catalog-inject under the Codex launcher emits the project\'s workflow catalog alone and records its own delivery',
+        name: "[codex-launcher] TC-CXL-010 workflow-catalog-inject under the Codex launcher emits the project's workflow catalog alone and records its own delivery",
         fn: () => {
             // Given a fixture project carrying its own workflow registry and a gate file (the fixture tree holds the script libraries)
             const root = makeHookProject('catalog');
@@ -433,7 +458,9 @@ const launcherTests = [
                     version: '1.0.0',
                     workflows: {
                         'workflow-fixture-launcher': {
-                            name: 'Fixture launcher', activation: 'confirm', whenToUse: 'run the fixture launcher route',
+                            name: 'Fixture launcher',
+                            activation: 'confirm',
+                            whenToUse: 'run the fixture launcher route',
                             preActions: { injectContext: 'Use the selected workflow context.' },
                             sequence: ['investigate', 'review-a', 'review-b', 'finish'],
                             parallelGroups: [{ id: 'reviews', members: ['review-a', 'review-b'], barrier: true }]
@@ -449,12 +476,17 @@ const launcherTests = [
                     if (/^CK_/i.test(key)) env[key] = undefined;
                 }
                 // When Codex launches the catalog hook on a prompt
-                const result = runCodexLauncher('workflow-catalog-inject.cjs',
+                const result = runCodexLauncher(
+                    'workflow-catalog-inject.cjs',
                     JSON.stringify({ hook_event_name: 'UserPromptSubmit', session_id: sessionId, cwd: root, prompt: 'add a retry to the fetcher' }),
-                    { cwd: root, env });
+                    { cwd: root, env }
+                );
                 // Then it emits its own catalog block built from the FIXTURE project's registry, in the default mode
                 assertEqual(result.code, 0, `stderr: ${result.stderr}`);
-                assertTrue(result.stdout.startsWith('<!-- CK:RUNTIME-WORKFLOW-CATALOG -->\n'), `the launched hook must emit its catalog block (empty = silent no-op), got: ${result.stdout.slice(0, 120)}`);
+                assertTrue(
+                    result.stdout.startsWith('<!-- CK:RUNTIME-WORKFLOW-CATALOG -->\n'),
+                    `the launched hook must emit its catalog block (empty = silent no-op), got: ${result.stdout.slice(0, 120)}`
+                );
                 assertTrue(result.stdout.endsWith('\n<!-- /CK:RUNTIME-WORKFLOW-CATALOG -->\n'), 'the catalog block must be closed');
                 assertContains(result.stdout, '## Workflow & Skills Catalog');
                 assertContains(result.stdout, '| `workflow-fixture-launcher` | confirm · 4 steps |');
@@ -475,24 +507,29 @@ const launcherTests = [
         }
     },
     {
-        name: '[codex-launcher] TC-CXL-009 core-principles-inject under the Codex launcher delivers the project\'s canonical principles and records the delivery',
+        name: "[codex-launcher] TC-CXL-009 core-principles-inject under the Codex launcher delivers the project's canonical principles and records the delivery",
         fn: () => {
             // Given a fixture project carrying its own canonical principles body and the script library that reads it
             const root = makeHookProject('coreprinciples');
             const sessionId = 'codex-launcher-core-principles';
             try {
                 fs.cpSync(path.join(CLAUDE_DIR, 'scripts', 'lib'), path.join(root, '.claude', 'scripts', 'lib'), { recursive: true });
-                writeFile(root, '.claude/skills/shared/sync-inline-versions.md',
-                    '# Shared\n\n## SYNC:core-engineering-principles\n\nFIXTURE-CORE-PRINCIPLES: Easy to change · Easy to scale · Easy to maintain.\n\n---\n');
+                writeFile(
+                    root,
+                    '.claude/skills/shared/sync-inline-versions.md',
+                    '# Shared\n\n## SYNC:core-engineering-principles\n\nFIXTURE-CORE-PRINCIPLES: Easy to change · Easy to scale · Easy to maintain.\n\n---\n'
+                );
                 // A clean machine: every inherited CK_* switch removed, home and temp pointed into the fixture
                 const env = { ...HOOK_ENV_RESET, HOME: root, USERPROFILE: root, TMPDIR: root, TEMP: root, TMP: root };
                 for (const key of Object.keys(process.env)) {
                     if (/^CK_/i.test(key)) env[key] = undefined;
                 }
                 // When Codex launches the UserPromptSubmit hook on a prompt
-                const result = runCodexLauncher('core-principles-inject.cjs',
+                const result = runCodexLauncher(
+                    'core-principles-inject.cjs',
                     JSON.stringify({ hook_event_name: 'UserPromptSubmit', session_id: sessionId, cwd: root, prompt: 'implement the exporter' }),
-                    { cwd: root, env });
+                    { cwd: root, env }
+                );
                 // Then it emits its own marker-wrapped block built from the FIXTURE project's canonical file
                 assertEqual(result.code, 0, `stderr: ${result.stderr}`);
                 assertContains(result.stdout, '<!-- CK:CORE-ENGINEERING-PRINCIPLES -->');
@@ -500,7 +537,10 @@ const launcherTests = [
                 assertContains(result.stdout, '<!-- /CK:CORE-ENGINEERING-PRINCIPLES -->');
                 // And records the delivery in the fixture project's ledger
                 const record = conventionLedger.readRecord(path.join(root, 'tmp', 'protocol-delivery'), sessionId, 'main', 'core-engineering-principles');
-                assertTrue(Boolean(record && record.hash), 'delivery must be recorded under <fixture>/tmp/protocol-delivery (the protocol-delivery record of the tag)');
+                assertTrue(
+                    Boolean(record && record.hash),
+                    'delivery must be recorded under <fixture>/tmp/protocol-delivery (the protocol-delivery record of the tag)'
+                );
             } finally {
                 removeTemp(root);
             }

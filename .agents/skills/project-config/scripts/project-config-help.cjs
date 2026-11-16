@@ -101,7 +101,9 @@ function readConfig() {
     try {
         const resolved = loader.getConfiguredProjectConfigPath && loader.getConfiguredProjectConfigPath();
         if (typeof resolved === 'string' && resolved) configPath = resolved;
-    } catch { /* fall through to the default path */ }
+    } catch {
+        /* fall through to the default path */
+    }
 
     const abs = path.resolve(ROOT, configPath);
     if (!fs.existsSync(abs)) return { configPath, exists: false, config: null, error: null };
@@ -117,7 +119,11 @@ const PROJECT = readConfig();
 // ── option inventory, derived from SCHEMA ───────────────────────────────────
 function firstLine(text) {
     if (typeof text !== 'string' || !text.trim()) return '';
-    return text.split('\n').map(s => s.trim()).filter(Boolean).join(' ');
+    return text
+        .split('\n')
+        .map(s => s.trim())
+        .filter(Boolean)
+        .join(' ');
 }
 
 // Every nested field at any depth, from every shape the schema validator accepts (properties,
@@ -235,9 +241,10 @@ function consumerIndex() {
             }
             files[target.label] += 1;
             const rel = path.relative(ROOT, file).split(path.sep).join('/');
-            const name = target.label === 'skill'
-                ? path.relative(target.dir, path.dirname(file)).split(path.sep).join('/') || path.basename(file)
-                : path.basename(file, path.extname(file));
+            const name =
+                target.label === 'skill'
+                    ? path.relative(target.dir, path.dirname(file)).split(path.sep).join('/') || path.basename(file)
+                    : path.basename(file, path.extname(file));
             for (const { key, re } of matchers) {
                 if (re.test(content)) index.get(key).push({ kind: target.label, name, path: rel });
             }
@@ -260,18 +267,18 @@ function countsByKind(consumers) {
 }
 
 function summarizeCounts(counts) {
-    return Object.entries(counts)
-        .filter(([, n]) => n > 0)
-        .map(([kind, n]) => `${n} ${kind}${n === 1 ? '' : 's'}`)
-        .join(', ') || 'no direct consumers found';
+    return (
+        Object.entries(counts)
+            .filter(([, n]) => n > 0)
+            .map(([kind, n]) => `${n} ${kind}${n === 1 ? '' : 's'}`)
+            .join(', ') || 'no direct consumers found'
+    );
 }
 
 // ── reference-doc catalog ───────────────────────────────────────────────────
 function referenceDocCatalog() {
     const configured = new Map();
-    const declared = PROJECT.config && Array.isArray(PROJECT.config.referenceDocs)
-        ? PROJECT.config.referenceDocs
-        : [];
+    const declared = PROJECT.config && Array.isArray(PROJECT.config.referenceDocs) ? PROJECT.config.referenceDocs : [];
     for (const doc of declared) {
         if (doc && typeof doc.filename === 'string') configured.set(doc.filename, doc);
     }
@@ -388,10 +395,18 @@ function renderOverview() {
     let required = [];
     try {
         required = getRequiredSections() || [];
-    } catch { /* schema helper is advisory here */ }
+    } catch {
+        /* schema helper is advisory here */
+    }
     say(`Required top-level sections : ${required.length ? required.join(', ') : 'project'}`);
     say(`Optional sections            : ${OPTIONS.filter(o => !o.required && !o.deprecated).length}`);
-    say(`Deprecated sections          : ${OPTIONS.filter(o => o.deprecated).map(o => o.key).join(', ') || 'none'}`);
+    say(
+        `Deprecated sections          : ${
+            OPTIONS.filter(o => o.deprecated)
+                .map(o => o.key)
+                .join(', ') || 'none'
+        }`
+    );
     say('Only `project.name` is mandatory. Everything else is opt-in; declare a section when the');
     say('project actually has that capability.');
 
@@ -485,8 +500,9 @@ function renderSection(name) {
         }
     }
 
-    const token = Object.entries(PORTABILITY_TOKENS || {}).find(([, spec]) => spec.configPath === option.key
-        || option.children.some(c => c.key === spec.configPath));
+    const token = Object.entries(PORTABILITY_TOKENS || {}).find(
+        ([, spec]) => spec.configPath === option.key || option.children.some(c => c.key === spec.configPath)
+    );
     if (token) {
         heading('Portability token');
         const [name2, spec] = token;
@@ -697,9 +713,7 @@ function jsonPayload(mode, argument) {
     if (mode === 'docs') return { ...base, ...referenceDocCatalog() };
     if (mode === 'roots') return { ...base, roots: rootRows() };
     if (mode === 'consumers') {
-        return argument
-            ? { ...base, key: argument, consumers: consumersFor(argument) }
-            : { ...base, ranking: rankedConsumers() };
+        return argument ? { ...base, key: argument, consumers: consumersFor(argument) } : { ...base, ranking: rankedConsumers() };
     }
     if (mode === 'section') return { ...base, section: OPTION_BY_KEY.get(argument) || null };
     return {
@@ -721,22 +735,52 @@ function parseArgs(argv) {
     for (const raw of argv) {
         const arg = raw.trim();
         if (!arg) continue;
-        if (arg === '--json') { json = true; continue; }
-        if (arg === '--help' || arg === '-h' || arg === 'help') { mode = 'usage'; continue; }
+        if (arg === '--json') {
+            json = true;
+            continue;
+        }
+        if (arg === '--help' || arg === '-h' || arg === 'help') {
+            mode = 'usage';
+            continue;
+        }
         const [flag, value] = arg.startsWith('--') ? arg.slice(2).split('=') : [arg.replace(/^-+/, ''), undefined];
         switch (flag) {
-            case 'overview': mode = 'overview'; break;
-            case 'sections': mode = 'sections'; break;
-            case 'section': mode = 'section'; argument = value || null; break;
-            case 'consumers': mode = 'consumers'; argument = value || null; break;
-            case 'docs': mode = 'docs'; break;
-            case 'roots': mode = 'roots'; break;
-            case 'skills': mode = 'skills'; break;
-            case 'current': mode = 'current'; break;
-            case 'search': mode = 'search'; argument = value || null; break;
+            case 'overview':
+                mode = 'overview';
+                break;
+            case 'sections':
+                mode = 'sections';
+                break;
+            case 'section':
+                mode = 'section';
+                argument = value || null;
+                break;
+            case 'consumers':
+                mode = 'consumers';
+                argument = value || null;
+                break;
+            case 'docs':
+                mode = 'docs';
+                break;
+            case 'roots':
+                mode = 'roots';
+                break;
+            case 'skills':
+                mode = 'skills';
+                break;
+            case 'current':
+                mode = 'current';
+                break;
+            case 'search':
+                mode = 'search';
+                argument = value || null;
+                break;
             default:
                 // A bare word is treated as a search term, so `--help styling` works.
-                if (!arg.startsWith('-')) { mode = 'search'; argument = arg; }
+                if (!arg.startsWith('-')) {
+                    mode = 'search';
+                    argument = arg;
+                }
                 break;
         }
     }
@@ -768,22 +812,44 @@ function main() {
     }
 
     switch (mode) {
-        case 'usage': usage(); break;
-        case 'sections': renderSections(); break;
+        case 'usage':
+            usage();
+            break;
+        case 'sections':
+            renderSections();
+            break;
         case 'section':
-            if (!argument) { say('--section requires a name, e.g. --section=docsRoots'); break; }
+            if (!argument) {
+                say('--section requires a name, e.g. --section=docsRoots');
+                break;
+            }
             renderSection(argument);
             break;
-        case 'consumers': renderConsumers(argument); break;
-        case 'docs': renderDocs(); break;
-        case 'roots': renderRoots(); break;
-        case 'skills': renderSkills(); break;
-        case 'current': renderCurrent(); break;
+        case 'consumers':
+            renderConsumers(argument);
+            break;
+        case 'docs':
+            renderDocs();
+            break;
+        case 'roots':
+            renderRoots();
+            break;
+        case 'skills':
+            renderSkills();
+            break;
+        case 'current':
+            renderCurrent();
+            break;
         case 'search':
-            if (!argument) { say('--search requires a term, e.g. --search=e2e'); break; }
+            if (!argument) {
+                say('--search requires a term, e.g. --search=e2e');
+                break;
+            }
             renderSearch(argument);
             break;
-        default: renderOverview(); break;
+        default:
+            renderOverview();
+            break;
     }
 
     console.log(out.join('\n'));

@@ -44,8 +44,21 @@ function makeProject(t) {
 function harness(root, { platform = 'darwin', env = {}, spawnImpl } = {}) {
     const spawns = [];
     const lines = [];
-    const child = { unrefCalled: false, on() { return this; }, unref() { this.unrefCalled = true; } };
-    const spawn = spawnImpl || ((command, args, options) => { spawns.push({ command, args, options }); return child; });
+    const child = {
+        unrefCalled: false,
+        on() {
+            return this;
+        },
+        unref() {
+            this.unrefCalled = true;
+        }
+    };
+    const spawn =
+        spawnImpl ||
+        ((command, args, options) => {
+            spawns.push({ command, args, options });
+            return child;
+        });
     return {
         spawns,
         lines,
@@ -99,7 +112,10 @@ test('TC-OR-002 skip conditions: CI, CK_NO_AUTO_OPEN=1 and headless Linux open n
         assert.equal(result.opened, false);
         assert.equal(h.spawns.length, 0, `${platform} ${JSON.stringify(env)} must not spawn`);
         assert.match(result.reason, reason);
-        assert.ok(h.lines.some(line => line.includes(p.report)), 'path printed for the user');
+        assert.ok(
+            h.lines.some(line => line.includes(p.report)),
+            'path printed for the user'
+        );
     }
     // And the display rule is Linux-only: macOS opens without DISPLAY
     const mac = harness(p.root, { platform: 'darwin' });
@@ -160,7 +176,11 @@ test('TC-OR-004 containment follows links: a tmp/ link to a directory outside tm
 test('TC-OR-005 never throws: spawn failure and cmd-unsafe paths degrade to "not opened"', t => {
     // Given a spawn that throws
     const p = makeProject(t);
-    const h = harness(p.root, { spawnImpl: () => { throw new Error('ENOENT xdg-open'); } });
+    const h = harness(p.root, {
+        spawnImpl: () => {
+            throw new Error('ENOENT xdg-open');
+        }
+    });
     // Then openReport returns instead of throwing
     const result = openReport(p.report, h.opts);
     assert.equal(result.opened, false);
@@ -183,7 +203,11 @@ test('TC-OR-007 report types only: scripts and launchers in tmp/ spawn nothing; 
     const executable = ['tmp/x.cmd', 'tmp/x.bat', 'tmp/x.lnk', 'tmp/x.command', 'tmp/upper.CMD', 'tmp/noext'];
     executable.forEach(put);
     put('tmp/upper.HTML');
-    for (const [platform, env] of [['win32', {}], ['darwin', {}], ['linux', { DISPLAY: ':0' }]]) {
+    for (const [platform, env] of [
+        ['win32', {}],
+        ['darwin', {}],
+        ['linux', { DISPLAY: ':0' }]
+    ]) {
         for (const target of executable) {
             // When each is opened on each platform
             const h = harness(p.root, { platform, env });
@@ -210,8 +234,14 @@ test('TC-OR-006 CLI exits 0 for a valid, a refused and a missing argument', t =>
         if (drop.some(name => name.toUpperCase() === key.toUpperCase())) delete env[key];
     }
     Object.assign(env, {
-        CI: '1', CK_NO_AUTO_OPEN: '1', CLAUDE_PROJECT_DIR: p.root,
-        HOME: p.root, USERPROFILE: p.root, TMPDIR: p.root, TEMP: p.root, TMP: p.root
+        CI: '1',
+        CK_NO_AUTO_OPEN: '1',
+        CLAUDE_PROJECT_DIR: p.root,
+        HOME: p.root,
+        USERPROFILE: p.root,
+        TMPDIR: p.root,
+        TEMP: p.root,
+        TMP: p.root
     });
     for (const args of [[p.report], ['docs/readme.html'], []]) {
         // When the CLI runs

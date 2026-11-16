@@ -20,7 +20,8 @@ const FILE_TOOLS = new Set(['Read', 'Edit', 'Write', 'MultiEdit', 'NotebookEdit'
 const SHELL_TOOLS = new Set(['Bash', 'exec_command']);
 const EXTRA_NAMES = '\\.(?:erb|haml|slim|heex|leex|eex|blade\\.php|fxml|qml|ui|uxml|uss|wxml|wxss)$';
 // Shared language extensions need UI ownership evidence from the path, not the extension alone.
-const UI_PATH = '/(?:components?|pages?|views?|screens?|widgets?|layouts?|composables|frontend|front-end|client|web|ui)/(?:[^/]+/)*[^/]+\\.(?:[cm]?[jt]sx?|dart|swift|kt|kts|java|cs|php|rb|py)$';
+const UI_PATH =
+    '/(?:components?|pages?|views?|screens?|widgets?|layouts?|composables|frontend|front-end|client|web|ui)/(?:[^/]+/)*[^/]+\\.(?:[cm]?[jt]sx?|dart|swift|kt|kts|java|cs|php|rb|py)$';
 
 function loadConfig(deps) {
     if (deps.config !== undefined) return deps.config;
@@ -52,7 +53,10 @@ function relevant(input, root, settings) {
         if (typeof command !== 'string') return false;
         // Literal quoted/unquoted tokens only, capped: no shell expansion, execution or target reads.
         const tokens = command.slice(0, 32768).match(/"[^"\n]*"|'[^'\n]*'|[^\s"'`;|&<>(),=]+/g) || [];
-        targets = tokens.slice(0, 256).map(token => conventions.toRepoRelative(token.replace(/^(['"])(.*)\1$/, '$2').replace(/\\/g, '/'), root, input.cwd || root)).filter(Boolean);
+        targets = tokens
+            .slice(0, 256)
+            .map(token => conventions.toRepoRelative(token.replace(/^(['"])(.*)\1$/, '$2').replace(/\\/g, '/'), root, input.cwd || root))
+            .filter(Boolean);
     }
     // The generic extractor preserves native path spelling. Normalize hints and re-check containment
     // here, so POSIX backslashes match UI ownership without admitting `..\\outside`.
@@ -63,7 +67,12 @@ function relevant(input, root, settings) {
 
 function defaultWrite(text, done) {
     let settled = false;
-    const finish = ok => { if (!settled) { settled = true; done(ok); } };
+    const finish = ok => {
+        if (!settled) {
+            settled = true;
+            done(ok);
+        }
+    };
     const onError = () => finish(false);
     process.stdout.once('error', onError);
     try {
@@ -91,8 +100,12 @@ async function run(input, deps = {}) {
         if (input.hook_event_name === 'SessionStart') {
             // Same-event sibling hooks may already have delivered. Reset only this reminder's
             // private generation, never the shared compaction timestamp or another group's credit.
-            if (['compact', 'clear'].includes(input.source) && typeof input.session_id === 'string' && input.session_id.trim()
-                && fs.existsSync(ledger.sessionDir(store, input.session_id))) {
+            if (
+                ['compact', 'clear'].includes(input.source) &&
+                typeof input.session_id === 'string' &&
+                input.session_id.trim() &&
+                fs.existsSync(ledger.sessionDir(store, input.session_id))
+            ) {
                 ledger.writeSessionState(store, input.session_id, HOOK_NAME, { generation: crypto.randomBytes(8).toString('hex') });
             }
             // A compaction delivers at once: a run may continue with no prompt. A clear waits for the next prompt.
@@ -104,24 +117,37 @@ async function run(input, deps = {}) {
         // An incomplete installation names the source without earning delivery credit.
         const content = body || 'Before frontend UI work, read .claude/skills/shared/protocols/ui-system-context.md; UI reuse reminder source unavailable.';
         const text = `<!-- CK:UI-REUSE-REMINDER -->\n${content}\n`;
-        const payload = input.hook_event_name === 'UserPromptSubmit' ? text : JSON.stringify({
-            hookSpecificOutput: { hookEventName: input.hook_event_name, additionalContext: text }
-        });
+        const payload =
+            input.hook_event_name === 'UserPromptSubmit'
+                ? text
+                : JSON.stringify({
+                      hookSpecificOutput: { hookEventName: input.hook_event_name, additionalContext: text }
+                  });
         const write = deps.write || defaultWrite;
         if (!body || typeof input.session_id !== 'string' || !input.session_id.trim()) {
             return await new Promise(resolve => {
-                try { write(payload, ok => resolve(ok === false ? '' : payload)); } catch { resolve(''); }
+                try {
+                    write(payload, ok => resolve(ok === false ? '' : payload));
+                } catch {
+                    resolve('');
+                }
             });
         }
         const generation = ledger.readSessionState(store, input.session_id, HOOK_NAME)?.generation || '';
-        const { BYTES_PER_TOKEN, CLASS_REINJECT_TOKENS_RANGE: [min, max] } = require('./lib/file-conventions.cjs');
+        const {
+            BYTES_PER_TOKEN,
+            CLASS_REINJECT_TOKENS_RANGE: [min, max]
+        } = require('./lib/file-conventions.cjs');
         const value = settings.reinjectAfterTokens;
         const tokens = Number.isInteger(value) && value >= min && value <= max ? value : DEFAULT_REINJECT_TOKENS;
         return await ledger.deliverWithCompaction({
             root: store,
             input: ledger.agentStartInput(input),
             group: HOOK_NAME,
-            hash: crypto.createHash('sha256').update(JSON.stringify([text, settings, generation])).digest('hex'),
+            hash: crypto
+                .createHash('sha256')
+                .update(JSON.stringify([text, settings, generation]))
+                .digest('hex'),
             payload,
             settings: {
                 reinjectAfterBytes: tokens * BYTES_PER_TOKEN,
@@ -142,20 +168,26 @@ module.exports = { run, relevant, matcher, DEFAULT_REINJECT_TOKENS };
 if (require('./lib/hook-runner.cjs').isHookEntryPoint(module)) {
     // One lifecycle adapter handles prompt, tool and reset events. run owns stream callbacks
     // so delivery credit follows the actual write; the runner must not serialize it again.
-    require('./lib/hook-runner.cjs').runHook(HOOK_NAME, async input => {
-        // PreToolUse callers also support the legacy event field; adapt once for policy/logging.
-        if (!input?.hook_event_name && typeof input?.event === 'string') input = { ...input, hook_event_name: input.event };
-        const startedAt = process.hrtime.bigint();
-        try {
-            await run(input);
-        } finally {
-            if (input?.hook_event_name === 'PreToolUse') {
-                require('./lib/debug-log.cjs').recordHookDecision(HOOK_NAME, {
-                    code: 0, decision: 'allow', eventName: 'PreToolUse',
-                    toolName: input.tool_name || 'unknown',
-                    durationMs: Number(process.hrtime.bigint() - startedAt) / 1e6
-                });
+    require('./lib/hook-runner.cjs').runHook(
+        HOOK_NAME,
+        async input => {
+            // PreToolUse callers also support the legacy event field; adapt once for policy/logging.
+            if (!input?.hook_event_name && typeof input?.event === 'string') input = { ...input, hook_event_name: input.event };
+            const startedAt = process.hrtime.bigint();
+            try {
+                await run(input);
+            } finally {
+                if (input?.hook_event_name === 'PreToolUse') {
+                    require('./lib/debug-log.cjs').recordHookDecision(HOOK_NAME, {
+                        code: 0,
+                        decision: 'allow',
+                        eventName: 'PreToolUse',
+                        toolName: input.tool_name || 'unknown',
+                        durationMs: Number(process.hrtime.bigint() - startedAt) / 1e6
+                    });
+                }
             }
-        }
-    }, { parseEvent: false, outputResult: false });
+        },
+        { parseEvent: false, outputResult: false }
+    );
 }

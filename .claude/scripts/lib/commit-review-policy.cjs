@@ -43,7 +43,10 @@ function resolveCommitReviewMode(options = {}) {
     }
     const value = env.CK_COMMIT_REVIEW_MODE;
     if (value !== undefined && value.trim() !== '') {
-        const mode = value.trim().replace(/^(["'])(.*)\1$/, '$2').toLowerCase();
+        const mode = value
+            .trim()
+            .replace(/^(["'])(.*)\1$/, '$2')
+            .toLowerCase();
         if (!MODES.includes(mode)) throw new Error(`Invalid CK_COMMIT_REVIEW_MODE; expected ${MODES.join(' or ')}`);
         layers.push({ source: 'environment', mode });
     }
@@ -72,7 +75,8 @@ function resolveReviewGateMode(options = {}) {
     }
     const gate = config && typeof config === 'object' && !Array.isArray(config) ? config.reviewGate : undefined;
     if (gate === undefined) return { mode: 'off', source: 'default' };
-    if (!gate || typeof gate !== 'object' || Array.isArray(gate)) throw new Error(`Invalid reviewGate in ${file}; expected an object such as { "mode": "enforce" }`);
+    if (!gate || typeof gate !== 'object' || Array.isArray(gate))
+        throw new Error(`Invalid reviewGate in ${file}; expected an object such as { "mode": "enforce" }`);
     if (gate.mode === undefined) return { mode: 'off', source: 'default' };
     if (!GATE_MODES.includes(gate.mode)) throw new Error(`Invalid reviewGate.mode in ${file}; expected ${GATE_MODES.join(' or ')}`);
     return { mode: gate.mode, source: 'project-config' };
@@ -101,9 +105,11 @@ function resolveReviewStatus(options = {}) {
     if (!gate || typeof gate !== 'object' || Array.isArray(gate)) throw new Error(`Invalid reviewGate in ${file}; expected an object`);
     const status = gate.status;
     if (status === undefined) return off('default');
-    if (!status || typeof status !== 'object' || Array.isArray(status)) throw new Error(`Invalid reviewGate.status in ${file}; expected an object such as { "enabled": true }`);
+    if (!status || typeof status !== 'object' || Array.isArray(status))
+        throw new Error(`Invalid reviewGate.status in ${file}; expected an object such as { "enabled": true }`);
     for (const key of ['enabled', 'requireAttestation']) {
-        if (status[key] !== undefined && typeof status[key] !== 'boolean') throw new Error(`Invalid reviewGate.status.${key} in ${file}; expected true or false`);
+        if (status[key] !== undefined && typeof status[key] !== 'boolean')
+            throw new Error(`Invalid reviewGate.status.${key} in ${file}; expected true or false`);
     }
     const context = status.context === undefined ? DEFAULT_STATUS_CONTEXT : status.context;
     if (typeof context !== 'string' || context.length === 0 || context.length > 100 || context.trim() !== context || /[\x00-\x1f\x7f]/.test(context)) {
@@ -115,8 +121,7 @@ function resolveReviewStatus(options = {}) {
 function selectReview(risk, mode) {
     if (!RISKS.includes(risk)) throw new Error(`Expected risk: ${RISKS.join(', ')}`);
     if (!MODES.includes(mode)) throw new Error(`Expected review mode: ${MODES.join(', ')}`);
-    const skill = mode === 'lightweight' ? 'commit-review' : risk === 'medium' ? 'why-review'
-        : risk === 'high' ? 'changes-review' : null;
+    const skill = mode === 'lightweight' ? 'commit-review' : risk === 'medium' ? 'why-review' : risk === 'high' ? 'changes-review' : null;
     // The round cap has one owner: the shared review-policy helper.
     return { action: skill ? 'review' : 'skip', skill, maxRounds: skill ? require('./review-policy.cjs').MAX_ROUNDS : 0 };
 }
@@ -126,9 +131,7 @@ function decideReview(options = {}) {
     if (!['commit', 'pull-request'].includes(operation)) throw new Error('Expected operation: commit or pull-request');
     if (!RISKS.includes(options.risk)) throw new Error(`Expected risk: ${RISKS.join(', ')}`);
     // Every PR needs a real whole-branch review, independently of commit preferences.
-    const settings = operation === 'pull-request'
-        ? { mode: 'risk-based', source: 'pull-request', layers: [] }
-        : resolveCommitReviewMode(options);
+    const settings = operation === 'pull-request' ? { mode: 'risk-based', source: 'pull-request', layers: [] } : resolveCommitReviewMode(options);
     // PRs use changes-review's full depth while the result retains the assessed branch risk.
     const reviewRisk = operation === 'pull-request' ? 'high' : options.risk;
     return { operation, risk: options.risk, ...settings, ...selectReview(reviewRisk, settings.mode) };
@@ -152,5 +155,16 @@ function main(argv = process.argv.slice(2)) {
     }
 }
 
-module.exports = { MODES, RISKS, GATE_MODES, DEFAULT_STATUS_CONTEXT, resolveCommitReviewMode, resolveReviewGateMode, resolveReviewStatus, selectReview, decideReview, main };
+module.exports = {
+    MODES,
+    RISKS,
+    GATE_MODES,
+    DEFAULT_STATUS_CONTEXT,
+    resolveCommitReviewMode,
+    resolveReviewGateMode,
+    resolveReviewStatus,
+    selectReview,
+    decideReview,
+    main
+};
 if (require.main === module) process.exitCode = main();

@@ -271,7 +271,8 @@ function validateCapability(capability) {
         ![gitExe, gitBashExe, bashExe, gitBashPath].every(candidate => pathInside(root, candidate)) ||
         !capability.pathPrefix.every(candidate => pathInside(root, normalizeWindowsPath(candidate))) ||
         path.win32.dirname(bashExe).toLowerCase() !== gitBashPath.toLowerCase()
-    ) return null;
+    )
+        return null;
     const pathPrefix = dedupePaths(capability.pathPrefix);
     if (pathPrefix.length === 0) return null;
     return {
@@ -310,12 +311,8 @@ function trustedWingetFile(seams, candidate, env) {
     if (!isAbsoluteWindowsPath(candidate)) return null;
     const normalized = normalizeWindowsPath(candidate);
     const lower = normalized.toLowerCase();
-    const localRoot = isAbsoluteWindowsPath(env.LOCALAPPDATA)
-        ? path.win32.join(env.LOCALAPPDATA, 'Microsoft', 'WindowsApps').toLowerCase()
-        : '';
-    const programRoot = isAbsoluteWindowsPath(env.ProgramFiles)
-        ? path.win32.join(env.ProgramFiles, 'WindowsApps').toLowerCase()
-        : '';
+    const localRoot = isAbsoluteWindowsPath(env.LOCALAPPDATA) ? path.win32.join(env.LOCALAPPDATA, 'Microsoft', 'WindowsApps').toLowerCase() : '';
+    const programRoot = isAbsoluteWindowsPath(env.ProgramFiles) ? path.win32.join(env.ProgramFiles, 'WindowsApps').toLowerCase() : '';
     if (!lower.startsWith(localRoot + '\\') && !lower.startsWith(programRoot + '\\')) return null;
     try {
         const info = seams.lstat(normalized);
@@ -336,12 +333,8 @@ function defaultResolveWinget({ seams, env }) {
         const executable = trustedWingetFile(seams, candidate, env);
         if (!executable) continue;
         const lower = executable.toLowerCase();
-        const localRoot = isAbsoluteWindowsPath(env.LOCALAPPDATA)
-            ? path.win32.join(env.LOCALAPPDATA, 'Microsoft', 'WindowsApps').toLowerCase()
-            : '';
-        const programRoot = isAbsoluteWindowsPath(env.ProgramFiles)
-            ? path.win32.join(env.ProgramFiles, 'WindowsApps').toLowerCase()
-            : '';
+        const localRoot = isAbsoluteWindowsPath(env.LOCALAPPDATA) ? path.win32.join(env.LOCALAPPDATA, 'Microsoft', 'WindowsApps').toLowerCase() : '';
+        const programRoot = isAbsoluteWindowsPath(env.ProgramFiles) ? path.win32.join(env.ProgramFiles, 'WindowsApps').toLowerCase() : '';
         if (!lower.startsWith(localRoot + '\\') && !lower.startsWith(programRoot + '\\')) continue;
         try {
             const result = spawnSync(executable, ['--info'], {
@@ -425,7 +418,12 @@ function resolveWindowsGit(options = {}) {
         const result = seams.resolveGit({ seams, env: seams.env() });
         const capability = result && result.state === 'ready' ? validateCapability(result.capability) : null;
         if (capability) return { outcome: OUTCOMES.READY, capability };
-        return { outcome: OUTCOMES.REPAIR_NEEDED, capability: null, kind: result && result.state === 'broken' ? 'broken' : result && result.state === 'incomplete' ? 'incomplete' : 'missing', reason: sanitizeToken(result && result.reason, 64) };
+        return {
+            outcome: OUTCOMES.REPAIR_NEEDED,
+            capability: null,
+            kind: result && result.state === 'broken' ? 'broken' : result && result.state === 'incomplete' ? 'incomplete' : 'missing',
+            reason: sanitizeToken(result && result.reason, 64)
+        };
     } catch {
         return { outcome: OUTCOMES.REPAIR_NEEDED, capability: null, kind: 'broken', reason: 'probe-failed' };
     }

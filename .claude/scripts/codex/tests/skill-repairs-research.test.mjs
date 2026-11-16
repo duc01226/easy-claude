@@ -17,8 +17,7 @@ test('Eval CLI executes through a directory symlink instead of silently succeedi
     try {
         const alias = path.join(fixture, 'alias');
         try {
-            fs.symlinkSync(path.join(claudeRoot, 'skills/shared/skill-evals'), alias,
-                process.platform === 'win32' ? 'junction' : 'dir');
+            fs.symlinkSync(path.join(claudeRoot, 'skills/shared/skill-evals'), alias, process.platform === 'win32' ? 'junction' : 'dir');
         } catch (error) {
             if (['EACCES', 'EPERM', 'ENOSYS', 'ENOTSUP', 'EOPNOTSUPP'].includes(error.code)) {
                 t.skip(`Directory aliases unavailable: ${error.code}`);
@@ -26,10 +25,16 @@ test('Eval CLI executes through a directory symlink instead of silently succeedi
             }
             throw error;
         }
-        const env = { PATH: process.env.PATH || '', SystemRoot: process.env.SystemRoot || '',
-            HOME: fixture, USERPROFILE: fixture, TMPDIR: fixture, TEMP: fixture, TMP: fixture };
-        const result = spawnSync(process.execPath, [path.join(alias, 'validate.mjs')],
-            { cwd: fixture, env, encoding: 'utf8', timeout: 10000 });
+        const env = {
+            PATH: process.env.PATH || '',
+            SystemRoot: process.env.SystemRoot || '',
+            HOME: fixture,
+            USERPROFILE: fixture,
+            TMPDIR: fixture,
+            TEMP: fixture,
+            TMP: fixture
+        };
+        const result = spawnSync(process.execPath, [path.join(alias, 'validate.mjs')], { cwd: fixture, env, encoding: 'utf8', timeout: 10000 });
         assert.equal(result.status, 0, result.stderr);
         assert.equal(JSON.parse(result.stdout).cases, corpus.cases.length);
     } finally {
@@ -99,9 +104,31 @@ test('RS5: spec health requires affected owner correspondence, not recent commit
 });
 
 function resultFor(item) {
-    const runtime = { model: 'fixture-model', modelVersion: 'fixture-v1', host: 'fixture-host', hostVersion: '1', settingsHash: 'a'.repeat(64), toolsetHash: 'b'.repeat(64), contextHash: 'c'.repeat(64) };
-    const arm = () => ({ observedAt: '2026-01-01T00:00:00Z', runtime: structuredClone(runtime), skillHashes: {}, loadedSkills: [], outputArtifact: 'fixture-output.txt', checks: item.assertions.map(assertion => ({ assertion, passed: false, evidence: 'synthetic fixture line 1' })) });
-    const pair = { caseId: item.id, reviewer: 'fixture-reviewer', taskHash: 'd'.repeat(64), fixtureHash: 'e'.repeat(64), withoutSkill: arm(), withSkill: arm() };
+    const runtime = {
+        model: 'fixture-model',
+        modelVersion: 'fixture-v1',
+        host: 'fixture-host',
+        hostVersion: '1',
+        settingsHash: 'a'.repeat(64),
+        toolsetHash: 'b'.repeat(64),
+        contextHash: 'c'.repeat(64)
+    };
+    const arm = () => ({
+        observedAt: '2026-01-01T00:00:00Z',
+        runtime: structuredClone(runtime),
+        skillHashes: {},
+        loadedSkills: [],
+        outputArtifact: 'fixture-output.txt',
+        checks: item.assertions.map(assertion => ({ assertion, passed: false, evidence: 'synthetic fixture line 1' }))
+    });
+    const pair = {
+        caseId: item.id,
+        reviewer: 'fixture-reviewer',
+        taskHash: 'd'.repeat(64),
+        fixtureHash: 'e'.repeat(64),
+        withoutSkill: arm(),
+        withSkill: arm()
+    };
     pair.withSkill.skillHashes = Object.fromEntries(item.skills.map(name => [name, 'f'.repeat(64)]));
     return { schemaVersion: 1, corpusVersion: corpus.corpusVersion, pairs: [pair] };
 }
@@ -111,8 +138,22 @@ test('evaluation corpus covers activation boundaries and each research repair', 
     const checked = validateCorpus(corpus);
     // When scenarios are inventoried.
     // Then positive/negative/ambiguous activation and RS1–RS5 repairs have rubrics.
-    for (const id of ['activation-positive', 'activation-negative', 'activation-ambiguous', 'repair-evidence-rejection', 'repair-evidence-acceptance', 'repair-knowledge-scope', 'repair-cli-stack', 'repair-query-equivalence', 'repair-spec-correspondence', 'repair-uncommitted-spec']) {
-        assert.ok(checked.cases.some(item => item.id === id), id);
+    for (const id of [
+        'activation-positive',
+        'activation-negative',
+        'activation-ambiguous',
+        'repair-evidence-rejection',
+        'repair-evidence-acceptance',
+        'repair-knowledge-scope',
+        'repair-cli-stack',
+        'repair-query-equivalence',
+        'repair-spec-correspondence',
+        'repair-uncommitted-spec'
+    ]) {
+        assert.ok(
+            checked.cases.some(item => item.id === id),
+            id
+        );
     }
     const malformed = structuredClone(corpus);
     malformed.cases.push(structuredClone(malformed.cases[0]));
@@ -127,8 +168,14 @@ test('evaluation corpus names shipped skills and states an activation boundary f
     // Then every skill whose activation changed has a case that expects it, and one where it is offered but not chosen.
     const activation = corpus.cases.filter(item => item.kind === 'activation');
     for (const skill of ['architecture', 'feature-implement', 'plan', 'spec', 'workflow-e2e', 'workflow-end', 'workflow-review-changes']) {
-        assert.ok(activation.some(item => item.expectedActivation === skill), `${skill}: a case expects it`);
-        assert.ok(activation.some(item => item.skills.includes(skill) && item.expectedActivation !== skill), `${skill}: a case offers it and expects another choice`);
+        assert.ok(
+            activation.some(item => item.expectedActivation === skill),
+            `${skill}: a case expects it`
+        );
+        assert.ok(
+            activation.some(item => item.skills.includes(skill) && item.expectedActivation !== skill),
+            `${skill}: a case offers it and expects another choice`
+        );
     }
 });
 
@@ -159,14 +206,30 @@ test('evaluation CLI validates an isolated corpus and labels model evaluation no
     try {
         const corpusFile = path.join(fixture, 'corpus.json');
         fs.writeFileSync(corpusFile, JSON.stringify(corpus));
-        const env = { PATH: process.env.PATH || '', SystemRoot: process.env.SystemRoot || '', HOME: fixture, USERPROFILE: fixture, TMPDIR: fixture, TEMP: fixture, TMP: fixture };
+        const env = {
+            PATH: process.env.PATH || '',
+            SystemRoot: process.env.SystemRoot || '',
+            HOME: fixture,
+            USERPROFILE: fixture,
+            TMPDIR: fixture,
+            TEMP: fixture,
+            TMP: fixture
+        };
         // When the real Node entrypoint validates only supplied fixture data.
-        const result = spawnSync(process.execPath, [path.join(claudeRoot, 'skills/shared/skill-evals/validate.mjs'), corpusFile], { cwd: fixture, env, encoding: 'utf8' });
+        const result = spawnSync(process.execPath, [path.join(claudeRoot, 'skills/shared/skill-evals/validate.mjs'), corpusFile], {
+            cwd: fixture,
+            env,
+            encoding: 'utf8'
+        });
         // Then its successful output cannot be confused with a live model quality result.
         assert.equal(result.status, 0, result.stderr);
         assert.equal(JSON.parse(result.stdout).modelEvaluation, 'not run');
         fs.writeFileSync(corpusFile, '{}');
-        const invalid = spawnSync(process.execPath, [path.join(claudeRoot, 'skills/shared/skill-evals/validate.mjs'), corpusFile], { cwd: fixture, env, encoding: 'utf8' });
+        const invalid = spawnSync(process.execPath, [path.join(claudeRoot, 'skills/shared/skill-evals/validate.mjs'), corpusFile], {
+            cwd: fixture,
+            env,
+            encoding: 'utf8'
+        });
         assert.equal(invalid.status, 1);
         assert.match(invalid.stderr, /Unsupported corpus version/);
     } finally {

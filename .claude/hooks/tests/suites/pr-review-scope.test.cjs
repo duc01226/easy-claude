@@ -57,7 +57,11 @@ const tests = [
             assert.match(text, /Historical assessment is review-only/);
             assert.match(text, /fixing current files requires an agreed current target/);
             assert.match(text, /cannot make an immutable historical diff converge/);
-            for (const rel of ['changes-review/references/fix-loop.md', 'why-review/references/fix-loop.md', 'workflow-review-changes/references/fix-loop.md']) {
+            for (const rel of [
+                'changes-review/references/fix-loop.md',
+                'why-review/references/fix-loop.md',
+                'workflow-review-changes/references/fix-loop.md'
+            ]) {
                 const receipt = read(rel);
                 assert.match(receipt, /historical targets are not eligible for a live fix-loop receipt/);
                 assert.match(receipt, /original pre-review snapshot/);

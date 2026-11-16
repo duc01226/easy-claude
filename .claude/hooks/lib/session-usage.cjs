@@ -110,9 +110,7 @@ function restoreFileState(stored) {
         lastKey: hasKey ? stored.lastKey : null,
         lastUsage: hasKey ? lastUsage : null,
         skippingLongLine: stored.skippingLongLine === true,
-        skippedLongLines: Number.isSafeInteger(stored.skippedLongLines) && stored.skippedLongLines > 0
-            ? stored.skippedLongLines
-            : 0
+        skippedLongLines: Number.isSafeInteger(stored.skippedLongLines) && stored.skippedLongLines > 0 ? stored.skippedLongLines : 0
     };
 }
 
@@ -317,9 +315,10 @@ function readUsage(transcriptPath, opts) {
         };
     };
     const main = readOne(MAIN_NAME, transcriptPath);
-    const subs = typeof transcriptPath === 'string' && transcriptPath
-        ? discoverSubagents(options.io, transcriptPath, options).map(({ name, file }) => readOne(name, file))
-        : [];
+    const subs =
+        typeof transcriptPath === 'string' && transcriptPath
+            ? discoverSubagents(options.io, transcriptPath, options).map(({ name, file }) => readOne(name, file))
+            : [];
     let total = nonCachedTotal(main.entry.totals);
     let skippedLongLines = main.skipped;
     for (const sub of subs) {
@@ -337,15 +336,16 @@ function readUsage(transcriptPath, opts) {
  */
 function readUsageIncremental(transcriptPath, state, opts) {
     const options = resolveOpts(opts);
-    const storedFiles = state && typeof state === 'object' && state.version === STATE_VERSION
-        && state.files && typeof state.files === 'object' ? state.files : {};
+    const storedFiles =
+        state && typeof state === 'object' && state.version === STATE_VERSION && state.files && typeof state.files === 'object' ? state.files : {};
     const files = {};
     for (const [name, stored] of Object.entries(storedFiles)) {
         if (name === MAIN_NAME || SUBAGENT_FILE.test(`${name}.jsonl`)) files[name] = restoreFileState(stored);
     }
-    const targets = typeof transcriptPath === 'string' && transcriptPath
-        ? [{ name: MAIN_NAME, file: transcriptPath }, ...discoverSubagents(options.io, transcriptPath, options)]
-        : [];
+    const targets =
+        typeof transcriptPath === 'string' && transcriptPath
+            ? [{ name: MAIN_NAME, file: transcriptPath }, ...discoverSubagents(options.io, transcriptPath, options)]
+            : [];
     for (const { name, file } of targets) {
         const size = statSize(options.io, file);
         if (size === null) continue;

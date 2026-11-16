@@ -41,7 +41,10 @@ const SHARED = ['.claude', 'skills', 'shared'];
 const OUT_REL = '.claude/skills/shared/protocols';
 // The fixture's universal group: four tags delivered by the universal hook in two authored bins.
 const UNIVERSAL_TAGS = ['critical-thinking-mindset', 'ai-mistake-prevention', 'project-reference-docs-guide', 'project-protocol-overlay'];
-const UNIVERSAL_BINS = [['critical-thinking-mindset', 'ai-mistake-prevention'], ['project-reference-docs-guide', 'project-protocol-overlay']];
+const UNIVERSAL_BINS = [
+    ['critical-thinking-mindset', 'ai-mistake-prevention'],
+    ['project-reference-docs-guide', 'project-protocol-overlay']
+];
 const INLINE_SKILLS = ['changes-review', 'code-quality-review'];
 /** A drive-letter path or a POSIX home/temp root: text that would pin the projection to one machine. */
 const ABSOLUTE_PATH = /(?:\b[A-Za-z]:[\\/])|(?:\/(?:Users|home|private|var\/folders)\/)/;
@@ -182,7 +185,10 @@ test('TC-PDL-001: each canonical base tag gets exactly one projection file holdi
             assert.equal(fs.readFileSync(path.join(outDir(root), `${tag}.md`), 'utf8'), `${body}\n`, `${tag}.md body`);
         }
         assert.ok(!names.some(name => name.includes(':') || /reminder|full/.test(name)), `no variant file: ${names.join(', ')}`);
-        assert.deepEqual(readIndex(root).tags.map(row => row.tag), Object.keys(blocks).sort());
+        assert.deepEqual(
+            readIndex(root).tags.map(row => row.tag),
+            Object.keys(blocks).sort()
+        );
     }));
 
 test('TC-PDL-002: a tag over the bin splits into parts that each fit the bin, cut only at section starts, with fences reopened', () =>
@@ -203,7 +209,10 @@ test('TC-PDL-002: a tag over the bin splits into parts that each fit the bin, cu
             return text;
         });
         // And at least one cut lands inside the fence, so the reopen rule is exercised, not assumed
-        assert.ok(texts.slice(1).some(text => text.startsWith('```\n')), 'no part reopens the fence');
+        assert.ok(
+            texts.slice(1).some(text => text.startsWith('```\n')),
+            'no part reopens the fence'
+        );
         // And every part after the first starts at a section start (after a reopened fence line)
         for (const text of texts.slice(1)) {
             const first = text.split('\n').find(line => !/^(?:>\s?)*(`{3,}|~{3,})\s*$/.test(line));
@@ -342,7 +351,11 @@ test('TC-PDL-006: every index row has group, summary, when, chars, file and part
         assert.equal(index.binChars, BIN);
         assert.deepEqual(index.groups, projection.GROUP_NAMES);
         for (const row of index.tags) {
-            assert.equal(row.group, Object.keys(groups).find(g => groups[g].tags[row.tag]), `${row.tag} group`);
+            assert.equal(
+                row.group,
+                Object.keys(groups).find(g => groups[g].tags[row.tag]),
+                `${row.tag} group`
+            );
             assert.deepEqual([row.summary, row.when], [groups[row.group].tags[row.tag].summary, groups[row.group].tags[row.tag].when]);
             assert.equal(row.file, `${OUT_REL}/${row.tag}.md`);
             assert.equal(row.chars, fs.readFileSync(path.join(root, ...row.file.split('/')), 'utf8').length - 1, `${row.tag} chars`);
@@ -400,7 +413,11 @@ test('TC-PDL-008: the committed projection carries no project residue or absolut
         const text = fs.readFileSync(path.join(dir, name), 'utf8');
         const rel = `${OUT_REL}/${name}`;
         const lower = text.toLowerCase();
-        assert.deepEqual(residue.forbiddenTerms.filter(term => lower.includes(term.toLowerCase())), [], rel);
+        assert.deepEqual(
+            residue.forbiddenTerms.filter(term => lower.includes(term.toLowerCase())),
+            [],
+            rel
+        );
         assert.deepEqual(residue.findProjectSymbolViolations(text, rel), [], rel);
         assert.doesNotMatch(text, ABSOLUTE_PATH, rel);
     }
@@ -457,27 +474,31 @@ test('TC-PDL-080: an inlineSkills entry that is not a skill name or has no skill
     }
 });
 
-test('TC-PDL-080: the shipped groups file bins every universal tag once and uses guide-backed review entrypoints with an empty inline list', { skip: LIVE_SKIP }, () => {
-    // Given the framework repo's groups file
-    const groups = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, ...SHARED, 'protocol-groups.json'), 'utf8'));
-    // When it is read, Then the authored bins hold each universal tag exactly once and inlineSkills is the owner's list (BR-PDL-11)
-    assert.deepEqual(groups.groups.universal.bins.flat().sort(), Object.keys(groups.groups.universal.tags).sort());
-    assert.deepEqual(groups.inlineSkills, []);
-    for (const name of ['changes-review', 'code-quality-review', 'why-review', 'workflow-review-changes']) {
-        const text = fs.readFileSync(path.join(REPO_ROOT, '.claude', 'skills', name, 'SKILL.md'), 'utf8');
-        assert.match(text, /<!-- PROTOCOL-GUIDES:START -->/);
-        assert.match(text, /Apply each protocol only when its read-when condition holds/);
-        assert.match(text, /If a protocol's text is not in your context, read its file below before you act on it/);
-        const guides = [...text.matchAll(/^- `([^`]+)` — [^\n]+ → (\.claude\/skills\/shared\/protocols\/[^\s]+\.md)$/gm)];
-        assert.ok(guides.length > 0, `${name} has no guides`);
-        for (const [, tag, relative] of guides) {
-            assert.ok(!Object.hasOwn(groups.groups.universal.tags, tag), `${name} leaks universal guide ${tag}`);
-            assert.equal(fs.existsSync(path.join(REPO_ROOT, ...relative.split('/'))), true, `${name}: ${tag} has no published fallback`);
-            assert.ok(!text.includes(`<!-- SYNC:${tag} -->`), `${name} still carries full ${tag}`);
+test(
+    'TC-PDL-080: the shipped groups file bins every universal tag once and uses guide-backed review entrypoints with an empty inline list',
+    { skip: LIVE_SKIP },
+    () => {
+        // Given the framework repo's groups file
+        const groups = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, ...SHARED, 'protocol-groups.json'), 'utf8'));
+        // When it is read, Then the authored bins hold each universal tag exactly once and inlineSkills is the owner's list (BR-PDL-11)
+        assert.deepEqual(groups.groups.universal.bins.flat().sort(), Object.keys(groups.groups.universal.tags).sort());
+        assert.deepEqual(groups.inlineSkills, []);
+        for (const name of ['changes-review', 'code-quality-review', 'why-review', 'workflow-review-changes']) {
+            const text = fs.readFileSync(path.join(REPO_ROOT, '.claude', 'skills', name, 'SKILL.md'), 'utf8');
+            assert.match(text, /<!-- PROTOCOL-GUIDES:START -->/);
+            assert.match(text, /Apply each protocol only when its read-when condition holds/);
+            assert.match(text, /If a protocol's text is not in your context, read its file below before you act on it/);
+            const guides = [...text.matchAll(/^- `([^`]+)` — [^\n]+ → (\.claude\/skills\/shared\/protocols\/[^\s]+\.md)$/gm)];
+            assert.ok(guides.length > 0, `${name} has no guides`);
+            for (const [, tag, relative] of guides) {
+                assert.ok(!Object.hasOwn(groups.groups.universal.tags, tag), `${name} leaks universal guide ${tag}`);
+                assert.equal(fs.existsSync(path.join(REPO_ROOT, ...relative.split('/'))), true, `${name}: ${tag} has no published fallback`);
+                assert.ok(!text.includes(`<!-- SYNC:${tag} -->`), `${name} still carries full ${tag}`);
+            }
+            assert.match(text, /<!-- SYNC:severity-rubric:reminder -->/);
         }
-        assert.match(text, /<!-- SYNC:severity-rubric:reminder -->/);
     }
-});
+);
 
 /** Compression ceiling for one canonical body (F3): every tag fits one bin with headroom. */
 const COMPRESSED_LIMIT = 9000;

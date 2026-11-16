@@ -46,7 +46,8 @@ const EXPLICIT_INVOCATION = /^\s*[/$](?:[\w-]+:)?commit\b/i;
 const COMMIT_WORD = /(?<![\w-])commit(?:s|ting)?(?![\w-]|\.\w)/gi;
 // "commit" as a noun naming an existing commit or one of its attributes: "the commit message", "commit
 // history", "the commit gate", "what does this commit do?", "which commit broke it?".
-const NOUN_AFTER = /^\s+(?:messages?|msgs?|history|hash(?:es)?|ids?|shas?|gates?|logs?|graph|range|hooks?|titles?|body|bodies|authors?|dates?|subjects?|trees?|diffs?|objects?|format|conventions?|style|template)\b/i;
+const NOUN_AFTER =
+    /^\s+(?:messages?|msgs?|history|hash(?:es)?|ids?|shas?|gates?|logs?|graph|range|hooks?|titles?|body|bodies|authors?|dates?|subjects?|trees?|diffs?|objects?|format|conventions?|style|template)\b/i;
 const REFERENCE_BEFORE = /\b(?:this|that|which|each|every)\s+$/i;
 // Negated requests: "don't commit", "do not commit", "never commit", "no need to commit", "shouldn't commit",
 // "hold off on committing", "without committing", "not to commit", and a short coordinated verb list before
@@ -54,7 +55,8 @@ const REFERENCE_BEFORE = /\b(?:this|that|which|each|every)\s+$/i;
 // git verbs may sit between, so "don't forget to commit" still counts as a request. The list must reach
 // "commit" through or/and/nor or a slash: a bare comma after a single verb closes the negated clause, so
 // "without pushing, commit this" is still a request (the list rules below cover the other bare-comma cases).
-const NEGATION = "(?:don'?t|do\\s+not|never|no\\s+need\\s+to|no|not|without|avoid|skip|should(?:n'?t|\\s+not)|must(?:n'?t|\\s+not)|won'?t|will\\s+not|hold\\s+off(?:\\s+on)?|refrain\\s+from)";
+const NEGATION =
+    "(?:don'?t|do\\s+not|never|no\\s+need\\s+to|no|not|without|avoid|skip|should(?:n'?t|\\s+not)|must(?:n'?t|\\s+not)|won'?t|will\\s+not|hold\\s+off(?:\\s+on)?|refrain\\s+from)";
 const FILLER = '(?:(?:to|be|yet|any|a|the|need\\s+to|want\\s+to)\\s+){0,2}';
 const GIT_VERB = '(?:stag(?:e|ing)|push(?:ing)?|add(?:ing)?|amend(?:ing)?|merg(?:e|ing)|tag(?:ging)?|rebas(?:e|ing)|squash(?:ing)?)';
 const VERB_JOIN = '(?:\\s*,\\s*(?:(?:or|and|nor)\\s+)?|\\s*/\\s*|\\s+(?:or|and|nor)\\s+)';

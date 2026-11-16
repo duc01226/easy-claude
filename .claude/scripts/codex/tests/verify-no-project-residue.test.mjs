@@ -5,8 +5,15 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const verifierPath = path.resolve(thisDir, '..', 'verify-no-project-residue.mjs');
-const { findProjectSymbolViolations, forbiddenTerms, genericSourceRoots, managedBlockRanges, projectSymbolDenylist, projectSymbolAllowlist, projectSymbolScanRoots } =
-    await import(pathToFileURL(verifierPath).href);
+const {
+    findProjectSymbolViolations,
+    forbiddenTerms,
+    genericSourceRoots,
+    managedBlockRanges,
+    projectSymbolDenylist,
+    projectSymbolAllowlist,
+    projectSymbolScanRoots
+} = await import(pathToFileURL(verifierPath).href);
 
 // TC-SKILLFIX-010 — a denylisted project symbol in a NON-allowlisted generic skill is flagged.
 test('TC-SKILLFIX-010: flags a denylisted project symbol in a non-allowlisted file', () => {
@@ -38,10 +45,7 @@ test('TC-SKILLFIX-012: case-sensitive, word-boundary — no partial or case fals
 // TC-SKILLFIX-013 — the allowlist is per-SYMBOL, not whole-file: project-config is exempt only for
 // IPlatformRootRepository, so a second denylisted symbol in the same file is still flagged.
 test('TC-SKILLFIX-013: allowlist is per-symbol, not whole-file', () => {
-    const content = [
-        'Use `IPlatformRootRepository<TEntity>` not "follow best practices".',
-        'State via `PlatformVmStore`.'
-    ].join('\n');
+    const content = ['Use `IPlatformRootRepository<TEntity>` not "follow best practices".', 'State via `PlatformVmStore`.'].join('\n');
     const violations = findProjectSymbolViolations(content, '.claude/skills/project-config/SKILL.md');
     assert.equal(violations.length, 1);
     assert.equal(violations[0].symbol, 'PlatformVmStore');
@@ -80,11 +84,7 @@ test('TC-SKILLFIX-013e: forbidden-term scan covers portable hook config', () => 
 });
 
 test('TC-SKILLFIX-013f: no generated block is exempt from project-term residue checks', () => {
-    assert.deepEqual(
-        managedBlockRanges,
-        [],
-        'generated portable context must never hide project-specific text behind a managed-block exemption'
-    );
+    assert.deepEqual(managedBlockRanges, [], 'generated portable context must never hide project-specific text behind a managed-block exemption');
 });
 
 // TC-SKILLFIX-013g — every consuming-project NAME must be denied. The Orient entries were added

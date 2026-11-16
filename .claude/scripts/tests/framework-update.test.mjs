@@ -23,22 +23,28 @@ function fixture(t) {
         fs.mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
         fs.writeFileSync(path.join(root, file), text);
     };
-    const read = (root, file) => fs.existsSync(path.join(root, file)) ? fs.readFileSync(path.join(root, file), 'utf8') : null;
+    const read = (root, file) => (fs.existsSync(path.join(root, file)) ? fs.readFileSync(path.join(root, file), 'utf8') : null);
     const commit = (root, message) => {
         git(root, 'add', '-A');
         git(root, '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.test', 'commit', '-q', '-m', message);
         return git(root, 'rev-parse', 'HEAD');
     };
-    for (const root of [upstream, project]) { fs.mkdirSync(root, { recursive: true }); git(root, 'init', '-q'); }
+    for (const root of [upstream, project]) {
+        fs.mkdirSync(root, { recursive: true });
+        git(root, 'init', '-q');
+    }
     // Version 1 of the framework, installed into the project as-is.
     const v1 = {
         '.claude/hooks/a.cjs': 'one\ntwo\nthree\n',
         '.claude/hooks/b.cjs': 'alpha\nbeta\ngamma\n',
         '.claude/hooks/gone.cjs': 'old\n',
         '.claude/docs/README.md': 'Skills: <!-- COUNT:skills -->10<!-- /COUNT -->\nintro\nmiddle\nend\n',
-        '.claude/SKILLS.yaml': 'generated v1\n',
+        '.claude/SKILLS.yaml': 'generated v1\n'
     };
-    for (const [file, text] of Object.entries(v1)) { write(upstream, file, text); write(project, file, text); }
+    for (const [file, text] of Object.entries(v1)) {
+        write(upstream, file, text);
+        write(project, file, text);
+    }
     const base = commit(upstream, 'v1');
     commit(project, 'install v1');
     const run = (...args) => main([upstream, '--no-sync', ...args], project);
@@ -98,7 +104,11 @@ test('count markers and generated catalogs never conflict', t => {
     f.write(f.upstream, '.claude/SKILLS.yaml', 'generated v2\n');
     f.commit(f.upstream, 'v2');
     assert.equal(f.run(`--base=${f.base}`), 0);
-    assert.equal(f.read(f.project, '.claude/docs/README.md').replace(/-->\d+</, '-->N<'), 'Skills: <!-- COUNT:skills -->N<!-- /COUNT -->\nintro (project)\nmiddle\nend (upstream)\n', 'both edits kept; the differing counts did not conflict');
+    assert.equal(
+        f.read(f.project, '.claude/docs/README.md').replace(/-->\d+</, '-->N<'),
+        'Skills: <!-- COUNT:skills -->N<!-- /COUNT -->\nintro (project)\nmiddle\nend (upstream)\n',
+        'both edits kept; the differing counts did not conflict'
+    );
     assert.equal(f.read(f.project, '.claude/SKILLS.yaml'), 'generated for the project\n', 'regenerated, never merged');
     assert.equal(normalizeContent(Buffer.from('<!-- COUNT:hooks:total -->37<!-- /COUNT -->'), 'x.md').toString(), '<!-- COUNT:hooks:total -->0<!-- /COUNT -->');
 });
@@ -224,14 +234,14 @@ test('project-only files are listed and untouched, and a Codex-only skill in .ag
     assert.equal(main([f.upstream, `--base=${f.base}`], f.project), 0, 'a Codex-only skill leaves nothing to resolve');
     assert.equal(f.read(f.project, 'sync-ran'), 'yes', 'the closing sync ran');
     assert.equal(f.read(f.project, '.agents/skills/codex-only/SKILL.md'), 'written for Codex only\n');
-    assert.equal(f.read(f.project, '.agents/skills/own/SKILL.md'), 'mirror of the project skill\n', 'a project skill mirror is not the update\'s to remove');
+    assert.equal(f.read(f.project, '.agents/skills/own/SKILL.md'), 'mirror of the project skill\n', "a project skill mirror is not the update's to remove");
     assert.equal(f.read(f.project, '.claude/hooks/a.cjs'), 'one\ntwo (v2)\nthree\n', 'the merge itself ran');
 });
 
 // Intent: when a framework skill new in this update takes the name of a Codex-only skill, the closing sync
 // would replace that skill with the new one's mirror. The update stops before the sync so the user can
 // rename theirs; a project skill of the same name in .claude/ is a merge of two skills, not a mirror clash.
-test('a framework skill new in this update that takes a Codex-only skill\'s name stops the sync until the user settles it', t => {
+test("a framework skill new in this update that takes a Codex-only skill's name stops the sync until the user settles it", t => {
     const f = fixture(t);
     f.write(f.project, '.agents/skills/codex-only/SKILL.md', 'written for Codex only\n');
     f.write(f.project, '.agents/skills/.codex-mirror.json', '{"managedBy":"codex-sync","source":".claude/skills","generatedEntries":[]}\n');
@@ -298,7 +308,7 @@ test('the update removes the mirror of a framework skill upstream retired, and k
     assert.equal(f.read(f.project, '.claude/skills/retired-skill/SKILL.md'), null, 'the unchanged framework skill is deleted');
     assert.equal(f.read(f.project, '.agents/skills/retired-skill/SKILL.md'), null, 'and so is its mirror');
     assert.equal(f.read(f.project, '.agents/skills/edited-skill/SKILL.md'), 'mirror of the edited skill\n', 'a skill the project kept keeps its mirror');
-    assert.equal(f.read(f.project, '.agents/skills/codex-only/SKILL.md'), 'written for Codex only\n', 'the project\'s Codex-only skill stays');
+    assert.equal(f.read(f.project, '.agents/skills/codex-only/SKILL.md'), 'written for Codex only\n', "the project's Codex-only skill stays");
     assert.ok(fs.existsSync(path.join(f.project, '.agents/skills/.codex-mirror.json')), 'the sync marker stays');
 });
 
@@ -313,7 +323,10 @@ test('--project updates another folder from a blobless bare clone, fetching file
     assert.equal(git(clone, 'config', '--get', 'remote.origin.promisor'), 'true', 'a blobless clone: file contents download on demand');
     assert.equal(prefetchBlobs(clone, [f.base, v2]), 6, 'every .claude file of both versions arrives in one batch');
     assert.equal(prefetchBlobs(clone, [f.base, v2]), 0, 'nothing is downloaded twice');
-    assert.equal(main([clone, `--project=${f.project}`, `--base=${f.base}`, '--no-sync', '--source-url=https://example.test/easy-claude.git'], '/nonexistent'), 0);
+    assert.equal(
+        main([clone, `--project=${f.project}`, `--base=${f.base}`, '--no-sync', '--source-url=https://example.test/easy-claude.git'], '/nonexistent'),
+        0
+    );
     assert.equal(f.read(f.project, '.claude/hooks/a.cjs'), 'one\ntwo (v2)\nthree\n');
     const lock = JSON.parse(f.read(f.project, LOCK_PATH));
     assert.deepEqual([lock.source.commit, lock.source.url], [v2, 'https://example.test/easy-claude.git']);
@@ -337,12 +350,17 @@ test('a skill upstream deleted leaves no empty folder behind, while a folder tha
     assert.equal(fs.existsSync(path.join(f.project, '.claude/skills')), true);
 });
 
-const PYTHON = [['python3', []], ['py', ['-3']], ['python', []]].find(([cmd, args]) => spawnSync(cmd, [...args, '--version']).status === 0);
+const PYTHON = [
+    ['python3', []],
+    ['py', ['-3']],
+    ['python', []]
+].find(([cmd, args]) => spawnSync(cmd, [...args, '--version']).status === 0);
 
 test('every .claude doc with count markers is recounted, including docs the update left as they were', { skip: PYTHON ? false : 'needs Python 3' }, t => {
     const f = fixture(t);
     // Stub catalog scripts (project-only files) that log each call instead of counting.
-    const stub = "import sys, pathlib\npathlib.Path('tmp').mkdir(exist_ok=True)\nwith open('tmp/regen.log', 'a') as log: log.write(' '.join(sys.argv[1:]) + '\\n')\n";
+    const stub =
+        "import sys, pathlib\npathlib.Path('tmp').mkdir(exist_ok=True)\nwith open('tmp/regen.log', 'a') as log: log.write(' '.join(sys.argv[1:]) + '\\n')\n";
     f.write(f.project, '.claude/scripts/generate_catalogs.py', stub);
     f.write(f.project, '.claude/scripts/scan_skills.py', stub);
     f.write(f.project, '.claude/skills/own/SKILL.md', 'project skill: <!-- COUNT:skills -->10<!-- /COUNT -->\n');
@@ -368,7 +386,11 @@ test('--base=auto breaks a tie toward the older commit, so a file only the newer
     // The project holds v1 exactly: v1 and v2 match it equally well.
     const plan = planUpdate({ project: f.project, upstream: f.upstream, base: 'auto' });
     assert.equal(plan.baseDetection.commit, f.base, 'the older of the tied commits is the base');
-    assert.equal(plan.actions.find(a => a.path === '.claude/hooks/added.cjs').kind, 'take', 'a newer tied base would read the missing file as a project deletion');
+    assert.equal(
+        plan.actions.find(a => a.path === '.claude/hooks/added.cjs').kind,
+        'take',
+        'a newer tied base would read the missing file as a project deletion'
+    );
 });
 
 test('--base=auto matches files committed with CRLF line endings', t => {
@@ -377,11 +399,27 @@ test('--base=auto matches files committed with CRLF line endings', t => {
     const v2 = f.commit(f.upstream, 'v2');
     f.write(f.upstream, '.claude/hooks/b.cjs', 'alpha\nbeta (v3)\ngamma\n');
     f.commit(f.upstream, 'v3');
-    for (const [file, text] of Object.entries({ '.claude/hooks/a.cjs': 'one\ntwo (v2)\nthree\n', '.claude/hooks/b.cjs': 'alpha\nbeta\ngamma\n', '.claude/hooks/gone.cjs': 'old\n' })) {
+    for (const [file, text] of Object.entries({
+        '.claude/hooks/a.cjs': 'one\ntwo (v2)\nthree\n',
+        '.claude/hooks/b.cjs': 'alpha\nbeta\ngamma\n',
+        '.claude/hooks/gone.cjs': 'old\n'
+    })) {
         f.write(f.project, file, text.replace(/\n/g, '\r\n'));
     }
     git(f.project, '-c', 'core.autocrlf=false', 'add', '-A');
-    git(f.project, '-c', 'core.autocrlf=false', '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.test', 'commit', '-q', '-m', 'v2 copied with CRLF');
+    git(
+        f.project,
+        '-c',
+        'core.autocrlf=false',
+        '-c',
+        'user.name=Fixture',
+        '-c',
+        'user.email=fixture@example.test',
+        'commit',
+        '-q',
+        '-m',
+        'v2 copied with CRLF'
+    );
     assert.equal(planUpdate({ project: f.project, upstream: f.upstream, base: 'auto' }).baseDetection.commit, v2);
 });
 
@@ -391,7 +429,10 @@ test("conflict markers have the documented two-sided form whatever the user's me
     fs.writeFileSync(config, '[merge]\n\tconflictStyle = zdiff3\n');
     const previous = process.env.GIT_CONFIG_GLOBAL;
     process.env.GIT_CONFIG_GLOBAL = config;
-    t.after(() => { if (previous === undefined) delete process.env.GIT_CONFIG_GLOBAL; else process.env.GIT_CONFIG_GLOBAL = previous; });
+    t.after(() => {
+        if (previous === undefined) delete process.env.GIT_CONFIG_GLOBAL;
+        else process.env.GIT_CONFIG_GLOBAL = previous;
+    });
     f.write(f.project, '.claude/hooks/b.cjs', 'alpha (project)\nbeta\ngamma\n');
     f.commit(f.project, 'project change');
     f.write(f.upstream, '.claude/hooks/b.cjs', 'alpha (upstream)\nbeta\ngamma\n');
@@ -407,7 +448,12 @@ test('a framework folder that is a symlink out of the project stops the update b
     const outside = path.join(f.dir, 'shared-hooks');
     fs.cpSync(path.join(f.project, '.claude/hooks'), outside, { recursive: true });
     fs.rmSync(path.join(f.project, '.claude/hooks'), { recursive: true });
-    try { fs.symlinkSync(outside, path.join(f.project, '.claude/hooks'), 'dir'); } catch { t.skip('symlinks unavailable'); return; }
+    try {
+        fs.symlinkSync(outside, path.join(f.project, '.claude/hooks'), 'dir');
+    } catch {
+        t.skip('symlinks unavailable');
+        return;
+    }
     f.commit(f.project, 'hooks shared through a symlink');
     f.write(f.upstream, '.claude/hooks/a.cjs', 'one\ntwo (v2)\nthree\n');
     f.commit(f.upstream, 'v2');
@@ -420,7 +466,12 @@ test('a dangling symlink inside .claude is refused too, so a write never creates
     const f = fixture(t);
     // A path upstream is about to add holds a link to a missing file outside the project.
     const outside = path.join(f.dir, 'elsewhere.cjs');
-    try { fs.symlinkSync(outside, path.join(f.project, '.claude/hooks/new.cjs')); } catch { t.skip('symlinks unavailable'); return; }
+    try {
+        fs.symlinkSync(outside, path.join(f.project, '.claude/hooks/new.cjs'));
+    } catch {
+        t.skip('symlinks unavailable');
+        return;
+    }
     f.commit(f.project, 'a link to a missing file');
     f.write(f.upstream, '.claude/hooks/new.cjs', 'new in v2\n');
     f.commit(f.upstream, 'v2 adds new.cjs');

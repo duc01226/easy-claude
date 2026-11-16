@@ -22,8 +22,13 @@ function makeRoot() {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'live-source-'));
     const env = {
         ...process.env,
-        HOME: root, USERPROFILE: root, TMPDIR: root, TEMP: root, TMP: root,
-        GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: path.join(root, 'no-gitconfig')
+        HOME: root,
+        USERPROFILE: root,
+        TMPDIR: root,
+        TEMP: root,
+        TMP: root,
+        GIT_CONFIG_NOSYSTEM: '1',
+        GIT_CONFIG_GLOBAL: path.join(root, 'no-gitconfig')
     };
     return { root, env };
 }
@@ -47,12 +52,12 @@ function commitAll(dir, env) {
 /** The project layout every case scans: what must count, and what each rule must keep out. */
 function writeProject(dir) {
     write(dir, '.claude/.gitignore', '/worktrees/\n');
-    write(dir, '.claude/skills/demo/SKILL.md');                          // tracked: counts
-    write(dir, '.claude/skills/demo/gone.md');                           // tracked, deleted below
-    write(dir, '.claude/skills/demo/run.py');                            // wrong extension for the caller
-    write(dir, '.claude/skills/demo/node_modules/dep.md');               // caller-excluded folder name
-    write(dir, '.claude/worktrees/other/.claude/skills/demo/SKILL.md');  // another session's worktree
-    write(dir, 'README.md');                                             // a single-file root
+    write(dir, '.claude/skills/demo/SKILL.md'); // tracked: counts
+    write(dir, '.claude/skills/demo/gone.md'); // tracked, deleted below
+    write(dir, '.claude/skills/demo/run.py'); // wrong extension for the caller
+    write(dir, '.claude/skills/demo/node_modules/dep.md'); // caller-excluded folder name
+    write(dir, '.claude/worktrees/other/.claude/skills/demo/SKILL.md'); // another session's worktree
+    write(dir, 'README.md'); // a single-file root
 }
 
 const MD = { extensions: new Set(['.md']), excludedDirs: new Set(['node_modules']) };
@@ -111,7 +116,7 @@ const tests = [
         }
     },
     {
-        name: '[live-source-files] a copy inside another checkout\'s ignored folder is walked, never answered by the outer checkout',
+        name: "[live-source-files] a copy inside another checkout's ignored folder is walked, never answered by the outer checkout",
         skip: NO_GIT,
         fn: () => {
             // Given an outer git checkout that ignores tmp/, and the project copied inside tmp/.

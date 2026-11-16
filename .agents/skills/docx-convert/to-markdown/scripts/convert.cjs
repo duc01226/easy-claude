@@ -21,56 +21,56 @@ const path = require('path');
  * @returns {object}
  */
 function parseArgs(argv) {
-  const args = {
-    input: null,
-    output: null,
-    images: null,
-    help: false
-  };
+    const args = {
+        input: null,
+        output: null,
+        images: null,
+        help: false
+    };
 
-  for (let i = 2; i < argv.length; i++) {
-    const arg = argv[i];
-    const nextArg = argv[i + 1];
+    for (let i = 2; i < argv.length; i++) {
+        const arg = argv[i];
+        const nextArg = argv[i + 1];
 
-    switch (arg) {
-      case '--input':
-      case '-i':
-        args.input = nextArg;
-        i++;
-        break;
+        switch (arg) {
+            case '--input':
+            case '-i':
+                args.input = nextArg;
+                i++;
+                break;
 
-      case '--output':
-      case '-o':
-        args.output = nextArg;
-        i++;
-        break;
+            case '--output':
+            case '-o':
+                args.output = nextArg;
+                i++;
+                break;
 
-      case '--images':
-        args.images = nextArg;
-        i++;
-        break;
+            case '--images':
+                args.images = nextArg;
+                i++;
+                break;
 
-      case '--help':
-      case '-h':
-        args.help = true;
-        break;
+            case '--help':
+            case '-h':
+                args.help = true;
+                break;
 
-      default:
-        // Positional argument = input file
-        if (!arg.startsWith('-') && !args.input) {
-          args.input = arg;
+            default:
+                // Positional argument = input file
+                if (!arg.startsWith('-') && !args.input) {
+                    args.input = arg;
+                }
         }
     }
-  }
 
-  return args;
+    return args;
 }
 
 /**
  * Print help message
  */
 function printHelp() {
-  console.log(`
+    console.log(`
 docx-convert --to markdown - Convert Microsoft Word files to Markdown
 
 USAGE:
@@ -119,7 +119,7 @@ EXIT CODES:
  * @param {object} result
  */
 function printResult(result) {
-  console.log(JSON.stringify(result, null, 2));
+    console.log(JSON.stringify(result, null, 2));
 }
 
 /**
@@ -128,13 +128,13 @@ function printResult(result) {
  * @returns {{valid: boolean, error?: string}}
  */
 function validateArgs(args) {
-  if (!args.input) {
-    return {
-      valid: false,
-      error: 'Input file required. Use --input <path> or provide positional argument.'
-    };
-  }
-  return { valid: true };
+    if (!args.input) {
+        return {
+            valid: false,
+            error: 'Input file required. Use --input <path> or provide positional argument.'
+        };
+    }
+    return { valid: true };
 }
 
 /**
@@ -142,86 +142,87 @@ function validateArgs(args) {
  * @returns {{available: boolean, missing: string[]}}
  */
 function checkDependencies() {
-  const missing = [];
+    const missing = [];
 
-  try {
-    require.resolve('mammoth');
-  } catch {
-    missing.push('mammoth');
-  }
+    try {
+        require.resolve('mammoth');
+    } catch {
+        missing.push('mammoth');
+    }
 
-  try {
-    require.resolve('turndown');
-  } catch {
-    missing.push('turndown');
-  }
+    try {
+        require.resolve('turndown');
+    } catch {
+        missing.push('turndown');
+    }
 
-  try {
-    require.resolve('turndown-plugin-gfm');
-  } catch {
-    missing.push('turndown-plugin-gfm');
-  }
+    try {
+        require.resolve('turndown-plugin-gfm');
+    } catch {
+        missing.push('turndown-plugin-gfm');
+    }
 
-  return {
-    available: missing.length === 0,
-    missing
-  };
+    return {
+        available: missing.length === 0,
+        missing
+    };
 }
 
 /**
  * Main entry point
  */
 async function main() {
-  const args = parseArgs(process.argv);
+    const args = parseArgs(process.argv);
 
-  if (args.help) {
-    printHelp();
-    process.exit(0);
-  }
+    if (args.help) {
+        printHelp();
+        process.exit(0);
+    }
 
-  const validation = validateArgs(args);
-  if (!validation.valid) {
-    printResult({ success: false, error: validation.error });
-    process.exit(1);
-  }
+    const validation = validateArgs(args);
+    if (!validation.valid) {
+        printResult({ success: false, error: validation.error });
+        process.exit(1);
+    }
 
-  const deps = checkDependencies();
-  if (!deps.available) {
-    printResult({
-      success: false,
-      error: `Missing dependencies: ${deps.missing.join(', ')}. Run 'npm install' in skill directory.`,
-      hint: `cd ${path.dirname(__dirname)} && npm install`
-    });
-    process.exit(1);
-  }
+    const deps = checkDependencies();
+    if (!deps.available) {
+        printResult({
+            success: false,
+            error: `Missing dependencies: ${deps.missing.join(', ')}. Run 'npm install' in skill directory.`,
+            hint: `cd ${path.dirname(__dirname)} && npm install`
+        });
+        process.exit(1);
+    }
 
-  // Import converter (lazy load after dependency check)
-  const { convert } = require('./lib/converter.cjs');
+    // Import converter (lazy load after dependency check)
+    const { convert } = require('./lib/converter.cjs');
 
-  try {
-    const result = await convert({
-      input: args.input,
-      output: args.output,
-      images: args.images
-    });
+    try {
+        const result = await convert({
+            input: args.input,
+            output: args.output,
+            images: args.images
+        });
 
-    printResult(result);
-    process.exit(result.success ? 0 : 1);
-
-  } catch (error) {
-    printResult({
-      success: false,
-      error: error.message || 'Unexpected error during conversion'
-    });
-    process.exit(1);
-  }
+        printResult(result);
+        process.exit(result.success ? 0 : 1);
+    } catch (error) {
+        printResult({
+            success: false,
+            error: error.message || 'Unexpected error during conversion'
+        });
+        process.exit(1);
+    }
 }
 
 // Run main
 main().catch(error => {
-  console.error(JSON.stringify({
-    success: false,
-    error: `Unhandled error: ${error.message}`
-  }));
-  process.exit(1);
+    console.error(
+        JSON.stringify({
+            success: false,
+            error: `Unhandled error: ${error.message}`
+        })
+    );
+    process.exit(1);
 });

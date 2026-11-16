@@ -31,14 +31,14 @@ const MAX_REMINDER_PATHS = 8;
 // ---------------------------------------------------------------------------
 
 function splitRow(line) {
-    const cells = line.split('|').map((c) => c.trim());
+    const cells = line.split('|').map(c => c.trim());
     if (cells.length && cells[0] === '') cells.shift();
     if (cells.length && cells[cells.length - 1] === '') cells.pop();
     return cells;
 }
 
 function isSeparatorRow(cells) {
-    return cells.length > 0 && cells.every((c) => /^:?-{3,}:?$/.test(c));
+    return cells.length > 0 && cells.every(c => /^:?-{3,}:?$/.test(c));
 }
 
 /** `[name](../project-protocols/name.md)` -> `../project-protocols/name.md`; bare text -> null. */
@@ -54,7 +54,7 @@ function normalizeProjectRelative(value) {
     if (slashPath.startsWith('/') || /^[a-z]:/i.test(slashPath)) return null;
     const withoutTrailingSlash = slashPath.replace(/\/+$/, '');
     const parts = withoutTrailingSlash.split('/');
-    if (parts.length === 0 || parts.some((part) => !part || part === '.' || part === '..')) return null;
+    if (parts.length === 0 || parts.some(part => !part || part === '.' || part === '..')) return null;
     return parts.join(path.sep);
 }
 
@@ -66,18 +66,16 @@ function resolveRegistryPath(projectDir, config) {
     const cfg = config && typeof config === 'object' ? config : {};
 
     const declaredRoot = cfg.docsRoots?.projectReference?.path;
-    const referenceRootRel = declaredRoot === undefined
-        ? normalizeProjectRelative(DEFAULT_REFERENCE_ROOT_REL)
-        : normalizeProjectRelative(declaredRoot);
+    const referenceRootRel = declaredRoot === undefined ? normalizeProjectRelative(DEFAULT_REFERENCE_ROOT_REL) : normalizeProjectRelative(declaredRoot);
     if (!referenceRootRel) return { path: null, invalid: true };
 
     let filenameRel = DEFAULT_INDEX_FILENAME;
     if (cfg.referenceDocs !== undefined) {
         if (!Array.isArray(cfg.referenceDocs)) return { path: null, invalid: true };
-        if (cfg.referenceDocs.some((entry) => !entry || typeof entry !== 'object' || typeof entry.filename !== 'string')) {
+        if (cfg.referenceDocs.some(entry => !entry || typeof entry !== 'object' || typeof entry.filename !== 'string')) {
             return { path: null, invalid: true };
         }
-        const candidates = cfg.referenceDocs.filter((entry) => {
+        const candidates = cfg.referenceDocs.filter(entry => {
             return entry.filename.trim().replace(/\\/g, '/').split('/').filter(Boolean).pop() === DEFAULT_INDEX_FILENAME;
         });
         if (candidates.length > 1) return { path: null, invalid: true };
@@ -97,7 +95,7 @@ function resolveRegistryPath(projectDir, config) {
 
 /** The body root is project-relative and comes from the index header, never from a row link. */
 function resolveProtocolsDirectory(text) {
-    const lines = text.split(/\r?\n/).filter((line) => /^\s*\*\*Protocols directory:\*\*/i.test(line));
+    const lines = text.split(/\r?\n/).filter(line => /^\s*\*\*Protocols directory:\*\*/i.test(line));
     if (lines.length === 0) return { path: DEFAULT_BODIES_REL, invalid: false };
     if (lines.length !== 1) return { path: null, invalid: true };
     const match = lines[0].match(/^\s*\*\*Protocols directory:\*\*\s*`([^`]+)`\s*$/i);
@@ -117,11 +115,10 @@ function loadRegistry(projectDir, config) {
     }
 
     const protocolsDirectory = resolveProtocolsDirectory(text);
-    if (protocolsDirectory.invalid || !isSafelyContainedOnDisk(
-        projectDir,
-        path.resolve(projectDir),
-        path.resolve(projectDir, protocolsDirectory.path || '.')
-    )) {
+    if (
+        protocolsDirectory.invalid ||
+        !isSafelyContainedOnDisk(projectDir, path.resolve(projectDir), path.resolve(projectDir, protocolsDirectory.path || '.'))
+    ) {
         return { rows: [] };
     }
 
@@ -208,7 +205,7 @@ function globMatch(pattern, text) {
     let starT = 0;
 
     while (t < text.length) {
-        if (p < pattern.length && (pattern[p] === text[t])) {
+        if (p < pattern.length && pattern[p] === text[t]) {
             p++;
             t++;
         } else if (p < pattern.length && pattern[p] === '*') {

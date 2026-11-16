@@ -25,11 +25,19 @@ const TAIL_BYTES = 256 * 1024;
 const MAX_TURN_GAP_MS = 10 * 60 * 1000;
 
 function readStdin() {
-    try { return fs.readFileSync(0, 'utf-8'); } catch { return ''; }
+    try {
+        return fs.readFileSync(0, 'utf-8');
+    } catch {
+        return '';
+    }
 }
 
 function parseJsonSafe(s) {
-    try { return JSON.parse(s); } catch { return null; }
+    try {
+        return JSON.parse(s);
+    } catch {
+        return null;
+    }
 }
 
 function readTranscriptTail(transcriptPath) {
@@ -55,7 +63,11 @@ function readTranscriptTail(transcriptPath) {
     } catch {
         return [];
     } finally {
-        if (fd != null) { try { fs.closeSync(fd); } catch {} }
+        if (fd != null) {
+            try {
+                fs.closeSync(fd);
+            } catch {}
+        }
     }
 }
 
@@ -130,7 +142,11 @@ function main() {
 }
 
 if (require.main === module) {
-    try { main(); } catch { /* never throw */ }
+    try {
+        main();
+    } catch {
+        /* never throw */
+    }
 }
 
 module.exports = { computeAvgTps, fmt, MAX_TURN_GAP_MS };

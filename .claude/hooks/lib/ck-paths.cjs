@@ -33,7 +33,7 @@ const SESSION_ID_DEFAULT = 'default';
 const PROJECT_DIR = resolveProjectRoot({
     cwd: process.cwd(),
     scriptPath: __filename,
-    env: process.env,
+    env: process.env
 }).rootDir;
 const PROJECT_TMP_DIR = path.join(PROJECT_DIR, 'tmp', 'claude-temp');
 

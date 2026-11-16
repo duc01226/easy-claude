@@ -25,9 +25,17 @@ function profileOptions(deps) {
     return { homeDir: deps?.homeDir, config: deps?.config };
 }
 
-function readConciseProtocol(root, tag, read = file => {
-    try { return require('node:fs').readFileSync(file, 'utf8'); } catch { return null; }
-}) {
+function readConciseProtocol(
+    root,
+    tag,
+    read = file => {
+        try {
+            return require('node:fs').readFileSync(file, 'utf8');
+        } catch {
+            return null;
+        }
+    }
+) {
     if (![CORE_TAG, ROUTE_TAG].includes(tag)) return null;
     const index = require('./protocol-delivery.cjs').loadIndex({ root, read });
     const row = index?.rows.get(tag);
@@ -35,15 +43,16 @@ function readConciseProtocol(root, tag, read = file => {
     let file;
     try {
         file = require('./project-reference-registry.cjs').resolveContainedPath(root, row.parts[0].file, { projectRoot: root });
-    } catch { return null; }
+    } catch {
+        return null;
+    }
     const raw = read(file);
     if (typeof raw !== 'string' || !raw.trim() || raw.length > 9000) return null;
     return raw.replace(/\r\n/g, '\n').trim();
 }
 
 function conciseCore(root, options = {}) {
-    return resolveProfile(root, options).profile === 'concise'
-        ? readConciseProtocol(root, CORE_TAG, options.read) : null;
+    return resolveProfile(root, options).profile === 'concise' ? readConciseProtocol(root, CORE_TAG, options.read) : null;
 }
 
 module.exports = { CORE_TAG, ROUTE_TAG, resolveProfile, profileOptions, readConciseProtocol, conciseCore };

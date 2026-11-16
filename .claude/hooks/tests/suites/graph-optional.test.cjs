@@ -30,7 +30,7 @@ const { isFrameworkRepo } = require('../lib/framework-repo-guard.cjs');
 
 const HOOKS_DIR = path.resolve(__dirname, '..', '..');
 const REPO_ROOT = path.resolve(HOOKS_DIR, '..', '..');
-const SKIP = isFrameworkRepo(REPO_ROOT) ? false : 'asserts the framework repo\'s own graph protocols and skills (framework-repo signal)';
+const SKIP = isFrameworkRepo(REPO_ROOT) ? false : "asserts the framework repo's own graph protocols and skills (framework-repo signal)";
 
 const SHARED = path.join(REPO_ROOT, '.claude', 'skills', 'shared');
 const read = (...parts) => fs.readFileSync(path.join(REPO_ROOT, ...parts), 'utf8').replace(/\r\n/g, '\n');
@@ -56,7 +56,10 @@ const ADVISORY_MARKERS = [
 /** Imperative or blocking graph wording that must not exist in any authored or canonical text. */
 const FORBIDDEN = [
     { name: 'HARD-GATE on graph', rx: /HARD-GATE[^\n]*graph|graph[^\n]*HARD-GATE/i },
-    { name: 'MANDATORY graph', rx: /MANDATORY[^.\n]{0,40}(?:graph\.db|graph command|graph trace|graph expansion|graph gate)|(?:graph\.db|graph command|graph trace|graph expansion|graph gate)[^.\n]{0,25}MANDATORY/i },
+    {
+        name: 'MANDATORY graph',
+        rx: /MANDATORY[^.\n]{0,40}(?:graph\.db|graph command|graph trace|graph expansion|graph gate)|(?:graph\.db|graph command|graph trace|graph expansion|graph gate)[^.\n]{0,25}MANDATORY/i
+    },
     { name: 'MUST run a graph command', rx: /MUST(?: ATTENTION)?[^\n]*\b(?:run|use|USE)\b[^\n]*(?:graph command|graph trace|code_graph|graph\.db)/i },
     { name: 'run at least one graph command', rx: /run (?:at least )?(?:ONE|one|≥1) (?:graph|`code_graph`) command|run ≥1 graph command/i },
     { name: 'BLOCKED until graph', rx: /BLOCKED until[^\n]*(?:[Gg]raph trace|graph\.db exists)/ },
@@ -76,10 +79,15 @@ function findForbidden(label, text) {
 // ── authored-text scan helpers ────────────────────────────────────────────────────────────────────────
 /** Tags whose inlined copies are owned by the sync tooling, not authored by hand. */
 const COPY_TAGS = [
-    'graph-assisted-investigation', 'graph-assisted-investigation:reminder',
-    'graph-impact-analysis', 'graph-impact-analysis:reminder',
-    'understand-code-first', 'understand-code-first:reminder',
-    'review-protocol-injection', 'cross-stack-impact-trace', 'root-cause-debugging'
+    'graph-assisted-investigation',
+    'graph-assisted-investigation:reminder',
+    'graph-impact-analysis',
+    'graph-impact-analysis:reminder',
+    'understand-code-first',
+    'understand-code-first:reminder',
+    'review-protocol-injection',
+    'cross-stack-impact-trace',
+    'root-cause-debugging'
 ];
 
 function stripSyncCopies(text) {
@@ -123,8 +131,15 @@ function makeProject({ mode, graph } = {}) {
 
 function isolatedEnv(dir) {
     const overrides = {
-        HOME: dir, USERPROFILE: dir, TMPDIR: dir, TEMP: dir, TMP: dir,
-        LOCALAPPDATA: dir, XDG_CACHE_HOME: dir, CLAUDE_PROJECT_DIR: dir, CLAUDE_HOOK_DEBUG: undefined
+        HOME: dir,
+        USERPROFILE: dir,
+        TMPDIR: dir,
+        TEMP: dir,
+        TMP: dir,
+        LOCALAPPDATA: dir,
+        XDG_CACHE_HOME: dir,
+        CLAUDE_PROJECT_DIR: dir,
+        CLAUDE_HOOK_DEBUG: undefined
     };
     for (const key of Object.keys(process.env)) if (/^CK_/i.test(key)) overrides[key] = undefined;
     overrides.CK_GRAPH_SPAWN_STUB = path.join(dir, 'graph-spawns.jsonl');
@@ -133,7 +148,12 @@ function isolatedEnv(dir) {
 
 function runHook(dir, hookFile, payload) {
     const child = spawnSync(process.execPath, [path.join(HOOKS_DIR, hookFile)], {
-        cwd: dir, env: isolatedEnv(dir), input: JSON.stringify(payload), encoding: 'utf8', timeout: 30000, windowsHide: true
+        cwd: dir,
+        env: isolatedEnv(dir),
+        input: JSON.stringify(payload),
+        encoding: 'utf8',
+        timeout: 30000,
+        windowsHide: true
     });
     assert.equal(child.error, undefined, `${hookFile} must complete: ${child.error && child.error.message}`);
     assert.equal(child.status, 0, `${hookFile} must exit 0 (never block on a missing or stale graph); stderr: ${child.stderr}`);
@@ -143,7 +163,12 @@ function runHook(dir, hookFile, payload) {
 const PAYLOADS = dir => ({
     'graph-session-init.cjs': { hook_event_name: 'SessionStart', source: 'startup', session_id: 's1' },
     'graph-prompt-sync.cjs': { hook_event_name: 'UserPromptSubmit', prompt: 'implement feature X', session_id: 's1' },
-    'graph-auto-update.cjs': { hook_event_name: 'PostToolUse', tool_name: 'Edit', session_id: 's1', tool_input: { file_path: path.join(dir, 'src', 'index.js'), old_string: 'a', new_string: 'b' } },
+    'graph-auto-update.cjs': {
+        hook_event_name: 'PostToolUse',
+        tool_name: 'Edit',
+        session_id: 's1',
+        tool_input: { file_path: path.join(dir, 'src', 'index.js'), old_string: 'a', new_string: 'b' }
+    },
     'init-prompt-gate.cjs': { hook_event_name: 'UserPromptSubmit', prompt: 'implement feature X', session_id: 's1' }
 });
 
@@ -191,8 +216,11 @@ const tests = [
                 if (!/stale/.test(text)) problems.push(`${label}: no staleness caveat`);
                 if (/MANDATORY|MUST ATTENTION/.test(text)) problems.push(`${label}: imperative wording`);
             }
-            const understand = [canonicalBlock('understand-code-first'), canonicalBlock('understand-code-first:reminder'),
-                read('.claude', 'skills', 'shared', 'protocols', 'understand-code-first.md')];
+            const understand = [
+                canonicalBlock('understand-code-first'),
+                canonicalBlock('understand-code-first:reminder'),
+                read('.claude', 'skills', 'shared', 'protocols', 'understand-code-first.md')
+            ];
             for (const [i, text] of understand.entries()) {
                 problems.push(...findForbidden(`understand-code-first[${i}]`, text));
                 if (!/(?:optional|Optional)/.test(text)) problems.push(`understand-code-first[${i}]: graph mention is not marked optional`);
@@ -205,8 +233,10 @@ const tests = [
         skip: SKIP,
         fn() {
             const template = canonicalBlock('review-protocol-injection');
-            const projection = [read('.claude', 'skills', 'shared', 'protocols', 'review-protocol-injection.md'),
-                read('.claude', 'skills', 'shared', 'protocols', 'review-protocol-injection.part-2.md')].join('\n');
+            const projection = [
+                read('.claude', 'skills', 'shared', 'protocols', 'review-protocol-injection.md'),
+                read('.claude', 'skills', 'shared', 'protocols', 'review-protocol-injection.part-2.md')
+            ].join('\n');
             for (const [label, text] of Object.entries({ template, projection })) {
                 assert.match(text, /### Graph-Assisted Investigation \(optional advice\)/, `${label}: graph section is advisory`);
                 assert.match(text, /hint, NOT proof/, `${label}: staleness caveat`);
@@ -219,7 +249,11 @@ const tests = [
         skip: SKIP,
         fn() {
             const template = read('.claude', 'skills', 'ai-context-refresh', 'references', 'claude-md-template.md');
-            assert.doesNotMatch(template, /^## Graph Intelligence/m, 'the template carries no Graph Intelligence section: the protocol is delivered by the hook');
+            assert.doesNotMatch(
+                template,
+                /^## Graph Intelligence/m,
+                'the template carries no Graph Intelligence section: the protocol is delivered by the hook'
+            );
             assert.doesNotMatch(template, /HARD-GATE|run at least one graph command/i, 'the template carries no graph gate');
             const body = read('.claude', 'skills', 'shared', 'protocols', 'graph-assisted-investigation.md');
             assert.match(body, /Optional/, 'the protocol is advisory');
@@ -234,7 +268,12 @@ const tests = [
         fn() {
             // Given every authored skill, agent and workflow doc, with the sync-owned copies stripped and the
             // graph-tooling skills themselves (their own command documentation) left out
-            const roots = [path.join(REPO_ROOT, '.claude', 'skills'), path.join(REPO_ROOT, '.claude', 'agents'), path.join(REPO_ROOT, '.claude', 'workflows'), path.join(REPO_ROOT, '.claude', 'docs')];
+            const roots = [
+                path.join(REPO_ROOT, '.claude', 'skills'),
+                path.join(REPO_ROOT, '.claude', 'agents'),
+                path.join(REPO_ROOT, '.claude', 'workflows'),
+                path.join(REPO_ROOT, '.claude', 'docs')
+            ];
             const problems = [];
             for (const root of roots) {
                 for (const file of walkMarkdown(root)) {

@@ -35,7 +35,15 @@ if (isHookEntryPoint(module)) {
     process.exitCode = 0;
     try {
         const input = readInput();
-        if (input) run(input).then(() => { process.exitCode = 0; }, () => { process.exitCode = 0; });
+        if (input)
+            run(input).then(
+                () => {
+                    process.exitCode = 0;
+                },
+                () => {
+                    process.exitCode = 0;
+                }
+            );
     } catch {
         process.exitCode = 0;
     }
