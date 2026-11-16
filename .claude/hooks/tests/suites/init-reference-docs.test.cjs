@@ -58,6 +58,28 @@ const unitTests = [
         }
     },
     {
+        // TC-PCI-083: the feature map is opt-in. Only an explicit referenceDocs entry selects it.
+        name: '[init-reference-docs] TC-PCI-083 feature map has a scan owner and a template and is never selected by default',
+        fn: () => {
+            const { resolveDefaultReferenceDocs, mergeReferenceDocs } = require('../../lib/session-init-helpers.cjs');
+            const { resolveReferenceDocTarget, validateReferenceDocDefinition } = require('../../lib/project-reference-registry.cjs');
+            const filename = 'feature-map-reference.md';
+            assertEqual(resolveReferenceDocTarget(filename).command, 'scan --target=feature-map');
+            assertEqual(mergeReferenceDocs([{ filename }])[0].templatePath, '.claude/templates/reference-docs/feature-map-reference.md');
+            assertTrue(fs.existsSync(path.resolve(__dirname, '../../../templates/reference-docs', filename)), 'the template ships');
+            assertTrue(fs.existsSync(path.resolve(__dirname, '../../../skills/scan/references/targets/feature-map.md')), 'the scan target file ships');
+            const everything = { project: { name: 'Rich' }, testing: { filePatterns: { e2e: '*.e2e.ts' } }, specRoots: { business: { path: 'docs/specs' } } };
+            assertTrue(!resolveDefaultReferenceDocs(everything).some(doc => doc.filename === filename), 'no capability selects the map on its own');
+            let refused = '';
+            try {
+                validateReferenceDocDefinition({ filename, purpose: 'Map', scanTarget: 'generic' }, 0);
+            } catch (error) {
+                refused = error.message;
+            }
+            assertTrue(/framework-owned scan target/.test(refused), 'a built-in doc keeps its own scan owner');
+        }
+    },
+    {
         // Invariant: new guide scaffolds enable discovery without prescribing an unevidenced architecture.
         name: '[init-reference-docs] guide scaffolds preserve local sections without imposing architecture',
         fn: () => {

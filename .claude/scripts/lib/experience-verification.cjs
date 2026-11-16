@@ -3,7 +3,8 @@
 /**
  * Portable experience-review evidence and expectation-transition contract.
  *
- * This module validates records and classifies baseline comparisons. It never
+ * This module validates records, classifies baseline comparisons and renders the
+ * pull-request "Runtime evidence" section from records of the same tree. It never
  * launches an application, reads a screenshot, updates a test, or infers
  * human approval. Those are agent/human activities whose evidence is supplied
  * to this deterministic boundary.
@@ -35,6 +36,11 @@ const COMPARISON_DECISIONS = Object.freeze([
     'UNVERIFIED',
     'AMBIGUOUS'
 ]);
+
+const TREE_ID = /^[0-9a-f]{40}(?:[0-9a-f]{24})?$/;
+const CAPTURE_KINDS = Object.freeze(['screenshot', 'video', 'trace', 'log']);
+const ATTACHABLE_KINDS = Object.freeze(['screenshot', 'video']);
+const PR_EVIDENCE_STATUSES = Object.freeze(['MATCHED', 'STALE', 'MISSING', 'INVALID', 'NOT-OBSERVABLE']);
 
 const own = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
 const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -125,6 +131,42 @@ function validateJudgments(value, errors) {
     });
 }
 
+/**
+ * Optional fields that carry a record to a human reviewer: the Git tree the review
+ * exercised (so a pull request can tell current evidence from stale), the feature-map
+ * entries it drove, its BLOCKING count and the captures it kept.
+ */
+function validateReviewerFields(record, errors) {
+    if (record.candidateTree !== undefined && (typeof record.candidateTree !== 'string' || !TREE_ID.test(record.candidateTree))) {
+        errors.push('candidateTree must be the Git tree id the review exercised (40 or 64 lowercase hex characters)');
+    }
+    if (record.featureMapEntries !== undefined) {
+        // An empty list is a valid answer: the review drove no mapped feature.
+        if (!Array.isArray(record.featureMapEntries) || record.featureMapEntries.length > 64)
+            errors.push('featureMapEntries must be an array with at most 64 items');
+        else record.featureMapEntries.forEach((item, index) => text(item, `featureMapEntries[${index}]`, errors, 256));
+    }
+    if (record.blockingCount !== undefined && (!Number.isInteger(record.blockingCount) || record.blockingCount < 0)) {
+        errors.push('blockingCount must be a whole number of BLOCKING findings');
+    }
+    if (record.captures === undefined) return;
+    if (!Array.isArray(record.captures) || record.captures.length > 256) {
+        errors.push('captures must be an array with at most 256 items');
+        return;
+    }
+    record.captures.forEach((capture, index) => {
+        const field = `captures[${index}]`;
+        if (!isObject(capture)) {
+            errors.push(`${field} must be an object`);
+            return;
+        }
+        text(capture.path, `${field}.path`, errors, 2048);
+        if (!CAPTURE_KINDS.includes(capture.kind)) errors.push(`${field}.kind must be ${CAPTURE_KINDS.join('/')}`);
+        if (typeof capture.read !== 'boolean') errors.push(`${field}.read must say whether the capture was inspected`);
+        if (typeof capture.redacted !== 'boolean') errors.push(`${field}.redacted must say whether secrets and personal data were removed`);
+    });
+}
+
 function validTimestamp(value) {
     return typeof value === 'string' && value.length > 0 && value.trim() === value && !/[\x00-\x1f\x7f]/.test(value) && Number.isFinite(Date.parse(value));
 }
@@ -188,6 +230,7 @@ function validateEvidenceRecord(record) {
 
     if (record.limitations !== undefined) stringArray(record.limitations, 'limitations', errors, 64);
     if (record.acceptance !== undefined) validateAcceptance(record.acceptance, record, errors);
+    validateReviewerFields(record, errors);
 
     const valid = errors.length === 0;
     return { valid, errors, status: valid ? deriveReviewStatus(record) : 'INVALID-RECORD' };
@@ -304,15 +347,124 @@ function classifyBaselineComparison(input = {}) {
     return { decision: 'AMBIGUOUS', requiresAcceptance: false, action: 'resolve intent and evidence before changing expectations' };
 }
 
+// A whitespace-delimited token with a `tmp/` or `temp/` segment: disposable, local-only output.
+const LOCAL_PATH = /[^\s()[\]`'"|<>]*(?<![A-Za-z0-9_.-])(?:tmp|temp)[\\/][^\s()[\]`'"|<>]*/gi;
+
+/** Text bound for a pull request: one line, no local-only path, no credential-shaped value. */
+function reviewerText(value) {
+    const { redactSecrets } = require('../../hooks/lib/prompt-ledger-store.cjs');
+    const flat = String(value === undefined || value === null ? '' : value)
+        .replace(/\s+/g, ' ')
+        .trim()
+        .replace(LOCAL_PATH, '(local evidence)');
+    // Markdown table cell: escape the cell separator and raw HTML, which a PR body would render.
+    return redactSecrets(flat).text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\|/g, '\\|');
+}
+
+function judgmentSummary(record) {
+    if (record.applicability !== 'APPLICABLE') return reviewerText(record.reason);
+    const counts = new Map();
+    for (const judgment of record.judgments) counts.set(judgment.result, (counts.get(judgment.result) || 0) + 1);
+    return JUDGMENT_RESULTS.filter(result => counts.has(result))
+        .map(result => `${counts.get(result)} ${result}`)
+        .join(', ');
+}
+
+/**
+ * Render the "Runtime evidence" section of a pull-request body from experience-review
+ * records. Only records whose `candidateTree` equals the PR candidate's tree count; an
+ * older tree is stale evidence. The text never cites a local-only path and never names a
+ * capture: captures stay local unless the caller lists them in `attached` after a per-PR
+ * yes. `attachable` lists only captures that were read and redacted.
+ *
+ * Input: { candidateTree, observableChange, reason?, records?, attached? }
+ */
+function renderPrEvidence(input = {}) {
+    if (!isObject(input)) throw new Error('pr-evidence input must be an object');
+    if (typeof input.observableChange !== 'boolean') throw new Error('observableChange must be boolean: does the change touch an observable surface?');
+    const records = input.records === undefined ? [] : input.records;
+    if (!Array.isArray(records)) throw new Error('records must be an array of experience-review evidence records');
+    const attached = input.attached === undefined ? [] : input.attached;
+    if (!Array.isArray(attached) || attached.some(item => typeof item !== 'string')) throw new Error('attached must list capture paths');
+    if (!input.observableChange && records.length === 0) return { status: 'NOT-OBSERVABLE', markdown: '', attachable: [] };
+    if (typeof input.candidateTree !== 'string' || !TREE_ID.test(input.candidateTree)) {
+        throw new Error('candidateTree must be the Git tree id of the pull-request candidate');
+    }
+    const short = tree => `\`${tree.slice(0, 12)}\``;
+    const valid = [];
+    let invalid = 0;
+    for (const record of records) {
+        if (validateEvidenceRecord(record).valid) valid.push(record);
+        else invalid += 1;
+    }
+    const matched = valid.filter(record => record.candidateTree === input.candidateTree);
+    const stale = valid.filter(record => record.candidateTree !== input.candidateTree);
+    const heading = '### Runtime evidence';
+    const callerReason = typeof input.reason === 'string' && input.reason.trim() ? reviewerText(input.reason) : '';
+
+    if (matched.length === 0) {
+        let status = 'MISSING';
+        let reason = callerReason || 'no runtime review ran for this change';
+        if (stale.length > 0) {
+            status = 'STALE';
+            const trees = [...new Set(stale.map(record => record.candidateTree).filter(Boolean))].map(short);
+            reason = `${trees.length ? `the runtime review covers tree ${trees.join(', ')}` : 'the runtime review recorded no tree'}, not this candidate ${short(input.candidateTree)}${callerReason ? `; ${callerReason}` : ''}`;
+        } else if (invalid > 0) {
+            status = 'INVALID';
+            reason = `${invalid} runtime review record${invalid === 1 ? ' is' : 's are'} invalid${callerReason ? `; ${callerReason}` : ''}`;
+        }
+        return { status, markdown: `${heading}\n\nNo runtime evidence: ${reason}.\n`, attachable: [] };
+    }
+
+    const statuses = matched.map(record => deriveReviewStatus(record));
+    const rows = matched.map(
+        (record, index) =>
+            `| ${reviewerText(record.surfaceId)} | ${reviewerText(record.purpose)} | ${statuses[index]} | ${judgmentSummary(record)} | ${
+                record.featureMapEntries?.length ? record.featureMapEntries.map(reviewerText).join(', ') : '—'
+            } |`
+    );
+    const blocking = matched.reduce((sum, record) => sum + (record.blockingCount || 0), 0);
+    // One capture listed by two records is still one file.
+    const captures = [...new Map(matched.flatMap(record => record.captures || []).map(capture => [capture.path, capture])).values()];
+    const attachable = captures.filter(capture => capture.read && capture.redacted && ATTACHABLE_KINDS.includes(capture.kind)).map(capture => capture.path);
+    const attachedCount = attachable.filter(capturePath => attached.includes(capturePath)).length;
+    // Accepted only when a person accepted every surface that was exercised; not-applicable rows
+    // prove nothing, so a section of only those rows reports NOT-APPLICABLE, never an acceptance.
+    const exercised = statuses.filter(status => status !== 'NOT-APPLICABLE');
+    const acceptance =
+        exercised.length === 0 ? 'NOT-APPLICABLE' : exercised.every(status => status === 'HUMAN-ACCEPTED') ? 'HUMAN-ACCEPTED' : 'ACCEPTANCE-PENDING';
+    const lines = [
+        heading,
+        '',
+        `Copied from the runtime review of tree ${short(input.candidateTree)}. Statuses are observations and agent judgments, not a human acceptance.`,
+        '',
+        '| Surface | Purpose | Status | Judgments | Feature map |',
+        '| --- | --- | --- | --- | --- |',
+        ...rows,
+        '',
+        `- BLOCKING findings: ${blocking}`,
+        `- Acceptance: ${acceptance}`,
+        `- Captures: ${attachedCount} attached after consent, ${captures.length - attachedCount} kept local-only`
+    ];
+    if (stale.length + invalid > 0) lines.push(`- Omitted: ${stale.length} record(s) from another tree, ${invalid} invalid record(s)`);
+    return { status: 'MATCHED', markdown: `${lines.join('\n')}\n`, attachable };
+}
+
 function runCli() {
     try {
         const command = process.argv[2];
-        if (process.argv.length !== 3 || !['validate', 'promote', 'compare'].includes(command)) {
-            throw new Error('Use validate|promote|compare with a JSON object on stdin');
+        if (process.argv.length !== 3 || !['validate', 'promote', 'compare', 'pr-evidence'].includes(command)) {
+            throw new Error('Use validate|promote|compare|pr-evidence with a JSON object on stdin');
         }
         const input = JSON.parse(require('node:fs').readFileSync(0, 'utf8'));
         const result =
-            command === 'validate' ? validateEvidenceRecord(input) : command === 'promote' ? canPromoteBaseline(input) : classifyBaselineComparison(input);
+            command === 'validate'
+                ? validateEvidenceRecord(input)
+                : command === 'promote'
+                  ? canPromoteBaseline(input)
+                  : command === 'pr-evidence'
+                    ? renderPrEvidence(input)
+                    : classifyBaselineComparison(input);
         process.stdout.write(`${JSON.stringify(result)}\n`);
         process.exitCode = 0;
     } catch (error) {
@@ -329,7 +481,10 @@ module.exports = {
     JUDGMENT_RESULTS,
     ACCEPTANCE_STATUS,
     COMPARISON_DECISIONS,
+    CAPTURE_KINDS,
+    PR_EVIDENCE_STATUSES,
     validateEvidenceRecord,
+    renderPrEvidence,
     deriveReviewStatus,
     canPromoteBaseline,
     classifyBaselineComparison,
