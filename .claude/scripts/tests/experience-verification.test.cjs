@@ -324,3 +324,152 @@ test('TC-EXP-008: explicit acceptance must state the accepted scope', () => {
     assert.match(result.errors.join('\n'), /acceptance\.scope/);
     assert.equal(deriveReviewStatus(record), 'ACCEPTANCE-PENDING');
 });
+
+// Runtime evidence reaches the reviewer (US-PCI-04, BR-PCI-07, BR-PCI-08).
+const { renderPrEvidence } = require('../lib/experience-verification.cjs');
+
+const TREE = 'a'.repeat(40);
+const OLD_TREE = 'b'.repeat(40);
+
+function reviewed(overrides = {}) {
+    return applicable({
+        candidateTree: TREE,
+        featureMapEntries: ['US-CHK-01'],
+        blockingCount: 0,
+        captures: [
+            { path: 'tmp/evidence/checkout/confirm.png', kind: 'screenshot', read: true, redacted: true },
+            { path: 'tmp/evidence/checkout/unread.png', kind: 'screenshot', read: false, redacted: true },
+            { path: 'tmp/evidence/checkout/raw.webm', kind: 'video', read: true, redacted: false },
+            { path: 'tmp/evidence/checkout/console.log', kind: 'log', read: true, redacted: true }
+        ],
+        ...overrides
+    });
+}
+
+test('TC-PCI-078: a matching runtime review becomes PR text with no local-only path', () => {
+    const result = renderPrEvidence({ candidateTree: TREE, observableChange: true, records: [reviewed()] });
+    assert.equal(result.status, 'MATCHED');
+    assert.match(result.markdown, /^### Runtime evidence/);
+    assert.match(result.markdown, /\| checkout \| .* \| ACCEPTANCE-PENDING \| 1 PASS \| US-CHK-01 \|/);
+    assert.match(result.markdown, /BLOCKING findings: 0/);
+    assert.match(result.markdown, /Acceptance: ACCEPTANCE-PENDING/);
+    assert.match(result.markdown, /not a human acceptance/);
+    assert.doesNotMatch(result.markdown, /tmp\/|evidence\/obs-001/, 'PR text never links local-only evidence');
+    assert.match(result.markdown, /0 attached after consent, 4 kept local-only/);
+    assert.deepEqual(result.attachable, ['tmp/evidence/checkout/confirm.png'], 'only read, redacted images or video may be offered for attachment');
+});
+
+test('TC-PCI-079: missing or stale runtime evidence is stated, never omitted', () => {
+    const missing = renderPrEvidence({ candidateTree: TREE, observableChange: true, reason: 'the local stack needs a licence key' });
+    assert.equal(missing.status, 'MISSING');
+    assert.match(missing.markdown, /No runtime evidence: the local stack needs a licence key\./);
+
+    const stale = renderPrEvidence({ candidateTree: TREE, observableChange: true, records: [reviewed({ candidateTree: OLD_TREE })] });
+    assert.equal(stale.status, 'STALE');
+    assert.match(stale.markdown, /No runtime evidence: the runtime review covers tree `bbbbbbbbbbbb`, not this candidate `aaaaaaaaaaaa`/);
+    assert.deepEqual(stale.attachable, [], 'stale captures are never offered');
+
+    const untracked = renderPrEvidence({ candidateTree: TREE, observableChange: true, records: [applicable()] });
+    assert.equal(untracked.status, 'STALE', 'a record without its tree cannot prove it covers this candidate');
+
+    const invalid = renderPrEvidence({ candidateTree: TREE, observableChange: true, records: [reviewed({ captures: [{ path: 'x.png', kind: 'gif' }] })] });
+    assert.equal(invalid.status, 'INVALID');
+    assert.match(invalid.markdown, /1 runtime review record is invalid/);
+});
+
+test('TC-PCI-080: a change with no observable surface gets no runtime section', () => {
+    const result = renderPrEvidence({ observableChange: false });
+    assert.deepEqual(result, { status: 'NOT-OBSERVABLE', markdown: '', attachable: [] });
+    assert.throws(() => renderPrEvidence({ candidateTree: TREE }), /observableChange must be boolean/);
+    assert.throws(() => renderPrEvidence({ candidateTree: 'HEAD', observableChange: true }), /candidateTree/);
+});
+
+test('TC-PCI-081: attachments follow consent, and credential-shaped text is redacted', () => {
+    const secret = `sk-${'x'.repeat(24)}`;
+    const declined = renderPrEvidence({
+        candidateTree: TREE,
+        observableChange: true,
+        records: [reviewed({ purpose: `Checkout with api_key=${secret} works.` })]
+    });
+    assert.ok(!declined.markdown.includes(secret), 'a credential in a record never reaches the PR body');
+    assert.match(declined.markdown, /0 attached after consent, 4 kept local-only/);
+
+    const approved = renderPrEvidence({
+        candidateTree: TREE,
+        observableChange: true,
+        records: [reviewed(), reviewed({ surfaceId: 'admin', candidateTree: OLD_TREE })],
+        attached: ['tmp/evidence/checkout/confirm.png', 'tmp/evidence/checkout/unread.png']
+    });
+    assert.match(approved.markdown, /1 attached after consent, 3 kept local-only/, 'an unread capture never counts as attached');
+    assert.match(approved.markdown, /Omitted: 1 record\(s\) from another tree, 0 invalid record\(s\)/);
+    assert.doesNotMatch(approved.markdown, /\| admin \|/);
+});
+
+test('reviewer fields are validated: tree id, BLOCKING count and capture flags', () => {
+    const errors = validateEvidenceRecord(
+        applicable({ candidateTree: 'HEAD', blockingCount: -1, captures: [{ path: 'a.png', kind: 'screenshot', read: 'yes' }] })
+    ).errors.join('\n');
+    assert.match(errors, /candidateTree must be the Git tree id/);
+    assert.match(errors, /blockingCount must be a whole number/);
+    assert.match(errors, /captures\[0\]\.read must say/);
+    assert.match(errors, /captures\[0\]\.redacted must say/);
+    assert.equal(validateEvidenceRecord(reviewed()).valid, true);
+});
+
+test('pr-evidence CLI renders the section from stdin', () => {
+    const result = spawnSync(process.execPath, [path.resolve(__dirname, '..', 'lib', 'experience-verification.cjs'), 'pr-evidence'], {
+        input: JSON.stringify({ candidateTree: TREE, observableChange: true, records: [reviewed()] }),
+        encoding: 'utf8'
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(JSON.parse(result.stdout).status, 'MATCHED');
+});
+
+test('TC-PCI-078: PR text hides local paths, escapes table and HTML characters, and counts a shared capture once', () => {
+    const shared = { path: 'tmp/evidence/shared.png', kind: 'screenshot', read: true, redacted: true };
+    const result = renderPrEvidence({
+        candidateTree: TREE,
+        observableChange: true,
+        records: [
+            reviewed({
+                purpose: 'See tmp/evidence/run-1/report.md and C:\\Users\\dev\\AppData\\Local\\Temp\\shot.png | <img src=x onerror=alert(1)>',
+                captures: [shared]
+            }),
+            reviewed({ surfaceId: 'admin', captures: [shared] })
+        ]
+    });
+    assert.doesNotMatch(result.markdown, /tmp\/|Temp\\/, 'local-only paths never reach the PR body');
+    assert.match(result.markdown, /\(local evidence\)/);
+    assert.match(result.markdown, /\\\| &lt;img/, 'a pipe cannot split the row and raw HTML is not rendered');
+    assert.match(result.markdown, /0 attached after consent, 1 kept local-only/);
+    assert.deepEqual(result.attachable, ['tmp/evidence/shared.png']);
+});
+
+test('TC-PCI-078: acceptance is HUMAN-ACCEPTED only when a person accepted every exercised surface', () => {
+    const acceptedRecord = reviewed({
+        acceptance: {
+            status: 'HUMAN-ACCEPTED',
+            acceptedBy: 'owner',
+            acceptedAt: '2026-11-17T10:00:00Z',
+            intentRef: 'spec/checkout#confirmation',
+            evidenceRefs: ['evidence/obs-001'],
+            scope: 'Checkout confirmation'
+        }
+    });
+    const notApplicable = {
+        schemaVersion: 1,
+        reviewId: 'review-002',
+        surfaceId: 'api',
+        mode: 'review',
+        applicability: 'NOT-APPLICABLE',
+        purpose: 'No API surface changed.',
+        reason: 'The change touches no API route.',
+        evidenceRefs: ['repo/routes'],
+        candidateTree: TREE
+    };
+    const render = records => renderPrEvidence({ candidateTree: TREE, observableChange: true, records }).markdown;
+    assert.match(render([acceptedRecord, notApplicable]), /Acceptance: HUMAN-ACCEPTED/);
+    assert.match(render([acceptedRecord, reviewed({ surfaceId: 'admin' })]), /Acceptance: ACCEPTANCE-PENDING/);
+    assert.match(render([notApplicable]), /Acceptance: NOT-APPLICABLE/, 'not-applicable rows alone never read as an acceptance');
+    assert.equal(validateEvidenceRecord(reviewed({ featureMapEntries: [] })).valid, true, 'a review that drove no mapped feature is valid');
+});
