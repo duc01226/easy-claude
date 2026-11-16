@@ -2341,6 +2341,48 @@ module.exports = {
             }
         },
         {
+            name: '[content-presence] TC-CP-020 a test fix needs a root-cause verdict and a fix never works around its cause',
+            // Business Intent / Invariant Guarded: a failed test is fixed only after `investigate --mode=debug` names
+            // the root cause and the traced verdict, checked against the spec, picks the wrong side (never a test edited to match the code),
+            // and no fix hides its cause behind special-casing, retries, sleeps, loosened checks or suppressed errors.
+            // The universal rules state both and changes-review flags both; dropping a phrase re-opens "green by workaround".
+            fn: () => {
+                const protocol = tag => readFile(path.join(SKILLS_DIR, 'shared', 'protocols', `${tag}.md`));
+                const mistakes = protocol('ai-mistake-prevention');
+                const routing = protocol('quality-skill-routing');
+                const review = readSkill('changes-review');
+                const rules = [
+                    [
+                        'ai-mistake-prevention',
+                        mistakes,
+                        /failed or unstable test, use the project's test-investigation protocol to name the root cause before any fix/
+                    ],
+                    ['ai-mistake-prevention', mistakes, /Fix only the side the traced verdict names: NEVER edit a test merely to match the code/],
+                    [
+                        'quality-skill-routing',
+                        routing,
+                        /`investigate --mode=debug` establishes the root cause of a failed command, test or unexpected error before any fix/
+                    ],
+                    ['quality-skill-routing', routing, /never by an ad hoc patch or workaround: repair the cause at its owner/],
+                    ['quality-skill-routing', routing, /special-casing, retries, sleeps, skipped or loosened checks, suppressed errors/],
+                    ['quality-skill-routing', routing, /out of scope, stop and report rather than patch around it/],
+                    [
+                        'changes-review',
+                        review,
+                        /flag a test fix with no root-cause verdict naming the wrong side, test or source, against the governing spec or stated intent/
+                    ],
+                    ['changes-review', review, /including a test edited merely to match the code/],
+                    [
+                        'changes-review',
+                        review,
+                        /fix that works around its cause[^.]*special-casing, retries or sleeps, skipped or loosened checks or suppressed errors that hide it/
+                    ]
+                ];
+                const missing = rules.filter(([, text, re]) => !re.test(text)).map(([owner, , re]) => `${owner}: ${re}`);
+                assertTrue(missing.length === 0, `root-cause / no-workaround rules lost:\n  ${missing.join('\n  ')}`);
+            }
+        },
+        {
             name: '[content-presence] TC-CP-019 every prototype ships a design-system page and shared controls are built once',
             // Business Intent / Invariant Guarded: a generated mock-up or prototype comes with a design-system
             // page (tokens + a catalog of reusable controls, each with its owner), the prototype defines each

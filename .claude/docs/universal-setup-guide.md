@@ -70,6 +70,7 @@ Optional scans (run if applicable):
 /scan --target=seed-test-data       # Seeder/dev-data patterns, idempotency, DI scope
 /scan --target=scss-styling         # SCSS/CSS methodology
 /scan --target=feature-spec         # Business feature documentation index
+/scan --target=feature-map          # Where each feature lives and how to drive it (select feature-map-reference.md first)
 ```
 
 `/ai-context-refresh`, when routed by `/project-init`, reads project config and generates the root AI context in `CLAUDE.md` with:

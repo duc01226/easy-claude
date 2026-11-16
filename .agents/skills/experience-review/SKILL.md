@@ -40,6 +40,8 @@ description: '[Testing] Use when a workflow step or the user asks for runtime re
 
 Record actor, job, expected outcome, invariants, unchanged behavior, impacted surfaces/states, accepted evidence and conditions. Review the smallest scope that protects these behaviors.
 
+When `feature-map-reference.md` is selected, read the entries for the impacted stories or features: they give the surface id, entry URL or command, fixture or role and observable end state, and the linked spec §6.5 gives the user path. An entry that proves wrong is a finding for `$scan --target=feature-map`, not a reason to guess.
+
 For E2E/browser/user-flow surfaces, read `.claude/skills/shared/e2e-quality-protocol.md` and record its applicable gate rows: intent/invariant, auth/data, evidence, cleanup and traceability. Route static test-code findings to the test owner and static styling/component findings to `$ui-design --mode=review`; this skill owns runtime and inspected visual evidence.
 
 ### 2. Plan evidence and resolve capability
@@ -57,7 +59,7 @@ Classify from project, repository and tool evidence:
 
 Without `experienceVerification`, use an evidenced existing runner and record the adoption limitation; never invent defaults. Keep disposable reports/evidence under project `tmp/` or `temp/`, including configured evidence storage.
 
-Resolve lifecycle from `experienceVerification.surfaces[].localRun`: dependency/start/readiness/log/teardown. When absent, derive commands from package/task/compose/CI scripts or run instructions, cite `file:line` and propose the derived `localRun` in the report. Unresolved commands, ports, accounts or fixtures remain blocked.
+Resolve lifecycle from `experienceVerification.surfaces[].localRun`: dependency/start/readiness/log/teardown. When absent, derive commands from package/task/compose/CI scripts or run instructions, cite `file:line` and propose the derived `localRun` in the report. Unresolved commands, ports, accounts or fixtures remain blocked. **Keep derived commands:** after a run in which the derived commands reached readiness and tore down cleanly, ask once whether to save them as that surface's `localRun` through `$project-config` (consent: yes); save only commands and credential references, never a secret value. A decline is recorded in the report; the next review proposes them again.
 
 When `e2eTesting.execution` exists, match `surfaceIds[]` to the configured surfaces: surface `localRun` owns lifecycle; the E2E profile owns auth/data/browser/evidence/convergence. Fill missing values only from evidenced project references, runner config, scripts and fixture/auth docs.
 
@@ -112,6 +114,8 @@ Tear down only processes/services you started, including on blocked/failed branc
 ## Output
 
 Maintain an incremental report with scope/budget, intent/authority, matrix, exact commands/exit statuses, lifecycle/readiness/teardown, actions/settle signals, inspected evidence, runtime errors/warnings and disposition, observations/judgments, BLOCKING/ADVISORY findings, repair log, expectation decision, gaps and next owner/action. Visual reviews include capture records and reconciliation from the visual reference.
+
+**Evidence records for reviewers.** Keep one evidence record per surface and check it with `node .claude/scripts/lib/experience-verification.cjs validate`. Each record carries `candidateTree` (the `candidateTree` of `node .claude/hooks/lib/review-receipt.cjs snapshot --target=worktree`, taken when the exercise whose results it holds began; a re-exercise takes it again), the `featureMapEntries` it drove, its `blockingCount` and its `captures` (`path`, `kind`, whether it was `read` and `redacted`). Save the records as one JSON array in `evidence-records.json` in the report's own folder under project-root `tmp/`. `pull-request` renders a PR's runtime evidence from records whose tree matches its candidate, so a record without `candidateTree` never counts as current.
 
 Keep the final reply concise: verdict, material findings or limits, acceptance status, next action and full report link. Distinguish `OBSERVED`, `JUDGED`, `HUMAN-ACCEPTED`, `UNVERIFIED`, `ENVIRONMENT-BLOCKED` and `NOT-APPLICABLE`.
 
