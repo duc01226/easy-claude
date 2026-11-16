@@ -7,7 +7,7 @@ description: '[Utilities] Use only when the user asks to update or upgrade the .
 
 **Goal:** Bring all four framework folders, `.claude/`, `.codex/`, `.agents/` and `.opencode/`, up to the upstream version (default: the `main` branch of `https://github.com/duc01226/easy-claude`) by **merging**, never by copying, so every skill, hook, agent, setting and framework edit the project made survives. `.claude/` is merged; the other three are rebuilt from it by the closing sync, so they also carry the project's own skills and hooks.
 
-**Summary:** Preflight → dry run → settle what needs a decision → apply → resolve conflicts → verify and report. One script downloads the upstream and runs the merge engine; you handle only what it cannot decide.
+**Summary:** Preflight → dry run → settle what needs a decision → apply → resolve conflicts → verify and report → run the upgrade entries. One script downloads the upstream and runs the merge engine; you handle only what it cannot decide.
 
 **Workflow:**
 
@@ -17,6 +17,7 @@ description: '[Utilities] Use only when the user asks to update or upgrade the .
 4. **Apply** — the same command without `--dry-run`, pinned to the upstream commit and base the dry run showed.
 5. **Resolve** — read `references/merge-guide.md` and settle every conflict, keeping both sides' intent.
 6. **Verify and report** — no markers, JSON parses, the sync passes; report what changed and what stayed.
+7. **Upgrade entries** — run the actions and relay the notices the engine's `NEXT` block lists, with consent where a step asks for it, and record each outcome.
 
 **Key Rules:**
 
@@ -24,6 +25,7 @@ description: '[Utilities] Use only when the user asks to update or upgrade the .
 - MUST ATTENTION never delete, overwrite or "clean up" a project-owned file (a path upstream never shipped). The engine never merges, moves or deletes them, only recomputes their `<!-- COUNT -->` values; you change one only with the user's agreement (for example renaming a skill whose name upstream now also uses).
 - MUST ATTENTION never copy upstream files over the project, and never hand-edit `.agents/`, `.codex/`, `.opencode/` or `AGENTS.md`: they are regenerated from `.claude/`.
 - MUST ATTENTION the update is finished only when the closing sync has passed: until then `.codex/`, `.agents/` and `.opencode/` still hold the old version.
+- MUST ATTENTION the update also ends with the `NEXT` block's upgrade entries (step 7): handle each one and record its outcome; never run one outside an update the user asked for.
 - Commit or push only when the user asks. The update and `.claude/framework-lock.json` belong in the same commit.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
@@ -53,9 +55,9 @@ node .claude/skills/framework-update/scripts/update-from-upstream.mjs --base=<co
 | `--upstream=<git-url\|folder>` | the user names another repository or a fork, or the network is blocked and a local easy-claude checkout exists; default is the URL in the lock, else the GitHub repository |
 | `--base=<commit>` / `--base=auto` | no lock yet: the dry run detects the base by content (`auto`); pin that commit when applying |
 | `--no-sync` | the user wants to run the mirror sync later |
-| `--record-only` | the project was just synced by hand: record the version without changing files |
+| `--record-only` | the project was just synced by hand: record the version without changing files; with no lock yet, also `--base=<the commit it held before the hand sync>` (not `auto`), so newer upgrade entries are listed |
 | `--project=<folder>` | updating another project from an easy-claude checkout |
-| `--engine=local` | the upstream version's engine cannot run (the default `upstream` runs the newest merge rules) |
+| `--engine=local` | the upstream version's engine cannot run (the default `upstream` runs the newest merge rules). Warn the user first when that engine, or a `--ref` version, predates upgrade entries: its lock drops the recorded outcomes, so the next update lists every entry again |
 
 The script keeps a blobless clone in `tmp/framework-update/upstream.git` (commits and folder listings only; file contents download in batches), so later runs only fetch what is new. Exit code: `0` done · `1` fatal · `2` something left to resolve (a conflict or a mirror clash).
 
@@ -83,10 +85,11 @@ The script keeps a blobless clone in `tmp/framework-update/upstream.git` (commit
 
 Run `--dry-run --json` (plus any `--ref` / `--upstream` the user gave) and read:
 
-- `upstream.commit` against the lock's `source.commit`: equal means the project is already current. Say so and stop.
+- `upstream.commit` against the lock's `source.commit`: equal means the project is already current. Say so, then go to step 7: entries left open last time are still listed (`upgrades.pending`).
 - `upstream.url`: when it is not `https://github.com/duc01226/easy-claude.git` (a fork or mirror the lock remembers from an earlier `--upstream`), name it to the user; its code is what will be merged.
 - `baseDetection` (projects without a lock): `matched` of `projectFiles` files match `commit`. Show its date and subject with `git -C tmp/framework-update/upstream.git log -1 --format="%h %cs %s" <commit>`. Below about 80% matched, the project was likely copied from a fork or another project, or heavily edited: ask the user to confirm the commit or name the version they copied.
 - `taken`, `deleted`, `merged`, `kept`, `conflicts`, `mirrorOnly`, `mirrorClashes`, `projectOnly`.
+- `upgrades.pending`: the upgrade actions and notices this update will list (step 7), and `upgrades.mergeNotes` for files expected to conflict.
 
 ### 3. Decide
 
@@ -104,7 +107,7 @@ Run the command without `--dry-run`, pinned to what the dry run showed: `--ref=<
 
 ### 5. Resolve conflicts
 
-Read `references/merge-guide.md` before touching a conflict. It covers marker conflicts, settings and other JSON files, a skill name upstream now also ships, files one side deleted, and code both sides fixed. Each `conflict-side` file has upstream's copy under `tmp/framework-update/<path>`.
+Read `references/merge-guide.md` before touching a conflict. A `MERGE-NOTE <path> (<id>)` line from the engine says what an upgrade entry needs kept in that file; keep it. It covers marker conflicts, settings and other JSON files, a skill name upstream now also ships, files one side deleted, and code both sides fixed. Each `conflict-side` file has upstream's copy under `tmp/framework-update/<path>`.
 
 ### 6. Verify and report
 
@@ -114,7 +117,11 @@ Read `references/merge-guide.md` before touching a conflict. It covers marker co
 - After moving or renaming any skill (mirror-only skills, a name clash), rebuild the catalogs and counts: `node .claude/scripts/framework-update.mjs --regenerate`.
 - Run the sync if the engine skipped it, and again after moving or renaming a skill: `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs`. It rebuilds `.agents/`, `.codex/` and `.opencode/`, and its `verify-sync-divergence` and `verify-opencode-*` stages prove they match the merged `.claude/`. A mirror-only skill the user kept in `.agents/skills/` stays as it is, with one `kept .agents/skills/<name>` line. A sync failure is a finding: compare it with a run on the commit before the update before calling it new.
 - A stale root `CLAUDE.md` reported by the sync → offer `/ai-context-refresh`. New framework switches → `node .claude/scripts/framework-features.cjs` lists them with their defaults.
-- Report: from and to versions, counts, how many project-only files stayed untouched, each conflict and how it was settled, what still needs the user, and verification results. Show `git status --short` totals, not the full list.
+- Report: from and to versions, counts, how many project-only files stayed untouched, each conflict and how it was settled, what still needs the user, and verification results. Show `git status --short` totals, not the full list. Step 7 adds the upgrade entries' outcomes.
+
+### 7. Upgrade entries
+
+The engine ends every update with a `NEXT` block: the upgrade actions and notices this project has not yet resolved, in the order to run them, including any left unfinished last time. Read `references/upgrade-actions.md`, then handle each entry and record its outcome with the command the block prints (`--mark=<id> --status=done|not-applicable|declined|failed`). When conflicts stopped the update, the block names only how many entries are pending: after resolving them and running the sync, list them with `node .claude/scripts/framework-update.mjs --list-upgrades`. Do the same when the project was already current. Re-running `--list-upgrades` at the end prints `NEXT no upgrade actions or notices pending.` once every entry is recorded.
 
 ## A project without this skill yet
 
@@ -137,4 +144,4 @@ node <scratch-folder>/easy-claude/.claude/skills/framework-update/scripts/update
 
 ## Closing Reminders
 
-**MUST ATTENTION** run only on the user's explicit request. **MUST ATTENTION** never delete or overwrite a project-owned file, never copy upstream over the project, and never hand-edit a generated mirror. **MUST ATTENTION** the update covers `.codex/`, `.agents/` and `.opencode/` only once the closing sync passes. **MUST ATTENTION** read `references/merge-guide.md` before resolving any conflict and keep both sides' intent; ask the user when the intents clash. Commit or push only on request, with the lock in the same commit.
+**MUST ATTENTION** run only on the user's explicit request. **MUST ATTENTION** never delete or overwrite a project-owned file, never copy upstream over the project, and never hand-edit a generated mirror. **MUST ATTENTION** the update covers `.codex/`, `.agents/` and `.opencode/` only once the closing sync passes. **MUST ATTENTION** read `references/merge-guide.md` before resolving any conflict and keep both sides' intent; ask the user when the intents clash. **MUST ATTENTION** finish with the `NEXT` block's upgrade entries (step 7), asking before each consent step, and record every outcome. Commit or push only on request, with the lock in the same commit.
