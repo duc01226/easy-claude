@@ -239,6 +239,10 @@ module.exports = {
                 assertEqual(errorsFor(base({ commit: { fixOriginTrailer: true } })).length, 0);
                 assertEqual(errorsFor(base({ commit: { fixOriginTrailer: false } })).length, 0);
                 assertContains(onlyErrorFor(base({ commit: { fixOriginTrailer: 'true' } }), 'commit.fixOriginTrailer'), 'expected boolean');
+                // The Bug-Class trailer switch is modeled exactly on Fix-Origin: optional boolean, off when omitted (TC-GWF-099)
+                assertEqual(errorsFor(base({ commit: { bugClassTrailer: true, fixOriginTrailer: true } })).length, 0);
+                assertEqual(errorsFor(base({ commit: { bugClassTrailer: false } })).length, 0);
+                assertContains(onlyErrorFor(base({ commit: { bugClassTrailer: 'yes' } }), 'commit.bugClassTrailer'), 'expected boolean');
                 // `commit` must not be a known-but-unlisted top-level key, and must never become required
                 const result = schema.validateConfig(base({ commit: {} }));
                 assertFalse(
@@ -327,6 +331,7 @@ module.exports = {
                         ['codeGraph', ['hooks.codeGraph', 'hooks.codeGraph.enabled']],
                         ['tokenBudget', ['hooks.tokenBudget', 'hooks.tokenBudget.enabled', 'hooks.tokenBudget.checkpointTokens']],
                         ['fixOriginTrailer', ['commit.fixOriginTrailer']],
+                        ['bugClassTrailer', ['commit.bugClassTrailer']],
                         ['targetBranch', ['pullRequest.targetBranch']],
                         ['pushedBranchUpdate', ['pullRequest.pushedBranchUpdate']],
                         ['read | edit | both', ['contextGroups']]

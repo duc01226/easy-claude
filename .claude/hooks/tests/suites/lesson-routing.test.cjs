@@ -2,7 +2,7 @@
  * Lesson Routing Test Suite
  *
  * A recurring mistake is stopped best where nobody has to remember it. `/learn`, the universal
- * Lesson Extraction Gate and the post-fix lesson check route a lesson structure-first: make the
+ * Lesson Extraction Gate and the fix's bug-class prevention task route a lesson structure-first: make the
  * mistake impossible by design, else an automatic check (a lint rule or architecture test whose
  * message names the fix, landing with a frozen baseline), else a test, else a hook, and prose last.
  * Agents also stop inheriting bad code: a workaround they find is reported, never propagated, and a
@@ -18,8 +18,9 @@
  *   TC-LRS-003 — the universal mistake-prevention rules guard against copying: the precedent order,
  *                the workaround guard and the intentional-values carve-out, plus the search-first,
  *                the concise core (concise-profile sessions load only it) and the code reviewer.
- *   TC-LRS-004 — the post-fix lesson check sweeps and reports sibling instances, then offers the
- *                strongest guard before a `/learn` lesson; `fix` and `workflow-bugfix` say so.
+ *   TC-LRS-004 — the bug-class prevention task (`fix --mode=prevent`, which replaced the post-fix
+ *                lesson check) sweeps and reports sibling instances, then adds the strongest guard
+ *                before a `/learn` lesson; `fix` and `workflow-bugfix` say so.
  *   TC-LRS-005 — the skill-eval corpus holds a behavioral case for each rule above.
  *
  * Portability: every row asserts this framework repository's own skill and protocol text and is
@@ -229,30 +230,33 @@ const tests = [
         }
     },
     {
-        name: 'TC-LRS-004 the post-fix lesson check reports sibling instances and offers the strongest guard before a /learn lesson; fix and workflow-bugfix say so',
+        name: 'TC-LRS-004 the bug-class prevention task reports sibling instances and adds the strongest guard before a /learn lesson; fix and workflow-bugfix say so',
         skip: SKIP,
         fn: () => {
-            const check = read('.claude', 'skills', 'fix', 'references', 'post-fix-lesson-check.md');
-            // Then the steps run classify → sweep → lesson → guard → confirm → record
+            const check = read('.claude', 'skills', 'fix', 'references', 'mode-prevent.md');
+            // Then the steps run defect? → class → why → sweep → guard → implement or ask → record → check → report
             assertOrdered(
                 check,
                 [
-                    '1. **Classify the bug class**',
-                    '2. **Sweep sibling instances.**',
-                    '3. **Look for a generic lesson.**',
-                    '4. **Pick the strongest guard, structure-first**',
-                    '5. **Confirm with the user.**',
-                    '6. **Record the outcome**'
+                    '0. **Is there a code defect to guard?**',
+                    '1. **Name the bug class**',
+                    '2. **Ask why this class can happen at all.**',
+                    '3. **Sweep sibling instances.**',
+                    '4. **Pick the strongest affordable guard, structure-first**',
+                    '5. **Implement it, or record why not.**',
+                    '6. **Write the prevention record**',
+                    '7. **Check it**',
+                    '8. **Report**'
                 ],
-                'post-fix steps'
+                'prevention steps'
             );
             // And the sweep is reported with evidence and never fixed silently out of scope
-            const sweep = lineStartingWith(check, '2. **Sweep sibling instances.**', 'post-fix check');
+            const sweep = lineStartingWith(check, '3. **Sweep sibling instances.**', 'prevention task');
             assert.match(sweep, /cite the query, the count and each `file:line`/);
             assert.match(sweep, /never fix them silently outside this change/);
             assert.match(sweep, /a workaround found on the way is reported, never copied/);
             // And the guard is chosen strongest first, its baseline holding the swept siblings, with /learn last
-            const guard = lineStartingWith(check, '4. **Pick the strongest guard', 'post-fix check');
+            const guard = lineStartingWith(check, '4. **Pick the strongest affordable guard', 'prevention task');
             assertOrdered(
                 guard,
                 [
@@ -264,33 +268,37 @@ const tests = [
                     'else a hook',
                     '`/learn` comes last'
                 ],
-                'post-fix guard'
+                'prevention guard'
             );
             // And the user picks, the chosen tier recommended first; a structural pick is its own reviewed change
             assert.match(
                 check,
                 /the chosen tier first as `\(Recommended\)`: `Add the <tier> guard`, `Save with \/learn` or `Skip` when the tier is structural; `Save with \/learn` or `Skip` when the walk ended at prose/
             );
-            assert.match(check, /A structural pick is planned as its own reviewed change \(`\/plan`\), never folded silently into this fix/);
+            assert.match(
+                check,
+                /A structural pick that is bigger than this fix is planned as its own reviewed change \(`\/plan`\), never folded silently into this fix/
+            );
             assert.match(check, /the tier walk already done \(so it does not offer a declined guard again\)/);
-            assert.match(check, /`Siblings: <count> — <query>`/);
-            // And both skills that run the check describe it the same way, and a nested run hands its sweep back
+            assert.match(check, /`Prevention: <class> — <count> siblings \(<query>\) — guarded by <tier> at <path>`/);
+            // And both skills that run the task describe it the same way, and a nested run hands its sweep back
             const fix = read('.claude', 'skills', 'fix', 'SKILL.md');
             assert.match(
                 fix,
-                /sweep and report its sibling instances \(never fix them silently out of scope\), and offer the strongest guard structure-first \(a structural check before a `\/learn` lesson\)/
+                /sweep and report its sibling instances \(never fix them silently out of scope\), add the strongest affordable guard structure-first \(a `\/learn` lesson last, only after the user confirms\)/
             );
-            assert.match(fix, /records the bug class and any lesson candidate, with its sibling sweep, in its report and hands them back/);
+            assert.match(fix, /records the bug class and its sibling sweep in its report and hands them back/);
             const bugfix = read('.claude', 'skills', 'workflow-bugfix', 'SKILL.md');
-            assert.match(bugfix, /write its `Siblings:` and `Lesson:` lines into the workflow report/, 'the sweep reaches the workflow recap');
             assert.match(
                 bugfix,
-                /name the bug class, report its sibling instances, and offer the strongest guard structure-first \(a structural check before a `\/learn` lesson\)/
+                /its `Prevention:` line \(class, siblings, guard or `no-guard`\) into the workflow report/,
+                'the sweep reaches the workflow recap'
             );
             assert.match(
                 bugfix,
-                /its sibling sweep is reported, and its guard \(a structural check before a `\/learn` lesson\) is added only after the user confirms/
+                /name the bug class, report its sibling instances, add the strongest affordable guard structure-first \(a `\/learn` lesson last, only after the user confirms\)/
             );
+            assert.match(bugfix, /its sibling sweep is reported, never fixed silently; its guard is structure-first/);
         }
     },
     {

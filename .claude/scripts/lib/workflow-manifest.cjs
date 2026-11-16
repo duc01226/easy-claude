@@ -7,7 +7,7 @@ const { createHash } = require('node:crypto');
 const SLUG = /^[a-z][a-z0-9-]*$/;
 // Keep in lockstep with workflows.schema.json definitions.Occurrence.role and OutcomeGate.id.
 const ROLES = ['gate', 'core', 'optional'];
-const GATE_IDS = ['tests-pass', 'review-converged', 'spec-synced', 'plan-approved', 'root-cause-traced', 'run-closed'];
+const GATE_IDS = ['tests-pass', 'review-converged', 'spec-synced', 'plan-approved', 'root-cause-traced', 'recurrence-guarded', 'run-closed'];
 // Keep in lockstep with workflows.schema.json definitions.Phase.id. The order is the only allowed order.
 const PHASES = ['discover', 'specify', 'plan', 'build', 'review', 'verify', 'close'];
 const own = (object, key) => Object.prototype.hasOwnProperty.call(object, key);

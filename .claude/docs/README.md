@@ -170,12 +170,12 @@ Unprefixed filenames resolve inside the project-reference docs root — default 
 | ---------------------- | ----- |
 | Skills                 | <!-- COUNT:skills -->108<!-- /COUNT --> |
 | Hook files (top-level) | <!-- COUNT:hooks -->38<!-- /COUNT --> |
-| Lib Modules            | <!-- COUNT:lib-modules -->78<!-- /COUNT --> |
+| Lib Modules            | <!-- COUNT:lib-modules -->79<!-- /COUNT --> |
 | Hook Events            | 10     |
 | Agents                 | <!-- COUNT:agents -->25<!-- /COUNT --> |
 | Workflows              | <!-- COUNT:workflows -->17<!-- /COUNT --> |
 | Hook Tests             | 133   |
-| Hook Test Files        | 138 suites + 9 top-level test files |
+| Hook Test Files        | 139 suites + 9 top-level test files |
 | Framework Markdown Files | 43 (`.claude/docs/**/*.md`) |
 
 ---

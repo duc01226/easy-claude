@@ -242,7 +242,7 @@ A recurring mistake is prevented best where nobody has to remember it. Route eve
 **Decision flow:**
 
 1. **Capture** the lesson (it already passed the Triage Gate).
-2. **Walk the tiers from 1 down.** For each, ask: "Can this tier stop the whole class of mistake here, at a cost proportional to how often it recurs?" Stop at the first yes, and note why each stronger tier does not fit. When a caller passes a tier walk it already ran (the post-fix lesson check does), reuse it and never offer again a tier the user declined.
+2. **Walk the tiers from 1 down.** For each, ask: "Can this tier stop the whole class of mistake here, at a cost proportional to how often it recurs?" Stop at the first yes, and note why each stronger tier does not fit. When a caller passes a tier walk it already ran (the fix's bug-class prevention task does), reuse it and never offer again a tier the user declined.
 3. **Evaluate Static Protocol Lesson promotion** (see below) only when the walk ends at tier 5.
 4. **Present options to user** with `ask user question tool` — 2–4 options, the tier the walk chose first, labelled `(Recommended)`, with a one-line reason; on the skill-specific route, ask them as the second question of the Carrier Choice `ask user question tool` call instead of asking twice:
     - the structural tier the walk chose ("Make it impossible", "Add a check (with a frozen baseline)", "Add a test" or "Add a hook") — a change in the project's own code or toolchain; the lesson is not also saved as prose unless the user asks for both

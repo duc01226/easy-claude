@@ -697,6 +697,61 @@ function findRootCauseGaps(config) {
     return gaps;
 }
 
+// Bug-class prevention (BR-GWF-24): `fix --mode=prevent` writes the record the `recurrence-guarded` gate checks.
+const PREVENTION_SATISFIER = 'fix --mode=prevent';
+const isPreventionStep = step => step.skill === 'fix' && /(^|\s)--mode=prevent(\s|$)/.test(step.args || '');
+const isRepairStep = step => step.skill === 'fix' && !isPreventionStep(step);
+
+/**
+ * workflow-bugfix: a gate prevention step right after its fix and before its review, and an unconditional
+ * recurrence-guarded gate. workflow-review-changes: in its writing mode an optional prevention step right
+ * after the review fix step and a conditional gate; its review-only mode has neither.
+ */
+function findRecurrenceGuardGaps(config) {
+    const gaps = [];
+    const resolve = id => {
+        try {
+            return manifestsOf(config, id);
+        } catch (error) {
+            gaps.push(`${id}: ${error.message}`);
+            return [];
+        }
+    };
+    for (const manifest of resolve('workflow-bugfix')) {
+        const steps = manifest.occurrences;
+        const prevent = steps.findIndex(isPreventionStep);
+        const gate = manifest.outcomeGates.find(g => g.id === 'recurrence-guarded');
+        if (prevent < 0) gaps.push('workflow-bugfix: no prevention step');
+        else {
+            if (steps[prevent].role !== 'gate') gaps.push('workflow-bugfix: prevention step is not a gate');
+            const fix = steps.findIndex(isRepairStep);
+            const review = steps.findIndex(step => step.skill === 'workflow-review-changes');
+            if (!(fix >= 0 && fix < prevent && prevent < review)) gaps.push('workflow-bugfix: prevention step is not between the fix and the review');
+        }
+        if (!gate || !gate.satisfiedBy.includes(PREVENTION_SATISFIER)) gaps.push(`workflow-bugfix: recurrence-guarded by ${PREVENTION_SATISFIER}`);
+        else if (gate.when) gaps.push('workflow-bugfix: recurrence-guarded is conditional');
+    }
+    for (const manifest of resolve('workflow-review-changes')) {
+        const steps = manifest.occurrences;
+        const prevent = steps.findIndex(isPreventionStep);
+        const gate = manifest.outcomeGates.find(g => g.id === 'recurrence-guarded');
+        const writes = steps.some(isRepairStep);
+        if (!writes) {
+            if (prevent >= 0 || gate) gaps.push(`workflow-review-changes/${manifest.mode}: a mode that fixes nothing carries the prevention step or gate`);
+            continue;
+        }
+        if (prevent < 0) gaps.push(`workflow-review-changes/${manifest.mode}: no prevention step`);
+        else {
+            if (steps[prevent].role !== 'optional') gaps.push(`workflow-review-changes/${manifest.mode}: prevention step is not optional`);
+            if (!isRepairStep(steps[prevent - 1] || {})) gaps.push(`workflow-review-changes/${manifest.mode}: prevention step does not follow the fix step`);
+        }
+        if (!gate || !gate.satisfiedBy.includes(PREVENTION_SATISFIER) || !gate.when) {
+            gaps.push(`workflow-review-changes/${manifest.mode}: conditional recurrence-guarded by ${PREVENTION_SATISFIER}`);
+        }
+    }
+    return gaps;
+}
+
 // A code-changing clean-up step must come before the checks that prove the change (BR-GWF-14):
 // every `test` run after it, and a review after it, or the evidence describes code that no longer ships.
 const CODE_REWRITE_SKILLS = new Set(['code-simplifier']);
@@ -965,6 +1020,86 @@ const annotatedRegistryTests = [
                 applicability: { when: 'A verify run reported a failing test.', skipReason: 'Every verify run was green.' }
             });
             assertDeepEqual(findRootCauseGaps(regrown), [`workflow-integration-test: root-cause-traced by ${ROOT_CAUSE_SATISFIER}`]);
+        }
+    },
+    {
+        name: '[guided-workflow] TC-GWF-090 workflow-bugfix guards the bug class with a gate prevention step and a required recurrence-guarded gate',
+        fn: () => {
+            // Business Intent / Invariant Guarded: no bug fix closes without asking why its class can happen and
+            // guarding it, and the guard is reviewed and verified with the fix (BR-GWF-24).
+            // Given the shipped registry
+            const config = loadWorkflowConfig();
+            // When the bug-fixing workflows are read, Then the prevention step and its gate are in place
+            assertDeepEqual(findRecurrenceGuardGaps(config), [], 'bug-class prevention wiring');
+            // And removing the step, making it optional, or making the gate conditional is detected
+            const removed = cloneConfig(config);
+            withoutPhases(removed.workflows['workflow-bugfix']);
+            removed.workflows['workflow-bugfix'].sequence = removed.workflows['workflow-bugfix'].sequence.filter(step => !isPreventionStep(step));
+            assertTrue(
+                findRecurrenceGuardGaps(removed).some(gap => /workflow-bugfix: .*recurrence-guarded.*fix --mode=prevent|no prevention step/.test(gap)),
+                'a removed prevention step must be detected'
+            );
+            const optional = cloneConfig(config);
+            const step = optional.workflows['workflow-bugfix'].sequence.find(isPreventionStep);
+            step.role = 'optional';
+            step.applicability = { when: 'A class seems likely to recur', skipReason: 'One-off typo' };
+            assertDeepEqual(findRecurrenceGuardGaps(optional), ['workflow-bugfix: prevention step is not a gate']);
+            const conditional = cloneConfig(config);
+            conditional.workflows['workflow-bugfix'].outcomeGates.find(g => g.id === 'recurrence-guarded').when = 'The class is likely to recur';
+            assertDeepEqual(findRecurrenceGuardGaps(conditional), ['workflow-bugfix: recurrence-guarded is conditional']);
+            const moved = cloneConfig(config);
+            withoutPhases(moved.workflows['workflow-bugfix']);
+            const sequence = moved.workflows['workflow-bugfix'].sequence;
+            const [prevent] = sequence.splice(sequence.findIndex(isPreventionStep), 1);
+            sequence.splice(
+                sequence.findIndex(s => s.skill === 'workflow-end'),
+                0,
+                prevent
+            );
+            assertDeepEqual(findRecurrenceGuardGaps(moved), ['workflow-bugfix: prevention step is not between the fix and the review']);
+        }
+    },
+    {
+        name: '[guided-workflow] TC-GWF-091 recurrence-guarded is a schema gate id; review-changes runs prevention only after a fixed behavior defect',
+        fn: () => {
+            // Business Intent / Invariant Guarded: a defect fixed inside a review is guarded like any other fix, a
+            // style-only finding never triggers the gate, and older manifests keep validating (BR-GWF-24).
+            // Given the schema and the validator
+            const schema = JSON.parse(fs.readFileSync(SCHEMA_PATH, 'utf8'));
+            const schemaIds = schema.definitions.OutcomeGate.properties.id.enum;
+            assertTrue(schemaIds.includes('recurrence-guarded'), 'the schema enum names recurrence-guarded');
+            assertTrue(/recurrence-guarded = /.test(schema.definitions.OutcomeGate.properties.id.description), 'the schema describes the gate');
+            // When a manifest declares the gate, Then the validator accepts it, and a manifest without it still validates
+            const entry = annotatedEntry();
+            entry.sequence.splice(2, 0, { id: 'guard', skill: 'fix', args: '--mode=prevent', role: 'gate' });
+            entry.outcomeGates.push({ id: 'recurrence-guarded', satisfiedBy: ['fix --mode=prevent'] });
+            const { resolveWorkflowManifest } = require(MANIFEST_PATH);
+            const resolved = resolveWorkflowManifest(gwfRegistry(entry), 'wf-guided', { availableSkills: [...GWF_SKILLS, 'fix'] });
+            assertTrue(
+                resolved.outcomeGates.some(g => g.id === 'recurrence-guarded'),
+                'the gate resolves'
+            );
+            assertTrue(gwfResolve(annotatedEntry()).outcomeGates.length === 3, 'a manifest without the new gate still validates');
+            // And the review workflow's writing mode carries the optional step and the conditional gate; review-only carries neither
+            const config = loadWorkflowConfig();
+            const fixLoop = manifestsOf(config, 'workflow-review-changes').find(manifest => manifest.mode === 'fix-loop');
+            const gate = fixLoop.outcomeGates.find(g => g.id === 'recurrence-guarded');
+            assertTrue(/behavior defect/.test(gate.when) && /style/.test(gate.when), 'the gate holds only for a fixed behavior defect, never a style finding');
+            const step = fixLoop.occurrences.find(isPreventionStep);
+            assertTrue(/behavior defect/.test(step.applicability.when) && /style/.test(step.applicability.skipReason), 'a style-only fix records the skip');
+            const reviewOnly = manifestsOf(config, 'workflow-review-changes').find(manifest => manifest.mode === 'review-only');
+            assertTrue(
+                !reviewOnly.occurrences.some(isPreventionStep) && !reviewOnly.outcomeGates.some(g => g.id === 'recurrence-guarded'),
+                'review-only fixes nothing'
+            );
+            // And dropping the review step's conditional gate is detected
+            const mutated = cloneConfig(config);
+            const variant = mutated.workflows['workflow-review-changes'].variants['fix-loop'];
+            variant.outcomeGates = variant.outcomeGates.filter(g => g.id !== 'recurrence-guarded');
+            variant.phases.forEach(phase => {
+                if (phase.exit) phase.exit = phase.exit.filter(id => id !== 'recurrence-guarded');
+            });
+            assertDeepEqual(findRecurrenceGuardGaps(mutated), ['workflow-review-changes/fix-loop: conditional recurrence-guarded by fix --mode=prevent']);
         }
     },
     {

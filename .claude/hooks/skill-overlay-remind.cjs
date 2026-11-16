@@ -33,6 +33,12 @@ if ((require.main === module || !require.main) && require('./lib/framework-runti
  * for a skill repeats only after about `OVERLAY_REINJECT_TOKENS` tokens of conversation growth since
  * its last delivery (or a compaction, or a changed overlay set). A host that exposes no transcript
  * keeps a reminder until a compaction is reported.
+ *
+ * Fix marker (bug-class prevention, BR-GWF-24): when the `fix` skill really activates (a Skill tool
+ * call, a typed `/fix`, or a Codex `$fix` prompt; never a plain read of its SKILL.md), this hook also
+ * records the session's fix time through `lib/prevention-record.cjs`, before any overlay lookup and
+ * whether or not overlays exist. The commit gate reads that marker and warns when no valid prevention
+ * record was written after it. Recording is best-effort and silent on failure.
  */
 
 const path = require('node:path');
@@ -44,6 +50,8 @@ const OVERLAY_REINJECT_TOKENS = 150000;
 const GROUP_PREFIX = 'skill-overlay-';
 /** The most skills one event can remind about (a second-host prompt may name several). */
 const MAX_SKILLS = 8;
+/** The skill whose activation records the session's fix marker for the commit gate. */
+const FIX_SKILL = 'fix';
 
 function isPlainObject(value) {
     return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -51,6 +59,24 @@ function isPlainObject(value) {
 
 function nonBlank(value) {
     return typeof value === 'string' && value.trim() !== '';
+}
+
+/**
+ * Record the session's fix marker when this event is a real activation of the `fix` skill. A read of
+ * fix/SKILL.md (a maintainer editing the skill) is not a fix and records nothing.
+ */
+function recordFixActivation(input, root, names, deps) {
+    try {
+        if (!names.includes(FIX_SKILL) || !nonBlank(input.session_id)) return false;
+        const event = input.hook_event_name;
+        const activation = (event === 'PostToolUse' && input.tool_name === 'Skill') || event === 'UserPromptExpansion' || event === 'UserPromptSubmit';
+        if (!activation) return false;
+        const record = typeof deps.recordFixMarker === 'function' ? deps.recordFixMarker : require('./lib/prevention-record.cjs').recordFixMarker;
+        record({ repository: root, sessionId: input.session_id, now: typeof deps.now === 'number' ? deps.now : Date.now() });
+        return true;
+    } catch {
+        return false; // advisory bookkeeping never breaks the reminder
+    }
 }
 
 let ledgerSettings = null;
@@ -96,7 +122,7 @@ function defaultWrite(text, done) {
 
 /**
  * Resolve to the payload written, or '' when the hook stays silent.
- * deps (tests): projectRoot, readFile, config, now, write.
+ * deps (tests): projectRoot, readFile, config, now, write, recordFixMarker.
  */
 function run(input, deps = {}) {
     return new Promise(resolve => {
@@ -117,6 +143,7 @@ function run(input, deps = {}) {
             });
             const names = resolved.names.slice(0, MAX_SKILLS);
             if (!names.length) return finish('');
+            recordFixActivation(input, root, names, deps);
 
             const overlay = require('./lib/skill-protocol-overlay.cjs');
             const config = loadConfig(deps);
@@ -195,7 +222,9 @@ module.exports = {
     OVERLAY_REINJECT_TOKENS,
     GROUP_PREFIX,
     MAX_SKILLS,
+    FIX_SKILL,
     getLedgerSettings,
+    recordFixActivation,
     run
 };
 
