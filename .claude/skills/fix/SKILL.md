@@ -163,7 +163,9 @@ disable-model-invocation: false
 | `ui`       | **Branch in `references/target-ui.md`** — UI / visual-defect fixes.                     |
 | `review`   | **Inline branch (below)** — fix VALIDATED review findings from review report(s). |
 
-`--mode=prevent` (with or without a `--target`) runs ONLY the bug-class prevention task for a fix that already landed: read `references/mode-prevent.md` in full FIRST (BLOCKING) and follow it; it never re-runs the investigation, plan or fix spine, and its only code edit is the guard. Otherwise, no `--target` (or an unrecognized value) → run the full Workflow spine below; infer the right specialization from `<issues>`. When that inference selects a branch (`types|ci|logs|test|ui`), read its `references/target-<name>.md` in full FIRST (BLOCKING), exactly as an explicit `--target` does.
+`--mode=prevent` (with or without a `--target`) runs ONLY the bug-class prevention task for a fix that already landed: read `references/mode-prevent.md` in full FIRST (BLOCKING) and follow it; it never re-runs the investigation, plan or fix spine, and its only code edit is the guard; the routing below does not apply to it.
+
+No `--target` (or an unrecognized value) → run the full Workflow spine below; infer the right specialization from `<issues>`. When that inference selects a branch (`types|ci|logs|test|ui`), read its `references/target-<name>.md` in full FIRST (BLOCKING), exactly as an explicit `--target` does.
 
 > **Target routing:** `--target=ci|issue|logs|review|test|ui` are `/fix` branches; invoke them through `/fix --target=...`, not separate skill names. `issue` and `review` are below in this file; `types`, `ci`, `logs`, `test` and `ui` live in `references/target-<name>.md`, read in full FIRST (BLOCKING) when that target runs — an invocation of another target never reads them.
 
