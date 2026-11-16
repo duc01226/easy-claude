@@ -280,19 +280,20 @@ async function main() {
         process.exit(0);
     }
 
-    // A full run shares the live tree with the Codex/scripts tests: hold the checkout's test-run
-    // lock so the two never run at once (false ENOENT). A --filter run is a nested or targeted
-    // selection (the sync pipeline's own hook stages) and a --list run executes nothing, so neither
-    // takes the lock. A runner copied without .claude/scripts/lib (a scaffold fixture) runs unlocked.
+    // A full run shares the live tree with the Codex/scripts tests: wait for the checkout's test-run
+    // lock so the two never run at once (false ENOENT), then for a machine-wide slot so parallel
+    // checkouts never overload the machine. A --filter run is a nested or targeted selection (the sync
+    // pipeline's own hook stages) and a --list run executes nothing, so neither waits. A runner copied
+    // without .claude/scripts/lib (a scaffold fixture) runs unlocked.
     const lockLib = flags.filter || flags.list ? null : loadTestRunLock(path.join(__dirname, '..', '..', 'scripts', 'lib', 'test-run-lock.cjs'));
     if (lockLib) {
-        const { acquireTestRunLock, conflictMessage } = lockLib;
-        const lock = acquireTestRunLock({ rootDir: path.resolve(__dirname, '..', '..', '..'), command: 'run-all-tests' });
-        if (!lock.acquired && !lock.nested) {
-            console.error(conflictMessage(lock));
+        const { admitTestRun } = lockLib;
+        const admission = await admitTestRun({ rootDir: path.resolve(__dirname, '..', '..', '..'), command: 'run-all-tests' });
+        if (!admission.admitted) {
+            console.error(admission.message);
             process.exit(2);
         }
-        process.on('exit', lock.release);
+        process.on('exit', admission.release);
     }
 
     const suitesDir = path.join(__dirname, 'suites');
