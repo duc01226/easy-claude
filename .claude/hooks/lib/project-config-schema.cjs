@@ -31,6 +31,14 @@ const TOKEN_BUDGET_CHECKPOINT_RANGE = [50000, 20000000];
 const SKILL_PROFILE_PRESETS = ['full', 'standard', 'minimal'];
 /** skillProfile per-skill lists, least to most restrictive. */
 const SKILL_PROFILE_LISTS = ['nameOnly', 'commandOnly', 'off'];
+// Verify command fields: the one owner of the reserved `testing.commands` keys, the gate modes and the
+// time budgets. Read by commit-review-policy.cjs (gate-time policy) and verify-receipt.cjs (runner).
+// The runner's slots, in run order; `lintFile` is the per-file lint form, never run by verify.
+const VERIFY_MODES = Object.freeze(['off', 'warn', 'enforce']);
+const VERIFY_SLOTS = Object.freeze(['verify', 'lint', 'typecheck', 'affected', 'build']);
+const VERIFY_COMMAND_KEYS = Object.freeze([...VERIFY_SLOTS, 'lintFile']);
+const DEFAULT_VERIFY_TIMEOUT_SECONDS = Object.freeze({ lint: 600, typecheck: 900, affected: 1800, build: 1800, verify: 3600 });
+const MAX_VERIFY_TIMEOUT_SECONDS = 24 * 60 * 60;
 /** A skill folder name usable as a skillOverrides key. */
 const SKILL_NAME_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
 
@@ -1672,6 +1680,27 @@ const SCHEMA = {
                 describe:
                     'Default "off". "enforce": (1) gh pr create (except a draft) and gh pr ready are refused unless the committed branch head has a whole-branch receipt (review or recorded skip) against its merge-base with the PR base; (2) a review receipt, for commits and pull requests alike, counts only when the review protocol hook attested that a review skill of that kind started before the reviewed snapshot, so a receipt cannot be minted by hand. Skip receipts stay explicit, recorded overrides. An unparseable project config counts as off; an invalid reviewGate value counts as enforce. A bounded speedbump against forgetting, not a security boundary.'
             },
+            verify: {
+                type: 'string',
+                required: false,
+                enumValues: VERIFY_MODES,
+                describe:
+                    'Default "warn". The commit gate checks for a verify receipt (node .claude/hooks/lib/verify-receipt.cjs run) over the exact commit tree: "warn" names missing proof and failures not in the committed baseline without stopping the commit; "enforce" refuses it until the receipt passes or records a skip with a reason; "off" for projects with their own merge proof. Independent of reviewGate.mode; an invalid value counts as enforce.'
+            },
+            verifyBuild: {
+                type: 'boolean',
+                required: false,
+                describe: 'Default false. true = the verify runner also runs testing.commands.build when no verify command is set.'
+            },
+            verifyTimeouts: {
+                type: 'map',
+                required: false,
+                describe: `Whole seconds per verify command key (${VERIFY_SLOTS.join(', ')}), 1-${MAX_VERIFY_TIMEOUT_SECONDS}. Defaults: ${Object.entries(
+                    DEFAULT_VERIFY_TIMEOUT_SECONDS
+                )
+                    .map(([key, seconds]) => `${key} ${seconds}`)
+                    .join(', ')}. An overrun is reported, never passed.`
+            },
             // The CI-visible half of the gate: a command posts a commit status that branch
             // protection can require, so no hook has to run on the developer's host.
             status: {
@@ -2426,6 +2455,38 @@ const CONVENTION_INJECTION_RANGES = [
     ['blindReinjectAfterMinutes', 1, 1440]
 ];
 
+// Verify command fields (`testing.commands` reserved keys, `reviewGate.verify*`). The gate-time reader
+// `commit-review-policy.cjs resolveVerifyGate` owns the runtime rules; validation names the field.
+// A reserved key holding something other than a command string predates the reservation, so it warns
+// (the runner reports it invalid) instead of failing a config that validated before.
+function validateVerifyCommandSemantics(config, errors, warnings) {
+    const commands = config.testing?.commands;
+    if (commands && typeof commands === 'object' && !Array.isArray(commands)) {
+        for (const key of VERIFY_COMMAND_KEYS) {
+            if (!Object.hasOwn(commands, key)) continue;
+            const value = commands[key];
+            if (typeof value !== 'string' || value.trim() === '') {
+                warnings.push(
+                    `testing.commands.${key}: reserved verify key holds ${typeof value === 'string' ? 'an empty string' : Array.isArray(value) ? 'an array' : value === null ? 'null' : typeof value === 'object' ? 'an object' : `a ${typeof value}`}, not a command; the verify runner reports it invalid. Set a command string, "none" for not applicable, or move the value to another key`
+                );
+            } else if (key === 'lintFile' && value !== 'none' && !value.includes('{file}')) {
+                warnings.push('testing.commands.lintFile: expected a {file} placeholder for the edited file path');
+            }
+        }
+    }
+    const gate = config.reviewGate;
+    if (!gate || typeof gate !== 'object' || Array.isArray(gate) || gate.verifyTimeouts === undefined) return;
+    const timeouts = gate.verifyTimeouts;
+    if (!timeouts || typeof timeouts !== 'object' || Array.isArray(timeouts)) return; // the type check names it
+    for (const [key, seconds] of Object.entries(timeouts)) {
+        if (!VERIFY_SLOTS.includes(key)) {
+            errors.push(`reviewGate.verifyTimeouts.${key}: unknown verify command key; expected one of ${VERIFY_SLOTS.join(', ')}`);
+        } else if (!Number.isInteger(seconds) || seconds < 1 || seconds > MAX_VERIFY_TIMEOUT_SECONDS) {
+            errors.push(`reviewGate.verifyTimeouts.${key}: expected whole seconds from 1 through ${MAX_VERIFY_TIMEOUT_SECONDS}`);
+        }
+    }
+}
+
 /** conventionInjection numeric ranges (BR-PFCI-11). */
 function validateConventionInjectionSemantics(config, errors) {
     const settings = config.conventionInjection;
@@ -2740,6 +2801,7 @@ function validateConfig(config) {
     validateFeatureDocTemplateSemantics(config, errors);
     validateConventionInjectionSemantics(config, errors);
     validateTokenBudgetSemantics(config, errors);
+    validateVerifyCommandSemantics(config, errors, warnings);
     for (const name of ['uiReuseReminder', 'failureInvestigationReminder']) {
         const tokens = config.hooks?.[name]?.reinjectAfterTokens;
         if (tokens !== undefined) {
@@ -2942,7 +3004,12 @@ module.exports = {
     DECISION_SUPPORT_MODES,
     TOKEN_BUDGET_CHECKPOINT_RANGE,
     SKILL_PROFILE_PRESETS,
-    SKILL_PROFILE_LISTS
+    SKILL_PROFILE_LISTS,
+    VERIFY_MODES,
+    VERIFY_SLOTS,
+    VERIFY_COMMAND_KEYS,
+    DEFAULT_VERIFY_TIMEOUT_SECONDS,
+    MAX_VERIFY_TIMEOUT_SECONDS
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

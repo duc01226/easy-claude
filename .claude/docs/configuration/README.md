@@ -547,6 +547,43 @@ Descriptions are cut to 140 characters. GitHub keeps statuses per commit, so eve
 
 Like the hook gate, the status is evidence that the review policy ran, not a security boundary: anyone whose token can write commit statuses can post the same context with `gh api`, and the receipt store is an ordinary local directory. Branch protection that requires it stops a forgotten review, not a deliberate bypass.
 
+### Verify receipt (`reviewGate.verify`)
+
+The commit gate also asks whether the project's own checks passed on the exact tree being committed. The verify runner reads the reserved command keys in `testing.commands` and runs them in the repository root, each within a time budget:
+
+- `verify`: one command that proves the whole tree. When it is set, it is the only command run.
+- Otherwise `lint`, `typecheck` and `affected` (tests scoped to the change), plus `build` when `reviewGate.verifyBuild` is `true`.
+- `lintFile`: the per-file lint form with a `{file}` placeholder, for edit-time lint. Verify never runs it.
+- `"none"` declares a key not applicable. An absent key, a value that is not a command string, a command that cannot start and a command that overruns its budget are all reported as not proven, never as passing.
+
+```json
+{
+    "testing": { "commands": { "lint": "npx eslint . --format json", "typecheck": "npx tsc --noEmit", "affected": "npm test -- --changedSince=origin/main" } },
+    "reviewGate": { "verify": "warn", "verifyTimeouts": { "affected": 2400 } }
+}
+```
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `verify` | `warn` | `warn` lets a reviewed commit proceed and tells the agent what is unproven, the failures that are not in the baseline, why it matters and the fix; it stays silent while no verify command is configured. `enforce` refuses the commit until a `PASS` receipt or a recorded skip matches its tree, and refuses when nothing is configured. `off` skips the check, for projects with their own merge proof. Independent of `reviewGate.mode`. An invalid value counts as `enforce`. |
+| `verifyBuild` | `false` | `true` adds `build` to the commands run when `verify` is not set. |
+| `verifyTimeouts` | lint 600, typecheck 900, affected 1800, build 1800, verify 3600 | Whole seconds per key, 1-86400. An overrun is reported `ENVIRONMENT-BLOCKED`, never passed. |
+
+```bash
+node .claude/hooks/lib/verify-receipt.cjs plan        # what would run (command text, total budget); nothing executes
+node .claude/hooks/lib/verify-receipt.cjs run         # run, compare with the baseline, issue the receipt
+node .claude/hooks/lib/verify-receipt.cjs check       # the receipt for the current working tree
+node .claude/hooks/lib/verify-receipt.cjs prune       # drop baseline entries the current receipt saw passing
+node .claude/hooks/lib/verify-receipt.cjs skip --reason="<10-500 characters>"
+node .claude/hooks/lib/verify-receipt.cjs baseline-init [--slot=lint,affected] [--replace]
+```
+
+The receipt binds the same trees as a review receipt and lives 2 hours in the same store. It holds command keys, statuses, counts and failure names, never output or environment values: failure names are scrubbed where they are parsed (secret-named environment values, URL credentials, bearer tokens, control characters). Full output goes to a private per-run log directory under the OS temp directory, capped at 64 MiB per command and removed after a day. A run whose commands change the tree (a fixer, a generated file that is not git-ignored) gets no receipt and reports `TREE_CHANGED`. Each command is stopped with its whole process tree when it overruns its budget or when the runner is interrupted; processes it leaves running after it exits are stopped while they are still in its process group (POSIX), and the report says when any were left behind. `skip` is refused when a run on the same tree found new failures. Under `enforce`, a fault in the verify check itself refuses the commit.
+
+**Baseline.** `.verify-baseline.json` at the repository root is committed with the code. Per command it records the command's hash and the failures that were already there, keyed by what failed (an eslint rule in a file, a test name, a diagnostic code in a file) so a line move does not make them new. Supported formats: eslint JSON, JUnit XML, TAP, jest's default reporter, pytest summaries and `file:line` compiler or linter diagnostics; a combined command reports the failures of every format it prints, and a different failing exit code also counts as new. When the output has no supported format it records one strict fingerprint of the failing output: any change, an improvement included, reads as new until it is re-frozen with `baseline-init --replace`. Output past the 8 MiB capture limit is never matched against the baseline. `keyVersion` names how keys were formed; a baseline from another version reads as stale. It has no timestamps. A verify run never writes it. `baseline-init` takes it once, with the user's agreement, and refuses to re-freeze a command it already proves unless `--replace` is given. `prune` removes only entries a run saw passing, and re-issues the receipt for the pruned tree. The `commit` and `pull-request` skills prune before their review and stage the file with the change.
+
+Like the review gate, this is a bounded speedbump against forgetting, not a security boundary: anyone with write access to the store can forge a receipt.
+
 ### Hook-only delivery: host requirements
 
 The universal rules (`protocol-inject-universal-<n>.cjs` bins), the workflow route (`workflow-route-inject.cjs` for the gate, `workflow-catalog-inject.cjs` for the catalog) and the skill-overlay reminder (`skill-overlay-remind.cjs`) are delivered only by hooks; `CLAUDE.md` and `AGENTS.md` hold project information only and no static fallback exists.
