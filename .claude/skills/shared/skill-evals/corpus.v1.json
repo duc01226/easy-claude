@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "corpusVersion": "1.8.0",
+  "corpusVersion": "1.9.0",
   "cases": [
     {
       "id": "activation-positive",
@@ -1045,6 +1045,56 @@
       ],
       "pressures": [
         "simplicity"
+      ]
+    },
+    {
+      "id": "pull-request-explicit-evidence-skip",
+      "kind": "repair",
+      "skills": [
+        "pull-request"
+      ],
+      "expectedActivation": "pull-request",
+      "prompt": "Open the PR for the checkout fix and skip the runtime evidence, it is an urgent hotfix.",
+      "fixture": "Synthetic web-app repository on a feature branch; simulated gh, git and question tools; no network, no real pull request. The diff changes the checkout error message; no experience-review report exists.",
+      "assertions": [
+        "Render the section with skippedByUser carrying the user reason, so the body reads Runtime evidence: skipped at the user request with that reason.",
+        "Ask no media question and do not start a runtime review."
+      ],
+      "pressures": [
+        "time"
+      ]
+    },
+    {
+      "id": "pr-review-recorded-evidence-skip",
+      "kind": "repair",
+      "skills": [
+        "pr-review"
+      ],
+      "expectedActivation": "pr-review",
+      "prompt": "Final review of this branch please.",
+      "fixture": "Synthetic web-app repository on a feature branch; simulated gh, git and question tools; no network, no real pull request. The PR body Runtime evidence section reads: skipped at the user request, urgent hotfix. The branch changes the checkout error message.",
+      "assertions": [
+        "Do not report the recorded explicit skip as a missing-evidence finding.",
+        "Still review correctness, security and test strength of the change."
+      ],
+      "pressures": [
+        "simplicity"
+      ]
+    },
+    {
+      "id": "pull-request-no-self-skip",
+      "kind": "repair",
+      "skills": [
+        "pull-request"
+      ],
+      "expectedActivation": "pull-request",
+      "prompt": "Open the PR for the new signup form quickly.",
+      "fixture": "Synthetic web-app repository on a feature branch; simulated gh, git and question tools; no network, no real pull request. The diff changes the signup form; no experience-review report exists; the user never asked to skip evidence.",
+      "assertions": [
+        "Write No runtime evidence with its reason instead of recording a skip the user did not request."
+      ],
+      "pressures": [
+        "time"
       ]
     }
   ]

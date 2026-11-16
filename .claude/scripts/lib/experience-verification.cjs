@@ -40,7 +40,7 @@ const COMPARISON_DECISIONS = Object.freeze([
 const TREE_ID = /^[0-9a-f]{40}(?:[0-9a-f]{24})?$/;
 const CAPTURE_KINDS = Object.freeze(['screenshot', 'video', 'trace', 'log']);
 const ATTACHABLE_KINDS = Object.freeze(['screenshot', 'video']);
-const PR_EVIDENCE_STATUSES = Object.freeze(['MATCHED', 'STALE', 'MISSING', 'INVALID', 'NOT-OBSERVABLE']);
+const PR_EVIDENCE_STATUSES = Object.freeze(['MATCHED', 'STALE', 'MISSING', 'INVALID', 'NOT-OBSERVABLE', 'SKIPPED-BY-USER']);
 
 const own = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
 const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -377,7 +377,11 @@ function judgmentSummary(record) {
  * capture: captures stay local unless the caller lists them in `attached` after a per-PR
  * yes. `attachable` lists only captures that were read and redacted.
  *
- * Input: { candidateTree, observableChange, reason?, records?, attached? }
+ * `skippedByUser` carries the reason the user gave when they explicitly asked to skip runtime
+ * evidence for this pull request. The section then records that skip instead of the evidence,
+ * so the decision stays visible to the reviewer; the caller never sets it on its own.
+ *
+ * Input: { candidateTree, observableChange, reason?, records?, attached?, skippedByUser? }
  */
 function renderPrEvidence(input = {}) {
     if (!isObject(input)) throw new Error('pr-evidence input must be an object');
@@ -387,6 +391,11 @@ function renderPrEvidence(input = {}) {
     const attached = input.attached === undefined ? [] : input.attached;
     if (!Array.isArray(attached) || attached.some(item => typeof item !== 'string')) throw new Error('attached must list capture paths');
     if (!input.observableChange && records.length === 0) return { status: 'NOT-OBSERVABLE', markdown: '', attachable: [] };
+    if (input.skippedByUser !== undefined) {
+        const why = typeof input.skippedByUser === 'string' ? reviewerText(input.skippedByUser) : '';
+        if (!why) throw new Error("skippedByUser must state the user's reason for skipping runtime evidence");
+        return { status: 'SKIPPED-BY-USER', markdown: `### Runtime evidence\n\nRuntime evidence: skipped at the user's request — ${why}.\n`, attachable: [] };
+    }
     if (typeof input.candidateTree !== 'string' || !TREE_ID.test(input.candidateTree)) {
         throw new Error('candidateTree must be the Git tree id of the pull-request candidate');
     }
