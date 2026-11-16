@@ -12,6 +12,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, '../../../../');
 const modulePath = path.join(repoRoot, '.claude', 'scripts', 'lib', 'workflow-baseline.cjs');
 const baseline = require(modulePath);
+const { LARGE_FILE_ID, withLargeFileIds } = require(path.join(repoRoot, '.claude', 'hooks', 'tests', 'lib', 'large-file-ids.cjs'));
 
 const BASE = 1_000_000;
 
@@ -231,6 +232,35 @@ test('approved bounded UTF-8 snapshots are readable and never copy text into met
     );
 });
 
+test('a snapshot whose file is replaced during the read is ambiguous, also when file IDs exceed 2^53', t => {
+    const fx = fixture(t);
+    const owned = path.join(fx.root, 'owned.txt');
+    fs.writeFileSync(owned, 'owned\n', 'utf8');
+    // Small IDs, and NTFS-sized IDs whose Number forms are equal although the files differ.
+    for (const [index, firstId] of [5n, LARGE_FILE_ID].entries()) {
+        for (const replaced of [false, true]) {
+            const nativeRead = fs.readFileSync;
+            let read = false;
+            fs.readFileSync = (target, ...args) => {
+                if (path.resolve(String(target)) === owned) read = true;
+                return nativeRead(target, ...args);
+            };
+            const runId = `replaced-${index}-${replaced}`;
+            try {
+                const result = withLargeFileIds(
+                    fs,
+                    (method, target) => (path.resolve(String(target)) === owned ? (read && replaced ? firstId + 1n : firstId) : undefined),
+                    () => baseline.captureBaseline({ ...fx.options, runId, ownedPaths: ['APPROVED:owned.txt'], snapshotPaths: ['owned.txt'] })
+                );
+                assert.equal(result.snapshotCount, replaced ? 0 : 1, `ID ${firstId} ${replaced ? 'replaced' : 'kept'}`);
+                if (replaced) assert.match(JSON.stringify(result.baseline), /TOCTOU ambiguous/);
+            } finally {
+                fs.readFileSync = nativeRead;
+            }
+        }
+    }
+});
+
 test('unapproved, sensitive, escaped and privacy-unavailable candidates stay metadata-only', t => {
     const fx = fixture(t, { privacyAvailable: false });
     const sentinel = 'SECRET_SENTINEL_SHOULD_NOT_BE_READ';
@@ -441,8 +471,11 @@ test('seeded expiry mutant is killed by the exact-boundary counter-case', t => {
     // control run fails to load and proves nothing.
     const hookLibDeps = ['sensitive-path-policy.cjs', 'ck-path-utils.cjs'];
     const copiedDeps = hookLibDeps.map(name => path.join(parent, '.claude', 'hooks', 'lib', name));
+    // The copied test file itself loads this test helper at startup.
+    const testLibDeps = ['large-file-ids.cjs'];
+    const copiedTestDeps = testLibDeps.map(name => path.join(parent, '.claude', 'hooks', 'tests', 'lib', name));
     const copiedTest = path.join(parent, '.claude', 'scripts', 'codex', 'tests', 'workflow-baseline.test.mjs');
-    for (const file of [mutantModule, ...copiedDeps, copiedTest]) {
+    for (const file of [mutantModule, ...copiedDeps, ...copiedTestDeps, copiedTest]) {
         fs.mkdirSync(path.dirname(file), { recursive: true });
     }
     const source = fs.readFileSync(modulePath, 'utf8');
@@ -450,6 +483,7 @@ test('seeded expiry mutant is killed by the exact-boundary counter-case', t => {
     const before = /at < createdAt \|\|\s+at >= expiresAt \|\|\s+at - createdAt >= MAX_AGE_MS/g;
     assert.equal(source.match(before)?.length, 1, 'expiry mutation target must exist exactly once');
     hookLibDeps.forEach((name, index) => fs.copyFileSync(path.join(repoRoot, '.claude', 'hooks', 'lib', name), copiedDeps[index]));
+    testLibDeps.forEach((name, index) => fs.copyFileSync(path.join(repoRoot, '.claude', 'hooks', 'tests', 'lib', name), copiedTestDeps[index]));
     fs.copyFileSync(fileURLToPath(import.meta.url), copiedTest);
     const env = { ...process.env, TMPDIR: parent, TEMP: parent, TMP: parent };
     delete env.NODE_TEST_CONTEXT;

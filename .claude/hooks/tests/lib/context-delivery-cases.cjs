@@ -11,6 +11,7 @@ const delivery = require('../../lib/protocol-delivery.cjs');
 const core = require('../../core-principles-inject.cjs');
 const { childEnv } = require('./hook-runner.cjs');
 const { createEnvSaver, otherInode } = require('./test-utils.cjs');
+const { LARGE_FILE_ID, withLargeFileIds } = require('./large-file-ids.cjs');
 const read = file => {
     try {
         return fs.readFileSync(file, 'utf8');
@@ -1244,6 +1245,20 @@ const cases = {
                 fs.fstatSync = fstat;
             }
             assert.equal(statCalls, 1, 'identity rejection precedes reading file bytes');
+            // File IDs above 2^53 (NTFS): the descriptor naming the file one ID away is a different file, though
+            // both IDs round to the same Number. The same large ID on both views still reads.
+            const worldFile = fs.realpathSync(path.join(dir, target));
+            const fileIds = openedId => (method, file) => (method === 'fstatSync' ? openedId : file === worldFile ? LARGE_FILE_ID : undefined);
+            assert.equal(
+                withLargeFileIds(fs, fileIds(LARGE_FILE_ID), () => readWorldFile(dir, target)),
+                fs.readFileSync(worldFile, 'utf8'),
+                'same large file ID on both views reads'
+            );
+            assert.throws(
+                () => withLargeFileIds(fs, fileIds(LARGE_FILE_ID + 1n), () => readWorldFile(dir, target)),
+                /world-file-changed/,
+                'opened file one ID away above 2^53 is a different file'
+            );
             for (const command of [
                 'git push',
                 'git -C . push',

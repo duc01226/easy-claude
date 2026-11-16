@@ -7,6 +7,7 @@ const crypto = require('node:crypto');
 const { execFileSync } = require('node:child_process');
 const { materialize } = require('./files.cjs');
 const { protect } = require('./private-files.cjs');
+const { sameFileIdentity } = require('../../../hooks/lib/ck-path-utils.cjs');
 const owned = new Set();
 
 function gitEnv(env = process.env) {
@@ -31,9 +32,9 @@ function create(entries, parent, { runCommand = execFileSync } = {}) {
     const root = fs.mkdtempSync(path.join(parent, 'native-'));
     protect(root);
     const session = { id: crypto.randomUUID(), root, repo: path.join(root, 'repository'), work: path.join(root, 'work') };
-    const stat = fs.lstatSync(root);
-    session.inode = stat.ino;
-    session.device = stat.dev;
+    // Bigint stats keep 64-bit file IDs exact (NTFS IDs exceed 2^53); see sameFileIdentity.
+    const { dev, ino } = fs.lstatSync(root, { bigint: true });
+    session.identity = { dev, ino };
     owned.add(session);
     fs.writeFileSync(path.join(root, 'owner.json'), JSON.stringify({ owner: 'framework-benchmark-native-v1', id: session.id }), { mode: 0o600 });
     try {
@@ -70,14 +71,8 @@ function create(entries, parent, { runCommand = execFileSync } = {}) {
 
 function assertOwned(session) {
     if (!owned.has(session)) throw new Error('Refusing cleanup of an unowned benchmark worktree');
-    const stat = fs.lstatSync(session.root);
-    if (
-        !stat.isDirectory() ||
-        stat.isSymbolicLink() ||
-        stat.ino !== session.inode ||
-        stat.dev !== session.device ||
-        fs.realpathSync(session.root) !== session.root
-    )
+    const stat = fs.lstatSync(session.root, { bigint: true });
+    if (!stat.isDirectory() || stat.isSymbolicLink() || !sameFileIdentity(stat, session.identity) || fs.realpathSync(session.root) !== session.root)
         throw new Error('Benchmark cleanup identity changed');
     const marker = JSON.parse(fs.readFileSync(path.join(session.root, 'owner.json'), 'utf8'));
     if (marker.owner !== 'framework-benchmark-native-v1' || marker.id !== session.id) throw new Error('Benchmark cleanup owner changed');

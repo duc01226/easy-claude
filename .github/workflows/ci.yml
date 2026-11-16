@@ -208,7 +208,9 @@ jobs:
   integration-test-shards:
     name: integration-test-shards (${{ matrix.os }})
     needs: [gate, static-and-unit]
-    if: ${{ needs.gate.outputs.run_hook_suites == 'true' }}
+    # !cancelled() and explicit results: an `if:` without a status function gets an implicit success(), which is false
+    # when any job upstream was skipped (repo-checks or unit-tests behind static-and-unit), so a selected leg would skip.
+    if: ${{ !cancelled() && needs.gate.result == 'success' && needs.static-and-unit.result == 'success' && needs.gate.outputs.run_hook_suites == 'true' }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     strategy:
