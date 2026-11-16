@@ -981,7 +981,7 @@ Pattern (when used): grep/read first → optional graph query → grep/read veri
 **IMPORTANT MUST ATTENTION** Classify EVERY finding Critical/High/Medium/Low by consequence (not fix-effort); round 1 blocks on every open validated finding (Round-1 LOW closure), round 2 blocks only CRITICAL/HIGH/MEDIUM, and LOW is recorded/deferred; failed binary gates always block — why: one shared scale and predicate keep "High" meaning the same across all reviews.
 **IMPORTANT MUST ATTENTION** Run Bug Detection categories 1-4 (null safety, boundary, error handling, resource management) on EVERY review and trace BOTH happy AND error paths before any PASS — why: untested code paths and unchecked edges are the top source of production bugs.
 **IMPORTANT MUST ATTENTION** review exactly the scope your brief assigns — batching and fan-out belong to the orchestrator; if the scope is too large to review well, say so in your return instead of sampling silently.
-**IMPORTANT MUST ATTENTION** Evaluate fit before copying a nearby pattern — verify the new context shares the same base class, scope, and constraints — why: the closest example is not always a matching example.
+**IMPORTANT MUST ATTENTION** Evaluate fit before copying a nearby pattern — verify the new context shares the same base class, scope, and constraints; prefer an exemplar the project documents over the most frequent pattern, and report a copied workaround (a sleep used for ordering, a blind retry, a suppression or disabled check) as a finding — why: the closest or most common example is not always a matching or intended one.
 
 **Anti-Rationalization:**
 

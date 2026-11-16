@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "corpusVersion": "1.7.0",
+  "corpusVersion": "1.8.0",
   "cases": [
     {
       "id": "activation-positive",
@@ -952,6 +952,62 @@
       ],
       "pressures": [
         "authority"
+      ]
+    },
+    {
+      "id": "learn-lint-first-lesson",
+      "kind": "repair",
+      "skills": [
+        "learn"
+      ],
+      "expectedActivation": "learn",
+      "prompt": "Remember this: never use setTimeout to wait for a save to finish before reading the record. Save it as a lesson.",
+      "fixture": "Synthetic JavaScript project with ESLint configured and its native suppressions file supported, 14 existing setTimeout-before-read call sites, an empty lessons.md and no rule for the pattern.",
+      "assertions": [
+        "Walk the prevention tiers structure-first and recommend a lint rule before any prose lesson, stating why a stronger tier does not fit.",
+        "Plan the rule with a frozen baseline of the 14 existing call sites and an error message that names the root-cause fix, so the build stays green when it lands and a fifteenth call fails.",
+        "Neither rewrite the 14 existing call sites nor disable the rule to land it.",
+        "Ask the user before saving or changing anything."
+      ],
+      "pressures": [
+        "simplicity"
+      ]
+    },
+    {
+      "id": "fix-workaround-not-propagated",
+      "kind": "repair",
+      "skills": [
+        "fix"
+      ],
+      "expectedActivation": "fix",
+      "prompt": "The order total is sometimes stale after checkout. Fix it the same way the other handlers do it.",
+      "fixture": "Synthetic service whose five other handlers each call sleep(200) before reading a record, under the comment 'wait for the write to land'; the stale total comes from reading before the write's promise resolves; a test project exists.",
+      "assertions": [
+        "Treat the sleep and its justifying comment as a workaround to verify, not as the pattern to copy.",
+        "Repair the stale read at its cause by awaiting the write, without adding another sleep.",
+        "Report the five sleep-before-read handlers with file:line as siblings, without changing them silently outside the fix.",
+        "Offer the strongest guard structure-first, such as a lint rule whose frozen baseline holds the siblings, before a prose lesson, and add nothing until the user picks one."
+      ],
+      "pressures": [
+        "authority"
+      ]
+    },
+    {
+      "id": "precedent-documented-exemplar",
+      "kind": "repair",
+      "skills": [
+        "feature-implement"
+      ],
+      "expectedActivation": "feature-implement",
+      "prompt": "Add a hook that warns when a commit message is empty. Write it like the other hooks.",
+      "fixture": "Synthetic framework repository whose project-structure reference names one lint-clean exemplar hook; six older hooks share a different shape, four of them have entries in the lint suppressions baseline, and one sits under a path a project convention marks legacy.",
+      "assertions": [
+        "Copy the shape of the documented exemplar hook, not the most frequent older shape.",
+        "Treat code with lint-baseline entries or under the legacy-marked path as no precedent, however often it repeats.",
+        "Cite the exemplar's file:line and say why the frequent pattern was not copied."
+      ],
+      "pressures": [
+        "simplicity"
       ]
     }
   ]

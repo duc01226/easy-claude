@@ -85,12 +85,12 @@
       "group": "universal",
       "summary": "Failure modes to avoid on every task",
       "when": "delivered by the universal hook",
-      "chars": 5467,
+      "chars": 6024,
       "file": ".claude/skills/shared/protocols/ai-mistake-prevention.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/ai-mistake-prevention.md",
-          "chars": 5467
+          "chars": 6024
         }
       ]
     },
@@ -435,12 +435,12 @@
       "group": "universal",
       "summary": "Discovery order, search-first rule and first principles",
       "when": "delivered by the universal hook",
-      "chars": 1403,
+      "chars": 1505,
       "file": ".claude/skills/shared/protocols/discovery-and-first-principles.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/discovery-and-first-principles.md",
-          "chars": 1403
+          "chars": 1505
         }
       ]
     },
@@ -743,12 +743,12 @@
       "group": "universal",
       "summary": "Extract root-cause lessons at the end of a non-trivial task",
       "when": "delivered by the universal hook",
-      "chars": 653,
+      "chars": 976,
       "file": ".claude/skills/shared/protocols/lesson-extraction-gate.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/lesson-extraction-gate.md",
-          "chars": 653
+          "chars": 976
         }
       ]
     },
@@ -925,12 +925,12 @@
       "group": "universal",
       "summary": "Route review, test and failure work to the project's registered skills first",
       "when": "delivered by the universal hook",
-      "chars": 1596,
+      "chars": 1662,
       "file": ".claude/skills/shared/protocols/quality-skill-routing.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/quality-skill-routing.md",
-          "chars": 1596
+          "chars": 1662
         }
       ]
     },

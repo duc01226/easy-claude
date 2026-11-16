@@ -6,6 +6,6 @@ When you write or update a doc an agent reads (root context, reference docs, doc
 
 ## Search Existing Code First
 
-Before writing, read target code and `.claude/docs/development-rules.md`; grep 3+ similar patterns and cite `file:line`.
+Before writing, read target code and `.claude/docs/development-rules.md`; grep 3+ similar patterns and cite `file:line`. Prefer an exemplar the project documents over the most frequent match (`SYNC:ai-mistake-prevention`).
 
 **First Principles:** (1) **Understanding > Output** — never ship code you can't explain. (2) **Design before mechanics** — write WHY before WHAT. (3) **Own your abstractions** — every dependency and platform choice is yours. (4) **Operational awareness** — code that can't be debugged, monitored, or rolled back is debt. (5) **Depth over breadth** — one understood solution beats ten generated variants.
