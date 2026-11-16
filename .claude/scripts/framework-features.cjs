@@ -268,6 +268,17 @@ const FEATURES = [
             };
         }
     },
+    {
+        key: 'editTimeLint.enabled',
+        default: false,
+        scope: PERSONAL,
+        what: 'post-edit-prettier: after an edit, lint the edited file with testing.commands.lintFile and tell the assistant only the problems on lines that differ from the last commit',
+        change: '{ "editTimeLint": { "enabled": true } } in a settings layer, or CK_EDIT_TIME_LINT=1; needs testing.commands.lintFile in the project config (set it with /project-config)',
+        resolve: ({ rootDir, homeDir, env }) => ({
+            value: lib('hooks/lib/edit-time-lint.cjs').resolveSettings({ projectDir: rootDir, homeDir, env }).enabled,
+            source: routerSource(rootDir, 'editTimeLint', 'CK_EDIT_TIME_LINT', homeDir, env)
+        })
+    },
     router('commitSkillRoute', 'CK_COMMIT_SKILL_ROUTE', 'commit-skill-route', 'route commit requests to the commit skill'),
     router('judgementIntegrityRoute', 'CK_JUDGEMENT_INTEGRITY_ROUTE', 'judgement-integrity-route', 'verdict and evaluation reminder'),
     router('aiFeatureRoute', 'CK_AI_FEATURE_ROUTE', 'ai-feature-route', 'AI-feature engineering reminder'),

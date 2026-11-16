@@ -33,6 +33,11 @@
  *   - Bounded child lifecycle: a timed-out formatter is killed tree-wide
  *   - Cross-platform: Windows and Unix compatible
  *
+ * Edit-time lint (opt-in, `editTimeLint.enabled`; the hook keeps its name for compatibility):
+ * after formatting, `lib/edit-time-lint.cjs` lints the same file with the project's
+ * `testing.commands.lintFile` and returns only the problems on lines that differ from the last
+ * commit, as PostToolUse `additionalContext`. Off by default; quiet runtime mode skips it.
+ *
  * Exit Codes:
  *   0 - Success (non-blocking, allows continuation)
  */
@@ -122,20 +127,24 @@ const PROCESS_KILL_GRACE_MS = 2000;
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Read this project's `formatting` config. Fail-SOFT: a missing/broken config,
- * or a missing loader, yields `{}` so the framework default applies. A hook that
- * threw would block every tool call in the session — a worse failure than a
- * skipped format.
+ * Read this project's config. Fail-SOFT: a missing/broken config, or a missing
+ * loader, yields `{}` so the framework defaults apply. A hook that threw would
+ * block every tool call in the session — a worse failure than a skipped format.
  */
-function loadFormattingConfig() {
+function loadConfig() {
     try {
         const { loadProjectConfig } = require(PROJECT_CONFIG_MODULE);
         const config = loadProjectConfig();
-        const formatting = config && config.formatting;
-        return formatting && typeof formatting === 'object' ? formatting : {};
+        return config && typeof config === 'object' ? config : {};
     } catch {
         return {};
     }
+}
+
+/** This project's `formatting` config, or `{}`. */
+function formattingOf(config) {
+    const formatting = config && config.formatting;
+    return formatting && typeof formatting === 'object' ? formatting : {};
 }
 
 /** Built-in skip patterns plus any `formatting.skipPaths` substrings. */
@@ -315,6 +324,8 @@ function extractFilePath(payload) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 async function main() {
+    // The hook's own clock: edit-time lint gets only what formatting leaves of the shared budget.
+    const startedAt = Date.now();
     try {
         const stdin = fs.readFileSync(0, 'utf-8').trim();
         if (!stdin) process.exit(0);
@@ -346,23 +357,31 @@ async function main() {
             process.exit(0);
         }
 
-        const formatting = loadFormattingConfig();
+        const config = loadConfig();
+        const formatting = formattingOf(config);
 
-        // Check if path should be skipped
+        // Format unless the path is skipped or no formatter applies (framework default: prettier).
         const skipPatterns = buildSkipPatterns(formatting);
         const normalizedPath = absolutePath.replace(/\\/g, '/');
-        if (skipPatterns.some(pattern => pattern.test(normalizedPath))) {
-            process.exit(0);
+        const plan = skipPatterns.some(pattern => pattern.test(normalizedPath)) ? null : resolveFormatPlan(absolutePath, formatting);
+        if (plan) {
+            // Run the formatter (non-blocking, result ignored)
+            await runFormatter(plan);
         }
 
-        // Resolve the project's formatter (framework default: prettier)
-        const plan = resolveFormatPlan(absolutePath, formatting);
-        if (!plan) {
-            process.exit(0);
+        // Edit-time lint runs after formatting, so its line numbers match the file the agent sees.
+        const { runEditTimeLint } = require('./lib/edit-time-lint.cjs');
+        const { resolveProjectRoot } = require('./lib/project-root.cjs');
+        const context = await runEditTimeLint({
+            file: absolutePath,
+            projectDir: resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename }).rootDir,
+            config,
+            sessionId: payload.session_id,
+            deadline: startedAt + require('./lib/edit-time-lint.cjs').HOOK_BUDGET_MS
+        });
+        if (context) {
+            process.stdout.write(`${JSON.stringify({ hookSpecificOutput: { hookEventName: 'PostToolUse', additionalContext: context } })}\n`);
         }
-
-        // Run the formatter (non-blocking, result ignored)
-        await runFormatter(plan);
 
         return;
     } catch (error) {
