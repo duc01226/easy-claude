@@ -35,7 +35,9 @@ const PROJECT_DIR = resolveProjectRoot({
     scriptPath: __filename,
     env: process.env
 }).rootDir;
-const PROJECT_TMP_DIR = path.join(PROJECT_DIR, 'tmp', 'claude-temp');
+// One owner for where project-scoped runtime files live, for this project or any other root a tool selects.
+const projectTmpDirFor = rootDir => path.join(rootDir, 'tmp', 'claude-temp');
+const PROJECT_TMP_DIR = projectTmpDirFor(PROJECT_DIR);
 
 // Project-scoped runtime file paths (dismiss flags, markers, warnings)
 const INIT_DISMISSED_PATH = path.join(PROJECT_TMP_DIR, '.init-dismissed');
@@ -52,6 +54,11 @@ const SCAN_STALE_PATH = path.join(PROJECT_TMP_DIR, '.scan-stale');
 // passes the staleness window, until a scan runs there too. The gate is warn-only
 // (init-prompt-gate.cjs), so this costs a dismissible notice, never a blocked prompt.
 const SCAN_VERIFIED_PATH = path.join(PROJECT_TMP_DIR, '.scan-verified');
+// The answer to the task-start harness readiness offer (declined, or proposed in a team-owned repository).
+// Local to one workstation like the dismiss flags above: it never changes a tracked file, so recording it
+// is allowed in a repository whose checks the team owns. Read and written by .claude/scripts/harness-readiness.cjs.
+const HARNESS_READINESS_DECISION_FILE = '.harness-readiness-decision';
+const HARNESS_READINESS_DECISION_PATH = path.join(PROJECT_TMP_DIR, HARNESS_READINESS_DECISION_FILE);
 
 // Session-specific marker files (per-session, no race conditions)
 const MARKERS_DIR = path.join(CK_TMP_DIR, 'markers');
@@ -197,8 +204,11 @@ module.exports = {
     GRAPH_DISMISSED_PATH,
     SCAN_STALE_PATH,
     SCAN_VERIFIED_PATH,
+    HARNESS_READINESS_DECISION_FILE,
+    HARNESS_READINESS_DECISION_PATH,
 
     // Helpers
+    projectTmpDirFor,
     ensureDir,
     ensureProjectTmpDir,
     getMarkerPath,

@@ -119,6 +119,7 @@ The workflow router injects the catalog; on the first task of a session, when th
 
 - `/linter-setup --mode=brownfield` adds a linter, type check, boundary rule or banned-API rule to existing code. Today's violations go into a committed baseline, so only new problems fail, and the baseline only shrinks.
 - `/project-config` can record the module layers your code already follows (`architectureRules`), and `/linter-setup` turns them into a tool rule that runs in lint and CI.
+- Feature, bug-fix and spec-supplied workflows check this at the start of the work too: their optional first step runs the readiness check (`node .claude/scripts/harness-readiness.cjs`), skips itself when every check is proven, and otherwise offers setup once — or, in a repository whose checks the team owns, only proposes it. Answering "Not now" is remembered on that machine for 7 days.
 - `/harness-setup` builds the full harness and keeps the inventory current in `harness-inventory.md` under the project-reference root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path).
 
 ## Greenfield Projects

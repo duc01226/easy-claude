@@ -24,12 +24,12 @@ Mode selection and registry loading prepare tracking; any 'first action' below m
 
 Explicit step-skill calls by mode (registry order; roles and conditions remain owned by the registry):
 
-- Mode `default`: [`$investigate`](../investigate/SKILL.md) (core) → [`$spec [mode=clarify]`](../spec/SKILL.md) (core) → [`$plan`](../plan/SKILL.md) (core) → [`$plan --mode=execute`](../plan/SKILL.md) (core) → [`$seed-test-data`](../seed-test-data/SKILL.md) (optional; conditional) → [`$integration-test`](../integration-test/SKILL.md) (optional; conditional) → [`$spec [mode=sync]`](../spec/SKILL.md) (optional; conditional) → [`$workflow-review-changes --tests=defer`](../workflow-review-changes/SKILL.md) (gate) → [`$integration-test --mode=verify`](../integration-test/SKILL.md) (gate) → [`$workflow-e2e --source=context`](../workflow-e2e/SKILL.md) (optional; conditional) → [`$test --proven=@verify`](../test/SKILL.md) (gate) → [`$workflow-end`](../workflow-end/SKILL.md) (gate) → [`$watzup`](../watzup/SKILL.md) (optional; conditional)
-  Phase todos: Discover (1) → Specify (1) → Plan (1) → Build (4; exit spec-synced) → Review (1; exit review-converged) → Verify (3; exit tests-pass) → Close (2; exit run-closed)
-<!-- workflow-mode:default fingerprint:4a87d18a9bc48695dbbddc7f9130b82f2c63ad73d5b8b466c0f59de4c58190e2 -->
+- Mode `default`: [`$harness-setup --mode=readiness`](../harness-setup/SKILL.md) (optional; conditional) → [`$investigate`](../investigate/SKILL.md) (core) → [`$spec [mode=clarify]`](../spec/SKILL.md) (core) → [`$plan`](../plan/SKILL.md) (core) → [`$plan --mode=execute`](../plan/SKILL.md) (core) → [`$seed-test-data`](../seed-test-data/SKILL.md) (optional; conditional) → [`$integration-test`](../integration-test/SKILL.md) (optional; conditional) → [`$spec [mode=sync]`](../spec/SKILL.md) (optional; conditional) → [`$workflow-review-changes --tests=defer`](../workflow-review-changes/SKILL.md) (gate) → [`$integration-test --mode=verify`](../integration-test/SKILL.md) (gate) → [`$workflow-e2e --source=context`](../workflow-e2e/SKILL.md) (optional; conditional) → [`$test --proven=@verify`](../test/SKILL.md) (gate) → [`$workflow-end`](../workflow-end/SKILL.md) (gate) → [`$watzup`](../watzup/SKILL.md) (optional; conditional)
+  Phase todos: Discover (2) → Specify (1) → Plan (1) → Build (4; exit spec-synced) → Review (1; exit review-converged) → Verify (3; exit tests-pass) → Close (2; exit run-closed)
+<!-- workflow-mode:default fingerprint:4deb329cc06965bdc3e8e600d057699699059dc17bfadce34b9237e1071bd0e1 -->
 - Mode `greenfield-slice`: [`$investigate`](../investigate/SKILL.md) (core) → [`$spec [mode=clarify]`](../spec/SKILL.md) (core) → [`$plan`](../plan/SKILL.md) (optional; conditional) → [`$plan --mode=execute`](../plan/SKILL.md) (core) → [`$seed-test-data`](../seed-test-data/SKILL.md) (optional; conditional) → [`$integration-test`](../integration-test/SKILL.md) (optional; conditional) → [`$spec [mode=sync]`](../spec/SKILL.md) (optional; conditional) → [`$workflow-review-changes --tests=defer`](../workflow-review-changes/SKILL.md) (gate) → [`$integration-test --mode=verify`](../integration-test/SKILL.md) (gate) → [`$workflow-e2e --source=context`](../workflow-e2e/SKILL.md) (gate) → [`$test --proven=@verify`](../test/SKILL.md) (gate) → [`$workflow-end`](../workflow-end/SKILL.md) (gate) → [`$watzup`](../watzup/SKILL.md) (optional; conditional)
   Phase todos: Discover (1) → Specify (1) → Plan (1) → Build (4; exit spec-synced) → Review (1; exit review-converged) → Verify (3; exit tests-pass) → Close (2; exit run-closed)
-<!-- workflow-mode:greenfield-slice fingerprint:d657cccd3935fbf443ac766ba8730e9373cec5ff63e0b951c537122c06854d2c -->
+<!-- workflow-mode:greenfield-slice fingerprint:212b0f32148165a090feb085d861cd9b75c9db65011ccc6ecf0b979cbba68e19 -->
 
 Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs --write` after registry edits; [`$sync-codex`](../sync-codex/SKILL.md) refreshes it before mirroring.
 <!-- WORKFLOW-CALLS:END -->
@@ -40,7 +40,7 @@ Regenerate this block with `node .claude/scripts/lib/workflow-skill-contract.cjs
 
 **Goal:** Implement already-specified behavior within the supplied baseline, proven by green tests, converged review and reconciled spec evidence.
 
-**Summary:** The supplied spec replaces feature discovery, spec-authoring and test-spec rounds. Triage → investigate → clarify gaps → plan → execute (code and tests together) → optional seed data → missing integration tests → sync changed behavior/evidence → review statically → verify integration tests → E2E (when asked for; always in `greenfield-slice`) → test remaining tiers → close → hand off.
+**Summary:** The supplied spec replaces feature discovery, spec-authoring and test-spec rounds. Triage → harness readiness (when checks are missing or unproven; not in `greenfield-slice`, whose foundation set the harness up) → investigate → clarify gaps → plan → execute (code and tests together) → optional seed data → missing integration tests → sync changed behavior/evidence → review statically → verify integration tests → E2E (when asked for; always in `greenfield-slice`) → test remaining tiers → close → hand off.
 
 **Workflow:** Activate `$start-workflow workflow-implement-spec` with the user's prompt; follow the registry and step contracts below.
 
@@ -94,6 +94,7 @@ At every size, `$spec [mode=clarify]` checks the supplied spec against the reque
 
 | Step                       | Role     | Earns its cost when                                                           | Proves / feeds                |
 | -------------------------- | -------- | ----------------------------------------------------------------------------- | ----------------------------- |
+| `$harness-setup --mode=readiness` | optional | the readiness check reports a missing or unproven check (`harness-readiness.cjs --json` → `offer: true`) | proven, proposed or declined checks |
 | `$investigate`             | core     | always — read the supplied spec and the affected code; find 3+ local examples | gap-review input              |
 | `$spec [mode=clarify]`            | core     | always — the EXISTING-SPEC gap review                                         | no guessed behavior           |
 | `$plan`                    | core     | always; light spec-supplied profile, with its own validation interview        | `spec_baseline`, traced tasks |
@@ -119,7 +120,7 @@ At every size, `$spec [mode=clarify]` checks the supplied spec against the reque
 
 Keep this verifier-parsed chain equal to the registry; roles determine permitted flex:
 
-**IMPORTANT MANDATORY Steps:** $investigate -> $spec [mode=clarify] -> $plan -> $plan --mode=execute -> $seed-test-data -> $integration-test -> $spec [mode=sync] -> $workflow-review-changes --tests=defer -> $integration-test --mode=verify -> $workflow-e2e --source=context -> $test --proven=@verify -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $harness-setup --mode=readiness -> $investigate -> $spec [mode=clarify] -> $plan -> $plan --mode=execute -> $seed-test-data -> $integration-test -> $spec [mode=sync] -> $workflow-review-changes --tests=defer -> $integration-test --mode=verify -> $workflow-e2e --source=context -> $test --proven=@verify -> $workflow-end -> $watzup
 
 **On-demand skill (not a registry step):** `$investigate --mode=debug` — a test fails and its cause is unknown.
 
@@ -168,7 +169,7 @@ Choose inline/sub-agent execution, parallel waves, batching and ordering at equa
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Implement already-specified behavior within the supplied baseline, proven by green tests, converged review and reconciled spec evidence.
-**IMPORTANT MUST ATTENTION Main steps:** triage → investigate → clarify gaps → plan → execute (code and tests together) → missing integration tests → sync changed behavior/evidence → review statically → verify integration tests → E2E (when asked for; always in `greenfield-slice`) → test remaining tiers → close → hand off.
+**IMPORTANT MUST ATTENTION Main steps:** triage → harness readiness (when checks are missing or unproven) → investigate → clarify gaps → plan → execute (code and tests together) → missing integration tests → sync changed behavior/evidence → review statically → verify integration tests → E2E (when asked for; always in `greenfield-slice`) → test remaining tiers → close → hand off.
 **IMPORTANT MUST ATTENTION** a vague, contradictory or incomplete spec stops the route before `$plan` — the user clarifies the spec or switches to `workflow-feature`.
 **IMPORTANT MUST ATTENTION** the workflow records the supplied baseline before planning; every plan phase and acceptance gate stays within it, and anything beyond it needs owner approval.
 **IMPORTANT MUST ATTENTION** gates never flex: tests green in THIS run · nested `$workflow-review-changes` converged inline · spec synced before the review when behavior differs · `$workflow-end` last.

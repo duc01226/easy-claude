@@ -8,6 +8,7 @@ Read this when you write, update or read a project's harness inventory: `$harnes
 - **Detecting writes nothing.** Detection only reads files and runs no tool. `$harness-setup` writes the file as part of the setup the user asked for; any other caller (`$project-init`, `$linter-setup`) asks the user before creating or changing it.
 - **Every row cites evidence** (`path:line`, a config key or a command). Unknown is a gap, never a pass.
 - **Living document.** Update a row whenever a sensor is added, proven, baselined or declined.
+- **The task-start readiness check reads the Summary.** `.claude/scripts/harness-readiness.cjs` takes the first two columns (Sensor, Status) of the Summary table: `proven`, `declined` and `n/a` settle a check, so keep the sensor names and status words exactly as in the Detection table.
 
 ## Contents
 

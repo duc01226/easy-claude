@@ -1411,6 +1411,7 @@ const annotatedRegistryTests = [
 
 const LEAN_ROUTE_ID = 'workflow-implement-spec';
 const LEAN_ROUTE_SEQUENCE = [
+    'harness-setup --mode=readiness',
     'investigate',
     'spec [mode=clarify]',
     'plan',
@@ -1448,10 +1449,13 @@ function findLeanRouteShapeGaps(config) {
     if (JSON.stringify(steps) !== JSON.stringify(LEAN_ROUTE_SEQUENCE)) gaps.push(`sequence: ${steps.join(' -> ')}`);
     for (const step of manifest.occurrences) {
         // Conditional by design: the sync (behavior difference), test authoring for cases execute left uncovered, seed data and the
-        // near-end E2E (explicit request or a greenfield first slice, P41 D7) and the session report.
+        // near-end E2E (explicit request or a greenfield first slice, P41 D7), the session report and the task-start harness
+        // readiness check (BR-GWF-21: it runs only when the readiness check offers setup).
         const expected = isLeanRouteGate(step)
             ? 'gate'
-            : ['spec [mode=sync]', 'integration-test', 'seed-test-data', 'workflow-e2e --source=context', 'watzup'].includes(commandOf(step))
+            : ['harness-setup --mode=readiness', 'spec [mode=sync]', 'integration-test', 'seed-test-data', 'workflow-e2e --source=context', 'watzup'].includes(
+                    commandOf(step)
+                )
               ? 'optional'
               : 'core';
         if (step.role !== expected) gaps.push(`role: ${commandOf(step)} is ${step.role}, expected ${expected}`);

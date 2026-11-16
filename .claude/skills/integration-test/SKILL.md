@@ -273,7 +273,7 @@ Filter command/query files by project naming conventions (e.g., `*Command.*`, `*
 
 Search for existing `*.IntegrationTests.*` projects to confirm mapping.
 
-If no test project exists: inform user "No integration test project for {service}. See CLAUDE.md Integration Testing section to create one."
+If no test project exists, never stop at "create one yourself" — a bug fix needs its regression test, and a novice cannot create a test project unaided. Run `node .claude/scripts/harness-readiness.cjs --json`. When its `tests` check is `missing` and it reports `offer: true` (no recorded decline or proposal covers the open gaps), offer `/harness-setup --mode=readiness`: one plain-language question; on a yes it sets up the stack's test runner and proves it, then this step writes the test. In a team-owned repository, or after a no, write the test with a runner the project can already execute — the language's built-in runner when nothing else exists (`node --test`, Python `unittest`, `go test`, `cargo test`) — beside the code it guards, and record in the report that no integration test project exists and who owns creating one. Inside `workflow-bugfix` this keeps the regression (RED) gate satisfiable: never skip the gate, and never report it done without a test that fails before the fix.
 
 If test file already exists: ask user overwrite or skip.
 

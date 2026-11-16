@@ -409,8 +409,8 @@
       "by": "baseline"
     },
     "workflow:workflow-bugfix": {
-      "hash": "80e2d51268fc",
-      "by": "baseline"
+      "hash": "93ec79ac75fc",
+      "by": "harness-readiness-active"
     },
     "workflow:workflow-code-to-spec": {
       "hash": "40fe9f929301",
@@ -421,8 +421,8 @@
       "by": "baseline"
     },
     "workflow:workflow-feature": {
-      "hash": "bab4bd2ee815",
-      "by": "baseline"
+      "hash": "5435e5bd2974",
+      "by": "harness-readiness-active"
     },
     "workflow:workflow-feature-spec": {
       "hash": "21bd5744fa81",
@@ -433,8 +433,8 @@
       "by": "baseline"
     },
     "workflow:workflow-implement-spec": {
-      "hash": "a2a24082ed6b",
-      "by": "baseline"
+      "hash": "e139ee8e7307",
+      "by": "harness-readiness-active"
     },
     "workflow:workflow-integration-test": {
       "hash": "005aa656bfa9",

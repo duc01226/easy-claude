@@ -1,6 +1,6 @@
 ---
 name: harness-setup
-description: '[Quality] Use when a workflow step or the user asks for an agent quality harness with project guidance and automated/review feedback.'
+description: '[Quality] Use when a workflow step or the user asks for an agent quality harness with project guidance and automated/review feedback. --mode=readiness checks it at task start.'
 ---
 
 > Codex compatibility note:
@@ -29,6 +29,8 @@ description: '[Quality] Use when a workflow step or the user asks for an agent q
 - **Existing projects:** stack and sensor facts come from the repository (manifests, tool configs, CI, the project config) instead of plan or architecture reports; missing computational sensors route to `$linter-setup --mode=brownfield`, whose baselines keep the existing tree green.
 - **Quality boundary:** `$linter-setup` supplies computational sensors; this skill never installs them. Require intent-protecting evidence selected by profile, risk, tooling and budget; mutation/property sensors are optional, line coverage diagnostic; append inventory after every phase and keep it living.
 
+**Readiness mode (`--mode=readiness`):** the optional first step of `workflow-feature`, `workflow-bugfix` and `workflow-implement-spec`, and the route `$integration-test` takes when no test project exists. Read `references/readiness-mode.md` and follow only it: run `node .claude/scripts/harness-readiness.cjs --json`, then end proven (set up after one plain-language yes), proposed (a team-owned repository: nothing written) or declined (recorded), and hand back to the task. The phases below do not run in this mode.
+
 **Main steps (run in order — each BLOCKS the next):**
 
 1. **Guards** — verify `$linter-setup` (linter config + pre-commit hook + CI gate); detect existing inventory and enhance it, never skip it.
@@ -56,6 +58,7 @@ description: '[Quality] Use when a workflow step or the user asks for an agent q
 ## Contents
 
 - [Quick Summary](#quick-summary)
+- [Readiness Mode](#readiness-mode)
 - [Activation Guards](#activation-guards)
 - [Phase A — Stack Detection](#phase-a--stack-detection)
 - [Phase B — Feedforward Guide Setup (Inferential)](#phase-b--feedforward-guide-setup-inferential)
@@ -66,6 +69,10 @@ description: '[Quality] Use when a workflow step or the user asks for an agent q
 - [Next Steps](#next-steps)
 - [Prompt-Enhance Closing Anchors](#prompt-enhance-closing-anchors)
 - [Closing Reminders](#closing-reminders)
+
+## Readiness Mode
+
+With `--mode=readiness`, read `references/readiness-mode.md` and follow it instead of the guards and phases below. The readiness check owns detection (`.claude/scripts/harness-readiness.cjs`; it reads the inventory Summary this skill writes); the reference owns the consent, the ownership guard, the decline record and the hand-back.
 
 ## Activation Guards
 
