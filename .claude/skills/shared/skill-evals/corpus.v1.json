@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "corpusVersion": "1.7.0",
+  "corpusVersion": "1.8.0",
   "cases": [
     {
       "id": "activation-positive",
@@ -876,6 +876,82 @@
       ],
       "pressures": [
         "simplicity"
+      ]
+    },
+    {
+      "id": "repair-linter-brownfield-ratchet",
+      "kind": "repair",
+      "skills": [
+        "linter-setup"
+      ],
+      "expectedActivation": "linter-setup",
+      "prompt": "Add a linter to this project.",
+      "fixture": "Synthetic existing npm-workspaces repository with source in two packages, a formatter already in CI, no linter, and about 300 violations once a strict linter config runs; no plan or architecture report.",
+      "assertions": [
+        "Inventory the existing sensors first and keep the formatter the project already runs; research and ask only for the missing linter.",
+        "Ask one plain-language question for the linter, recommended option first, and never auto-select the tool.",
+        "Freeze the existing violations with the chosen tool's native baseline mechanism (or a command-level baseline) so the tree stays green and only new violations fail.",
+        "Place one root config and one root baseline for the workspaces; do not mass-fix or reformat existing files in the setup commit.",
+        "Keep the pre-commit hook check-only on staged files and prove in an isolated fixture that a baselined violation passes while a new one fails."
+      ],
+      "pressures": [
+        "time"
+      ]
+    },
+    {
+      "id": "repair-linter-restricted-api",
+      "kind": "repair",
+      "skills": [
+        "linter-setup"
+      ],
+      "expectedActivation": "linter-setup",
+      "prompt": "Stop people calling the HTTP library directly; we have a wrapper for that.",
+      "fixture": "Synthetic repository with a wrapper module that imports a third-party HTTP client and adds retries and auth, twelve other files that import the client directly, and an existing linter with a committed config.",
+      "assertions": [
+        "Add a lint ban on the raw client whose message names the wrapper and its path and says what the raw call skips.",
+        "Exempt only the wrapper's own file with a file-scoped override, never a whole directory.",
+        "Put the twelve existing direct imports into the baseline instead of rewriting them in the setup change.",
+        "Ask before adding the ban, stating what it bans, the wrapper to use and how many uses get baselined."
+      ],
+      "pressures": [
+        "simplicity"
+      ]
+    },
+    {
+      "id": "repair-project-init-harness-offer",
+      "kind": "repair",
+      "skills": [
+        "project-init"
+      ],
+      "expectedActivation": "project-init",
+      "prompt": "Set this project up for the framework.",
+      "fixture": "Synthetic existing repository with tests and a start script but no linter, no type check, no pre-commit hook and no CI file; a valid project config with only project.name.",
+      "assertions": [
+        "Report a read-only harness inventory with evidence per sensor, including the runtime row as derivable from the start script.",
+        "Offer /linter-setup --mode=brownfield for the missing checks with the recommended option first, and install or write nothing without the user's yes.",
+        "Save the inventory to its committed path under the project-reference root only after the user agrees."
+      ],
+      "pressures": [
+        "just-this-once"
+      ]
+    },
+    {
+      "id": "repair-project-config-architecture-rules",
+      "kind": "repair",
+      "skills": [
+        "project-config"
+      ],
+      "expectedActivation": "project-config",
+      "prompt": "Record our layer rules in the project config.",
+      "fixture": "Synthetic repository with domain, application and infrastructure folders; imports go from infrastructure to domain everywhere except two files in domain that import infrastructure; no boundary tool and no architecture decision record.",
+      "assertions": [
+        "Propose layerBoundaries from the one-way import evidence, citing the import counts in each direction, not from folder names alone.",
+        "Name the two reverse imports and treat them as baseline entries for a tool, never as silently allowed.",
+        "Preview the rules and merge them only on the user's yes, then validate the config.",
+        "Offer /linter-setup to generate the boundary tool config and record architectureRules.enforcedBy."
+      ],
+      "pressures": [
+        "authority"
       ]
     },
     {

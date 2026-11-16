@@ -396,7 +396,7 @@ SITUATION?
 
 ## Architecture Boundary Check
 
-Read [references/code-quality-review-conditional-checks.md](references/code-quality-review-conditional-checks.md) when `docs/project-config.json` declares `architectureRules.layerBoundaries` (absent → skip silently); it holds the per-file layer-import check that BLOCKS on a forbidden import.
+Read [references/code-quality-review-conditional-checks.md](references/code-quality-review-conditional-checks.md) when `docs/project-config.json` declares `architectureRules.layerBoundaries` (absent → skip silently); it holds the per-file layer-import check that BLOCKS on a forbidden import, read from the boundary tool when `architectureRules.enforcedBy` names one.
 
 ---
 
