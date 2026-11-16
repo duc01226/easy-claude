@@ -26,7 +26,7 @@ const { launchTerminal, SCRIPT_DIR } = require('../../../skills/task-track/lib/t
 const { launchBrowser, LAUNCH_LINK } = browserLaunch;
 const { ensurePackages, INSTALL_ARGS, AUTOMATIC_ARGS, PEER_WAIT_MS } = require('../../../skills/task-track/lib/package-setup.cjs');
 const { OUTCOMES: INSTALLER_OUTCOMES } = require('../../lib/startup-install.cjs');
-const { LOCK_OUTCOMES, withProjectLock } = require('../../lib/startup-install-lock.cjs');
+const { LOCK_OUTCOMES, withProjectLock, createLockSeams, prepareLockDirectory } = require('../../lib/startup-install-lock.cjs');
 
 const CLI_PATH = path.resolve(__dirname, '../../../skills/task-track/scripts/task-track.cjs');
 const BUNDLE_ROOT = path.resolve(__dirname, '../../..');
@@ -80,6 +80,21 @@ function setupSeams(effect = () => ({ outcome: INSTALLER_OUTCOMES.INSTALLED, exi
     { located = { ok: true, execPath: path.join(path.sep, 'opt', 'tools', 'npm') }, lock = heldAtOnce } = {}) {
     const plans = [];
     return { plans, seams: { resolveExecutable: () => located, withProjectLock: lock, spawnManager: async plan => { plans.push(plan); return effect(plan); } } };
+}
+
+/**
+ * The real install lock, for tests about how it coordinates overlapping commands. Its folder privacy is the host's
+ * own proof: native Windows refuses with PRIVACY_UNPROVABLE when the lock folder's ACL cannot be shown private
+ * (startup-install.test.cjs owns that native proof). There, after asserting that explicit refusal, only the two
+ * privacy probes are controlled, so the coordination still runs through the real lock on the real folder.
+ */
+function coordinatingLock() {
+    const prepared = prepareLockDirectory(createLockSeams());
+    if (prepared.ok) return withProjectLock;
+    assert.equal(process.platform, 'win32', `the install lock folder is unusable on ${process.platform}: ${prepared.code}`);
+    assert.equal(prepared.code, LOCK_OUTCOMES.PRIVACY_UNPROVABLE, 'Windows must fail closed when the native lock ACL is unprovable');
+    const privacy = { probeParentProtection: () => ({ ok: true }), probeChildPrivacy: () => ({ ok: true }) };
+    return options => withProjectLock({ ...options, seams: { ...options.seams, ...privacy } });
 }
 
 /**
@@ -2250,8 +2265,9 @@ module.exports = { name: 'Task tracking runtime contract integration', tests: [
 
         // Through the real install lock: the second command starts while the first is installing, waits for the
         // folder, and on getting it finds the package complete instead of installing again.
-        let second; const waiting = setupSeams(installs, { lock: withProjectLock });
-        const first = setupSeams(async () => { second = setup(waiting); await new Promise(resolve => setTimeout(resolve, 300)); return installs(); }, { lock: withProjectLock });
+        const lock = coordinatingLock();
+        let second; const waiting = setupSeams(installs, { lock });
+        const first = setupSeams(async () => { second = setup(waiting); await new Promise(resolve => setTimeout(resolve, 300)); return installs(); }, { lock });
         assert.deepEqual(await setup(first), { status: 'installed', packages: ['parser'] });
         assert.deepEqual(await second, { status: 'present' });
         assert.equal(first.plans.length, 1); assert.equal(waiting.plans.length, 0);

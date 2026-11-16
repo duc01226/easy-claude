@@ -9,6 +9,16 @@ const { sameFileIdentity } = require('./ck-path-utils.cjs');
 const fail = (code, message) => { throw Object.assign(new Error(message), { code }); };
 const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 
+/**
+ * Whether two existing paths name one directory, judged by the filesystem's own final path on both sides. Git for
+ * Windows reports a checkout by its long path while a root reached through an 8.3 short name (such as a temp folder
+ * under C:\Users\RUNNER~1) keeps that spelling under fs.realpathSync; the native call resolves both alike, and on
+ * POSIX it is realpath(3). Throws when either path cannot be resolved.
+ */
+function sameDirectory(first, second) {
+    return fs.realpathSync.native(first) === fs.realpathSync.native(second);
+}
+
 /** Literal relative path, checked at every existing ancestor; links are never write authority. */
 function scopedPath(root, relative) {
     if (!relativePath(relative)) fail('UNSAFE_PATH', 'Use an exact project-relative path');
@@ -135,4 +145,4 @@ function removeBytes(root, relative, expectedHash) {
     return { directoryFlushed };
 }
 
-module.exports = { fail, hash, scopedPath, readBytes, ensureDirectory, publishBytes, replaceRootFile, removeBytes };
+module.exports = { fail, hash, sameDirectory, scopedPath, readBytes, ensureDirectory, publishBytes, replaceRootFile, removeBytes };

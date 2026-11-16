@@ -291,16 +291,20 @@ function createSessionEndInput(source) {
 }
 
 /**
- * The exact command string the generated Codex mirror (`.codex/hooks.json`) runs for `hookFile`:
+ * The exact command string the generated Codex mirror (`.codex/hooks.json`) runs for `hookFile` on `platform`:
  * `node -e "…require(path.join(root, hookPath))" -- <hookPath>`, where `require.main` is undefined.
+ * Codex runs a handler's `commandWindows` on native Windows and its POSIX `/bin/sh` bootstrap `command` elsewhere;
+ * a Windows handler without `commandWindows` counts as unwired rather than falling back to a shell Windows lacks.
  * @param {string} hookFile - Hook filename under `.claude/hooks/` (e.g. 'review-commit-gate.cjs')
+ * @param {string} [platform] - Host platform whose command to select (defaults to `process.platform`)
  * @returns {string|null} The first mirrored command wiring that hook, or null when none does
  */
-function codexLauncherCommand(hookFile) {
+function codexLauncherCommand(hookFile, platform = process.platform) {
   const codexHooks = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, '.codex', 'hooks.json'), 'utf8'));
+  const field = platform === 'win32' ? 'commandWindows' : 'command';
   const commands = Object.values(codexHooks.hooks || {})
     .flat()
-    .flatMap(group => (group.hooks || []).map(h => h.command || ''));
+    .flatMap(group => (group.hooks || []).map(h => h[field] || ''));
   return commands.find(c => c.includes(`.claude/hooks/${hookFile}`)) || null;
 }
 

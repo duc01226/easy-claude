@@ -40,8 +40,13 @@ test('TC-FBM-082: private native storage verifies Windows ACLs before credential
         privateFiles.protect(directory, { platform: 'win32', env: { PATH: 'tools', OPENAI_API_KEY: 'not-for-acl-helper' }, runCommand(bin, args, options) { calls.push({ bin, args, options }); return 'VERIFIED\r\n'; } });
         assert.equal(calls[0].bin, 'powershell.exe'); assert(calls[0].args.includes('-EncodedCommand')); assert(!calls[0].args.some(arg => arg.includes(directory)));
         assert.equal(calls[0].options.env.CK_BENCH_PRIVATE_DIR, directory); assert.equal(calls[0].options.env.OPENAI_API_KEY, undefined);
-        assert.throws(() => privateFiles.protect(directory, { platform: 'win32', runCommand() { return 'NOT VERIFIED'; } }), /ENVIRONMENT-BLOCKED/);
-        assert.throws(() => privateFiles.protect(directory, { platform: 'win32', runCommand() { throw new Error('Access denied'); } }), /ENVIRONMENT-BLOCKED/);
+        // A cmdlet makes Windows PowerShell discover and auto-load modules in the trimmed child environment; .NET calls do not.
+        assert.doesNotMatch(privateFiles.WINDOWS_PRIVATE_ACL, /\b[A-Z][a-z]+-[A-Z][A-Za-z]+\b/);
+        assert.throws(() => privateFiles.protect(directory, { platform: 'win32', runCommand() { return 'NOT VERIFIED'; } }), /ENVIRONMENT-BLOCKED: .*did not confirm/);
+        assert.throws(() => privateFiles.protect(directory, { platform: 'win32', runCommand() { throw new Error('Access denied'); } }), /ENVIRONMENT-BLOCKED: .*could not run: Access denied/);
+        assert.throws(() => privateFiles.protect(directory, { platform: 'win32', runCommand() { throw Object.assign(new Error('spawnSync powershell.exe ETIMEDOUT'), { code: 'ETIMEDOUT' }); } }), /ENVIRONMENT-BLOCKED: .*did not finish within 15000 ms/);
+        const clixml = '#< CLIXML\r\n<Objs Version="1.1.0.1"><S S="Error">Private ACL verification failed_x000D__x000A_</S></Objs>';
+        assert.throws(() => privateFiles.protect(directory, { platform: 'win32', runCommand() { throw Object.assign(new Error('Command failed'), { status: 1, stderr: clixml }); } }), /ENVIRONMENT-BLOCKED: .*exited with status 1: Private ACL verification failed\)$/);
     } finally { f.cleanup(); }
 });
 
@@ -1275,7 +1280,7 @@ test('TC-FBM-005: public prepare without a runtime file discovers a fixture nati
 });
 
 test('TC-FBM-081: controller SIGTERM retains in-flight work, removes credentials and stops owned descendants', async () => {
-    const f = campaignFixture('greenfield'); let child; let descendant;
+    const f = campaignFixture('greenfield'); let child; let descendant; let exited;
     try {
         const prepared = f.prepare();
         const marker = path.join(f.root, 'ready.json');
@@ -1295,7 +1300,7 @@ if(process.platform==='win32'){const timer=setInterval(()=>{if(require('node:fs'
 completion.then(code=>{process.exitCode=code;}).catch(error=>{console.error(error.message);process.exitCode=1;});`);
         child = spawn(process.execPath, [controller], { cwd: f.root, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'], env: { ...f.env, HOME: path.join(f.root, 'login'), USERPROFILE: path.join(f.root, 'login'), NODE_OPTIONS: '', OPENAI_API_KEY: '', ANTHROPIC_API_KEY: '' } });
         let diagnostics = ''; child.stdout.on('data', chunk => { diagnostics += chunk; }); child.stderr.on('data', chunk => { diagnostics += chunk; });
-        const exited = new Promise((resolve, reject) => { child.once('error', reject); child.once('close', (code, signal) => resolve({ code, signal })); });
+        exited = new Promise((resolve, reject) => { child.once('error', reject); child.once('close', (code, signal) => resolve({ code, signal })); });
         await new Promise((resolve, reject) => {
             const deadline = setTimeout(() => { clearInterval(poll); reject(new Error('No observable native worker readiness: ' + diagnostics)); }, 15000);
             const poll = setInterval(() => { if (fs.existsSync(marker)) { clearTimeout(deadline); clearInterval(poll); resolve(); } }, 20);
@@ -1325,6 +1330,8 @@ completion.then(code=>{process.exitCode=code;}).catch(error=>{console.error(erro
     } finally {
         if (child && child.exitCode === null) child.kill('SIGKILL');
         if (descendant) { try { process.kill(descendant, 'SIGKILL'); } catch { /* already exited */ } }
+        // Windows refuses to remove a live process's working directory (EPERM), which would replace the real failure.
+        if (exited) { let bound; await Promise.race([exited.catch(() => {}), new Promise(resolve => { bound = setTimeout(resolve, 10000); })]).finally(() => clearTimeout(bound)); }
         f.cleanup();
     }
 });

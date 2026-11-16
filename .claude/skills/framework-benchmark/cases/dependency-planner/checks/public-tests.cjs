@@ -3,12 +3,14 @@
 const assert = require('node:assert/strict');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
+const { pathToFileURL } = require('node:url');
 
 module.exports = (root, files) => {
     assert(files.length > 0 && files.length <= 200, 'Discover bounded public test files');
     let passed = 0;
     for (const file of [...files].sort()) {
-        const run = spawnSync(process.execPath, [`--test-reporter=${path.join(__dirname, 'public-test-reporter.cjs')}`, '--require', path.join(__dirname, 'public-test-preload.cjs'), file], {
+        // Node loads a reporter through the ESM loader, which reads a Windows drive path as a URL scheme: pass a file URL.
+        const run = spawnSync(process.execPath, [`--test-reporter=${pathToFileURL(path.join(__dirname, 'public-test-reporter.cjs')).href}`, '--require', path.join(__dirname, 'public-test-preload.cjs'), file], {
             cwd: root, encoding: 'utf8', timeout: 10000, maxBuffer: 4 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe', 'pipe']
         });
         assert.equal(run.status, 0, run.stderr || run.error?.message);
