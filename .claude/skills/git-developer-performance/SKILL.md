@@ -42,6 +42,7 @@ disable-model-invocation: true
 - Persist large rechecks to a report file outside `.claude` BEFORE finalizing — why: context loss otherwise erases the evidence.
 - Separate product/domain delivery, platform/tooling work, docs/generated churn, merge/admin integration — NEVER mix them silently into one velocity number.
 - Velocity sanity check: both man-day ranges plausible for active days and the selected period.
+- Report each contributor's speed figures beside the script's quality counters for the same period (reverts made and received, follow-up fixes within 14 days on the same paths, `Bug-Class:` trailers per class, and the verify-baseline trend when a baseline is committed): read them from `summary.md` → Quality Counters Beside Velocity and `contributors.csv` — why: a speed figure alone rewards rework.
 - Keep output outside `.claude`; default root `reports/developer-performance/`.
 
 ## Contents

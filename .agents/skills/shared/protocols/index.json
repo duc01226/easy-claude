@@ -267,12 +267,12 @@
       "group": "workflow-task",
       "summary": "Prompt clarity and semantic retention principles",
       "when": "writing or enhancing prompts, skills or agents",
-      "chars": 3473,
+      "chars": 3794,
       "file": ".claude/skills/shared/protocols/context-engineering-principles.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/context-engineering-principles.md",
-          "chars": 3473
+          "chars": 3794
         }
       ]
     },

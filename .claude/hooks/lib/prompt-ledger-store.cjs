@@ -543,8 +543,11 @@ function writeDelivery(dir, record) {
     return writeFileAtomic(path.join(dir, 'delivery.json'), JSON.stringify(record));
 }
 
+/** Conversation bytes of the transcript (convention-ledger's measure: host request copies and image payloads excluded); raw size when that module cannot load. */
 function transcriptSize(file) {
     if (typeof file !== 'string' || !file.trim()) return null;
+    const helpers = conventionHelpers();
+    if (helpers && typeof helpers.transcriptSize === 'function') return helpers.transcriptSize(file);
     try {
         const stat = fs.statSync(file);
         return stat.isFile() ? stat.size : null;

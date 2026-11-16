@@ -64,6 +64,8 @@ Explain both execution stories as well as their results: what was planned, what 
 
 Within-task repeats probe variability; broader conclusions require representative held-out tasks and calibrated reviewers. Show raw wins, ties and losses. After several runs (for example greenfield, bootstrap and configured, or several tasks in one consumer), run `scripts/benchmark.cjs compare` for the task-level verdict: it counts each task once, never pools different runtimes, and reports insufficient evidence until at least six tasks are decisive under an exact sign test. Read [references/methodology.md](references/methodology.md) before quoting that verdict. Recommend improvements from evidenced failures, without automatically modifying or publishing the framework.
 
+Routing alone — whether a prompt reaches the intended workflow, skill or direct route, for novice phrasing and mid-session follow-ups — is measured more cheaply by the on-demand routing evals: read [the skill-evals README](../shared/skill-evals/README.md) when you need that measure, and run `node .claude/skills/shared/skill-evals/run-routing-evals.mjs` (a dry plan; `--run` calls the host, capped per run).
+
 On unavailable runtime, exhausted limits, interruption or invalid checks, retain the partial report and state the blocker. Complete useful independent work within existing authority; do not fabricate execution or ask routine questions when the user delegated those decisions.
 
 ## Closing Reminders

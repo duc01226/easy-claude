@@ -32,8 +32,43 @@ export function validateCorpus(corpus) {
             new Set(item.assertions).size !== item.assertions.length
         )
             fail(`${item.id}: unique assertions required`);
+        if (item.routing !== undefined) validateRouting(item);
     }
     return corpus;
+}
+
+const ROUTE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const FRAMEWORK_FOLDER = /^\.(?:claude|agents|codex)(?:\/|$)/;
+
+/** A routing case (run by run-routing-evals.mjs): who asks, earlier turns, the routes that pass, synthetic files. */
+function validateRouting(item) {
+    const routing = item.routing;
+    if (!object(routing) || item.kind !== 'activation') fail(`${item.id}: routing belongs to an activation case and must be an object`);
+    if (!['novice', 'mid-session'].includes(routing.audience)) fail(`${item.id}: routing audience must be novice or mid-session`);
+    const prior = routing.priorPrompts ?? [];
+    if (!Array.isArray(prior) || prior.some(prompt => !text(prompt))) fail(`${item.id}: priorPrompts must be nonempty strings`);
+    if ((routing.audience === 'mid-session') !== prior.length > 0) fail(`${item.id}: a mid-session case needs earlier turns, a novice case none`);
+    const routes = routing.acceptedRoutes;
+    if (!Array.isArray(routes) || routes.length === 0 || routes.some(route => !text(route) || !ROUTE.test(route)) || new Set(routes).size !== routes.length)
+        fail(`${item.id}: acceptedRoutes must be unique route names`);
+    if (item.expectedActivation !== null && !routes.includes(item.expectedActivation)) fail(`${item.id}: the expected activation must be an accepted route`);
+    if (item.expectedActivation === null && routes.some(route => item.skills.includes(route)))
+        fail(`${item.id}: a case expecting no offered skill cannot accept one`);
+    if (routing.fixtureFiles !== undefined) {
+        if (!object(routing.fixtureFiles) || Object.keys(routing.fixtureFiles).length === 0) fail(`${item.id}: fixtureFiles must map paths to text`);
+        for (const [file, content] of Object.entries(routing.fixtureFiles)) {
+            const normal = file.replace(/\\/g, '/');
+            if (
+                !text(file) ||
+                normal.startsWith('/') ||
+                /^[A-Za-z]:/.test(normal) ||
+                normal.split('/').includes('..') ||
+                FRAMEWORK_FOLDER.test(normal) ||
+                typeof content !== 'string'
+            )
+                fail(`${item.id}: fixture file ${file} must be a relative path outside framework folders with text content`);
+        }
+    }
 }
 
 export function validateResults(corpus, results) {

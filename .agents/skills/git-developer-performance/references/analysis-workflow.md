@@ -74,4 +74,5 @@ Include:
 - Separate authored work from merge/admin integration.
 - Avoid ranking by commits/lines alone; compare only evidence-backed value.
 - Include a velocity sanity note when estimates are high relative to active days or team expectations.
+- Put the quality counters (reverts, follow-up fixes, `Bug-Class:` classes, verify-baseline trend) beside each speed figure; treat them as evidence to inspect, never as a score.
 - Warnings for identity splits, bulk changes, squashed commits, generated changes, and low-confidence estimates.

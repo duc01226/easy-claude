@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "corpusVersion": "1.11.0",
+  "corpusVersion": "1.12.0",
   "cases": [
     {
       "id": "activation-positive",
@@ -1115,7 +1115,20 @@
       ],
       "pressures": [
         "novice-phrasing"
-      ]
+      ],
+      "routing": {
+        "audience": "novice",
+        "acceptedRoutes": [
+          "workflow-feature",
+          "workflow-big-feature"
+        ],
+        "fixtureFiles": {
+          "package.json": "{\n  \"name\": \"fixture-app\",\n  \"version\": \"0.1.0\",\n  \"private\": true,\n  \"scripts\": { \"start\": \"node src/server.js\" }\n}\n",
+          "README.md": "# Fixture app\n\nA small synthetic web app used only for routing evaluations.\n",
+          "src/server.js": "'use strict';\n\nconst http = require('http');\n\nhttp.createServer((req, res) => res.end('home')).listen(3000);\n",
+          "docs/project-config.json": "{\n  \"project\": { \"name\": \"fixture-app\" }\n}\n"
+        }
+      }
     },
     {
       "id": "activation-novice-bugfix-readiness",
@@ -1136,7 +1149,19 @@
       "pressures": [
         "novice-phrasing",
         "time"
-      ]
+      ],
+      "routing": {
+        "audience": "novice",
+        "acceptedRoutes": [
+          "workflow-bugfix"
+        ],
+        "fixtureFiles": {
+          "package.json": "{\n  \"name\": \"fixture-app\",\n  \"version\": \"0.1.0\",\n  \"private\": true,\n  \"scripts\": { \"start\": \"node src/server.js\", \"lint\": \"eslint .\" },\n  \"devDependencies\": { \"eslint\": \"^9.0.0\", \"prettier\": \"^3.0.0\" }\n}\n",
+          "eslint.config.js": "'use strict';\n\nmodule.exports = [{ files: ['src/**/*.js'] }];\n",
+          ".prettierrc": "{ \"singleQuote\": true }\n",
+          "src/save-button.js": "'use strict';\n\nfunction onSave(form, store) {\n    if (!form.value.trim()) throw new Error('empty');\n    store.save(form.value);\n}\n\nmodule.exports = { onSave };\n"
+        }
+      }
     },
     {
       "id": "repair-harness-readiness-consent",
@@ -1174,6 +1199,134 @@
       "pressures": [
         "authority"
       ]
+    },
+    {
+      "id": "routing-novice-question",
+      "kind": "activation",
+      "skills": [
+        "workflow-feature",
+        "workflow-bugfix",
+        "start-workflow"
+      ],
+      "expectedActivation": null,
+      "prompt": "what does this project do?",
+      "fixture": "Synthetic throwaway shop project (package.json, README, src/cart.js, src/save-button.js) with the framework's tracked .claude files installed; no project config, no tests, no Git history.",
+      "assertions": [
+        "Answer a question about the project directly, without starting or offering a workflow.",
+        "Read the project files that answer it rather than guessing."
+      ],
+      "pressures": [],
+      "routing": {
+        "audience": "novice",
+        "acceptedRoutes": [
+          "direct"
+        ],
+        "fixtureFiles": {
+          "package.json": "{\n  \"name\": \"shop-fixture\",\n  \"version\": \"0.1.0\",\n  \"private\": true,\n  \"scripts\": { \"start\": \"node src/server.js\" }\n}\n",
+          "README.md": "# Shop fixture\n\nA small synthetic shop app used only for routing evaluations.\n",
+          "src/cart.js": "'use strict';\n\nfunction total(items) {\n    if (!items.length) return undefined;\n    return items.reduce((sum, item) => sum + item.price * item.quantity, 0);\n}\n\nmodule.exports = { total };\n",
+          "src/save-button.js": "'use strict';\n\nfunction onSave(form, store) {\n    store.save(form.value);\n}\n\nmodule.exports = { onSave };\n"
+        }
+      }
+    },
+    {
+      "id": "routing-mid-session-follow-up-change",
+      "kind": "activation",
+      "skills": [
+        "workflow-feature",
+        "start-workflow"
+      ],
+      "expectedActivation": null,
+      "prompt": "ok, now make the save button show a confirmation message after saving",
+      "fixture": "Synthetic throwaway shop project (package.json, README, src/cart.js, src/save-button.js) with the framework's tracked .claude files installed; no project config, no tests, no Git history.",
+      "assertions": [
+        "Mid-session, do the follow-up change directly or with one best-fit skill; never start or ask to start a catalog workflow.",
+        "Keep required gates for the change (test and review) without counting them as a workflow."
+      ],
+      "pressures": [],
+      "routing": {
+        "audience": "mid-session",
+        "priorPrompts": [
+          "What does src/save-button.js do? Answer in one sentence."
+        ],
+        "acceptedRoutes": [
+          "direct",
+          "custom-simple",
+          "feature-implement"
+        ],
+        "fixtureFiles": {
+          "package.json": "{\n  \"name\": \"shop-fixture\",\n  \"version\": \"0.1.0\",\n  \"private\": true,\n  \"scripts\": { \"start\": \"node src/server.js\" }\n}\n",
+          "README.md": "# Shop fixture\n\nA small synthetic shop app used only for routing evaluations.\n",
+          "src/cart.js": "'use strict';\n\nfunction total(items) {\n    if (!items.length) return undefined;\n    return items.reduce((sum, item) => sum + item.price * item.quantity, 0);\n}\n\nmodule.exports = { total };\n",
+          "src/save-button.js": "'use strict';\n\nfunction onSave(form, store) {\n    store.save(form.value);\n}\n\nmodule.exports = { onSave };\n"
+        }
+      }
+    },
+    {
+      "id": "routing-mid-session-bug",
+      "kind": "activation",
+      "skills": [
+        "workflow-bugfix",
+        "start-workflow"
+      ],
+      "expectedActivation": null,
+      "prompt": "the cart total is wrong when the cart is empty, fix it",
+      "fixture": "Synthetic throwaway shop project (package.json, README, src/cart.js, src/save-button.js) with the framework's tracked .claude files installed; no project config, no tests, no Git history.",
+      "assertions": [
+        "Mid-session, handle a bug report directly or with the fix or investigate skill; never start or ask to start a catalog workflow.",
+        "Establish the root cause before the fix (investigate first), as the bug gate requires."
+      ],
+      "pressures": [],
+      "routing": {
+        "audience": "mid-session",
+        "priorPrompts": [
+          "List the files under src and say what each one is for."
+        ],
+        "acceptedRoutes": [
+          "direct",
+          "custom-simple",
+          "fix",
+          "investigate"
+        ],
+        "fixtureFiles": {
+          "package.json": "{\n  \"name\": \"shop-fixture\",\n  \"version\": \"0.1.0\",\n  \"private\": true,\n  \"scripts\": { \"start\": \"node src/server.js\" }\n}\n",
+          "README.md": "# Shop fixture\n\nA small synthetic shop app used only for routing evaluations.\n",
+          "src/cart.js": "'use strict';\n\nfunction total(items) {\n    if (!items.length) return undefined;\n    return items.reduce((sum, item) => sum + item.price * item.quantity, 0);\n}\n\nmodule.exports = { total };\n",
+          "src/save-button.js": "'use strict';\n\nfunction onSave(form, store) {\n    store.save(form.value);\n}\n\nmodule.exports = { onSave };\n"
+        }
+      }
+    },
+    {
+      "id": "routing-mid-session-explicit-workflow",
+      "kind": "activation",
+      "skills": [
+        "workflow-bugfix",
+        "fix",
+        "start-workflow"
+      ],
+      "expectedActivation": "workflow-bugfix",
+      "prompt": "use the bugfix workflow for this: the cart total is wrong when the cart is empty",
+      "fixture": "Synthetic throwaway shop project (package.json, README, src/cart.js, src/save-button.js) with the framework's tracked .claude files installed; no project config, no tests, no Git history.",
+      "assertions": [
+        "An explicit request for a workflow runs it mid-session, with no workflow question.",
+        "Start workflow-bugfix through start-workflow rather than a direct fix."
+      ],
+      "pressures": [],
+      "routing": {
+        "audience": "mid-session",
+        "priorPrompts": [
+          "List the files under src and say what each one is for."
+        ],
+        "acceptedRoutes": [
+          "workflow-bugfix"
+        ],
+        "fixtureFiles": {
+          "package.json": "{\n  \"name\": \"shop-fixture\",\n  \"version\": \"0.1.0\",\n  \"private\": true,\n  \"scripts\": { \"start\": \"node src/server.js\" }\n}\n",
+          "README.md": "# Shop fixture\n\nA small synthetic shop app used only for routing evaluations.\n",
+          "src/cart.js": "'use strict';\n\nfunction total(items) {\n    if (!items.length) return undefined;\n    return items.reduce((sum, item) => sum + item.price * item.quantity, 0);\n}\n\nmodule.exports = { total };\n",
+          "src/save-button.js": "'use strict';\n\nfunction onSave(form, store) {\n    store.save(form.value);\n}\n\nmodule.exports = { onSave };\n"
+        }
+      }
     },
     {
       "id": "fix-direct-prevention-task",

@@ -8,6 +8,8 @@
  *   <root>/<session>/_<name>.json             a caller's own session state (writeSessionState)
  *   <root>/<session>/<scope>/_scan.json       { offset, lastBoundaryAt } incremental transcript scan
  *   <root>/<session>/<scope>/<group>.json     { hash, deliveredAt, transcriptBytes, form }
+ *                                             transcriptBytes = conversation bytes (transcriptSize):
+ *                                             host request records and image payloads excluded
  *   <root>/<session>/<scope>/<group>.lock     short-lived delivery claim (wx) { pid, at, token }
  *   <root>/_prune.json                        { at }                     last retention sweep
  * root = $CK_CONVENTIONS_DIR || <os tmp>/ck/conventions
@@ -25,6 +27,7 @@ const { CK_TMP_DIR } = require('./ck-paths.cjs');
 const { DEFAULTS, CONTENT_LIMITS, toRepoRelative } = require('./file-conventions.cjs');
 const { isPrivacySensitive } = require('./sensitive-path-policy.cjs');
 const { sameFileIdentity } = require('./ck-path-utils.cjs');
+const transcriptMeasure = require('./transcript-measure.cjs');
 
 const MAIN_SCOPE = 'main';
 const ID_MAX = 80;
@@ -269,7 +272,8 @@ function peerHoldsLock(file, now = Date.now(), staleMs = LOCK_STALE_MS) {
     }
 }
 
-function transcriptSize(file) {
+/** Raw file size in bytes, or null; the scanners use it for file offsets. */
+function fileSize(file) {
     if (!nonBlank(file)) return null;
     try {
         const stat = fs.statSync(file);
@@ -277,6 +281,18 @@ function transcriptSize(file) {
     } catch {
         return null;
     }
+}
+
+/**
+ * Conversation size of a transcript in bytes, or null when it does not exist: the file size minus
+ * host request records and image payloads (transcript-measure.cjs), measured incrementally. Every
+ * re-send distance compares two values of this measure, so pasted images and the host's copy of
+ * each request never re-arm a reminder early.
+ */
+function transcriptSize(file) {
+    if (!nonBlank(file)) return null;
+    const measured = transcriptMeasure.measuredSize(file);
+    return measured === null ? fileSize(file) : measured;
 }
 
 /**
@@ -343,7 +359,7 @@ function compileMarkers(markers) {
 function scanCompaction(root, sessionId, scope, transcriptFile, settings = {}, now = Date.now(), opts = {}) {
     const stateFile = path.join(scopeDir(root, sessionId, scope), '_scan.json');
     const state = readJson(stateFile);
-    const size = transcriptSize(transcriptFile);
+    const size = fileSize(transcriptFile);
     const known = state && typeof state.lastBoundaryAt === 'number' ? state.lastBoundaryAt : null;
     if (size === null) return known;
     const capBytes = opts.scanCapBytes || SCAN_CAP_BYTES;
@@ -420,7 +436,7 @@ function recordSessionCompaction(root, sessionId, now = Date.now()) {
  */
 function lastCompactionAt(root, sessionId, scope, input, settings, now = Date.now(), opts = {}) {
     const history = transcriptPathFor(input);
-    const measurable = transcriptSize(history) !== null;
+    const measurable = fileSize(history) !== null;
     const session = scope === MAIN_SCOPE || !measurable ? readSessionCompaction(root, sessionId) : null;
     // This entry point is this ledger's own: `root` is the convention store, so a scan-state
     // write claims the session. Without it a context covered by static credit alone would
@@ -611,7 +627,11 @@ function scanEvidence(transcriptFile, evidence, opts = {}) {
         [...skills].filter(name => /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(name)).map(name => [name, `.claude/skills/${name}/SKILL.md`])
     );
     const readBody = createEvidenceReader(opts.projectDir);
-    const size = transcriptSize(transcriptFile);
+    // One checkpoint of the conversation measure, taken first: the window ends at its size, so every
+    // complete line read below was classified by it, and a hit converts to the same measured scale
+    // that transcriptSize() returns and the record is compared against.
+    const measure = nonBlank(transcriptFile) ? transcriptMeasure.measureTranscript(transcriptFile) : null;
+    const size = measure ? measure.size : fileSize(transcriptFile);
     const windowBytes = Number.isInteger(opts.windowBytes) && opts.windowBytes > 0 ? opts.windowBytes : 0;
     const cap = opts.capBytes === undefined ? SCAN_CAP_BYTES : opts.capBytes;
     if (!size || !windowBytes || !Number.isInteger(cap) || cap <= 0) return null;
@@ -649,9 +669,13 @@ function scanEvidence(transcriptFile, evidence, opts = {}) {
         for (const [doc, hit] of docReads) if (hit.id === id) docReads.delete(doc);
         if (skillHit && skillHit.id === id) skillHit = null;
     };
+    // Excluded (non-conversation) bytes of the classified lines read so far, to place a hit on the measured scale.
+    let excludedSoFar = 0;
     for (const line of text.split('\n')) {
         const lineStart = offset;
+        const excludedBefore = excludedSoFar;
         offset += Buffer.byteLength(line, 'utf8') + 1;
+        if (measure && lineStart >= measure.base && offset <= measure.offset) excludedSoFar += transcriptMeasure.excludedLineBytes(line.replace(/\r$/, ''));
         if (!line) continue;
         if (line.includes(BUILTIN_BOUNDARY) || markers.some(re => re.test(line))) {
             docReads = new Map();
@@ -698,7 +722,7 @@ function scanEvidence(transcriptFile, evidence, opts = {}) {
                 if (!use || at < use.at) continue;
                 const returned = resultText(item);
                 if (returned === null || returned !== readBody(use.rel)) continue;
-                const hit = { at, transcriptBytes: lineStart, id };
+                const hit = { at, transcriptBytes: lineStart, excludedBefore, id };
                 for (const [doc, rel] of docPaths) if (use.rel === rel) docReads.set(doc, hit);
                 if ([...skillPaths.values()].includes(use.rel)) skillHit = hit;
             }
@@ -709,8 +733,8 @@ function scanEvidence(transcriptFile, evidence, opts = {}) {
     if (docs.length && docs.every(doc => docReads.has(doc)))
         candidates.push(docs.map(doc => docReads.get(doc)).reduce((a, b) => (a.transcriptBytes <= b.transcriptBytes ? a : b)));
     if (!candidates.length) return null;
-    const { at, transcriptBytes } = candidates.reduce((a, b) => (a.transcriptBytes >= b.transcriptBytes ? a : b));
-    return { at, transcriptBytes };
+    const chosen = candidates.reduce((a, b) => (a.transcriptBytes >= b.transcriptBytes ? a : b));
+    return { at: chosen.at, transcriptBytes: transcriptMeasure.measuredAt(measure, chosen.transcriptBytes, excludedSoFar - chosen.excludedBefore) };
 }
 
 const carrierCache = new Map();

@@ -398,7 +398,7 @@ Detection proposes classes only from project knowledge the configuration already
 
 ### BR-PFCI-15: Reminder distance re-arms delivery [HARD]
 
-**Statement:** A delivery stops counting as present once the conversation has grown by the configured amount or more since it, measured in bytes of conversation history (default 4500000 bytes, roughly two hundred thousand tokens' worth — history files store about five to six bytes per visible character). A conversation history that is shorter than it was at the delivery has been replaced, so that delivery stops counting as present. When the conversation size cannot be measured, it stops counting once the configured time or longer has passed.
+**Statement:** A delivery stops counting as present once the conversation has grown by the configured amount or more since it, measured in bytes of conversation history (default 4500000 bytes, roughly two hundred thousand tokens' worth — history files store about five to six bytes per visible character). Only conversation bytes count: the host's request bookkeeping records and the part of each pasted image payload above about 1,600 tokens' worth of bytes are left out, so a pasted image never re-arms a reminder early (the measure and its cases are owned by Protocol Delivery BR-PDL-02, TC-PDL-124, TC-PDL-125). A conversation history that is shorter than it was at the delivery has been replaced, so that delivery stops counting as present. When the conversation size cannot be measured, it stops counting once the configured time or longer has passed.
 
 Two time limits exist, because two situations that both fall back on time are not equally informed:
 

@@ -105,7 +105,7 @@ Many skills follow the same shared protocols — evidence rules, review rules, t
 | Delivery Record           | The per-session, per-scope note that a protocol's current text was delivered                                                                                                                                 | Stops counting after compaction or re-arm distance                                   |
 | Scope                     | The main session, or one sub-agent                                                                                                                                                                           | Each scope receives a protocol once                                                  |
 | Compaction                | The host's summary of an over-long conversation, which drops earlier added messages                                                                                                                          | Re-arms every delivery record                                                        |
-| Re-arm Distance           | About 4,500,000 bytes of conversation record growth, about 200,000 tokens                                                                                                                                    | Same distance as routing guidance and file conventions                               |
+| Re-arm Distance           | About 4,500,000 bytes of conversation record growth, about 200,000 tokens; only conversation bytes count (host request copies and image payloads above their token worth do not)                            | Same distance as routing guidance and file conventions                               |
 | Read-by-Path Fallback     | The assistant reading a protocol from the path in its guide entry                                                                                                                                            | What every delivery miss degrades to                                                 |
 | Second-Host Inline List   | The protocols the second host's generated skill copy keeps as full text                                                                                                                                      | Decided: empty                                                                       |
 | Handler Review            | The second host's rule that a new or changed delivery step runs only after the user reviews it                                                                                                               | Until then, guides are the path                                                      |
@@ -127,6 +127,7 @@ Many skills follow the same shared protocols — evidence rules, review rules, t
 - **AC-PDL-01** — **Given** a converted skill that declares protocols from two groups **When** it loads for the first time in a scope **Then** each of the two groups arrives as one message of at most 9,500 characters holding the full text of that group's declared protocols, and no other group arrives
 - **AC-PDL-02** — **Given** a protocol already delivered in this scope **When** any skill that declares it loads again, or the same trigger fires again **Then** it is not repeated; **and after** a compaction or about 4,500,000 bytes of conversation growth it is delivered again
 - **AC-PDL-03** — **Given** more declared text in one group than the bin holds **When** that group is delivered **Then** the protocols that do not fit are named with their published paths, and none is dropped
+- **AC-PDL-36** — **Given** a delivered protocol **When** the user pastes an image, so the conversation record grows by the image in the message and again in the host's copy of the request **Then** the delivery still counts; **and when** the same distance of conversation text is added **Then** it is delivered again (BR-PDL-02)
 
 ### US-PDL-02: A delivery miss is never silent
 
@@ -300,7 +301,7 @@ IF a skill is converted THEN for every protocol it follows it carries one guide 
 
 ### BR-PDL-02: Once per session per scope, re-armed by compaction and distance [HARD]
 
-On a host that runs delivery steps, IF a converted skill loads THEN each protocol declared in its guide block is delivered in full once per session per scope (the main session, and each sub-agent separately). IF a protocol was already delivered in this scope THEN it is not delivered again, however often the same skill or another skill that declares it loads, and however often a trigger fires again (on the primary host the prompt event fires again each time a background sub-agent returns). A delivery record stops counting — so the protocol is delivered again at the next load — after a compaction, after about 4,500,000 bytes of conversation record growth (about 200,000 tokens; the same distance routing guidance and file conventions use), or when the protocol's published text changed since it was delivered. A compaction counts on every host that runs delivery steps: the primary host marks it in its conversation record, the second host writes it into its conversation record as its own compaction entry, and the third host, whose events carry no conversation record, reports it when the session is compacted.
+On a host that runs delivery steps, IF a converted skill loads THEN each protocol declared in its guide block is delivered in full once per session per scope (the main session, and each sub-agent separately). IF a protocol was already delivered in this scope THEN it is not delivered again, however often the same skill or another skill that declares it loads, and however often a trigger fires again (on the primary host the prompt event fires again each time a background sub-agent returns). A delivery record stops counting — so the protocol is delivered again at the next load — after a compaction, after about 4,500,000 bytes of conversation record growth (about 200,000 tokens; the same distance routing guidance and file conventions use), or when the protocol's published text changed since it was delivered. Growth counts conversation bytes only: the host's request bookkeeping records and the part of each pasted image payload above about 1,600 tokens' worth of bytes do not count, so pasting an image never re-arms a delivery early, and the measure reads only what was appended since the last event. A compaction counts on every host that runs delivery steps: the primary host marks it in its conversation record, the second host writes it into its conversation record as its own compaction entry, and the third host, whose events carry no conversation record, reports it when the session is compacted.
 
 `[Source: rule/hooks/protocol-dedup]`
 
@@ -673,15 +674,15 @@ SecondHostInlineList    1──N Protocol           (decided: none)
 | Priority  | Count   | Automated | Manual |
 | --------- | ------- | --------- | ------ |
 | P0        | 24      | 23        | 1      |
-| P1        | 81      | 79        | 2      |
-| P2        | 8       | 7         | 1      |
-| **Total** | **113** | **109**   | **4**  |
+| P1        | 82      | 80        | 2      |
+| P2        | 9       | 8         | 1      |
+| **Total** | **115** | **111**   | **4**  |
 
 | Category                       | TCs                                                                                                                                                                                |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Published Protocol Text Tests  | TC-PDL-001, TC-PDL-002, TC-PDL-003, TC-PDL-004, TC-PDL-005, TC-PDL-006, TC-PDL-007, TC-PDL-008, TC-PDL-055, TC-PDL-080                                                             |
 | Delivery Planning Tests        | TC-PDL-009, TC-PDL-010, TC-PDL-011, TC-PDL-012, TC-PDL-013, TC-PDL-016, TC-PDL-017, TC-PDL-018, TC-PDL-019, TC-PDL-056                                                             |
-| Delivery Step Tests            | TC-PDL-014, TC-PDL-015, TC-PDL-020, TC-PDL-053, TC-PDL-054, TC-PDL-057, TC-PDL-067                                                                                                 |
+| Delivery Step Tests            | TC-PDL-014, TC-PDL-015, TC-PDL-020, TC-PDL-053, TC-PDL-054, TC-PDL-057, TC-PDL-067, TC-PDL-124, TC-PDL-125                                                                         |
 | Host Registration Tests        | TC-PDL-021, TC-PDL-022, TC-PDL-026, TC-PDL-028, TC-PDL-058, TC-PDL-059, TC-PDL-060, TC-PDL-069, TC-PDL-070, TC-PDL-023, TC-PDL-024, TC-PDL-025, TC-PDL-027, TC-PDL-068, TC-PDL-042 |
 | Guide Tooling and Policy Tests | TC-PDL-029, TC-PDL-030, TC-PDL-031, TC-PDL-034, TC-PDL-061, TC-PDL-081, TC-PDL-082                                                                                                 |
 | Guide-Aware Check Tests        | TC-PDL-032, TC-PDL-033, TC-PDL-040, TC-PDL-065, TC-PDL-066, TC-PDL-083, TC-PDL-084                                                                                                 |
@@ -714,6 +715,7 @@ SecondHostInlineList    1──N Protocol           (decided: none)
 | `.claude/hooks/tests/suites/ai-feature-route.test.cjs` | TC-PDL-118, TC-PDL-119 |
 | `.claude/hooks/tests/suites/workflow-route-modes.test.cjs` | TC-PDL-119 |
 | `.claude/hooks/tests/suites/quality-skill-remind.test.cjs` | TC-PDL-120 |
+| `.claude/hooks/tests/suites/transcript-measure.test.cjs` | TC-PDL-124, TC-PDL-125 |
 | `.claude/scripts/tests/sync-update-blocks-guide.test.cjs`                                                       | TC-PDL-029, TC-PDL-030, TC-PDL-031, TC-PDL-036, TC-PDL-061, TC-PDL-081, TC-PDL-122                                                                                                 |
 | `.claude/scripts/codex/tests/verify-skill-protocol-compliance.test.mjs`                                         | TC-PDL-032, TC-PDL-033, TC-PDL-065, TC-PDL-083                                                                                                                                     |
 | `.claude/hooks/tests/suites/sync-carrier-parity.test.cjs`                                                       | TC-PDL-034, TC-PDL-035, TC-PDL-037, TC-PDL-039, TC-PDL-040, TC-PDL-050, TC-PDL-062, TC-PDL-065, TC-PDL-082, TC-PDL-122                                                             |
@@ -738,7 +740,7 @@ SecondHostInlineList    1──N Protocol           (decided: none)
 | Rule      | Proven by                                                                                                                                                                                                  |
 | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | BR-PDL-01 | TC-PDL-019, TC-PDL-029, TC-PDL-030, TC-PDL-031, TC-PDL-032, TC-PDL-033, TC-PDL-034, TC-PDL-036, TC-PDL-040                                                                                                 |
-| BR-PDL-02 | TC-PDL-009, TC-PDL-014, TC-PDL-015, TC-PDL-020, TC-PDL-041, TC-PDL-053                                                                                                                                     |
+| BR-PDL-02 | TC-PDL-009, TC-PDL-014, TC-PDL-015, TC-PDL-020, TC-PDL-041, TC-PDL-053, TC-PDL-124, TC-PDL-125                                                                                                             |
 | BR-PDL-03 | TC-PDL-002, TC-PDL-016, TC-PDL-047                                                                                                                                                                         |
 | BR-PDL-04 | TC-PDL-012, TC-PDL-017, TC-PDL-035, TC-PDL-036, TC-PDL-037, TC-PDL-097, TC-PDL-123                                                                                                                         |
 | BR-PDL-05 | TC-PDL-016, TC-PDL-054, TC-PDL-063                                                                                                                                                                         |
@@ -2159,6 +2161,124 @@ boundaryCounterCase: 'growth of exactly 4,499,999 bytes → nothing'
 > **Evidence:** `[Source: rule/hooks/protocol-dedup]`
 > **Related Behaviors:** `operation/hooks/protocol-inject`
 > **CoveredBy:** `.claude/hooks/tests/suites/protocol-inject-hook.test.cjs::TC-PDL-053` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/protocol-inject-hook.test.cjs:359` (passed in P44; not re-run at the final gate)
+
+---
+
+#### TC-PDL-124: A pasted image and the host's copy of the request do not re-arm a delivery [P1]
+
+**Objective:** Prove the re-arm distance counts conversation bytes, not image payloads or the host's request bookkeeping.
+
+**Business Intent / Invariant Guarded:** One pasted image is stored twice by the host and can add megabytes to the conversation record while adding about 1,600 tokens to the conversation; counting those bytes re-sends every rule early and wastes the context the distance protects (BR-PDL-02).
+
+**Traces:** AC-PDL-36 / BR-PDL-02
+
+**Preconditions:**
+
+- A delivered record and a conversation record that grows
+
+**Real-World Reachability:** A user pastes a screenshot into a long session.
+
+**Demo Flow:** Append an image message of 1,400,000 bytes and a request copy of the same size with a distance of 1,000,000 bytes; then append 1,000,000 bytes of conversation text.
+
+```gherkin
+Given a delivered record and a re-arm distance of 1,000,000 bytes
+When an image message and the host's request copy add 2,800,000 bytes to the record
+Then the delivery still counts
+When 1,000,000 bytes of conversation text are added
+Then it is delivered again
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | The measured size excludes request records and the image payload above its token worth                                                                               |
+| **Business data state** | The record stays current after the image and is refreshed after the text                                                                                              |
+| **Data shown on UI**    | Nothing after the image; the message after the text                                                                                                                   |
+
+**Acceptance Criteria:**
+
+- ✅ No re-delivery after an image and its request copy
+- ✅ Re-delivery after the same distance of conversation text
+- ❌ An image re-arms the delivery
+- ❌ A request record counts as conversation
+
+**Test Data:**
+
+```yaml
+inputDomain: 'transcripts mixing text, image blocks (in messages and tool results), data:image URLs and api-request records'
+invariant: 'for ALL transcripts the measured size is the file size minus request records and image payload bytes above the per-image token equivalent'
+boundaryCounterCase: 'an image smaller than its token equivalent → counted in full, never as less'
+```
+
+**Edge Cases:**
+
+- An unfinished last line counts in full until it is complete, then it is classified
+- A shorter file, a replaced file or a file rewritten in place is counted again from the start; past the scan cap counting restarts at the end, so the measure only jumps up (one extra delivery, never a missed one)
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/protocol-dedup]`
+> **Related Behaviors:** `operation/hooks/universal-delivery`
+> **CoveredBy:** `.claude/hooks/tests/suites/transcript-measure.test.cjs::TC-PDL-124` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/transcript-measure.test.cjs` "[TM-007] TC-PDL-124 a pasted image and its request blob do not re-arm a delivery; the same distance of text does" with TM-001 to TM-006 (passed when written; not re-run at the final gate)
+
+---
+
+#### TC-PDL-125: Evidence found in the record after an image ages on the same measure [P2]
+
+**Objective:** Prove a protocol load found in the conversation record is placed on the measured scale, so its age is conversation growth too.
+
+**Business Intent / Invariant Guarded:** A credit measured in raw bytes against a size measured without images would age wrongly; both sides of every distance use one measure (BR-PDL-02).
+
+**Traces:** AC-PDL-36 / BR-PDL-02
+
+**Preconditions:**
+
+- A record holding an image, then a complete read of a protocol's evidence document, then another image
+
+**Real-World Reachability:** A user pastes an image, the assistant reads a convention document, and the user pastes another image.
+
+**Demo Flow:** Scan the record for the evidence read and compare its position with the measured size.
+
+```gherkin
+Given an image, a complete evidence read and a second image in the record
+When the record is scanned for evidence
+Then the read is placed after the first image's excluded bytes
+And the growth since the read counts the second image only as its token worth
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | The evidence position is converted to the measured scale                                                                                                              |
+| **Business data state** | The evidence record carries the measured position                                                                                                                     |
+| **Data shown on UI**    | None                                                                                                                                                                  |
+
+**Acceptance Criteria:**
+
+- ✅ Evidence position = raw position minus the excluded bytes before it
+- ❌ A raw position compared with a measured size
+
+**Test Data:**
+
+```yaml
+inputDomain: 'records with images before and after a complete evidence read'
+invariant: 'for ALL records the growth since an evidence read equals the measured bytes appended after it'
+boundaryCounterCase: 'no image before the read → the measured position equals the raw position'
+```
+
+**Edge Cases:**
+
+- A read before the point where counting started keeps its raw position
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/protocol-dedup]`
+> **Related Behaviors:** `operation/hooks/file-convention-inject`
+> **CoveredBy:** `.claude/hooks/tests/suites/transcript-measure.test.cjs::TC-PDL-125` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/transcript-measure.test.cjs` "[TM-008] TC-PDL-125 transcript evidence found after an image is placed on the measured scale" (passed when written; not re-run at the final gate)
 
 ---
 
