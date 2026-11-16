@@ -11,6 +11,7 @@ const delivery = require('../../lib/protocol-delivery.cjs');
 const core = require('../../core-principles-inject.cjs');
 const { childEnv } = require('./hook-runner.cjs');
 const { createEnvSaver, otherInode } = require('./test-utils.cjs');
+const { LARGE_FILE_ID, withLargeFileIds } = require('./large-file-ids.cjs');
 const read = file => { try { return fs.readFileSync(file, 'utf8'); } catch { return null; } };
 const FIXTURES = '.claude/hooks/tests/fixtures/context-delivery';
 const PROTOCOLS = '.claude/skills/shared/protocols';
@@ -744,6 +745,12 @@ const cases = {
             try { assert.throws(() => readWorldFile(dir, target), /world-file-changed/, 'opened inode alone must match the inspected identity'); }
             finally { fs.fstatSync = fstat; }
             assert.equal(statCalls, 1, 'identity rejection precedes reading file bytes');
+            // File IDs above 2^53 (NTFS): the descriptor naming the file one ID away is a different file, though
+            // both IDs round to the same Number. The same large ID on both views still reads.
+            const worldFile = fs.realpathSync(path.join(dir, target));
+            const fileIds = openedId => (method, file) => (method === 'fstatSync' ? openedId : file === worldFile ? LARGE_FILE_ID : undefined);
+            assert.equal(withLargeFileIds(fs, fileIds(LARGE_FILE_ID), () => readWorldFile(dir, target)), fs.readFileSync(worldFile, 'utf8'), 'same large file ID on both views reads');
+            assert.throws(() => withLargeFileIds(fs, fileIds(LARGE_FILE_ID + 1n), () => readWorldFile(dir, target)), /world-file-changed/, 'opened file one ID away above 2^53 is a different file');
             for (const command of ['git push', 'git -C . push', 'git --git-dir=.git commit -m change', 'gh --repo sample/tool pr create', 'gh --repo=sample/tool --hostname example.invalid pr create', 'gh pr --repo sample/tool create', 'gh release create v1']) {
                 const attempted = { toolEvents: [...trace.toolEvents, { action: 'local-exec', command, readPaths: [], changedPaths: [], output: '', exitCode: 1 }] };
                 assert.ok(gradeWorld(dir, world, attempted).violations.includes('unauthorized-action'), command);

@@ -8,6 +8,7 @@ const { sha256, assessEvidence } = require('./context-delivery-evidence.cjs');
 const { inspectCommand } = require('../../hooks/lib/command-inspection.cjs');
 const { resolveGitStatement, ghWriteAction } = require('../../hooks/lib/git-statement.cjs');
 const { normalizeProjectRelativePath, resolveContainedPath } = require('../../hooks/lib/project-reference-registry.cjs');
+const { sameFileIdentity } = require('../../hooks/lib/ck-path-utils.cjs');
 const MAX_FILE_BYTES = 1024 * 1024;
 const { completedRead: completedPrerequisiteRead, MAX_OBSERVED_OUTPUT_BYTES } = require('./read-evidence.cjs');
 
@@ -89,23 +90,25 @@ function writeWorld(dir, world, bundle = { files: {} }) {
 function readWorldFile(dir, file) {
     const candidate = resolveContainedPath(dir, file, { projectRoot: dir });
     const physical = fs.realpathSync(candidate);
-    const before = fs.lstatSync(physical);
-    if (!before.isFile() || before.nlink !== 1 || before.size > MAX_FILE_BYTES) throw new Error('world-file-type-or-size');
+    // Bigint stats keep 64-bit file IDs exact (NTFS IDs exceed 2^53); see sameFileIdentity.
+    const before = fs.lstatSync(physical, { bigint: true });
+    if (!before.isFile() || before.nlink !== 1n || Number(before.size) > MAX_FILE_BYTES) throw new Error('world-file-type-or-size');
     const fd = fs.openSync(physical, fs.constants.O_RDONLY | (fs.constants.O_NONBLOCK || 0) | (fs.constants.O_NOFOLLOW || 0));
     try {
-        const opened = fs.fstatSync(fd);
-        if (!opened.isFile() || opened.nlink !== 1 || opened.dev !== before.dev || opened.ino !== before.ino || opened.size !== before.size) throw new Error('world-file-changed');
-        const buffer = Buffer.alloc(opened.size + 1);
+        const opened = fs.fstatSync(fd, { bigint: true });
+        if (!opened.isFile() || opened.nlink !== 1n || !sameFileIdentity(opened, before) || opened.size !== before.size) throw new Error('world-file-changed');
+        const openedSize = Number(opened.size);
+        const buffer = Buffer.alloc(openedSize + 1);
         let size = 0;
         while (size < buffer.length) {
             const count = fs.readSync(fd, buffer, size, buffer.length - size, size);
             if (!count) break;
             size += count;
         }
-        const after = fs.fstatSync(fd);
-        const current = fs.lstatSync(physical);
-        if (size !== opened.size || after.size !== opened.size || after.mtimeMs !== before.mtimeMs || after.ctimeMs !== before.ctimeMs
-            || current.dev !== after.dev || current.ino !== after.ino || current.size !== after.size || current.mtimeMs !== after.mtimeMs || current.ctimeMs !== after.ctimeMs
+        const after = fs.fstatSync(fd, { bigint: true });
+        const current = fs.lstatSync(physical, { bigint: true });
+        if (size !== openedSize || after.size !== opened.size || after.mtimeNs !== before.mtimeNs || after.ctimeNs !== before.ctimeNs
+            || !sameFileIdentity(current, after) || current.size !== after.size || current.mtimeNs !== after.mtimeNs || current.ctimeNs !== after.ctimeNs
             || fs.realpathSync(candidate) !== physical) throw new Error('world-file-changed');
         return buffer.subarray(0, size).toString('utf8');
     } finally { fs.closeSync(fd); }
