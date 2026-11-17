@@ -204,7 +204,7 @@ The default-on hook shares one reminder record across prompt and pre-tool events
 
 ### Quality-skill reminder
 
-`quality-skill-remind.cjs` (PostToolUse, every tool) re-delivers the canonical `SYNC:quality-skill-routing:reminder` digest after a tool result, so a long run keeps the review, test and failure routes in attention: `why-review` for a rationale, decision, claim or statement; `changes-review` for a focused diff or simple pull request; `workflow-review-changes` for a complex, risky or cross-module pull request or change set; the project's test skills for tests; `investigate --mode=debug` for a failure, error or bug, then `fix` (or `workflow-bugfix` for a non-trivial bug) to repair it. The universal bundle carries the full `quality-skill-routing` protocol. One record per scope (main conversation or one sub-agent): the first tool result delivers, then only ~150K tokens of growth, a compaction or a changed digest re-delivers, so a running sub-agent regains it after its own compaction. Read [../configuration/README.md](../configuration/README.md#advisory-prompt-routers) when turning it off.
+`quality-skill-remind.cjs` (PostToolUse, every tool) re-delivers the canonical `SYNC:quality-skill-routing:reminder` digest after a tool result, so a long run keeps the review, test and failure routes in attention: `why-review` for a rationale, decision, claim or statement; `changes-review` for a focused diff or simple pull request; `workflow-review-changes` for a complex, risky or cross-module pull request or change set; `test-review` for the coverage and quality of a change's tests, and the project's test skills to write, fix or run them; `investigate --mode=debug` for a failure, error or bug, then `fix` (or `workflow-bugfix` for a non-trivial bug) to repair it. The universal bundle carries the full `quality-skill-routing` protocol. One record per scope (main conversation or one sub-agent): the first tool result delivers, then only ~150K tokens of growth, a compaction or a changed digest re-delivers, so a running sub-agent regains it after its own compaction. Read [../configuration/README.md](../configuration/README.md#advisory-prompt-routers) when turning it off.
 
 ### Failure investigation reminder
 
@@ -872,12 +872,12 @@ Doc paths in this file are defaults resolved against the project-reference docs 
 
 ## Testing
 
-The primary runner declares 133 tests. The aggregate runner `run-all-tests.cjs` discovers 2372 tests declared across 139 suite files. Source inventory is not an execution result; read the runner output for observed discovery, outcomes and skips. The aggregate includes eighteen task-tracking suites with 591 declared executors.
+The primary runner declares 133 tests. The aggregate runner `run-all-tests.cjs` discovers 2383 tests declared across 140 suite files. Source inventory is not an execution result; read the runner output for observed discovery, outcomes and skips. The aggregate includes eighteen task-tracking suites with 591 declared executors.
 
 | Test Surface          | Count | File/Location                                                     |
 | --------------------- | ----- | ----------------------------------------------------------------- |
 | Primary hook runner   | 133   | `.claude/hooks/tests/test-all-hooks.cjs`                          |
-| Aggregate runner      | 2372 | `.claude/hooks/tests/run-all-tests.cjs` (all suites, declared)  |
+| Aggregate runner      | 2383 | `.claude/hooks/tests/run-all-tests.cjs` (all suites, declared)  |
 | Standalone test files | TODO  | `tests/test-*.cjs/.js` excluding runner (re-verify before citing) |
 | Lib unit tests        | TODO  | `lib/__tests__/*.test.cjs` (re-verify before citing)              |
 

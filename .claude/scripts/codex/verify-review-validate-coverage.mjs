@@ -49,7 +49,8 @@ export const REVIEW_FAMILY_SKILLS = [
     'production-readiness-review',
     'knowledge-review',
     'ai-engineering-review',
-    'web-design-guidelines'
+    'web-design-guidelines',
+    'test-review'
 ];
 
 // Finding-producing review MODES that live in a skill's mode reference instead of a skill of their own: each entry is
@@ -60,7 +61,8 @@ export const REVIEW_MODE_REFERENCES = [
     'architecture/references/mode-review.md', // `/architecture --mode=review`
     'architecture/references/mode-full.md', // `/architecture --mode=full` (whole-project audit that synthesizes the faces)
     'ui-design/references/mode-review.md', // `/ui-design --mode=review`
-    'work-item/references/mode-review.md' // `/work-item --mode=review`
+    'work-item/references/mode-review.md', // `/work-item --mode=review`
+    'e2e-test/references/mode-review.md' // `/e2e-test --mode=review`
 ];
 
 // SC7 grader allow-list — validate-only graders that emit a JUDGMENT (a scorecard; a

@@ -267,7 +267,7 @@ AGENT_QUALITY_BLOCKS = {
         # Test-architecture review is a production-quality concern too: this
         # agent is the production face of `architecture --mode=full` and the
         # review owner for seed-test-data.
-        "test-architecture-execution-contract",
+        "test-architecture-execution-contract", "test-review-gate",
         # An agent that JUDGES a test must adjudicate a RED test on the same
         # five-way scale the author uses (/why-review F-M2). Without it, this
         # agent's only nearby rule permits "decide whether the test should
@@ -416,7 +416,7 @@ AGENT_QUALITY_BLOCKS = {
         "cross-service-check", "fix-layer-accountability",
         "core-engineering-principles", "measured-capacity-engineering",
         "real-world-fidelity-testing", "repeatable-test-principle",
-        "test-architecture-execution-contract", "test-failure-fault-adjudication",
+        "test-architecture-execution-contract", "test-review-gate", "test-failure-fault-adjudication",
         "environment-fault-hypothesis", "source-test-drift-check",
         "review-decision-autonomy", "severity-rubric", "review-principle-awareness",
         "logic-and-intention-review", "bug-detection", "spec-tests-code-triangulation",
@@ -433,7 +433,7 @@ AGENT_QUALITY_BLOCKS = {
         "integration-test-execution-discipline", "spec-tests-code-triangulation",
         "spec-drift-adjudication", "test-data-isolation",
         "real-world-fidelity-testing",
-        "test-architecture-execution-contract",
+        "test-architecture-execution-contract", "test-review-gate",
         # Leaf rules the reviewer template delivered before it left agent files: this agent is
         # dispatched directly too, and no rule may depend on a Claude-only skill preload.
         "behavioral-delta-matrix", "bug-detection", "design-patterns-quality",
@@ -447,7 +447,7 @@ AGENT_QUALITY_BLOCKS = {
         "test-spec-verification", "red-flag-stop-conditions",
         # wave 2 (twin: test)
         "test-failure-fault-adjudication", "real-world-fidelity-testing",
-        "test-architecture-execution-contract",
+        "test-architecture-execution-contract", "test-review-gate",
         # Carries "Tests verify intent" (clause 5). A test agent had the rule for
         # adjudicating a RED test but none for what a GREEN test is worth --
         # so a suite that mirrors current behavior and protects no invariant read
@@ -462,7 +462,7 @@ AGENT_QUALITY_BLOCKS = {
         "source-test-drift-check", "repeatable-test-principle",
         # wave 2 (twin: e2e-test)
         "test-failure-fault-adjudication", "real-world-fidelity-testing",
-        "test-architecture-execution-contract",
+        "test-architecture-execution-contract", "test-review-gate",
         # Visual baseline/generation handoff (twin: E2E visual-review skills).
         "e2e-visual-design-contract",
         # Same author-side gap as `tester`: clause 5 "Tests verify intent"

@@ -37,7 +37,7 @@ description: '[Quality] Use when a workflow step or the user asks for an agent q
 2. **Phase A — Stack Detection** — read plan / `architecture --mode=design` / tech-stack reports; write `stack-profile.md`; use `ask user question tool` for undetectable fields.
 3. **Phase B — Feedforward Guides** — when `portability.generateClaudeMd` is `false`, the project owns `CLAUDE.md` and `AGENTS.md`: propose their additions for the owner to make by hand and never edit them; otherwise author/enhance CLAUDE.md/AGENTS.md (architecture patterns, anti-patterns, naming, boundaries), skill-activation rules, `docs/architecture/*` notes, and pattern catalog; confirm via `ask user question tool`.
 4. **Phase C — Computational Sensors** — confirm `$linter-setup` outputs and list config paths; invoke it if any are missing.
-5. **Phase D — Inferential Sensors** — wire review skills to lifecycle gates (`$why-review` pre-impl · `$code-quality-review` pre-commit · `$domain-analysis --mode=review` post-impl · `$production-readiness-review` + `$security-audit` pre-release · `$scan-codebase-health` recurring · `$integration-test --mode=review` feature-area TC audit BOTH pre-release AND recurring, catching orphaned Section-8 TCs and uncovered behavior); record under `## Review Gates`.
+5. **Phase D — Inferential Sensors** — wire review skills to lifecycle gates (`$why-review` pre-impl · `$test-review` on every change and pull request, through the required change review · `$code-quality-review` pre-commit · `$domain-analysis --mode=review` post-impl · `$production-readiness-review` + `$security-audit` pre-release · `$scan-codebase-health` recurring · `$integration-test --mode=review` feature-area TC audit BOTH pre-release AND recurring, catching orphaned Section-8 TCs and uncovered behavior); record under `## Review Gates`.
 6. **Phase E — Behaviour Harness** — choose spec format, profile-fit test tiers, fixtures and intent-protecting evidence, and `test-strategy.md`; NEVER gate on line `%`.
 7. **Phase F — Inventory Report** — write the committed harness inventory (`references/harness-inventory.md`: path, detection, runtime row, format) with all sensors and gaps; present it via `ask user question tool`.
 8. **Next Steps** — use `ask user question tool` to choose `$feature-implement` (recommended), `$why-review`, or skip.
@@ -125,6 +125,7 @@ Confirm `$linter-setup` outputs by checking the root linter config (e.g., `.esli
 Configure AI review skills by lifecycle stage. Present via `ask user question tool`: "Which inferential sensors should be mandatory vs optional for this repository?"
 
 - **Pre-implementation:** `$why-review` validates design rationale before the implementation approach is committed.
+- **Every change and pull request (mandatory):** `$test-review` is the per-change test sensor (`SYNC:test-review-gate`). The required change review calls it on every pass: coverage of each changed behavior per applicable test layer, test quality and flaky patterns, and spec ↔ tests ↔ code sync. Record the project's applicable layers and their review owners, and list it in the harness inventory; a project with no test layer yet still records it, and each layer reads `N/A` with evidence.
 - **Pre-commit:** document in CLAUDE.md that significant changes run `$code-quality-review`.
 - **Post-implementation:** `$domain-analysis --mode=review` when domain entity files are in the changeset.
 - **Pre-release (mandatory):** `$production-readiness-review` for reliability/operations and `$security-audit` for production security.
@@ -199,6 +200,7 @@ Present inventory to user for review via `ask user question tool`.
 - `harness-setup` — Agent quality harness: feedforward guides and feedback sensors; setting up an agent quality harness → .claude/skills/shared/protocols/harness-setup.md
 - `measured-capacity-engineering` — Model demand, reduce measured work safely and prove capacity before scaling; planning, building, testing or reviewing hot paths, caches or capacity → .claude/skills/shared/protocols/measured-capacity-engineering.md
 - `test-architecture-execution-contract` — Testability as an architecture condition: required test types and execution modes; setting up or reviewing a test architecture → .claude/skills/shared/protocols/test-architecture-execution-contract.md
+- `test-review-gate` — Every review of a change reviews its tests per layer through one owner; reviewing a change, a branch, a pull request or a commit, or the tests of one → .claude/skills/shared/protocols/test-review-gate.md
 
 <!-- PROTOCOL-GUIDES:END -->
 
@@ -212,6 +214,12 @@ Present inventory to user for review via `ask user question tool`.
 **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
+
+<!-- SYNC:test-review-gate:reminder -->
+
+**IMPORTANT MUST ATTENTION** every review of a change runs `$test-review` on the whole target — static, `N/A` with the inspected paths when nothing testable changed: a per-layer coverage matrix of each changed behavior (unit, integration, E2E, performance, seed data, applicable only from evidence), each layer judged by its one owner's review mode, every covering test naming its intent and the break it catches, flaky patterns fixed at their cause (never a retry, skip or longer timeout), and spec ↔ tests ↔ code triangulated. An untested changed behavior is HIGH, and so is a flaky pattern in a new or changed test or in the only proof of a changed behavior.
+
+<!-- /SYNC:test-review-gate:reminder -->
 
 <!-- SYNC:test-architecture-execution-contract:reminder -->
 

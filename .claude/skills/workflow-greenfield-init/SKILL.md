@@ -92,6 +92,7 @@ This skill adds quality bars that hold in every run. Foundation reviewed rests o
 
 - **Foundation decided (before PLAN₁ completes)** — `SYNC:scale-ready-foundation` applicability matrix (architecture, actors/authorization, dependency/license, real infrastructure boundaries, execution modes, CI/operations, UI when applicable) plus the `SYNC:ai-agent-as-user-access` decision, or an explicit evidence-backed omission; carried into scaffold, harness, foundation review and plans.
 - **Test Architecture & Execution Contract (before the hand-off)** — emitted during `/architecture --mode=design`; every tier `APPLICABLE` with runner, owner, copy-ready full and focused commands, zero-match behavior, CI gate and unique run/data identity, or `N/A — <evidence>`. A missing field blocks the hand-off. PLAN₂ carries the integration-test structure, data setup and CI it defines.
+- **Test review gate (before the hand-off)** — the foundation's own tests pass `/test-review` inside the nested `/workflow-review-changes` (its `tests-review` gate): every applicable layer of the contract has a review owner, the scaffold's example tests name their intent and carry no flaky pattern, and the harness records `/test-review` as the per-change test sensor every later change and pull request runs (`/harness-setup` Phase D).
 - **Releasable tasks** — every task passes `.claude/skills/shared/releasable-task-contract.md`: one actor-facing outcome, foundation work attached as enabling work, UI tasks with the connected multi-view mock-app flow.
 - **Foundation reviewed** — the foundation review `/architecture --mode=full` (`greenfield-foundation-review`) runs after scaffold and before the hand-off with its BLOCKED/WARN findings fixed, and the nested `/workflow-review-changes --tests=defer` (`greenfield-review`) then reviews the scaffolded code, harness and reference docs to convergence, its tests deferred to the final `/test`; the architecture review's trade-off interrogation and Step 5 `/why-review` validation are the pre-coding rationale check over the planned and scaffolded foundation (`mode=init`).
 - **Hand-off** — `/workflow-end` prints the next command: `/workflow-implement-spec --mode=greenfield-slice` with the first slice's spec, test cases and the approved PLAN₂. That mode skips its own plan step while the approved plan still covers the slice (a registry `when-false` skip citing the plan and its Validation Summary), seeds data when the product persists state, and runs its near-end `/workflow-e2e --source=context` as a gate, which records an evidence-backed `N/A` or `ENVIRONMENT-BLOCKED` when no surface applies.
@@ -169,10 +170,17 @@ Activate the `workflow-greenfield-init` workflow. Run `/start-workflow workflow-
 - `session-goal-ledger` — Keep the original goal and every user prompt of the session; running a long or multi-prompt session → .claude/skills/shared/protocols/session-goal-ledger.md
 - `subagent-return-contract` — Sub-agents return a structured envelope and a report path, never an inline report; spawning a sub-agent → .claude/skills/shared/protocols/subagent-return-contract.md
 - `test-architecture-execution-contract` — Testability as an architecture condition: required test types and execution modes; setting up or reviewing a test architecture → .claude/skills/shared/protocols/test-architecture-execution-contract.md
+- `test-review-gate` — Every review of a change reviews its tests per layer through one owner; reviewing a change, a branch, a pull request or a commit, or the tests of one → .claude/skills/shared/protocols/test-review-gate.md
 - `verify-last-order` — Build all phases and write tests, review statically, then verify once with a mutation check; planning or running any code-changing task → .claude/skills/shared/protocols/verify-last-order.md
 - `workflow-registry-binding` — Read the workflow registry entry and the workflow skill together, since they must agree; executing or editing a workflow → .claude/skills/shared/protocols/workflow-registry-binding.md
 
 <!-- PROTOCOL-GUIDES:END -->
+
+<!-- SYNC:test-review-gate:reminder -->
+
+**IMPORTANT MUST ATTENTION** every review of a change runs `/test-review` on the whole target — static, `N/A` with the inspected paths when nothing testable changed: a per-layer coverage matrix of each changed behavior (unit, integration, E2E, performance, seed data, applicable only from evidence), each layer judged by its one owner's review mode, every covering test naming its intent and the break it catches, flaky patterns fixed at their cause (never a retry, skip or longer timeout), and spec ↔ tests ↔ code triangulated. An untested changed behavior is HIGH, and so is a flaky pattern in a new or changed test or in the only proof of a changed behavior.
+
+<!-- /SYNC:test-review-gate:reminder -->
 
 <!-- SYNC:test-architecture-execution-contract:reminder -->
 

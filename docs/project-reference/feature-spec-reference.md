@@ -70,6 +70,7 @@ Local capability codes are discoverable through owner frontmatter and bucket ind
 | WFR | Workflow Routing | `docs/specs/ContextDelivery/README.WorkflowRouting.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
 | GWF | Guided Workflow Execution | `docs/specs/WorkflowExecution/README.GuidedWorkflow.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
 | RVQ | Review Quality | `docs/specs/WorkflowExecution/README.ReviewQuality.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
+| TRV | Test Review | `docs/specs/WorkflowExecution/README.TestReview.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
 | NT | Assistant Session Notifications | `docs/specs/Notifications/README.AssistantSessionNotifications.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
 | PD | Presentation Decks | `docs/specs/Presentation/README.PresentationDecks.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
 

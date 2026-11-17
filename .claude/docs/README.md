@@ -7,7 +7,7 @@
 | Goal                           | Document                                                                                                                           |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
 | **New to Claude Code?**        | [quick-start.md](./quick-start.md) - 5-minute onboarding                                                                           |
-| **Need a skill?**              | [skills/README.md](./skills/README.md) - <!-- COUNT:skills -->108<!-- /COUNT --> skills catalog                                                                        |
+| **Need a skill?**              | [skills/README.md](./skills/README.md) - <!-- COUNT:skills -->109<!-- /COUNT --> skills catalog                                                                        |
 | **Building a feature?**        | [skills/README.md](./skills/README.md) + project-reference root patterns                                                           |
 | **Verifying user experience?** | [configuration/experience-verification.md](./configuration/experience-verification.md) - portable evidence and acceptance contract |
 | **Benchmarking the framework?** | Read [framework-benchmark](../skills/framework-benchmark/SKILL.md) when comparing full setup/workflows with raw implementation on matched tasks. |
@@ -168,14 +168,14 @@ Unprefixed filenames resolve inside the project-reference docs root — default 
 
 | Category               | Count |
 | ---------------------- | ----- |
-| Skills                 | <!-- COUNT:skills -->108<!-- /COUNT --> |
+| Skills                 | <!-- COUNT:skills -->109<!-- /COUNT --> |
 | Hook files (top-level) | <!-- COUNT:hooks -->38<!-- /COUNT --> |
 | Lib Modules            | <!-- COUNT:lib-modules -->79<!-- /COUNT --> |
 | Hook Events            | 10     |
 | Agents                 | <!-- COUNT:agents -->25<!-- /COUNT --> |
 | Workflows              | <!-- COUNT:workflows -->17<!-- /COUNT --> |
 | Hook Tests             | 133   |
-| Hook Test Files        | 139 suites + 9 top-level test files |
+| Hook Test Files        | 140 suites + 9 top-level test files |
 | Framework Markdown Files | 43 (`.claude/docs/**/*.md`) |
 
 ---

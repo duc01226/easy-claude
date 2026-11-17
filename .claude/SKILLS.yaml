@@ -2,9 +2,9 @@ metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
   last_updated: '2026-11-17'
-  total_skills: 108
+  total_skills: 109
   total_by_status:
-    active: 108
+    active: 109
     deprecated: 0
     experimental: 0
 categories:
@@ -239,8 +239,8 @@ skills:
     - name: e2e-test
       path: e2e-test/SKILL.md
       description: '[Testing] Use when a workflow step or the user asks for E2E test
-        selection, generation or updates. --mode=verify runs tests; --fix-loop repairs
-        failures; --visual-review={true|false}.'
+        selection, generation or updates. --mode=review checks test quality; --mode=verify
+        runs tests; --fix-loop repairs failures; --visual-review={true|false}.'
       category: other
       has_scripts: false
       has_references: true
@@ -906,6 +906,19 @@ skills:
       category: other
       has_scripts: false
       has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: test-review
+      path: test-review/SKILL.md
+      description: '[Testing] Use when a workflow step or the user asks for a test
+        review of a change, branch or pull request: coverage of each changed behavior
+        per layer (unit, integration, E2E, performance, seed data) and test quality.
+        --fix-loop repairs tests.'
+      category: other
+      has_scripts: false
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null

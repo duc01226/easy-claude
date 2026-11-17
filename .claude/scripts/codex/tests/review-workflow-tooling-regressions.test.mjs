@@ -118,8 +118,8 @@ test('TC-WFPROTO-008: review workflow batch prompt uses canonical skill ids and 
     const workflow = JSON.parse(workflowText).workflows['workflow-review-changes'];
     const contracts = new Map(workflow.sequence.filter(step => typeof step === 'object').map(step => [step.id, step]));
     assert.equal(contracts.get('performance-review').skill, 'performance-review');
-    assert.equal(contracts.get('integration-tests-review').skill, 'integration-test');
-    assert.match(contracts.get('integration-tests-review').args, /--mode=review/);
+    assert.equal(contracts.get('tests-review').skill, 'test-review');
+    assert.equal(contracts.get('tests-review').role, 'gate');
     assert.equal(contracts.get('security-audit').skill, 'security-audit');
     assert.equal(contracts.get('architecture-compliance-review').skill, 'architecture');
     assert.match(contracts.get('architecture-compliance-review').args, /--mode=review/);

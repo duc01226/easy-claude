@@ -1,7 +1,9 @@
 /**
  * E2E-Test Modes Merge Test Suite
  *
- * The e2e-test skill owns two roles: default E2E test authoring (select, generate, update) and
+ * The e2e-test skill owns three roles: default E2E test authoring (select, generate, update), the static
+ * `--mode=review` (read-only test-quality review in `e2e-test/references/mode-review.md`, called by test-review for
+ * the E2E layer and guarded by test-review-gate.test.cjs TC-TRV-003) and
  * `--mode=verify` (verify an existing configured E2E scope with exact runner evidence: a report-only
  * default pass, or with `--fix-loop` the bounded convergence engine that `workflow-e2e` calls). The
  * verify body lives in `e2e-test/references/mode-verify.md`; `e2e-test/SKILL.md` detects the mode first
@@ -240,6 +242,7 @@ const tests = [
             assert.match(description, /^\[Testing\] Use when a workflow step or the user asks for \S/);
             assert.ok(description.length <= 250, `description is ${description.length} chars, over 250`);
             assert.match(description, /--mode=verify/);
+            assert.match(description, /--mode=review/);
             assert.match(description, /--fix-loop/);
             assert.match(description, /--visual-review=\{true\|false\}/);
             assert.match(description, /E2E/);

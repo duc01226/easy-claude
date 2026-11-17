@@ -8,11 +8,11 @@ description: '[Code Quality] Use when a workflow step or the user asks for a foc
 
 **Goal:** Find real defects in the requested diff and, when requested, converge its fixes without losing coverage or quality.
 
-**Summary:** Triage every changed file and write a short plan → create review tasks, including domain entity quality and performance-test quality when those surfaces change → check connected behavior and applicable concerns → validate findings → report once or fix and freshly re-review. Choose review depth and delegation from risk and available context.
+**Summary:** Triage every changed file and write a short plan → create review tasks, including the test review on every pass and domain entity quality when entities change → check connected behavior and applicable concerns → validate findings → report once or fix and freshly re-review. Choose review depth and delegation from risk and available context.
 
-**Workflow:** Resolve scope → plan/tasks → review, with the whole-target `/why-review` rationale pass and a `/performance-review` pass when the change can affect performance → validate → review-only report or fix/re-review → final checks and recap.
+**Workflow:** Resolve scope → plan/tasks → review, with the whole-target `/why-review` rationale pass, the whole-target `/test-review` pass and a `/performance-review` pass when the change can affect performance → validate → review-only report or fix/re-review → final checks and recap.
 
-**Key Rules:** Always invoke `/why-review` on the whole target alongside applicable specialist reviews, even when there are no findings. Review-only is the standalone default; `--fix-loop` enables the shared three-round loop. `--loop-owner=caller` returns a read-only pass to its fixing coordinator. Use the carried `review-policy` protocol for completion and user-approved extensions.
+**Key Rules:** Always invoke `/why-review` and `/test-review` on the whole target alongside applicable specialist reviews, even when there are no findings. Review-only is the standalone default; `--fix-loop` enables the shared three-round loop. `--loop-owner=caller` returns a read-only pass to its fixing coordinator. Use the carried `review-policy` protocol for completion and user-approved extensions.
 
 > **Todo first:** create tasks for triage, review, validation, fixes, fresh re-review and final checks before execution; keep one task in progress and attach evidence when completed.
 
@@ -44,13 +44,11 @@ Check spec/test/code consistency, meaningful test assertions and documentation d
 
 **Whole-target rationale (mandatory skill call):** always invoke `/why-review --target=whole-review-target` on the complete review target so the change's necessity, alternatives and trade-offs are judged alongside correctness and applicable specialist reviews — read-only, as `--fix-loop --loop-owner=caller` in a fixing loop and `--review-only` otherwise. Run it once in every review/re-review pass, including caller-owned, documentation-only and zero-finding passes, before returning a completed verdict or issuing a receipt. Load and execute the skill through the active host; naming it, applying its mindset or running only `--validate-findings` does not satisfy this call. `--defer=whole-target` cannot defer or waive it; retain the caller's fixing owner and spent round budget.
 
-Route other specialist depth only where applicable: architecture, domain-analysis, integration-test review, security-audit, production-readiness-review, ui-design review and ai-engineering-review. For current AI surfaces run `node .claude/scripts/ai-signal-scan.cjs --json` (add `--base <base>` for branch/PR scope, or `--files <paths>` for named files). `clean` allows skipping; `unknown` requires source inspection and conservative coverage. Historical assessment inspects the selected historical sides directly; a live scan cannot prove them clean.
+Route other specialist depth only where applicable: architecture, domain-analysis, security-audit, production-readiness-review, ui-design review and ai-engineering-review. For current AI surfaces run `node .claude/scripts/ai-signal-scan.cjs --json` (add `--base <base>` for branch/PR scope, or `--files <paths>` for named files). `clean` allows skipping; `unknown` requires source inspection and conservative coverage. Historical assessment inspects the selected historical sides directly; a live scan cannot prove them clean.
 
-When integration tests are in the target or guard changed behavior, run `/integration-test --mode=review --report-only` in review-only mode, or `/integration-test --mode=review --fix-loop --loop-owner=caller` inside the fixing loop. This owner applies all eight test-quality gates; a named parent may own the gate, but deferral never waives it.
+**Test review (mandatory skill call):** always invoke `/test-review` on the complete review target in every review and re-review pass — `--review-only` in review-only mode, `--fix-loop --loop-owner=caller` inside a fixing loop — including documentation-only and zero-finding passes, where it records `N/A — no testable change` with the inspected paths. It is the single owner of test-layer routing (`SYNC:test-review-gate`): it maps each changed behavior to its tests per layer and routes each applicable layer to its owner's review mode — the integration owner's eight test-quality gates included — so this skill dispatches no layer review itself. Merge its findings, its `Test review:` line and its `Spec sync:` result into this review. `--defer=tests` may hand the call only to a named caller step that runs it as a gate (`workflow-review-changes` → `tests-review`); deferral never waives it, and naming the skill or applying its checklist inline does not satisfy the call.
 
-**Performance-test quality (conditional task):** when changed files add, update, rename or remove performance/load/stress/soak/benchmark scenarios or their harness, workload/data profiles, resource constraints, collectors or gate/report evaluator, create `[Review] Performance tests` and call `/performance-test --mode=review --report-only --loop-owner=caller` on that scope and its affected consumers. Detect from configured native performance paths, runner/config membership and file contents; a document merely mentioning performance tests is not a trigger. This static test-quality pass is distinct from `/performance-review` on product bottlenecks. Use `performance-tester` for authorized delegated depth (embed the full shared reviewer template); otherwise execute inline. Merge its coverage/findings into this review, validate once at the caller, and freshly review affected test/harness repairs. The caller owns every fix and round budget; never run tests or start a nested fixing loop from this task. Deferral is allowed only to a named caller with this exact duty and evidence; otherwise record an evidenced N/A when no executable performance-test surface changed.
-
-Review executable E2E/browser/user-flow changes under `.claude/skills/shared/e2e-quality-protocol.md`; a document merely naming E2E is not a trigger. When this skill owns execution, invoke `/e2e-test --mode=verify` report-only for applicable executable E2E changes and run the required test proof. With `--defer=tests` or `--tests=defer`, keep static coverage review and record the named verifier for the required proof. Required checks that cannot run stay unavailable, never PASS.
+Executable E2E/browser/user-flow test quality is judged by `/test-review`'s E2E layer under `.claude/skills/shared/e2e-quality-protocol.md`; a document merely naming E2E is not a trigger. When this skill owns execution, invoke `/e2e-test --mode=verify` report-only for applicable executable E2E changes and run the required test proof. With `--defer=tests` or `--tests=defer`, keep static coverage review and record the named verifier for the required proof. Required checks that cannot run stay unavailable, never PASS.
 
 ### Domain entity quality (conditional task)
 
@@ -100,6 +98,7 @@ Read [references/fix-loop.md](references/fix-loop.md) before running a standalon
 - `spec-drift-adjudication` — Decide code-wrong versus spec-stale from evidence, never silently; behavior diverges from its spec → .claude/skills/shared/protocols/spec-drift-adjudication.md
 - `systematic-review-batching` — Triage all files and plan adaptive review with complete coverage and no fixed size caps; choosing review assignments or handling working-set overflow → .claude/skills/shared/protocols/systematic-review-batching.md
 - `task-tracking-external-report` — Task breakdown before the work and report files written incrementally; starting any multi-step skill, plan or review → .claude/skills/shared/protocols/task-tracking-external-report.md
+- `test-review-gate` — Every review of a change reviews its tests per layer through one owner; reviewing a change, a branch, a pull request or a commit, or the tests of one → .claude/skills/shared/protocols/test-review-gate.md
 - `test-spec-verification` — Map changed code to its test specifications; reviewing or verifying changed behavior → .claude/skills/shared/protocols/test-spec-verification.md
 - `trade-off-interrogation-gate` — Three trade-off questions before any verdict, score or recommendation; rendering a verdict or recommending an option → .claude/skills/shared/protocols/trade-off-interrogation-gate.md
 - `translation-sync-check` — Multilingual UI changes must include translation updates or an explicit user decision; reviewing a change that touches user-visible text in a multilingual project → .claude/skills/shared/protocols/translation-sync-check.md
@@ -161,6 +160,12 @@ Read [references/fix-loop.md](references/fix-loop.md) before running a standalon
 **IMPORTANT MUST ATTENTION** check null safety, boundary conditions, error handling, resource management for every review.
 
 <!-- /SYNC:bug-detection:reminder -->
+
+<!-- SYNC:test-review-gate:reminder -->
+
+**IMPORTANT MUST ATTENTION** every review of a change runs `/test-review` on the whole target — static, `N/A` with the inspected paths when nothing testable changed: a per-layer coverage matrix of each changed behavior (unit, integration, E2E, performance, seed data, applicable only from evidence), each layer judged by its one owner's review mode, every covering test naming its intent and the break it catches, flaky patterns fixed at their cause (never a retry, skip or longer timeout), and spec ↔ tests ↔ code triangulated. An untested changed behavior is HIGH, and so is a flaky pattern in a new or changed test or in the only proof of a changed behavior.
+
+<!-- /SYNC:test-review-gate:reminder -->
 
 <!-- SYNC:test-spec-verification:reminder -->
 
@@ -302,6 +307,6 @@ Read [references/fix-loop.md](references/fix-loop.md) before running a standalon
 
 **Goal:** Find real diff defects and converge authorized fixes with complete coverage.
 
-**Main steps:** scope → triage/plan/tasks → connected review and mandatory whole-target `/why-review`, plus domain entity quality when entities change and `/performance-review` when the diff can affect performance → findings validation → report or fix/fresh re-review → final checks.
+**Main steps:** scope → triage/plan/tasks → connected review and mandatory whole-target `/why-review` and `/test-review`, plus domain entity quality when entities change and `/performance-review` when the diff can affect performance → findings validation → report or fix/fresh re-review → final checks.
 
 Preserve exact scope, evidence and applicable gates. Default review-only; fix-loop has three rounds, accepts deferred LOWs and asks about bounded extension for remaining MEDIUM+ or failed checks. Never accept stale pre-fix evidence.

@@ -41,7 +41,7 @@ const IMPLEMENTATION_WORKFLOW_IDS = new Set(['workflow-big-feature', 'workflow-b
 const DOMAIN_ENTITY_REFERENCE_REFRESH_WORKFLOW_IDS = new Set(['workflow-big-feature', 'workflow-bugfix', 'workflow-feature']);
 
 // A parent workflow that runs `workflow-review-changes` INLINE delegates the nested review gates
-// to it: that workflow owns the specialist reviewers (notably `integration-test --mode=review`) and the
+// to it: that workflow owns the specialist reviewers (notably its `tests-review` gate, which routes `integration-test --mode=review`) and the
 // terminal `scan --target=domain-entities` reference refresh. It also owns `docs-manager --mode=update` — but ONLY
 // when the nested review is the parent's last docs-mutating step: if a canonical spec step still
 // runs AFTER the nested review, that mutation lands after the nested `docs-manager --mode=update`, so the parent

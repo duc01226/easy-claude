@@ -97,6 +97,7 @@ Missing/placeholder evidence is an open gap, not a PASS. The inventory must pres
 | Stage                   | Skill/Agent                                             | What it catches                                    |
 | ----------------------- | ------------------------------------------------------- | -------------------------------------------------- |
 | Pre-implementation      | $why-review                                             | Design rationale gaps                              |
+| Every change + PR       | $test-review (through the required change review)       | Untested changed behavior per layer, weak or flaky tests, spec drift |
 | Pre-commit              | $code-quality-review                                    | Convention drift, logic errors                     |
 | Post-implementation     | $domain-analysis --mode=review                          | Domain model quality                               |
 | Pre-release             | $production-readiness-review                            | Operational readiness                              |

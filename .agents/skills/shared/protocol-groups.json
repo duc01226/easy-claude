@@ -412,6 +412,10 @@
           "when": "a test fails",
           "trigger": "debug-operation"
         },
+        "test-review-gate": {
+          "summary": "Every review of a change reviews its tests per layer through one owner",
+          "when": "reviewing a change, a branch, a pull request or a commit, or the tests of one"
+        },
         "test-spec-verification": {
           "summary": "Map changed code to its test specifications",
           "when": "reviewing or verifying changed behavior"

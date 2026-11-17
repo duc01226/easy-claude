@@ -7,8 +7,8 @@ if ((require.main === module || !require.main) && require('./lib/framework-runti
  *
  * Re-delivers the canonical `SYNC:quality-skill-routing:reminder` digest from
  * `.claude/skills/shared/sync-inline-versions.md` (pick `why-review` for a rationale, `changes-review` for a
- * focused diff or simple pull request, `workflow-review-changes` for complex changes, the project's test
- * skills for tests, `investigate --mode=debug` for a failure or error). The universal bundle carries the full `quality-skill-routing` protocol; this
+ * focused diff or simple pull request, `workflow-review-changes` for complex changes, `test-review` for the
+ * coverage and quality of a change's tests, the project's test skills for tests, `investigate --mode=debug` for a failure or error). The universal bundle carries the full `quality-skill-routing` protocol; this
  * hook only refreshes the digest, because a long autonomous run sends no prompt that would re-deliver it.
  *
  * Trigger: PostToolUse for every tool (JSON `additionalContext`). Sub-agent tool calls fire it too, so a
@@ -43,7 +43,7 @@ const DEFAULT_REINJECT_TOKENS = 150000;
 // Used only when the canonical file cannot be read, so the reminder is never empty. Must equal the
 // canonical `SYNC:quality-skill-routing:reminder` body (parity asserted by the hook suite).
 const FALLBACK_BODY =
-    '**Quality skills first:** review → `why-review` (rationale, decision, claim or statement), `changes-review` (focused diff or simple pull request), `workflow-review-changes` (complex, risky or cross-module pull request or changes); tests → `test`, `integration-test`, `e2e-test`; a failure, error or bug → `investigate --mode=debug` before any fix, then `fix` (or `workflow-bugfix` for a non-trivial bug), never an ad hoc patch or a workaround that hides the cause. Use a generic host or plugin equivalent only when none fits.';
+    "**Quality skills first:** review → `why-review` (rationale, decision, claim or statement), `changes-review` (focused diff or simple pull request), `workflow-review-changes` (complex, risky or cross-module pull request or changes); tests → `test-review` (coverage and quality of a change's tests), `test`, `integration-test`, `e2e-test`; a failure, error or bug → `investigate --mode=debug` before any fix, then `fix` (or `workflow-bugfix` for a non-trivial bug), never an ad hoc patch or a workaround that hides the cause. Use a generic host or plugin equivalent only when none fits.";
 
 function nonBlank(value) {
     return typeof value === 'string' && value.trim().length > 0;

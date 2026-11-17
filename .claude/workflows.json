@@ -3590,9 +3590,9 @@
           }
         },
         {
-          "id": "integration-tests-review",
-          "skill": "integration-test",
-          "args": "--mode=review --fix-loop --loop-owner=caller",
+          "id": "tests-review",
+          "skill": "test-review",
+          "args": "--fix-loop --loop-owner=caller",
           "role": "gate"
         },
         {
@@ -3802,9 +3802,9 @@
               }
             },
             {
-              "id": "integration-tests-review",
-              "skill": "integration-test",
-              "args": "--mode=review --prove-tests --review-only",
+              "id": "tests-review",
+              "skill": "test-review",
+              "args": "--prove-tests --review-only",
               "role": "gate"
             },
             {
@@ -3894,7 +3894,7 @@
                 "architecture-compliance-review",
                 "domain-entities-design-review",
                 "performance-review",
-                "integration-tests-review",
+                "tests-review",
                 "security-audit",
                 "production-readiness-review",
                 "ui-design-review",
@@ -3922,7 +3922,7 @@
             {
               "id": "tests-pass",
               "satisfiedBy": [
-                "integration-test --mode=review --prove-tests"
+                "test-review --prove-tests"
               ],
               "when": "Test execution is applicable and owned by this run (--tests=prove); --tests=defer names the later verifier that must prove it."
             }
@@ -3967,9 +3967,9 @@
               }
             },
             {
-              "id": "integration-tests-review",
-              "skill": "integration-test",
-              "args": "--mode=review --fix-loop --loop-owner=caller",
+              "id": "tests-review",
+              "skill": "test-review",
+              "args": "--fix-loop --loop-owner=caller",
               "role": "gate"
             },
             {
@@ -4168,7 +4168,7 @@
                 "architecture-compliance-review",
                 "domain-entities-design-review",
                 "performance-review",
-                "integration-tests-review",
+                "tests-review",
                 "security-audit",
                 "production-readiness-review",
                 "ui-design-review",

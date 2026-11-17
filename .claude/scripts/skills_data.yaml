@@ -96,7 +96,7 @@
   deprecated_since: null
   description: '[Git] Use when asked to commit, stage and commit, or save changes.
     --push also pushes.'
-  has_references: false
+  has_references: true
   has_scripts: false
   name: commit
   path: commit/SKILL.md
@@ -233,8 +233,8 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Testing] Use when a workflow step or the user asks for E2E test selection,
-    generation or updates. --mode=verify runs tests; --fix-loop repairs failures;
-    --visual-review={true|false}.'
+    generation or updates. --mode=review checks test quality; --mode=verify runs tests;
+    --fix-loop repairs failures; --visual-review={true|false}.'
   has_references: true
   has_scripts: false
   name: e2e-test
@@ -283,7 +283,7 @@
   deprecated_since: null
   description: '[Implementation] Use when a workflow step or the user asks for root-cause
     fixes with regression coverage. --target={ci|issue|logs|review|test|types|ui}
-    scopes the issue.'
+    scopes the issue; --mode=prevent guards the bug class after a fix.'
   has_references: true
   has_scripts: false
   name: fix
@@ -377,8 +377,9 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Quality] Use when a workflow step or the user asks for an agent quality
-    harness with project guidance and automated/review feedback.'
-  has_references: false
+    harness with project guidance and automated/review feedback. --mode=readiness
+    checks it at task start.'
+  has_references: true
   has_scripts: false
   name: harness-setup
   path: harness-setup/SKILL.md
@@ -481,7 +482,7 @@
   deprecated_since: null
   description: '[Quality] Use when a workflow step or the user asks for linters, formatters,
     type checks and static analysis in pre-commit and CI gates.'
-  has_references: false
+  has_references: true
   has_scripts: false
   name: linter-setup
   path: linter-setup/SKILL.md
@@ -950,6 +951,19 @@
   has_scripts: false
   name: test
   path: test/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
+  description: '[Testing] Use when a workflow step or the user asks for a test review
+    of a change, branch or pull request: coverage of each changed behavior per layer
+    (unit, integration, E2E, performance, seed data) and test quality. --fix-loop
+    repairs tests.'
+  has_references: true
+  has_scripts: false
+  name: test-review
+  path: test-review/SKILL.md
   removal_after: null
   status: active
 - category: frontend

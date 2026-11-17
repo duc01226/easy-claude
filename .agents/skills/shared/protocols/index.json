@@ -925,12 +925,12 @@
       "group": "universal",
       "summary": "Route review, test and failure work to the project's registered skills first",
       "when": "delivered by the universal hook",
-      "chars": 1712,
+      "chars": 1872,
       "file": ".claude/skills/shared/protocols/quality-skill-routing.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/quality-skill-routing.md",
-          "chars": 1712
+          "chars": 1872
         }
       ]
     },
@@ -1037,12 +1037,12 @@
       "group": "review",
       "summary": "Classify the change context first, then apply the current principles that fit it",
       "when": "starting any review",
-      "chars": 2997,
+      "chars": 2999,
       "file": ".claude/skills/shared/protocols/review-principle-awareness.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/review-principle-awareness.md",
-          "chars": 2997
+          "chars": 2999
         }
       ]
     },
@@ -1397,6 +1397,20 @@
         {
           "file": ".claude/skills/shared/protocols/test-failure-fault-adjudication.md",
           "chars": 4318
+        }
+      ]
+    },
+    {
+      "tag": "test-review-gate",
+      "group": "spec-test",
+      "summary": "Every review of a change reviews its tests per layer through one owner",
+      "when": "reviewing a change, a branch, a pull request or a commit, or the tests of one",
+      "chars": 3738,
+      "file": ".claude/skills/shared/protocols/test-review-gate.md",
+      "parts": [
+        {
+          "file": ".claude/skills/shared/protocols/test-review-gate.md",
+          "chars": 3738
         }
       ]
     },

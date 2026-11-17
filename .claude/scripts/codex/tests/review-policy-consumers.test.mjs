@@ -45,6 +45,7 @@ const severityConsumers = [
     '.claude/skills/production-readiness-review/SKILL.md',
     '.claude/skills/security-audit/SKILL.md',
     '.claude/skills/spec/references/mode-clarify.md',
+    '.claude/skills/test-review/SKILL.md',
     '.claude/skills/ui-design/references/mode-review.md',
     '.claude/skills/why-review/SKILL.md',
     '.claude/skills/workflow-bugfix/SKILL.md',

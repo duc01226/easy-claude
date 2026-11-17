@@ -339,6 +339,7 @@ REVIEW_DECISIONS = [
     "code-simplifier",
     "custom-agent",
     "workflow-code-to-spec",
+    "test-review",
 ]
 
 MATRIX = [
