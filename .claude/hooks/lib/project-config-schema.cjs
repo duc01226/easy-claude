@@ -1160,6 +1160,28 @@ const SCHEMA = {
             }
         }
     },
+    // Optional feature-map source audit (scripts/lib/feature-map.cjs). Omitted = off.
+    featureMap: {
+        type: 'object',
+        required: false,
+        closed: true,
+        describe:
+            'Optional feature-map source audit for feature-map-reference.md. Omitted or an empty sources list = off, and the audit is unchanged. Read only by node .claude/scripts/lib/feature-map.cjs audit, the doc-impact map and the docs-staleness check.',
+        properties: {
+            sources: {
+                type: 'array',
+                required: false,
+                itemType: 'string',
+                describe:
+                    'Repository-relative POSIX globs (`**` any depth, `*` one segment, `?` one character; case-sensitive) for the route, page or command source files that each map to exactly one feature-map entry, e.g. "app/**/page.tsx". Each entry names its file on a `- Source: `<path>`` line. The audit then reports a matching file with no entry (gap), an entry whose Source no longer exists (error) and two entries naming one Source (error), and a change to a matching file routes the feature map for re-audit. Absolute paths and ".." segments are rejected.'
+            },
+            strict: {
+                type: 'boolean',
+                required: false,
+                describe: 'Default false. true = a source file with no feature-map entry is an error instead of a gap. Has no effect without sources.'
+            }
+        }
+    },
     graphConnectors: {
         type: 'object',
         required: false,
@@ -2774,6 +2796,33 @@ function validateWorkTracking(config, errors) {
     }
 }
 
+const FEATURE_MAP_SOURCE_LIMITS = Object.freeze({ maxPatterns: 64, maxPatternLength: 300 });
+
+function validateFeatureMapSemantics(config, errors, warnings) {
+    const section = config.featureMap;
+    // Types are checked by the generic schema; these are the rules it cannot express.
+    if (!section || typeof section !== 'object' || Array.isArray(section)) return;
+    const sources = Array.isArray(section.sources) ? section.sources : null;
+    if (sources) {
+        if (sources.length > FEATURE_MAP_SOURCE_LIMITS.maxPatterns) {
+            errors.push(`featureMap.sources: at most ${FEATURE_MAP_SOURCE_LIMITS.maxPatterns} globs`);
+        }
+        sources.forEach((pattern, index) => {
+            if (typeof pattern !== 'string') return;
+            const normalized = pattern.trim().replace(/\\/g, '/');
+            if (!normalized) errors.push(`featureMap.sources[${index}]: expected a non-empty glob`);
+            else if (normalized.length > FEATURE_MAP_SOURCE_LIMITS.maxPatternLength) {
+                errors.push(`featureMap.sources[${index}]: longer than ${FEATURE_MAP_SOURCE_LIMITS.maxPatternLength} characters`);
+            } else if (normalized.startsWith('/') || /^[A-Za-z]:/.test(normalized) || normalized.split('/').includes('..')) {
+                errors.push(`featureMap.sources[${index}]: "${pattern}" must be relative to the repository root, with no ".." segment`);
+            }
+        });
+    }
+    if (section.strict === true && (!sources || !sources.length)) {
+        warnings.push('featureMap.strict: has no effect without featureMap.sources');
+    }
+}
+
 function validateConfig(config) {
     const errors = [];
     const warnings = [];
@@ -2824,6 +2873,7 @@ function validateConfig(config) {
     validateSkillProfileSemantics(config, errors, warnings);
     validateTaskTracking(config, errors);
     validateWorkTracking(config, errors);
+    validateFeatureMapSemantics(config, errors, warnings);
     for (const error of validateDocSyncGate(config.workflowPatterns?.docSyncGate)) {
         if (!errors.includes(error)) errors.push(error);
     }

@@ -21,6 +21,7 @@ description: '[Documentation] Use when a workflow step or the user asks for docu
 - `--mode=` (two dashes) selects the skill mode. The `update` caller flag `mode=update` (no dashes, see that mode's Scope and inputs) only overrides `/spec` mode detection and never selects a skill mode.
 - The `docs-manager` sub-agent (`subagent_type="docs-manager"`) is an agent, not this skill; it drives `/docs-manager --mode=update`.
 - MUST ATTENTION keep claims evidence-based (`file:line`, confidence >80% to act) and task tracking live as each step starts and completes.
+- `--mode=update` also keeps the feature map in step with configured `featureMap.sources` files (add, remove or merge the matching entry, then run the feature-map audit) and records the docs it verified fresh for the pull-request docs-staleness check; `references/mode-update.md` owns both.
 - Verify the shared output-quality contents check for each scoped document, including returned scan results; retain read-only audit boundaries.
 
 ## Mode Dispatch

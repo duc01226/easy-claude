@@ -14,6 +14,7 @@ Pick the mode from the specs, not from preference:
 
 - **Spec-linked mode** — the business spec root holds canonical specs with `US-` stories. Each entry is headed by the story id and names the spec that owns it. Seed the entries from `spec [mode=index]` output or from the §6 headings: every story listed under §6.5 Per-Story Interaction Flow is UI-bearing and needs an entry. When a native `specArtifacts` profile names its interaction cases differently, use that case identity; when it has none, record that and use standalone mode for the project.
 - **Standalone mode** — no specs. Each entry gets a stable `FM-<NNN>` id, seeded from route tables, CLI command registries, API route files or page anchors. Never renumber an existing id.
+- **Source-mapped entries** (either mode) — when `featureMap.sources` in the project config lists globs, every matching file gets exactly one entry whose `Source` line names it as a repository-relative POSIX path (`- Source: \`app/settings/profile/page.tsx\``). Seed one entry per matching file, give a moved file's entry its new path instead of a new entry, and remove the entry of a removed file. Without the option, `Source` is an optional driver fact.
 
 An entry holds only facts a spec may not carry: the surface id from `experienceVerification.surfaces[]` (or the evidenced surface name), the entry URL or command, the fixture or role (a credential reference, never a value), the observable end state and driving gotchas. It never copies the §6.5 click path, glossary text or acceptance criteria: link the story instead. Secrets, tokens, passwords and personal data never enter the map.
 
@@ -22,10 +23,10 @@ An entry holds only facts a spec may not carry: the surface id from `experienceV
 | Section | Record only actionable facts |
 | --- | --- |
 | Mode and sources | The chosen mode, the spec root or the route/command sources it was seeded from, and per-area docs when the map is split |
-| Entries | One `###` entry per story or feature, with `Spec` (story entries only), `Surface`, `Entry`, `Fixture/role`, `End state` and optional `Gotchas` lines |
+| Entries | One `###` entry per story or feature, with `Spec` (story entries only), `Surface`, `Entry`, `Fixture/role`, `End state`, optional `Gotchas` and `Source` (required for each file `featureMap.sources` matches) lines |
 | Upkeep | How the map stays current: the audit command and the owner who runs it after spec or route changes |
 
-Split into per-area docs only when the index would exceed a few hundred entries; the index then lists each area doc with a `read <path> when <situation>` pointer. Area docs live in a `feature-map/` folder beside the index and hold entries only: the audit reads every `###` heading in an area doc as an entry, so keep prose there out of `###` headings.
+Split into per-area docs only when the index would exceed a few hundred entries; the index then lists each area doc with a `read <path> when <situation>` pointer. Area docs live in a `feature-map/` folder beside the index and hold entries only: the audit reads every `###` heading in an area doc as an entry, so keep prose there out of `###` headings. In the index, a `### FM-…` or `### US-…` heading is an entry wherever it sits (an index may group entries under its own `##` headings); any other `###` heading is an entry only under `## Entries`.
 
 ## Verification and output
 
@@ -35,4 +36,4 @@ Run the audit and resolve every `error` finding before returning; report `gap` f
 node .claude/scripts/lib/feature-map.cjs audit
 ```
 
-It reports entries without a stable id, a story id its spec no longer defines, a missing driver fact, a copied §6.5 step, a credential-shaped value, and a UI-bearing story with no entry. Trace each entry URL or command to its source `file:line` in the temporary report. Then refresh through the host's prompt-enhance/verification procedure and return the changed entries, the audit result and the remaining gaps.
+It reports entries without a stable id, a story id its spec no longer defines, a missing driver fact, a copied §6.5 step, a credential-shaped value, and a UI-bearing story with no entry. With `featureMap.sources` it also reports `missing-source-entry` (a matching file no entry names: a gap, an error with `featureMap.strict`; add the entry in the area doc it names), `stale-source` (an entry whose Source no longer exists: point it at the moved file or remove the entry) and `duplicate-source` (two entries naming one Source: merge them). The listing walks only below each glob's fixed folders, once, and starts no app; a listing cut short is reported as `sources-truncated`. A `###` line inside a fenced code block is an example, never an entry. Trace each entry URL or command to its source `file:line` in the temporary report. Then refresh through the host's prompt-enhance/verification procedure and return the changed entries, the audit result and the remaining gaps.

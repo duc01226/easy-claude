@@ -18,13 +18,13 @@ scope_mode: FRAMEWORK-LIBRARY
 | Spec index | [Context Delivery](INDEX.md) | Derived navigation; refresh via `spec [mode=index]` |
 | Integration evidence | `.claude/hooks/tests/suites/init-prompt-gate.test.cjs` | Executable case mapping |
 | Related capability | [Protocol Delivery](README.ProtocolDelivery.md) | Independent framework instruction delivery |
-| Integration evidence | `.claude/scripts/tests/feature-map.test.cjs`, `.claude/scripts/tests/experience-verification.test.cjs` | Feature map and runtime evidence cases |
+| Integration evidence | `.claude/scripts/tests/feature-map.test.cjs`, `.claude/scripts/tests/experience-verification.test.cjs`, `.claude/scripts/tests/docs-staleness-check.test.cjs` | Feature map, runtime evidence and docs-staleness cases |
 
 ## 1. Overview
 
 A project can use the assistant without recording project settings. Ordinary work then proceeds using repository evidence, with an occasional optional invitation to record those facts. If the project author records settings that cannot be accepted, ordinary work proceeds with a warning; the assistant treats their facts as unverified and derives needed facts from independent repository evidence. An explicitly requested repair remains available. This capability owns that intake choice, including relocated settings, and the boundary before optional project-context setup guidance.
 
-It also owns two pieces of project context that a runtime review produces and a reviewer reads. A **feature map** tells the assistant where each feature lives and how to drive it; when the project has feature specs, each entry is linked to a spec story and holds only the facts a spec does not carry, so the two never disagree about what a feature means or how a user reaches it. **Runtime evidence** carries what a runtime review actually exercised into the pull-request description as text, so the human reviewer sees it; screenshots and recordings leave the developer's machine only after the developer says yes for that pull request. Run commands the assistant had to work out are kept only when the developer agrees.
+It also owns two pieces of project context that a runtime review produces and a reviewer reads. A **feature map** tells the assistant where each feature lives and how to drive it; when the project has feature specs, each entry is linked to a spec story and holds only the facts a spec does not carry, so the two never disagree about what a feature means or how a user reaches it. **Runtime evidence** carries what a runtime review actually exercised into the pull-request description as text, so the human reviewer sees it; screenshots and recordings leave the developer's machine only after the developer says yes for that pull request. Run commands the assistant had to work out are kept only when the developer agrees. A **docs-staleness check** keeps project documents in step with a pull request: each document its change can make stale is updated in the same change or verified fresh for it.
 
 ## 2. Glossary
 
@@ -40,6 +40,8 @@ It also owns two pieces of project context that a runtime review produces and a 
 | Driver facts | What a driver needs and a spec does not hold: the surface, the entry address or command, the fixture or role, the observable end state and driving notes |
 | Story-linked entry | A feature-map entry named after the spec story that owns the feature; the story keeps the meaning and the user path |
 | Standalone entry | A feature-map entry with its own stable map id, used when the project has no feature specs |
+| Source pattern | A declared pattern naming the files (pages, routes, commands) that each map to exactly one entry; an entry names its file as a repository-relative path with forward slashes |
+| Impacted document | A project document a change can make stale, by the documentation routing rules |
 | Runtime evidence | The surfaces, observed states, judgments, blocking count and acceptance status of a runtime review, written as text for a reviewer |
 | Reviewed version | The exact content version a runtime review exercised; evidence counts only for the same version the pull request publishes |
 | Capture | A screenshot, recording, trace or log kept by a runtime review on the developer's machine |
@@ -73,6 +75,8 @@ As a developer, I want a feature map that tells the assistant where a feature li
 - **AC-PCI-09:** Given the project has feature specs, when the map is written, then each entry names a spec story and holds only driver facts; a step of the story's user path copied into the map is reported. **BR-PCI-06**.
 - **AC-PCI-10:** Given the project has no feature specs, when the map is written, then each entry carries a stable map id, and an entry without a stable id is reported. **BR-PCI-06**.
 - **AC-PCI-11:** Given specs change, when the map is checked, then a user-facing story with no entry and an entry whose story no longer exists are both reported, and the map is flagged for refresh. **BR-PCI-06**.
+- **AC-PCI-17:** Given source patterns are declared, when the map is checked, then a matching file with no entry is reported (as an error in strict mode), and an entry whose source no longer exists and two entries naming one source are reported as errors, each naming its fix; without source patterns the check is unchanged. **BR-PCI-06**.
+- **AC-PCI-18:** Given source patterns are declared, when a matching file is added, moved or removed, then the selected map is flagged for refresh. **BR-PCI-06**.
 - **AC-PCI-12:** Given a runtime review worked out run commands that the project had not recorded, when the run succeeded, then the assistant asks once before saving them; a decline is recorded and nothing is saved. **BR-PCI-09**.
 
 ### US-PCI-04: See runtime evidence when reviewing a pull request
@@ -83,6 +87,13 @@ As a pull-request reviewer, I want the description to show what a runtime review
 - **AC-PCI-14:** Given a change to an observable surface and no runtime review of that version, when the pull request is described, then the description says there is no runtime evidence and why; a change with no observable surface gets no such section; a final branch review reports missing or older evidence as a finding. **BR-PCI-07**.
 - **AC-PCI-16:** Given a change to an observable surface and the developer explicitly asks to skip runtime evidence for that pull request, when the description is written, then it records the skip and the reason instead of evidence, offers no capture, and the final branch review does not report the recorded skip as a finding. **BR-PCI-07**.
 - **AC-PCI-15:** Given captures that were inspected and redacted, when the pull request is described, then they are attached only after the developer says yes for that pull request; otherwise they stay local and the description says so. **BR-PCI-08**.
+
+### US-PCI-05: Keep project documents in step with a pull request
+
+As a pull-request reviewer, I want every project document a change can make stale to be updated or verified with that change, so documentation never silently drifts from what merges.
+
+- **AC-PCI-19:** Given a pull request whose change can make a project document stale, when the docs-staleness check runs, then it fails unless the change updates that document or documentation sync verified it fresh for exactly this change, and each failure names the document, the changes that require it and the fix. **BR-PCI-10**.
+- **AC-PCI-20:** Given the developer explicitly asks to bypass the check for a pull request, when it runs with their reason, then it passes and the pull request records the bypass and the reason; no other path passes a stale document. **BR-PCI-10**.
 
 ## 4. Business Rules
 
@@ -138,6 +149,8 @@ For ALL recorded settings whose optional work-tracking vocabulary is a safe whol
 | A user-facing story has no entry | Report the gap for the map's owner | The gap is reported, never filled by guess |
 | A large map is split into area documents | Check the index and every area document as one map | A duplicate, stale or copied entry in any area document is reported with its document |
 | A value shaped like a credential appears in the map | Name the fixture or credential reference instead | The line is reported without repeating the value |
+| Source patterns are declared | Each matching file maps to exactly one entry naming it as a repository-relative path; paths compare the same on every operating system | A file with no entry is a gap (an error in strict mode); an entry whose source is gone, or two entries naming one source, is an error |
+| A declared source file is added, moved or removed | Flag the selected map for refresh | The change is never treated as leaving the map current |
 
 **Invariant:** For ALL map entries in a project with specs, the entry's story exists in the spec it names and no step of that story's user path is copied into the map.
 
@@ -161,13 +174,25 @@ When a runtime review had to work out how to start, check and stop a surface, an
 
 [Source: rule/framework.contextdelivery/RunCommandPersistence]
 
+### BR-PCI-10: A pull request keeps impacted documents in step [HARD]
+
+| Trigger | Rule | Failure outcome |
+|---|---|---|
+| A change can make a project document stale | Update the document in the same change, or verify it and record the verification for exactly this change | The check fails, naming the document, the changes that require it and the fix |
+| A recorded change is edited again | The verification no longer counts | The document is checked again |
+| The developer explicitly asks to bypass | Pass with the reason, and record the bypass in the pull request | No automatic or reasonless bypass exists |
+
+**Invariant:** For ALL pull requests, every impacted document is updated, verified fresh for that exact change, or covered by a bypass the developer asked for and the pull request records. Guessed routes and documents that do not exist are not held to the check.
+
+[Source: rule/framework.contextdelivery/DocsStayInStep]
+
 ## 5. Domain Model
 
 | Concept | Facts | Ownership |
 |---|---|---|
 | Project settings | Configured location; missing, invalid or accepted state; available validation errors | Project author chooses facts and location; intake evaluates acceptance |
 | Notice record | Time of the latest missing-settings notice or dismissal | Intake owns the one-day reminder window |
-| Feature map entry | Story or map id, owning spec (story-linked only), surface, entry, fixture or role, end state, driving notes | The map's owner writes it; the spec story owns meaning and user path |
+| Feature map entry | Story or map id, owning spec (story-linked only), surface, entry, fixture or role, end state, driving notes, source file (when source patterns are declared) | The map's owner writes it; the spec story owns meaning and user path |
 | Runtime evidence | Reviewed version, per-surface status and judgments, blocking count, acceptance status, captures with inspected and redacted flags | The runtime review records it; the pull request copies it as text |
 
 ```mermaid
@@ -186,6 +211,7 @@ erDiagram
         string ownerStory
         string surface
         string endState
+        string source
     }
     RuntimeEvidence {
         string reviewedVersion
@@ -212,8 +238,14 @@ Example: a developer adopts the assistant in a content-bearing project without r
 Feature map upkeep:
 
 1. The map's owner seeds entries from spec stories (story-linked) or from routes and commands (standalone).
-2. After specs, routes or commands change, the map is checked; gaps and stale entries go back to the owner.
+2. After specs, routes or commands change, the map is checked; gaps and stale entries go back to the owner. With source patterns declared, every matching file has one entry, and a change to a matching file flags the map.
 3. A runtime review reads the entries it needs and reports an entry that proved wrong.
+
+Documentation for a pull request:
+
+1. Documentation sync runs over the pull request's changes and updates or verifies each impacted document.
+2. The docs-staleness check fails for any impacted document neither updated nor verified for this exact change.
+3. Only an explicit request from the developer bypasses it, and the pull request records the reason.
 
 Runtime evidence for a pull request:
 
@@ -239,7 +271,7 @@ No graphical view or navigation surface is owned here; outcomes appear in the as
 
 ## 8. Test Specifications
 
-Test summary: 24 cases — 1 core preservation, 1 repair-access preservation, 4 validation/notice, 2 refresh workflow, 1 rejection boundary, 2 properties, 6 feature map, 7 runtime evidence. Property domains cover state-transition eligibility; arithmetic, conservation, inverse and commutativity classes are inapplicable to this read-only intake choice.
+Test summary: 30 cases — 1 core preservation, 1 repair-access preservation, 4 validation/notice, 2 refresh workflow, 1 rejection boundary, 2 properties, 10 feature map, 7 runtime evidence, 2 docs staleness. Property domains cover state-transition eligibility; arithmetic, conservation, inverse and commutativity classes are inapplicable to this read-only intake choice.
 
 ### Core preservation
 
@@ -677,6 +709,102 @@ And its owner and starter template are the framework ones
 **CoveredBy:** `.claude/hooks/tests/suites/init-reference-docs.test.cjs::[init-reference-docs] TC-PCI-083 feature map has a scan owner and a template and is never selected by default`
 **Status:** Tested
 
+#### TC-PCI-087: Each configured source file maps to exactly one entry [P1]
+
+**Objective:** Protect BR-PCI-06 when the project declares the source files its entries map to.
+**Business Intent / Invariant Guarded:** A source file with no entry, an entry whose source is gone and two entries naming one source are each reported with their fix, in a project with or without specs.
+**Preconditions:** Source patterns are declared; the map is split into area documents.
+**Real-World Reachability:** A developer adds a page without an entry, moves a page, or copies an entry for a page that already has one.
+**Demo Flow:** Add a page, remove a page and duplicate an entry, then check the map with and without strict mode.
+
+```gherkin
+Given source patterns are declared and each matching file has one entry
+When a file is added without an entry, a named file is removed, or two entries name one file
+Then each is reported with its fix: add an entry in the named document, remove the entry, or merge the two
+And strict mode reports the missing entry as an error instead of a gap
+```
+
+**Expected Result:** One finding per drift, naming the entry or file and the fix; the missing entry names the area document that holds its nearest neighbours.
+**Acceptance Criteria:** Success is the stated outcome; failure is any contrary outcome.
+**Test Data:** Three page files across two area documents; one story-linked map.
+**Edge Cases:** Story-linked entries follow the same rules; an entry without a stable id takes no part.
+**Evidence:** `[Source: rule/framework.contextdelivery/FeatureMapOwnership]`
+**Related Behaviors:** `operation/framework.contextdelivery/ProjectContextIntake`, `test/framework.contextdelivery/ProjectContextIntake`
+**CoveredBy:** `.claude/scripts/tests/feature-map.test.cjs::TC-PCI-087: standalone source audit reports a source with no entry, a gone Source and a shared Source, each with its fix`, `.claude/scripts/tests/feature-map.test.cjs::TC-PCI-087: strict makes a source with no entry an error; the other rules stay errors`, `.claude/scripts/tests/feature-map.test.cjs::TC-PCI-087: spec-linked mode applies the same three rules to US- and FM- entries`, `.claude/scripts/tests/feature-map.test.cjs::TC-PCI-087: the CLI reads featureMap.sources from the project config under --root`
+**Status:** Tested
+
+#### TC-PCI-088: Without source patterns the map check is unchanged [P1]
+
+**Objective:** Protect BR-PCI-06 for projects that never opt in.
+**Business Intent / Invariant Guarded:** Source lines are not checked until source patterns are declared, and settings written before the option existed stay valid.
+**Preconditions:** Recorded settings without source patterns.
+**Real-World Reachability:** An existing project updates the framework and adds nothing.
+**Demo Flow:** Check a map whose entries name missing sources, then validate older and newer settings.
+
+```gherkin
+Given recorded settings without source patterns
+When the map is checked and the settings are validated
+Then no source finding appears and the settings are accepted
+And malformed source patterns are rejected with the field named
+```
+
+**Expected Result:** The same findings as before the option existed; old settings validate; malformed patterns are named.
+**Acceptance Criteria:** Success is the stated outcome; failure is any contrary outcome.
+**Test Data:** Settings without the option; patterns that are absolute, escape the repository or are not text.
+**Edge Cases:** A strict flag without patterns only warns.
+**Evidence:** `[Source: rule/framework.contextdelivery/FeatureMapOwnership]`
+**Related Behaviors:** `operation/framework.contextdelivery/ProjectContextIntake`, `test/framework.contextdelivery/ProjectContextIntake`
+**CoveredBy:** `.claude/scripts/tests/feature-map.test.cjs::TC-PCI-088: with no sources configured the audit is unchanged`, `.claude/scripts/tests/feature-map.test.cjs::TC-PCI-088: an entry is an FM- or US- heading anywhere in the index, and Source is a recognized field`, `.claude/scripts/tests/feature-map.test.cjs::TC-PCI-088: the project-config schema accepts featureMap and still accepts a config without it`
+**Status:** Tested
+
+#### TC-PCI-089: Source paths compare the same on every operating system [P1]
+
+**Objective:** Protect BR-PCI-06 across Windows, macOS and Linux.
+**Business Intent / Invariant Guarded:** A source path is repository-relative with forward slashes, whatever separator was written, and a renamed file is found missing even on a filesystem that ignores letter case.
+**Preconditions:** Entries written with Windows-style separators and a file renamed only in letter case.
+**Real-World Reachability:** A team edits the map on Windows and runs the check on Linux and macOS.
+**Demo Flow:** Check entries written with backslashes, then check a file whose case changed.
+
+```gherkin
+Given an entry written with backslashes and one with forward slashes for the same file
+When the map is checked
+Then both name one source and are reported as a duplicate
+And a file whose letter case changed is reported missing on every system
+```
+
+**Expected Result:** One comparable form per path; the source listing is one bounded walk that says when it stopped early.
+**Acceptance Criteria:** Success is the stated outcome; failure is any contrary outcome.
+**Test Data:** Temporary project with page files, a dependency folder and a tool folder.
+**Edge Cases:** Absolute or escaping source paths are reported, never resolved; a listing cut short is reported, never clean.
+**Evidence:** `[Source: rule/framework.contextdelivery/FeatureMapOwnership]`
+**Related Behaviors:** `operation/framework.contextdelivery/ProjectContextIntake`, `test/framework.contextdelivery/ProjectContextIntake`
+**CoveredBy:** `.claude/scripts/tests/feature-map.test.cjs::TC-PCI-089: Source paths compare as repository-relative POSIX, whatever separator or prefix was written`, `.claude/scripts/tests/feature-map.test.cjs::TC-PCI-089: the source listing is one bounded walk below each glob prefix, and Source existence is exact-case`, `.claude/scripts/tests/feature-map.test.cjs::TC-PCI-089: a listing cut short is reported, never CLEAN, and three entries on one Source are named`
+**Status:** Tested
+
+#### TC-PCI-090: A change to a configured source flags the selected map [P1]
+
+**Objective:** Protect BR-PCI-06 upkeep for source changes.
+**Business Intent / Invariant Guarded:** Adding, moving or removing a configured source file flags the selected map for refresh without hiding any other document the change reaches.
+**Preconditions:** The map is selected and source patterns are declared.
+**Real-World Reachability:** A developer adds a page during ordinary work.
+**Demo Flow:** Change a matching file and a non-matching file and ask which project references need checking.
+
+```gherkin
+Given the map is selected and source patterns are declared
+When a matching file is added, removed or changed
+Then the map is flagged with its refresh owner
+And a non-matching file, an unselected map or absent patterns do not flag it
+```
+
+**Expected Result:** The map appears with its refresh owner only for matching files; other documents the change reaches still appear.
+**Acceptance Criteria:** Success is the stated outcome; failure is any contrary outcome.
+**Test Data:** One page path, one component path.
+**Edge Cases:** A Windows-style changed path still matches.
+**Evidence:** `[Source: rule/framework.contextdelivery/FeatureMapOwnership]`
+**Related Behaviors:** `operation/framework.contextdelivery/ProjectContextIntake`, `test/framework.contextdelivery/ProjectContextIntake`
+**CoveredBy:** `.claude/hooks/tests/suites/doc-impact-map.test.cjs::[doc-impact-map] TC-PCI-090 a configured feature-map source change routes the selected map`
+**Status:** Tested
+
 ### Runtime evidence
 
 
@@ -843,4 +971,54 @@ And it offers no capture for attachment, and an empty reason is refused
 **Evidence:** `[Source: rule/framework.contextdelivery/RuntimeEvidenceForReviewers]`
 **Related Behaviors:** `operation/framework.contextdelivery/ProjectContextIntake`, `test/framework.contextdelivery/ProjectContextIntake`
 **CoveredBy:** `.claude/scripts/tests/experience-verification.test.cjs::TC-PCI-086`, `.claude/hooks/tests/suites/pr-review-scope.test.cjs::TC-PCI-084 PR bodies carry runtime evidence as text, state its absence, attach media only on a per-PR yes, and pr-review flags missing or stale evidence`
+**Status:** Tested
+
+### Docs staleness
+
+#### TC-PCI-091: A pull request that leaves an impacted document stale fails the check [P1]
+
+**Objective:** Protect BR-PCI-10.
+**Business Intent / Invariant Guarded:** Each document a change can make stale is updated in the same change or verified fresh for it; otherwise the check fails and names the document, the change and the fix.
+**Preconditions:** A branch with committed and uncommitted changes against its target.
+**Real-World Reachability:** A developer adds a page and opens a pull request without updating the feature map.
+**Demo Flow:** Run the check on a branch that adds a page, then update the map and run it again.
+
+```gherkin
+Given a branch whose change can make a project document stale
+When the docs-staleness check runs
+Then it fails, naming the document, the changes that require it and how to fix it
+And it passes once the document is updated, and for changes that reach no document
+```
+
+**Expected Result:** Exit 1 with one message per stale document; exit 0 after the update or when nothing is impacted; an unknown base is an error, never a pass.
+**Acceptance Criteria:** Success is the stated outcome; failure is any contrary outcome.
+**Test Data:** Temporary repository with a target branch and a feature branch.
+**Edge Cases:** Guessed routes and documents that do not exist are not held to the check; deleting a document is not an update; an edit to one area document of a split map updates the map; a project in a subfolder of its repository and file names with unusual characters are seen; unreadable settings stop the check instead of passing it.
+**Evidence:** `[Source: rule/framework.contextdelivery/DocsStayInStep]`
+**Related Behaviors:** `operation/framework.contextdelivery/ProjectContextIntake`, `test/framework.contextdelivery/ProjectContextIntake`
+**CoveredBy:** `.claude/scripts/tests/docs-staleness-check.test.cjs::TC-PCI-091: an impacted doc this change does not update fails, naming the doc, the change and the fix`, `.claude/scripts/tests/docs-staleness-check.test.cjs::TC-PCI-091: a doc updated in the same change passes; a deletion of the doc is not an update`, `.claude/scripts/tests/docs-staleness-check.test.cjs::TC-PCI-091: no impacted doc, a heuristic-only route and a doc that does not exist all pass`, `.claude/scripts/tests/docs-staleness-check.test.cjs::TC-PCI-091: an edit to a feature-map area doc updates the map`, `.claude/scripts/tests/docs-staleness-check.test.cjs::TC-PCI-091: a project in a subfolder of its repository sees committed and staged changes, unusual names included; an invalid config stops the check`, `.claude/scripts/tests/docs-staleness-check.test.cjs::TC-PCI-091/092: the CLI checks a real branch: fail, record, edit voids, update passes, bypass is recorded`
+**Status:** Tested
+
+#### TC-PCI-092: Verified-fresh records and bypasses bind to one change [P1]
+
+**Objective:** Protect BR-PCI-10 against silent passes.
+**Business Intent / Invariant Guarded:** A document verified fresh counts only for the exact change it was verified for, and only an explicit reason bypasses the check, with a line for the pull request.
+**Preconditions:** A stale document, a recorded verification and a bypass reason.
+**Real-World Reachability:** Documentation sync verifies a document needs no edit, then the developer edits a changed file again.
+**Demo Flow:** Record a document as fresh, edit a changed file, then bypass with a reason.
+
+```gherkin
+Given a document recorded fresh for the current change
+When a changed file is edited again
+Then the record no longer counts and the check fails
+And a bypass with an explicit reason passes and is recorded, while an empty reason is refused
+```
+
+**Expected Result:** Records follow content; a bypass prints the pull-request line and never carries over to a run without it.
+**Acceptance Criteria:** Success is the stated outcome; failure is any contrary outcome.
+**Test Data:** Temporary repository; synthetic records.
+**Edge Cases:** A record for a document the change does not impact is refused; with nothing stale there is nothing to bypass.
+**Evidence:** `[Source: rule/framework.contextdelivery/DocsStayInStep]`
+**Related Behaviors:** `operation/framework.contextdelivery/ProjectContextIntake`, `test/framework.contextdelivery/ProjectContextIntake`
+**CoveredBy:** `.claude/scripts/tests/docs-staleness-check.test.cjs::TC-PCI-092: a verified-fresh record counts only for the exact change it was made for`, `.claude/scripts/tests/docs-staleness-check.test.cjs::TC-PCI-092: a bypass needs an explicit reason, passes and carries the line for the PR body`, `.claude/scripts/tests/docs-staleness-check.test.cjs::TC-PCI-092: the change fingerprint follows content, not only paths`, `.claude/scripts/tests/docs-staleness-check.test.cjs::TC-PCI-091/092: the CLI checks a real branch: fail, record, edit voids, update passes, bypass is recorded`
 **Status:** Tested

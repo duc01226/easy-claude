@@ -87,7 +87,10 @@ const tests = [
         fn: () => {
             // Given the pull-request skill's PR body step
             const text = read('pull-request/SKILL.md');
-            const body = text.slice(text.indexOf('4. **PR body**'), text.indexOf('5. **Review status**'));
+            const start = text.indexOf('5. **PR body**');
+            const end = text.indexOf('6. **Review status**');
+            assert.ok(start >= 0 && end > start, 'Step 7 must list the PR body item right before the Review status item');
+            const body = text.slice(start, end);
             assert.match(body, /the runtime evidence below/);
             assert.match(body, /experience-verification\.cjs pr-evidence/);
             assert.match(body, /`candidateTree` is the Step 4 snapshot's `candidateTree`/);

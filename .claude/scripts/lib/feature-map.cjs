@@ -20,21 +20,34 @@
  *   - Fixture/role: seeded admin account (a credential reference, never a value)
  *   - End state: what the driver observes when the flow worked
  *   - Gotchas: optional driving notes
+ *   - Source: `app/settings/profile/page.tsx`   (optional; the source file the entry drives)
  *
- * CLI: node .claude/scripts/lib/feature-map.cjs audit [--map=<file>] [--specs=<dir>]
+ * An entry is a `### FM-…` or `### US-…` heading anywhere in the index or in a per-area doc
+ * `feature-map/<area>.md`. Any other `###` heading is an entry only under the index's
+ * `## Entries` heading or in an area doc, where it is reported for its missing stable id.
+ *
+ * Source audit (opt-in through `featureMap.sources` in the project config): every file that
+ * matches a configured glob maps to exactly one entry whose `Source` line names it as a
+ * repository-relative POSIX path. A matching file with no entry is a gap (an error with
+ * `featureMap.strict`); an entry whose Source no longer exists, and two entries naming one
+ * Source, are errors. Unconfigured, the audit is unchanged.
+ *
+ * CLI: node .claude/scripts/lib/feature-map.cjs audit [--map=<file>] [--specs=<dir>] [--root=<dir>]
  * JSON on stdout. Exit 0 = no findings, 1 = findings, 2 = usage or read error.
  */
 
 const fs = require('node:fs');
 const path = require('node:path');
 const { findSecretLines } = require('../../hooks/lib/knowledge-pack.cjs');
+const { normalizeRootPath, escapesRepoRoot } = require('../../hooks/lib/ck-path-utils.cjs');
+const { pathMatcher } = require('../../hooks/lib/work-claim.cjs');
 
 const MAP_FILENAME = 'feature-map-reference.md';
 const STORY_ID = /^US-[A-Z][A-Z0-9]*-\d+$/;
 const STANDALONE_ID = /^FM-\d{3,}$/;
 const ENTRY_HEADING = /^###\s+(\S+)/;
 // `- Surface: web`, `- **Surface:** web` and `- **Surface**: web` all name the same field.
-const FIELD_LINE = /^\s*[-*]\s+\*{0,2}(Spec|Surface|Entry|Fixture\/role|End state|Gotchas)\*{0,2}\s*:\*{0,2}\s*(.*)$/i;
+const FIELD_LINE = /^\s*[-*]\s+\*{0,2}(Spec|Surface|Entry|Fixture\/role|End state|Gotchas|Source)\*{0,2}\s*:\*{0,2}\s*(.*)$/i;
 const REQUIRED_FIELDS = Object.freeze(['surface', 'entry', 'end state']);
 const MIN_COPIED_STEP_CHARS = 24;
 // One link of a flow chain is often a short outcome a driver also writes as an end state
@@ -52,6 +65,9 @@ function wordRuns(text) {
     return runs;
 }
 const MAX_SPEC_FILES = 2000;
+// The source listing walks only below each glob's fixed prefix; this caps the directory entries it
+// visits, so even a glob as broad as `**/page.tsx` stays bounded on a large repository.
+const MAX_SOURCE_WALK_ENTRIES = 200000;
 const STORY_IN_TEXT = /\bUS-[A-Z][A-Z0-9]*-\d+\b/g;
 // The strict-default spec names this section "Per-Story Interaction Flow"; its number varies (6.5, 6.6).
 const FLOW_HEADING = /interaction\s+flow/i;
@@ -144,9 +160,13 @@ function parseSpec(text) {
     return { stories, uiStories, steps, runs };
 }
 
+const isStableId = id => STORY_ID.test(id) || STANDALONE_ID.test(id);
+
 /**
- * Split the map into entries. In the index, headings outside `## Entries` are prose; a per-area
- * doc (`{ area: true }`) is all entries, so every `###` heading in it is one.
+ * Split the map into entries. A per-area doc (`{ area: true }`) is all entries, so every `###`
+ * heading in it is one. In the index, a `### FM-…` or `### US-…` heading is an entry wherever it
+ * sits (an index may group its entries under its own `##` headings); any other `###` heading is
+ * an entry only under `## Entries`, and prose elsewhere.
  */
 function parseFeatureMap(text, { area = false } = {}) {
     // Commented-out examples (the template ships one) are not entries; keep line numbers.
@@ -157,8 +177,12 @@ function parseFeatureMap(text, { area = false } = {}) {
     const entries = [];
     let inEntries = area;
     let current = null;
+    // A `###` line inside a fenced code block (a written example) is text, not a heading.
+    let fence = null;
     lines.forEach((line, index) => {
-        const level = headingLevel(line);
+        const marker = /^\s{0,3}(`{3,}|~{3,})/.exec(line);
+        if (marker && (!fence || (marker[1][0] === fence[0] && marker[1].length >= fence.length))) fence = fence ? null : marker[1];
+        const level = fence || marker ? 0 : headingLevel(line);
         if (level === 2) {
             inEntries = area || /^##\s+Entries\b/i.test(line);
             current = null;
@@ -169,33 +193,178 @@ function parseFeatureMap(text, { area = false } = {}) {
             current = null;
             return;
         }
-        if (!inEntries) return;
         if (level === 3) {
             const heading = ENTRY_HEADING.exec(line);
-            current = { id: heading ? heading[1].replace(/[·:—–-]+$/, '') : '', line: index + 1, fields: {}, lines: [] };
+            const id = heading ? heading[1].replace(/[·:—–-]+$/, '') : '';
+            if (!inEntries && !isStableId(id)) {
+                current = null;
+                return;
+            }
+            current = { id, line: index + 1, fields: {}, lines: [] };
             entries.push(current);
             return;
         }
         if (!current) return;
         current.lines.push({ text: line, line: index + 1 });
-        const field = FIELD_LINE.exec(line);
+        // A field line inside a fenced example belongs to the example, not to the entry above it.
+        const field = fence || marker ? null : FIELD_LINE.exec(line);
         if (field) current.fields[field[1].toLowerCase()] = field[2].trim();
     });
     return entries;
 }
 
-/** The repository-relative path an entry's `Spec:` field names, without backticks or anchors. */
-function specPathOf(value) {
+/** The repository-relative path an entry's `Spec:` or `Source:` field names, without backticks or anchors. */
+function fieldPathOf(value) {
     const match = /`([^`]+)`/.exec(value || '') || /^(\S+)/.exec(value || '');
     return match ? match[1].replace(/#.*$/, '') : '';
+}
+
+/**
+ * A Source path in its one comparable form: repository-relative POSIX, so `apps\web\page.tsx`,
+ * `./apps/web/page.tsx` and `apps//web/page.tsx` all name `apps/web/page.tsx`. Case is kept: two
+ * spellings that differ only in case are two paths, on every operating system.
+ */
+function normalizeSourcePath(value) {
+    return normalizeRootPath(String(value || ''));
+}
+
+/**
+ * The configured source audit, or null when it is off: `featureMap.sources` unset, empty or not a
+ * list of non-blank strings. Validation rejects a malformed value; this stays fail-soft for callers
+ * that read an unvalidated config.
+ */
+function configuredSources(config) {
+    const section = config && config.featureMap;
+    if (!section || typeof section !== 'object' || Array.isArray(section) || !Array.isArray(section.sources)) return null;
+    const patterns = section.sources.filter(item => typeof item === 'string' && item.trim()).map(item => normalizeSourcePath(item));
+    if (!patterns.length || patterns.length !== section.sources.length || patterns.some(escapesRepoRoot)) return null;
+    return { patterns, strict: section.strict === true };
+}
+
+/**
+ * Is `file` one of the per-area docs of the map index `doc` (`<dir>/feature-map/<area>.md` beside
+ * `<dir>/feature-map-reference.md`)? An edit to an area doc is an edit to the map.
+ */
+function isMapAreaDoc(doc, file) {
+    const index = normalizeSourcePath(doc);
+    if (path.posix.basename(index) !== MAP_FILENAME) return false;
+    const areaDir = path.posix.join(path.posix.dirname(index), 'feature-map');
+    const rel = normalizeSourcePath(file);
+    return path.posix.dirname(rel) === areaDir && rel.endsWith('.md');
+}
+
+/** A matcher for repository-relative paths against the configured source globs (`**` any depth, `*` one segment). */
+function sourceMatcher(patterns) {
+    const matches = pathMatcher(patterns);
+    return file => matches(normalizeSourcePath(file));
+}
+
+/**
+ * Where to add a missing entry: the doc already holding the entry whose Source shares the deepest
+ * folder with the file, else the index. A folder every Source shares (`app/` in a one-app project)
+ * says nothing about the area, so only deeper folders count. Built once, so each lookup costs the
+ * file's folder depth.
+ */
+function entryDocLocator(sourced, indexPath) {
+    const folders = sourced.map(({ rel }) => rel.split('/').slice(0, -1));
+    let shared = folders.length ? folders[0].length : 0;
+    for (const segments of folders) {
+        let depth = 0;
+        while (depth < shared && depth < segments.length && segments[depth] === folders[0][depth]) depth += 1;
+        shared = depth;
+    }
+    const docByFolder = new Map();
+    for (const { rel, entry } of sourced) {
+        const segments = rel.split('/').slice(0, -1);
+        for (let depth = segments.length; depth > shared; depth -= 1) {
+            const folder = segments.slice(0, depth).join('/');
+            if (!docByFolder.has(folder)) docByFolder.set(folder, entry.file);
+        }
+    }
+    return file => {
+        const segments = file.split('/').slice(0, -1);
+        for (let depth = segments.length; depth > 0; depth -= 1) {
+            const doc = docByFolder.get(segments.slice(0, depth).join('/'));
+            if (doc) return doc;
+        }
+        return indexPath;
+    };
+}
+
+/**
+ * The source rules. `sources.files` lists the repository-relative files that match the configured
+ * globs; `sources.exists(path)` says whether a Source an entry names still exists (default: it is
+ * one of `files`); `sources.truncated` says the listing stopped early; `sources.strict` turns the
+ * coverage gaps into errors. Only FM- and US- entries take part: an entry without a stable id is
+ * already an error, and its heading is never echoed.
+ */
+function auditSources({ entries, sources, indexPath, mode, add }) {
+    const files = [...new Set((sources.files || []).map(normalizeSourcePath).filter(Boolean))].sort();
+    const listed = new Set(files);
+    const exists = typeof sources.exists === 'function' ? sources.exists : rel => listed.has(rel);
+    const bySource = new Map();
+    for (const entry of entries) {
+        if (!isStableId(entry.id) || !entry.fields.source) continue;
+        const rel = normalizeSourcePath(fieldPathOf(entry.fields.source));
+        const at = { id: entry.id, file: entry.file, line: entry.line };
+        if (!rel || escapesRepoRoot(rel)) {
+            add(
+                'stale-source',
+                'error',
+                `${entry.id} has a Source that is not a repository-relative path. Name the file relative to the repository root with forward slashes, or remove ${entry.id}.`,
+                at
+            );
+            continue;
+        }
+        if (!listed.has(rel) && !exists(rel)) {
+            add('stale-source', 'error', `${entry.id} names Source ${rel}, which no longer exists. Point it at the moved file, or remove ${entry.id}.`, {
+                ...at,
+                source: rel
+            });
+        }
+        if (!bySource.has(rel)) bySource.set(rel, []);
+        bySource.get(rel).push(entry);
+    }
+    for (const [rel, owners] of bySource) {
+        if (owners.length < 2) continue;
+        const places = owners.map(owner => `${owner.id} at ${owner.file}:${owner.line}`).join(', ');
+        const merge = owners.length === 2 ? 'Merge the two entries into one.' : `Merge the ${owners.length} entries into one.`;
+        add('duplicate-source', 'error', `${places} all name Source ${rel}. ${merge}`, {
+            id: owners[owners.length - 1].id,
+            file: owners[owners.length - 1].file,
+            line: owners[owners.length - 1].line,
+            source: rel
+        });
+    }
+    const sourced = [...bySource].map(([rel, owners]) => ({ rel, entry: owners[0] }));
+    const docFor = entryDocLocator(sourced, indexPath);
+    const idHint = mode === 'spec-linked' ? 'an entry (its US- story id, or an FM- id when no story owns it)' : 'an FM- entry';
+    for (const file of files) {
+        if (bySource.has(file)) continue;
+        add(
+            'missing-source-entry',
+            sources.strict ? 'error' : 'gap',
+            `${file} matches featureMap.sources but no entry names it. Add ${idHint} in ${docFor(file)} with "- Source: \`${file}\`".`,
+            { file: docFor(file), source: file }
+        );
+    }
+    // A listing cut short cannot prove that every source file has an entry: never report CLEAN on it.
+    if (sources.truncated) {
+        add(
+            'sources-truncated',
+            sources.strict ? 'error' : 'gap',
+            `The featureMap.sources listing stopped after ${MAX_SOURCE_WALK_ENTRIES} directory entries, so files past that point were not checked. Narrow featureMap.sources to the folders that hold the sources.`
+        );
+    }
 }
 
 /**
  * Audit a map against the specs. `specs` is `[{ path, text }]` with repository-relative
  * POSIX paths. Returns `{ mode, entries, findings }`; each finding has `kind`, `severity`
  * (`error` = the map is wrong, `gap` = coverage is missing) and a message that names the fix.
+ * `sources` (optional, see auditSources) adds the source rules; null leaves the audit unchanged.
  */
-function auditFeatureMap({ mapText, maps, specs = [] }) {
+function auditFeatureMap({ mapText, maps, specs = [], sources = null }) {
     // A large project splits the map into an index plus per-area docs; they are audited as one map.
     const docs = maps || [{ path: MAP_FILENAME, text: mapText }];
     const findings = [];
@@ -247,7 +416,7 @@ function auditFeatureMap({ mapText, maps, specs = [] }) {
         }
 
         if (isStory) {
-            const specPath = specPathOf(entry.fields.spec);
+            const specPath = fieldPathOf(entry.fields.spec);
             const spec = parsedSpecs.get(specPath);
             if (!specPath) {
                 add('missing-field', 'error', `${entry.id} has no "Spec" line. A story entry names the spec that owns the story.`, {
@@ -307,9 +476,11 @@ function auditFeatureMap({ mapText, maps, specs = [] }) {
         }
     }
 
+    if (sources) auditSources({ entries, sources, indexPath: docs[0].path, mode, add });
+
     // An id that failed the stable-id check is not echoed: the heading may hold anything.
     const listed = entries.map(entry => ({
-        id: STORY_ID.test(entry.id) || STANDALONE_ID.test(entry.id) ? entry.id : null,
+        id: isStableId(entry.id) ? entry.id : null,
         file: entry.file,
         line: entry.line
     }));
@@ -341,6 +512,91 @@ function readSpecs(specRoot, repoRoot) {
     };
     walk(specRoot);
     return specs;
+}
+
+/**
+ * One bounded listing of the files that match the source globs. Each glob is walked only below
+ * its fixed leading folders (`apps/web/app` for `apps/web/app/**\/page.tsx`); below that prefix
+ * the walk skips `node_modules` and dot-folders and never follows a symbolic link. It stops after
+ * MAX_SOURCE_WALK_ENTRIES directory entries and says so. Paths come back repository-relative POSIX
+ * with the case the filesystem reports, on every operating system.
+ */
+function listSourceFiles(root, patterns, { maxEntries = MAX_SOURCE_WALK_ENTRIES } = {}) {
+    const matches = sourceMatcher(patterns);
+    const prefixes = [
+        ...new Set(
+            patterns.map(pattern => {
+                const segments = pattern.split('/');
+                let fixed = 0;
+                while (fixed < segments.length - 1 && !/[*?]/.test(segments[fixed])) fixed += 1;
+                return segments.slice(0, fixed).join('/');
+            })
+        )
+    ].sort();
+    // A prefix inside another prefix is already walked.
+    const walkRoots = prefixes.filter(prefix => !prefixes.some(other => other !== prefix && (other === '' || prefix.startsWith(`${other}/`))));
+    const files = [];
+    let visited = 0;
+    let truncated = false;
+    const walk = relDir => {
+        let dirents;
+        try {
+            dirents = fs.readdirSync(path.join(root, relDir), { withFileTypes: true });
+        } catch (error) {
+            if (error.code === 'ENOENT' || error.code === 'ENOTDIR') return;
+            throw error;
+        }
+        for (const dirent of dirents.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))) {
+            if (visited >= maxEntries) {
+                truncated = true;
+                return;
+            }
+            visited += 1;
+            const rel = relDir ? `${relDir}/${dirent.name}` : dirent.name;
+            if (dirent.isDirectory()) {
+                if (dirent.name !== 'node_modules' && !dirent.name.startsWith('.')) walk(rel);
+            } else if (dirent.isFile() && matches(rel)) {
+                files.push(rel);
+            }
+        }
+    };
+    // A fixed folder spelled differently from the disk is not walked, on every OS.
+    const exists = exactPathExists(root);
+    for (const prefix of walkRoots) if (prefix === '' || exists(prefix)) walk(prefix);
+    return { files, truncated };
+}
+
+/**
+ * Does a repository-relative path exist with exactly this spelling? A case-insensitive filesystem
+ * would accept `App/Page.tsx` for `app/page.tsx`; a check that differs by OS is no check, so each
+ * folder is read once and the name is compared exactly.
+ */
+function exactPathExists(root) {
+    const names = new Map();
+    const namesIn = dir => {
+        if (!names.has(dir)) {
+            try {
+                names.set(dir, new Set(fs.readdirSync(path.join(root, dir))));
+            } catch {
+                names.set(dir, null);
+            }
+        }
+        return names.get(dir);
+    };
+    return rel => {
+        const segments = rel.split('/');
+        for (let index = 0; index < segments.length; index += 1) {
+            const listed = namesIn(segments.slice(0, index).join('/'));
+            if (!listed || !listed.has(segments[index])) return false;
+        }
+        return true;
+    };
+}
+
+/** The project config for the source audit: the one under `--root`, else the loader's. */
+function readSourceConfig(root, explicitRoot) {
+    const loader = require('../../hooks/lib/project-config-loader.cjs');
+    return explicitRoot ? loader.readProjectConfigAt(root) : loader.getProjectConfigStatus();
 }
 
 function parseArgs(argv) {
@@ -381,17 +637,50 @@ function runCli(argv) {
         : [];
     const maps = [mapPath, ...areaFiles].map(file => ({ path: rel(file), text: fs.readFileSync(file, 'utf8') }));
     const specs = readSpecs(path.resolve(root, specRoot), root);
-    const result = auditFeatureMap({ maps, specs });
+    const configStatus = readSourceConfig(root, Boolean(options.root));
+    // An invalid config is never trusted: the source audit is skipped and the output says why.
+    const configured = configStatus.state === 'valid' ? configuredSources(configStatus.config) : null;
+    let sources = null;
+    let sourceReport = {};
+    if (configured) {
+        const listing = listSourceFiles(root, configured.patterns);
+        sources = { files: listing.files, strict: configured.strict, truncated: listing.truncated, exists: exactPathExists(root) };
+        sourceReport = {
+            sources: {
+                patterns: configured.patterns,
+                strict: configured.strict,
+                files: listing.files.length,
+                ...(listing.truncated ? { truncated: `the listing stopped after ${MAX_SOURCE_WALK_ENTRIES} directory entries; narrow featureMap.sources` } : {})
+            }
+        };
+    } else if (configStatus.state === 'invalid' && configStatus.config && configStatus.config.featureMap) {
+        sourceReport = { sourcesSkipped: 'the project config is invalid, so featureMap.sources was not used; fix it with /project-config' };
+    }
+    const result = auditFeatureMap({ maps, specs, sources });
     return {
         status: result.findings.length ? 'FINDINGS' : 'CLEAN',
         map: rel(mapPath),
         areaDocs: areaFiles.map(rel),
         ...(specs.truncated ? { specsTruncated: `only the first ${MAX_SPEC_FILES} spec files were read` } : {}),
+        ...sourceReport,
         ...result
     };
 }
 
-module.exports = { MAP_FILENAME, parseSpec, parseFeatureMap, auditFeatureMap, readSpecs, runCli };
+module.exports = {
+    MAP_FILENAME,
+    parseSpec,
+    parseFeatureMap,
+    auditFeatureMap,
+    readSpecs,
+    normalizeSourcePath,
+    isMapAreaDoc,
+    configuredSources,
+    sourceMatcher,
+    listSourceFiles,
+    exactPathExists,
+    runCli
+};
 
 if (require.main === module) {
     try {

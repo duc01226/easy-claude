@@ -216,6 +216,10 @@
       "hash": "f0e437ec898d",
       "by": "baseline"
     },
+    "config:featureMap": {
+      "hash": "459603a1b525",
+      "by": "declare-feature-map-sources"
+    },
     "config:formatting": {
       "hash": "85301b0c337f",
       "by": "baseline"
