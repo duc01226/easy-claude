@@ -232,3 +232,155 @@ test('STAGE-005 scripts-tests uses bounded concurrency at the runner and framewo
         .map(([name]) => name);
     assert.deepEqual(bypassing, [], `no npm alias may run the scripts tests outside the runner's concurrency gating; found: ${bypassing.join(', ')}`);
 });
+
+// ── STAGE-006 — the opencode surface is regenerated BEFORE the Codex verify stages read it ──────
+// `hooks-parity` runs agent-mirror-parity, whose TC-AMP-001/002/004 compare `.opencode/agent/*.md`
+// with `.claude/agents/*.md`. Only the opencode handoff writes that mirror, and it used to run once,
+// after all 20 stages — so any change to an agent's SYNC tags failed the first full sync with
+// "SYNC tag set drifted" on a mirror nothing had regenerated yet. The fixture runs both REAL runners
+// over stub stage scripts that log each call; the parity stub fails exactly like TC-AMP-002 does
+// whenever the opencode mirror differs from its Claude source.
+const opencodeRunnerRel = '.claude/skills/sync-opencode/scripts/run-opencode-sync.mjs';
+
+function loggingStub(label, body = '') {
+    return `import fs from 'node:fs';\nfs.appendFileSync('order.log', ${JSON.stringify(label)} + ' ' + process.argv.slice(2).join(' ') + '\\n');\n${body}`;
+}
+
+/** Script paths a runner spawns from its `sourceScriptsDir`, read from the runner itself. */
+async function runnerScripts(runnerRel, quote) {
+    const source = await fs.readFile(path.join(repoRoot, ...runnerRel.split('/')), 'utf8');
+    const pattern = new RegExp(`path\\.join\\(sourceScriptsDir, ${quote}([^${quote}]+\\.mjs)${quote}\\)`, 'g');
+    return [...new Set([...source.matchAll(pattern)].map(match => match[1]))];
+}
+
+async function buildHandoffFixture() {
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'stage-opencode-order-'));
+    createdDirs.push(tmp);
+    const write = async (rel, content) => {
+        const target = path.join(tmp, ...rel.split('/'));
+        await fs.mkdir(path.dirname(target), { recursive: true });
+        await fs.writeFile(target, content);
+    };
+    for (const rel of [syncRunnerRel, opencodeRunnerRel]) {
+        await fs.mkdir(path.dirname(path.join(tmp, rel)), { recursive: true });
+        await fs.copyFile(path.join(repoRoot, ...rel.split('/')), path.join(tmp, rel));
+    }
+    // An agent whose SYNC tags changed, and the opencode mirror still carrying the old set.
+    await write(
+        '.claude/agents/code-reviewer.md',
+        '<!-- SYNC:old-gate -->\nbody\n<!-- /SYNC:old-gate -->\n<!-- SYNC:new-gate -->\nbody\n<!-- /SYNC:new-gate -->\n'
+    );
+    await write('.opencode/agent/code-reviewer.md', '<!-- SYNC:old-gate -->\nbody\n<!-- /SYNC:old-gate -->\n');
+
+    const cjsLog = label => `require('node:fs').appendFileSync('order.log', ${JSON.stringify(label)} + ' ' + process.argv.slice(2).join(' ') + '\\n');\n`;
+    await write('.claude/skills/ai-context-refresh/scripts/generate-claude-md.cjs', cjsLog('claude-md'));
+    await write('.claude/scripts/lib/workflow-skill-contract.cjs', 'module.exports = { syncWorkflowSkillContracts: () => [] };\n');
+    for (const script of await runnerScripts(syncRunnerRel, '"')) {
+        await write(`.claude/scripts/codex/${script}`, loggingStub(`codex/${script.replace(/\.mjs$/, '')}`));
+    }
+    await write('.claude/scripts/codex/tests/stub.test.mjs', loggingStub('codex-tests'));
+    await write('.claude/scripts/tests/stub.test.mjs', loggingStub('scripts-tests'));
+    // The parity selector stands in for agent-mirror-parity: any opencode mirror that differs from
+    // its Claude source is the drift TC-AMP-002 reports.
+    await write(
+        '.claude/hooks/tests/run-all-tests.cjs',
+        `${cjsLog('hooks')}
+const fs = require('node:fs');
+if (process.argv.includes('--filter=parity')) {
+    for (const file of fs.readdirSync('.claude/agents')) {
+        if (fs.readFileSync('.claude/agents/' + file, 'utf8') !== fs.readFileSync('.opencode/agent/' + file, 'utf8')) {
+            console.error(file + ' (opencode): SYNC tag set drifted');
+            process.exit(1);
+        }
+    }
+}
+`
+    );
+    const agentsMirror = `
+const check = process.argv.includes('--check');
+for (const file of fs.readdirSync('.claude/agents')) {
+    const want = fs.readFileSync('.claude/agents/' + file, 'utf8');
+    const target = '.opencode/agent/' + file;
+    if (!check) fs.writeFileSync(target, want);
+    else if (fs.readFileSync(target, 'utf8') !== want) process.exit(1);
+}
+`;
+    for (const script of await runnerScripts(opencodeRunnerRel, "'")) {
+        const label = `opencode/${script.replace(/\.mjs$/, '')}`;
+        await write(`.claude/scripts/opencode/${script}`, loggingStub(label, script === 'sync-agents.mjs' ? agentsMirror : ''));
+    }
+    await write('.claude/scripts/opencode/tests/stub.test.mjs', loggingStub('opencode-tests'));
+    return tmp;
+}
+
+async function runHandoff(tmp, flags) {
+    await fs.rm(path.join(tmp, 'order.log'), { force: true });
+    const result = await run(process.execPath, [path.join(tmp, syncRunnerRel), ...flags], { cwd: tmp });
+    const log = await fs.readFile(path.join(tmp, 'order.log'), 'utf8').catch(() => '');
+    return {
+        ...result,
+        calls: log
+            .split('\n')
+            .filter(Boolean)
+            .map(line => line.trim())
+    };
+}
+
+test('STAGE-006 a full sync regenerates the opencode agent mirror before the parity gate reads it', async () => {
+    const tmp = await buildHandoffFixture();
+    const staleMirror = await fs.readFile(path.join(tmp, '.opencode/agent/code-reviewer.md'), 'utf8');
+    const isOpencodeWrite = call => call.startsWith('opencode/') && !call.endsWith('--check');
+
+    // --verify-only keeps its no-mutation contract: the stale mirror is reported, never rewritten.
+    const verifyStale = await runHandoff(tmp, ['--verify-only']);
+    const verifyStaleOutput = `${verifyStale.stdout}\n${verifyStale.stderr}`;
+    assert.equal(verifyStale.code, 1, verifyStaleOutput);
+    assert.match(verifyStale.stderr, /aborted at stage 'hooks-parity'/);
+    assert.deepEqual(verifyStale.calls.filter(isOpencodeWrite), [], 'verify-only must not run an opencode writer');
+    assert.equal(await fs.readFile(path.join(tmp, '.opencode/agent/code-reviewer.md'), 'utf8'), staleMirror);
+
+    // The full sync passes on the same stale tree, because the opencode writers run between the
+    // last Codex mutate stage and the first Codex verify stage.
+    const full = await runHandoff(tmp, []);
+    const fullOutput = `${full.stdout}\n${full.stderr}\ncalls:\n  ${full.calls.join('\n  ')}`;
+    assert.equal(full.code, 0, fullOutput);
+    const index = predicate => full.calls.findIndex(predicate);
+    const lastIndex = predicate => full.calls.findLastIndex(predicate);
+    // Derived from the stubs, never a transcribed roster: a Codex mutate call is the CLAUDE.md
+    // preflight or a non-verifier Codex script; an opencode writer is any opencode script without --check.
+    const isCodexMutate = call => call.startsWith('claude-md') || /^codex\/(?!verify-)/.test(call);
+    const expectedWriters = (await runnerScripts(opencodeRunnerRel, "'")).map(script => `opencode/${script.replace(/\.mjs$/, '')}`).sort();
+    const firstWrite = index(isOpencodeWrite);
+    const lastWrite = lastIndex(isOpencodeWrite);
+    assert.deepEqual(full.calls.filter(isOpencodeWrite).sort(), expectedWriters, `each opencode writer runs exactly once\n${fullOutput}`);
+    assert.ok(
+        firstWrite > 0 && full.calls.slice(0, firstWrite).every(isCodexMutate),
+        `only Codex mutate stages may run before the opencode writers\n${fullOutput}`
+    );
+    assert.ok(full.calls.slice(firstWrite, lastWrite + 1).every(isOpencodeWrite), `the opencode writers run as one leg\n${fullOutput}`);
+    assert.equal(lastIndex(isCodexMutate) < firstWrite, true, `the writers must see every Codex mutate stage's output\n${fullOutput}`);
+    assert.ok(lastWrite < index(call => call === 'hooks --filter=parity'), `the mirror must be regenerated before hooks-parity\n${fullOutput}`);
+    const lastCodexStage = lastIndex(
+        call => call.startsWith('codex/') || call.startsWith('hooks') || call.startsWith('codex-tests') || call.startsWith('scripts-tests')
+    );
+    for (const gate of ['opencode-tests', 'opencode/sync-agents --check']) {
+        assert.ok(index(call => call === gate) > lastCodexStage, `${gate} must run after the full Codex roster\n${fullOutput}`);
+    }
+    assert.equal(
+        await fs.readFile(path.join(tmp, '.opencode/agent/code-reviewer.md'), 'utf8'),
+        await fs.readFile(path.join(tmp, '.claude/agents/code-reviewer.md'), 'utf8')
+    );
+
+    // A later --verify-only run over the now-current tree still verifies the opencode surface,
+    // and still writes nothing.
+    const verifyFresh = await runHandoff(tmp, ['--verify-only']);
+    assert.equal(verifyFresh.code, 0, `${verifyFresh.stdout}\n${verifyFresh.stderr}`);
+    assert.ok(verifyFresh.calls.includes('opencode/sync-agents --check'), verifyFresh.calls.join('\n'));
+    assert.deepEqual(verifyFresh.calls.filter(isOpencodeWrite), []);
+});
+
+test('STAGE-006 the opencode runner rejects --sync-only together with --verify-only', async () => {
+    const result = await run(process.execPath, [path.join(repoRoot, ...opencodeRunnerRel.split('/')), '--sync-only', '--verify-only']);
+    assert.equal(result.code, 1, `${result.stdout}\n${result.stderr}`);
+    assert.match(result.stderr, /disjoint stage sets/);
+});

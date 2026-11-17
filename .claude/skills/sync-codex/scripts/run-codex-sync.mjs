@@ -424,26 +424,44 @@ async function pathExists(target) {
     }
 }
 
-// POST-RUN HANDOFF (deliberately NOT a stage): when the consuming project has a
-// project-local `.opencode/` directory, sync the opencode hooks surface too. The Codex
-// roster is a pinned 20-stage contract and the opencode pipeline owns its own roster and
-// verify gates, so this is a handoff rather than a 21st stage. Under `--verify-only` the
-// handoff is read-only too, preserving the "no mutation" contract of that mode.
-async function syncOpencodeIfPresent() {
-    const opencodeDir = path.join(rootDir, ".opencode");
-    if (!(await pathExists(opencodeDir))) return { ran: false };
-    const opencodeRunner = path.join(rootDir, ".claude", "skills", "sync-opencode", "scripts", "run-opencode-sync.mjs");
-    if (!(await pathExists(opencodeRunner))) {
+// OPENCODE HANDOFF (deliberately NOT a stage): when the consuming project has a
+// project-local `.opencode/` directory, sync the opencode surface too. The Codex roster is
+// a pinned 20-stage contract and the opencode pipeline owns its own roster and verify gates,
+// so this is a handoff rather than a 21st stage. It runs in two legs around the verify stages:
+//   1. `--sync-only`, after the last mutate stage and before the first verify stage, because
+//      Codex verify stages read opencode output — `hooks-parity` runs agent-mirror-parity,
+//      whose TC-AMP-001/002/004 compare `.opencode/agent/*.md` with `.claude/agents/*.md`. A
+//      single post-run handoff let any change to an agent's SYNC tags fail the first full sync
+//      on a mirror that nothing had regenerated yet.
+//   2. `--verify-only`, after all stages pass: the opencode tests and byte-compare gates.
+// Under `--verify-only` only leg 2 runs, preserving the "no mutation" contract of that mode.
+let opencodeRunnerPromise;
+function resolveOpencodeRunner() {
+    opencodeRunnerPromise ??= (async () => {
+        if (!(await pathExists(path.join(rootDir, ".opencode")))) return null;
+        const runner = path.join(rootDir, ".claude", "skills", "sync-opencode", "scripts", "run-opencode-sync.mjs");
+        if (await pathExists(runner)) return runner;
         console.log("[codex-sync] .opencode/ present but the sync-opencode runner is absent; skipping opencode sync");
-        return { ran: false };
-    }
-    console.log(`[codex-sync] .opencode/ present → handoff to sync-opencode${verifyOnly ? " (--verify-only)" : ""}`);
-    const result = await runCaptured(process.execPath, [opencodeRunner, ...(verifyOnly ? ["--verify-only"] : [])]);
+        return null;
+    })();
+    return opencodeRunnerPromise;
+}
+
+async function runOpencodeLeg(flag) {
+    const opencodeRunner = await resolveOpencodeRunner();
+    if (!opencodeRunner) return { ran: false };
+    console.log(`[codex-sync] .opencode/ present → handoff to sync-opencode (${flag})`);
+    const result = await runCaptured(process.execPath, [opencodeRunner, flag]);
     relay(result);
     if (result.code !== 0) {
-        throw Object.assign(new Error("sync-opencode handoff failed"), { exitCode: result.code || 1 });
+        throw Object.assign(new Error(`sync-opencode handoff (${flag}) failed`), { exitCode: result.code || 1 });
     }
     return { ran: true };
+}
+
+function failOpencodeHandoff(err) {
+    console.error(`[codex-sync] opencode handoff failed (exit ${err.exitCode ?? "?"})`);
+    process.exit(err.exitCode || 1);
 }
 
 async function main() {
@@ -477,7 +495,21 @@ async function main() {
     console.log(`[codex-sync] running ${active.length} stage(s) from ${rootDir}`);
     const startedAt = Date.now();
 
+    // The handoff is defined around the FULL roster, so a subset run (--only/--skip) triggers
+    // neither leg. A full run regenerates the opencode surface between its last mutate stage and
+    // its first verify stage (leg 1), then verifies it after the roster (leg 2).
+    const subsetRun = Boolean((onlySet && onlySet.size) || (skipSet && skipSet.size));
+    let opencodeSynced = verifyOnly || subsetRun;
+
     for (let i = 0; i < active.length; i++) {
+        if (!opencodeSynced && !active[i].mutate) {
+            opencodeSynced = true;
+            try {
+                await runOpencodeLeg("--sync-only");
+            } catch (err) {
+                failOpencodeHandoff(err);
+            }
+        }
         try {
             // Belongs to the mutating migration stage, including ai-context-refresh's
             // --skip=claude-md handoff. Verify-only never reaches this branch.
@@ -494,19 +526,18 @@ async function main() {
         }
     }
 
-    // The handoff is defined as running "after all stages pass", so a subset run
-    // (--only/--skip) must not trigger it, and its failure must surface the opencode
-    // stage's own exit code instead of an unhandled rejection. `await main()` has no
-    // top-level catch, so without this wrapper a throw here exits 1 and prints a stack.
-    const subsetRun = Boolean((onlySet && onlySet.size) || (skipSet && skipSet.size));
+    // A handoff failure must surface the opencode stage's own exit code instead of an unhandled
+    // rejection: `await main()` has no top-level catch, so a throw here would exit 1 with a stack.
+    // A full run that reached no verify stage never ran leg 1, so it runs the whole opencode
+    // pipeline here instead — the surface is never verified without first being synced.
     if (subsetRun) {
-        console.log("[codex-sync] subset run (--only/--skip): skipping the opencode handoff (it runs only after the full roster passes)");
+        console.log("[codex-sync] subset run (--only/--skip): skipping the opencode handoff (it runs only with the full roster)");
     } else {
         try {
-            await syncOpencodeIfPresent();
+            if (!opencodeSynced) await runOpencodeLeg("--sync-only");
+            await runOpencodeLeg("--verify-only");
         } catch (err) {
-            console.error(`[codex-sync] opencode handoff failed (exit ${err.exitCode ?? "?"})`);
-            process.exit(err.exitCode || 1);
+            failOpencodeHandoff(err);
         }
     }
 

@@ -6,6 +6,7 @@
 // complete pipeline, because every entrypoint is a path inside the bundle:
 //   node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs                # full sync + verify
 //   node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs --verify-only  # every read-only gate
+//   node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs --sync-only    # every writer, no gate
 //   node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs --only=<ids>   # subset
 //   node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs --list-stages  # discover the roster
 // Runs all stages sequentially, fails fast on first non-zero exit.
@@ -30,6 +31,11 @@ const sourceScriptsDir = path.join(rootDir, '.claude', 'scripts', 'opencode');
 const args = process.argv.slice(2);
 const verbose = args.includes('--verbose') || args.includes('-v');
 const verifyOnly = args.includes('--verify-only');
+// `--sync-only` is the mirror image of `--verify-only`, derived from the same `mutate` markers. It
+// lets a caller that runs its own read-only gates over the generated tree (the codex runner's
+// cross-host parity suites) regenerate this surface BEFORE those gates, then run `--verify-only`
+// after them — without transcribing this runner's stage ids.
+const syncOnly = args.includes('--sync-only');
 const listStages = args.includes('--list-stages');
 const skipSet = parseListFlag('--skip');
 const onlySet = parseListFlag('--only');
@@ -109,6 +115,7 @@ const stages = [
 
 function shouldRun(stage) {
     if (verifyOnly && stage.mutate) return false;
+    if (syncOnly && !stage.mutate) return false;
     if (onlySet && !onlySet.has(stage.id)) return false;
     if (skipSet && skipSet.has(stage.id)) return false;
     return true;
@@ -131,7 +138,7 @@ function validateStageSelectors() {
     }
 }
 
-const KNOWN_FLAGS = ['--verbose', '-v', '--verify-only', '--list-stages'];
+const KNOWN_FLAGS = ['--verbose', '-v', '--verify-only', '--sync-only', '--list-stages'];
 const KNOWN_LIST_FLAGS = ['--only', '--skip'];
 function validateFlags() {
     const unknown = args.filter(arg => !KNOWN_FLAGS.includes(arg) && !KNOWN_LIST_FLAGS.some(flag => arg.startsWith(`${flag}=`)));
@@ -139,6 +146,10 @@ function validateFlags() {
         console.error(`[opencode-sync] unknown flag(s): ${unknown.join(', ')}`);
         console.error(`[opencode-sync] valid flags: ${[...KNOWN_FLAGS, ...KNOWN_LIST_FLAGS.map(f => `${f}=<ids>`)].join(', ')}`);
         console.error(`[opencode-sync] valid stage ids: ${stages.map(s => s.id).join(', ')}`);
+        process.exit(1);
+    }
+    if (verifyOnly && syncOnly) {
+        console.error('[opencode-sync] --verify-only and --sync-only select disjoint stage sets; pass one of them');
         process.exit(1);
     }
 }
@@ -169,7 +180,7 @@ function printStageRoster() {
     for (const [index, stage] of stages.entries()) {
         console.log(`  ${String(index + 1).padStart(2)}. ${stage.id.padEnd(14)} ${stage.mutate ? 'MUTATE' : 'verify'}  ${stage.label}`);
     }
-    console.log("[opencode-sync] --verify-only runs every 'verify' stage above; --only=<ids>/--skip=<ids> select a subset.");
+    console.log("[opencode-sync] --verify-only runs every 'verify' stage above, --sync-only every 'MUTATE' stage; --only=<ids>/--skip=<ids> select a subset.");
 }
 
 async function main() {
