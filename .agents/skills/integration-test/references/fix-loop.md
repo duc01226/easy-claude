@@ -85,7 +85,7 @@ Before round 1, carry the Step 3b tier contract into the loop. Mark Unit, Integr
 | Integration/System | `{copy-ready command}` | `{copy-ready command or N/A + evidence}` | `{documented non-zero behavior}` | `{unique identity; reference/additive mode}` | `{worker/root strategy}` | `{entry point or N/A + evidence}` |
 | E2E | `{configured command or N/A + evidence}` | `{configured command or N/A + evidence}` | `{documented non-zero behavior}` | `{unique identity; reference/additive mode}` | `{worker/root strategy}` | `{entry point or N/A + evidence}` |
 
-- Use only config/reference/script-backed commands. When focused scope applies, the round's default pass returns exact Passed/Failed/Skipped counts and exit status; invalid or zero-match selection must fail or follow documented non-green behavior and never count as green.
+- Use only config/reference/script-backed commands. When focused scope applies, the round's default pass returns exact Passed/Failed/Skipped counts and exit status; an invalid or zero-match explicit selection must fail or follow documented non-green behavior and never count as green. A legitimately empty computed affected selection is reported SKIPPED, naming what it skipped, never as green evidence; only the full run is merge evidence.
 - Preserve supported public-path setup, realistic pacing/barriers, idempotent count-before-create reference data, keyed/additive persistence, and isolated mutable roots every round. Focused output is evidence, not a substitute for fixed full scope.
 - Append the matrix, commands/scopes, identity, seed/accumulation mode, exact results, and repeat proof to the Goal Contract Iteration Log; missing evidence blocks convergence.
 

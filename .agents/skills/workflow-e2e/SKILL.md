@@ -140,7 +140,7 @@ Resolve one record before the first authoring or verification step and carry it 
 | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `applicability`                  | `APPLICABLE` with evidence of a configured framework, runner and command; otherwise `N/A — <evidence>`. Skill-local browser helpers are not project evidence               |
 | `caseMap`                        | Configured owner/case/scenario/variant + evidence fields, or strict-default TC/§8 when no native profile applies; a malformed declared profile blocks and never falls back |
-| `fullCommand` / `focusedCommand` | Copy-ready configured commands; invalid or zero-match selections exit non-zero                                                                                             |
+| `fullCommand` / `focusedCommand` | Copy-ready configured commands; invalid or zero-match explicit selections exit non-zero                                                                                             |
 | `runIdentity` / `dataStrategy`   | Unique non-sensitive run identity, public-path setup, declared seed/accumulation mode, parallel-worker isolation                                                           |
 | `testOrganization`               | The declared local pattern and its canonical locator/action/wait owners; never require a Page Object Model or abstract base the project does not select                    |
 | `result`                         | Exact counts, failing names, exit status, repeat evidence; one fresh green full run, or the project's configured `consecutiveGreen` count                                   |

@@ -76,7 +76,7 @@ The `tester` subagent receives the resolved contract matrix and executes only co
 
 - Select the configured `fullCommand` or `focusedCommand` for the requested scope and report the command verbatim, scope, and any simple Windows/macOS/Linux entry point used. If the tier has no configured command, report evidence-backed `N/A` or `BLOCKED` rather than substituting another command.
 - Return exact `exitStatus`, `discovered`, `passed`, `failed`, and `skipped` counts, failing-test names, `runIdentity`, seed/accumulation mode, and repeat/parallel evidence. For applicable persistent-state integration suites, include two consecutive no-reset full-run results; other suites need one fresh green run.
-- A zero-match or invalid selection is non-pass even when no test throws; a non-zero exit is non-pass even when text says all tests passed. Never infer counts from a summary or silently pass an empty filter.
+- An explicit filter or selection that is invalid or matches nothing is non-pass even when no test throws; a non-zero exit is non-pass even when text says all tests passed. Never infer counts from a summary or silently pass an empty filter. A legitimately empty computed affected selection is reported SKIPPED, naming what it skipped, never as green evidence; only the full run is merge evidence.
 - Remain read-only: do not edit tests or production code, seed or reset data, delete fixtures, or widen retries/timeouts to make a result green.
 
 ---
@@ -162,7 +162,7 @@ After reporting, choose the appropriate follow-up from the results and the autho
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple Windows/macOS/Linux entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
+**IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, explicit-filter zero-match failures, owner/root/data, CI/simple Windows/macOS/Linux entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
 **IMPORTANT MUST ATTENTION Goal:** Deliver an accurate, read-only pass/fail verdict — by running tests locally via the `tester` subagent and analyzing the summary report — with exact counts, failing-test names, report path, and Goal Contract evidence, so the user knows the true test state without any fix applied.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**

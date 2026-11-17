@@ -18,6 +18,26 @@ vocabulary, and the warranting matrix. On any change here, re-run
 > not overlap: a system can score perfectly on caching and resilience while nobody but its author can
 > build it.
 
+## Contents
+
+- [1 · Purpose](#1--purpose)
+- [2 · Project profile — derive FIRST, from evidence](#2--project-profile--derive-first-from-evidence)
+- [3 · Verdicts (per dimension)](#3--verdicts-per-dimension)
+  - [Authority — when this gate blocks and when it only advises](#authority--when-this-gate-blocks-and-when-it-only-advises)
+- [4 · The seven foundation dimensions](#4--the-seven-foundation-dimensions)
+  - [F1 · Reproducible environment — "it runs the same way everywhere"](#f1--reproducible-environment--it-runs-the-same-way-everywhere)
+  - [F2 · Supported execution modes — reproducible paths without a two-mode mandate](#f2--supported-execution-modes--reproducible-paths-without-a-two-mode-mandate)
+  - [F3 · Environment-portable test execution — local, CI, and production-shaped](#f3--environment-portable-test-execution--local-ci-and-production-shaped)
+  - [F4 · Test-strength proof — the suite is proven defect-sensitive](#f4--test-strength-proof--the-suite-is-proven-defect-sensitive)
+  - [F5 · Performance & scale-under-data — an executable tier, not an opinion](#f5--performance--scale-under-data--an-executable-tier-not-an-opinion)
+  - [F6 · Build & change scalability — cost of a change grows with the change, not the repository](#f6--build--change-scalability--cost-of-a-change-grows-with-the-change-not-the-repository)
+  - [F7 · Mechanical quality harness — every machine-catchable defect is caught by a machine](#f7--mechanical-quality-harness--every-machine-catchable-defect-is-caught-by-a-machine)
+- [5 · Warranting matrix (quick reference)](#5--warranting-matrix-quick-reference)
+- [6 · Brownfield adoption ladder](#6--brownfield-adoption-ladder)
+- [7 · Tool-agnosticism rule (binding)](#7--tool-agnosticism-rule-binding)
+- [8 · Output — Foundation Readiness Matrix](#8--output--foundation-readiness-matrix)
+- [9 · Closing reminder](#9--closing-reminder)
+
 ---
 
 ## 1 · Purpose
@@ -46,7 +66,7 @@ defect. Cite `file:line`, config, CI definition, or infra manifest for every row
 | **Lifecycle** _(axis)_             | `G` greenfield (foundation being created) · `B` brownfield (foundation exists, under audit)         | presence of source history, existing build/CI config, the invoking workflow |
 | **Scale tier** _(axis)_            | `T0` internal/single-instance · `T1` small SaaS (<10k) · `T2` high-scale (10k–1M) · `T3` massive    | **single-sourced in `scale-technique-catalog.md` — reuse, never re-derive** |
 | **Business criticality** _(axis)_  | `B0` best-effort · `B1` important · `B2` business-critical · `B3` mission-critical/regulated        | **single-sourced in `scenario-stress-catalog.md` — reuse, never re-derive** |
-| **Repo shape** _(axis)_            | `R0` single module · `R1` few modules (2–5) · `R2` many modules / multi-team · `R3` monorepo estate | project structure, build manifests, module/package boundaries, CODEOWNERS   |
+| **Repo shape** _(axis)_            | `R0` single module · `R1` few modules (2–5) · `R2` many modules / multi-team · `R3` monorepo estate | LOGICAL modules now and at the planned horizon (domain/architecture map), team count, CODEOWNERS; record the package/deployable layout as current state, never as tier evidence |
 | **Runtime surface** _(descriptor)_ | which of: service · web app · mobile · CLI · library · batch/worker · data pipeline                 | entry points, deploy manifests, package targets                             |
 
 **Four axes, one descriptor — the distinction is load-bearing.** `Lifecycle`, `T`, `B` and `R` are the four
@@ -56,10 +76,14 @@ is ungraded, appears in no warranting column, and never raises or lowers a verdi
 which dimensions are applicable at all (a published library has no deployment topology to run containerized).
 Counting it as a fifth axis is the one way to read this table and disagree with the protocol consumers that
 act on it, which enumerate four: the gate's `BLOCKED until` checklist (_"lifecycle + `T` + `B` + `R`"_) and
-`SYNC:plan-quality` clause 11 (_"the four profile axes"_).
+`SYNC:plan-quality` clause 12 (_"the four profile axes"_).
 
 **Unknown axis → state the assumption explicitly and pick the LOWER tier.** Never default to `T3`/`B3`/`R3`:
 over-stating the profile is how a gate turns into busywork that a small team correctly ignores.
+
+**Never read the `R` tier from the layout under judgement.** `R` comes from logical modules and
+measurements; the current layout is recorded beside it. A single-package layout cannot set the `R`
+tier that then excuses that same layout.
 
 **Criticality-signal floor (inherited from `scenario-stress-catalog.md`):** regulated / PII / financial /
 health data, money movement, auth/identity, or legal-compliance scope raises `B` to **at least `B2`**
@@ -316,57 +340,87 @@ broke first."
 
 ---
 
-### F6 · Build & change scalability — cost of a change stays flat as the repo grows
+### F6 · Build & change scalability — cost of a change grows with the change, not the repository
 
-**Outcome.** The time and blast radius of building, testing, and changing the system **do not grow
-proportionally with the codebase**. Work is scoped to what a change actually affects; module
-boundaries are real enough that the affected set is _computable_ rather than guessed.
+**Outcome.** The time, CI cost and blast radius of building, testing and changing the system grow
+with the CHANGE, not with the repository. Work is scoped to what a change actually affects; module
+boundaries are real enough that the affected set is _computable_ rather than guessed; the stages that
+cannot be scoped are named and bounded.
 
 **Why:** every project is fast to build on day one. The foundation decision that matters is whether
 the tenth module costs the same as the second. Once a full build is slow enough to be annoying,
 engineers stop running it locally, feedback moves to CI, cycle time collapses, and the fix is
 expensive because the boundaries needed to scope work were never drawn.
 
-**Proof:**
+**Profile for F6.** Read `R` from the LOGICAL module count now and at the plan horizon (from the
+domain/architecture map), the team count and MEASURED stage times. Record the current packaging
+(packages, workspaces, deployables) as an observation; it is the decision under review, so it never
+grades itself and never justifies `N/A` (§2).
 
-- **The affected set is computable**: given a change, the system can determine which modules /
-  sub-domains must be rebuilt and retested — because dependencies between modules are explicit and
-  declared, not implicit through a shared everything-bucket.
-- **Incrementality and caching are real and measured**: an unchanged module is not rebuilt; a
-  no-op build is fast. Claimed caching that never hits is a common and invisible failure.
-- **Boundaries are enforced mechanically**, not by convention: an import that violates the intended
-  dependency direction fails a check rather than surviving review. Without enforcement, boundaries
-  decay silently and the affected set becomes "everything".
-- **A declared architecture style exists and is followed** — modular monolith, clean/hexagonal,
-  layered, service-oriented, whatever the project has chosen — and the choice is written down where
-  the next engineer will find it. The style matters less than the fact that one is declared and
-  enforced; an undeclared style is indistinguishable from no style after two years.
-- **Technical implementation is hidden behind abstraction** so a technology can be replaced without
-  touching business logic. Depth for this — leaked implementation types, shallow modules, change
-  amplification, the edit-site test — is owned by `SYNC:complexity-prevention`; this gate checks only
-  that the _structure_ supports it.
-- **Feedback stays fast**: the inner loop (the check a developer runs before pushing) is scoped and
-  quick; the exhaustive run belongs in CI. If the only available check is the slow exhaustive one,
-  that is the finding.
+**Checks (BC-1..BC-7).** Judge each as warranted; satisfy it with the stack's existing tools, and
+research, present and record a new one per §7.
 
-**Warranted at:** `R1+` for declared boundaries and a declared style; `R2+` for computable affected
-sets, enforced boundary checks, and measured incrementality; `R3` additionally for build-graph-level
-scoping across the estate.
+- **BC-1 Measure first.** Per-stage wall time of the inner-loop check and of the CI critical path,
+  warm and cold, with the hot spot named and a budget recorded. Restructure only a measured hot spot
+  over budget. _Proof:_ the recorded numbers, the command that produced them and the budget.
+- **BC-2 Units follow modules.** A **declared** architecture style, written where the next engineer
+  finds it; each logical module maps to a build unit the project's build tool can select, or the gap
+  is recorded with a measured trigger; boundaries are enforced **mechanically** (an import against the
+  intended direction fails a check), so the affected set does not decay into "everything"; technical
+  implementation sits behind abstraction so a technology swaps without touching business logic (depth:
+  `SYNC:complexity-prevention`). _Proof:_ the module→unit map and the enforcing check.
+- **BC-3 Affected scope.** Lint, type and unit checks run per affected unit plus its dependents,
+  computed from declared dependencies: by graph (workspace task runner, build tool with a dependency
+  graph, solution/project filters, workspace modules, graph-based test selection) or by declared path
+  rules — whichever the stack uses. Caching is real and **measured**: an unchanged unit is not rebuilt,
+  a no-op build is fast, and the hit rate is observed, not assumed. Shared roots (lockfile, toolchain,
+  CI definition, shared config) escalate to the full run, and so does a selection too broad to save
+  time. An empty computed selection exits cleanly and is reported SKIPPED, naming what it skipped —
+  never green evidence. The selection is advisory: only the full run is merge and default-branch evidence.
+- **BC-4 Whole-app stages named.** Stages that cannot be scoped — a single deployable's build,
+  integration against a shared database, E2E, migrations — are listed with their measured cost and
+  their bound (path filters, sharding, cache, schedule), and are never presented as affected-scoped.
+  Some stacks cannot partially build one deployable: an affected build or deploy needs separate
+  deployables, while affected lint/type/unit needs build units or graph-based test selection.
+- **BC-5 Shared generated artifacts.** A generated types/schema/client file or a single migration
+  chain that spans modules is owned per module, or recorded as an accepted coupling with the trigger
+  that splits it.
+- **BC-6 Aggregate gates reconciled.** A coverage threshold, zero-match rule or id-tagging rule the
+  project declares holds per unit on affected runs and in aggregate on the full run, and the full run
+  stays the merge evidence. This reconciles a gate the project already has; it does not make line
+  coverage a gate (F4).
+- **BC-7 Cost and parity.** CI minutes, including runner-OS multipliers, compared with the allowance;
+  a local-first entry point runs the same scoped command CI runs (F7), and the inner loop stays scoped
+  and quick while the exhaustive run belongs in CI. If the only available check is the slow
+  exhaustive one, that is the finding.
+
+**Warranted at:** `R0` — BC-1 as one measured warm run with its budget, plus BC-7 parity; the rest `N/A-by-profile`
+citing that number. `R1` — BC-1; BC-2 as a declared style plus the module→unit map or its trigger;
+BC-4; BC-5; BC-6 when the project declares an aggregate gate; BC-7. `R2+` — all seven, including a
+computable affected set, measured caching, enforced boundary checks and scoped pipelines. `R3` —
+additionally build-graph-level scoping across the estate.
+
+**Revisit triggers.** Record at least one with every `N/A` or deferred check: a measured stage time
+crossing the recorded budget, logical modules outgrowing build units by the recorded ratio, or CI
+minutes nearing the allowance.
 
 **Anti-over-engineering guard:** a single-module `R0` project does not need affected-set computation,
-a build graph, or module-boundary enforcement — recommending them is `OVER-ENGINEERED`. Conversely,
-splitting a small system into many modules to look modular creates a distributed monolith: coupling
-survives the split while the build cost doubles. The trigger is real module count and real team
-count, never aesthetics.
+a build graph, or module-boundary enforcement — recommending them is `OVER-ENGINEERED`. Do not demand
+workspace packages, a task runner, a remote cache or split pipelines while measured stage times sit
+inside the recorded budget; `N/A-by-profile` then cites the measurement and the trigger that reopens
+it. Conversely, splitting a small system into many modules to look modular creates a distributed
+monolith: coupling survives the split while the build cost doubles. The trigger is real module count,
+real team count and measured time, never aesthetics.
 
 **Scope boundary.** `architecture --mode=scalability` already SCORES this: gate **G2 Build & CI
-Scalability** ("incremental/affected-only/caching strategy exists or a clear N/A rationale is
-documented") and gate **G4 Boundary Enforcement** ("dependency direction and module boundaries are
-explicit and enforceable"). Where that review has run, **cite its verdict rather than re-scoring** —
-this dimension only confirms the question was examined and is not silently absent.
+Scalability** (BC-1..BC-7 present, or `N/A` citing a measured stage time within the recorded budget
+plus its revisit trigger) and gate **G4 Boundary Enforcement** ("dependency direction and module
+boundaries are explicit and enforceable"). Where that review has run, **cite its verdict rather than
+re-scoring** — this dimension only confirms the question was examined and is not silently absent.
 
 **Depth owner:** `architecture --mode=scalability` (G2/G4 — build/CI scalability, module isolation,
-distributed-monolith risk), `architecture --mode=review` (diff-level boundary drift),
+distributed-monolith risk), `architecture --mode=review` (diff-level boundary drift and build-scope
+drift), `harness-setup` (affected command and build-scalability fitness),
 `SYNC:complexity-prevention` (cost of change in the code itself).
 
 ---
@@ -436,19 +490,19 @@ feedback control design), `security-audit` (dependency/supply-chain and secret d
 | F3 Environment-portable tests     |    ◐     |    ✓     |    ✓     |    ✓     |
 | F4 Test-strength proof            |    ◐     |    ✓     |    ✓     |    ✓     |
 | F5 Performance & scale-under-data |    ◐     |    ✓     |    ✓     |    ✓     |
-| F6 Build & change scalability     |    ·     |    ◐     |    ✓     |    ✓     |
+| F6 Build & change scalability     |    ◐     |    ◐     |    ✓     |    ✓     |
 | F7 Mechanical quality harness     |    ◐     |    ✓     |    ✓     |    ✓     |
 
 `◐` means the applicable scope depends on project evidence, as described in that dimension's
 _Anti-over-engineering guard_. For F2, a second execution mode is warranted only when the project
 supports or requires it; a single reproducible mode may make the comparison `N/A-by-profile` at any
 scale. For other dimensions, reduced checks may be appropriate at `T0/B0/R0` (for example F4 = proof
-for top invariants; F5 = one documented volume check; F7 = the relevant formatter/lint/type/test
-checks). Read the guard and runtime profile, not just the tick.
+for top invariants; F5 = one documented volume check; F6 = one measured warm run plus local/CI
+parity; F7 = the relevant formatter/lint/type/test checks). Read the guard and runtime profile, not just the tick.
 
 **The matrix reads on the highest applicable axis as a starting point.** A `T0` system handling
-regulated data is `B2` and takes the `B2` column. Repo shape drives F6; scale and criticality drive
-the other baseline tiers. Runtime, deployment, and platform evidence may change applicability; record
+regulated data is `B2` and takes the `B2` column. Repo shape (from logical modules) and measured stage
+times drive F6; scale and criticality drive the other baseline tiers. Runtime, deployment, and platform evidence may change applicability; record
 the reason rather than forcing a tool or mode from the matrix.
 
 ---
@@ -473,8 +527,9 @@ cheaper:
    warrants it. Parameterize the suite by target when that fits the existing harness.
 6. **Measure before optimizing (F5).** Seed a realistic volume, get one honest number and one budget.
    A single asserted budget beats an unread dashboard.
-7. **Draw the boundaries (F6).** Declare the style, then enforce the dependency direction
-   mechanically; computable affected sets follow from enforced boundaries, not before them.
+7. **Measure, then draw the boundaries (F6).** Record build/test stage times and name the hot spot;
+   declare the style, then enforce the dependency direction mechanically; computable affected sets
+   follow from enforced boundaries, not before them.
 
 Sequence deviations are fine when evidence justifies them — say why. What is not fine is a list of
 seven gaps with no first step.

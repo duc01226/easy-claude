@@ -2384,6 +2384,49 @@ module.exports = {
             }
         },
         {
+            name: '[content-presence] TC-CP-021 the build/CI scalability bar is measured, affected-only and never excused by the current layout',
+            // Business Intent / Invariant Guarded: every architecture review, architecture plan and greenfield init
+            // judges whether build, test and CI cost grows with the change rather than the repository. F6 reads the
+            // repo-shape tier from logical modules (the package layout under review can never justify its own N/A),
+            // demands measured stage times, names whole-app stages, owns shared generated artifacts, reconciles
+            // declared aggregate gates with affected runs and counts CI cost; an empty computed selection passes while
+            // an explicit zero-match filter fails. Each phrase is the only carrier of one obligation.
+            fn: () => {
+                const protocol = tag => readFile(path.join(SKILLS_DIR, 'shared', 'protocols', `${tag}.md`));
+                const efg = protocol('engineering-foundation-gate');
+                const catalog = readFile(path.resolve(PROJECT_DIR, '.claude', 'docs', 'engineering-foundation-catalog.md'));
+                const reviewMode = readFile(path.join(SKILLS_DIR, 'architecture', 'references', 'mode-review.md'));
+                const rules = [
+                    ['engineering-foundation-gate', efg, /current package\/deployable layout is the decision under review, never `N\/A` evidence/],
+                    // The profile-scaled half: the smallest projects owe one warm run, and nobody demands build machinery within budget.
+                    ['engineering-foundation-gate', efg, /`R0` = BC-1 \(one warm run\), BC-7; `R1` = BC-1\/2\/4\/5\/7, BC-6 if declared; `R2\+` = all/],
+                    ['engineering-foundation-gate', efg, /Do NOT demand packages, task runners, remote cache or split pipelines within a measured budget\./],
+                    ['engineering-foundation-gate', efg, /BC-1 Measure first/],
+                    ['engineering-foundation-gate', efg, /an empty computed selection is SKIPPED, never green; only the full run is merge evidence/],
+                    ['engineering-foundation-gate', efg, /BC-4 Whole-app stages named/],
+                    ['engineering-foundation-gate', efg, /BC-5 Shared generated artifacts/],
+                    ['engineering-foundation-gate', efg, /BC-6 Aggregate gates reconciled/],
+                    ['engineering-foundation-gate', efg, /runner-OS multipliers vs the allowance/],
+                    ['engineering-foundation-catalog', catalog, /Never read the `R` tier from the layout under judgement/],
+                    ['engineering-foundation-catalog', catalog, /\*\*Revisit triggers\.\*\*/],
+                    [
+                        'core-engineering-principles',
+                        protocol('core-engineering-principles'),
+                        /build, test and CI work grows with the change, not with the repository/
+                    ],
+                    ['plan-quality', protocol('plan-quality'), /adds a module, package, deployable, shared generated artifact, migration chain or CI job/],
+                    [
+                        'test-architecture-execution-contract',
+                        protocol('test-architecture-execution-contract'),
+                        /an explicit filter that is invalid or matches nothing fails, while a legitimately empty computed affected selection is reported SKIPPED, naming what it skipped, never as green evidence/
+                    ],
+                    ['architecture mode-review', reviewMode, /\*\*Build-scope drift \(F6\)\.\*\*/]
+                ];
+                const missing = rules.filter(([, text, re]) => !re.test(text)).map(([owner, , re]) => `${owner}: ${re}`);
+                assertTrue(missing.length === 0, `build/CI scalability bar lost:\n  ${missing.join('\n  ')}`);
+            }
+        },
+        {
             name: '[content-presence] TC-CP-019 every prototype ships a design-system page and shared controls are built once',
             // Business Intent / Invariant Guarded: a generated mock-up or prototype comes with a design-system
             // page (tokens + a catalog of reusable controls, each with its owner), the prototype defines each

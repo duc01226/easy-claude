@@ -230,7 +230,7 @@ Before the first test command, record the applicable tier matrix and required re
 | E2E | `APPLICABLE` + `{file:line}` or `N/A — {evidence}` | `{configured command or N/A + evidence}` | `{configured command or N/A + evidence}` | `{documented non-zero behavior}` | `{unique identity; reference/additive mode}` | `{worker/root strategy}` |
 
 - Use only commands from `docs/project-config.json`, named reference docs, or existing runner scripts. Missing focused/partial or simple Windows/macOS/Linux command → record `N/A — <evidence>`; do not invent filters, browser stacks, or `.cmd`/`.ps1`/`.sh` wrappers.
-- For applicable focused/partial scope, capture exact Passed/Failed/Skipped counts and exit status. Invalid or zero-match selection must fail or follow documented non-green behavior; zero matches never pass.
+- For applicable focused/partial scope, capture exact Passed/Failed/Skipped counts and exit status. An invalid or zero-match explicit selection must fail or follow documented non-green behavior; zero matches never pass. A legitimately empty computed affected selection is reported SKIPPED, naming what it skipped, never as green evidence; only the full run is merge evidence.
 - Record unique run identity/data suffix, supported public-path setup, realistic data, idempotent count-before-create setup, keyed/additive persistence, and parallel-worker isolation. These supplement—not replace—the environment and real-DI/use-case gates.
 
 ---
