@@ -281,12 +281,12 @@
       "group": "design",
       "summary": "Core quality gate: easy to change, easy to scale, easy to maintain, judged by future change cost",
       "when": "planning, implementing or reviewing any change",
-      "chars": 4036,
+      "chars": 4117,
       "file": ".claude/skills/shared/protocols/core-engineering-principles.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/core-engineering-principles.md",
-          "chars": 4036
+          "chars": 4117
         }
       ]
     },
@@ -491,12 +491,12 @@
       "group": "design",
       "summary": "Seven engineering-foundation dimensions judged by project profile",
       "when": "creating or reviewing how a project is built, run, tested or checked",
-      "chars": 8250,
+      "chars": 8968,
       "file": ".claude/skills/shared/protocols/engineering-foundation-gate.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/engineering-foundation-gate.md",
-          "chars": 8250
+          "chars": 8968
         }
       ]
     },
@@ -841,12 +841,12 @@
       "group": "workflow-task",
       "summary": "Plans decide direction, affected owners, risks and final proof without pre-writing implementation",
       "when": "writing or reviewing a plan",
-      "chars": 4691,
+      "chars": 4784,
       "file": ".claude/skills/shared/protocols/plan-quality.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/plan-quality.md",
-          "chars": 4691
+          "chars": 4784
         }
       ]
     },
@@ -1349,12 +1349,12 @@
       "group": "spec-test",
       "summary": "Testability as an architecture condition: required test types and execution modes",
       "when": "setting up or reviewing a test architecture",
-      "chars": 6126,
+      "chars": 6274,
       "file": ".claude/skills/shared/protocols/test-architecture-execution-contract.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/test-architecture-execution-contract.md",
-          "chars": 6126
+          "chars": 6274
         }
       ]
     },

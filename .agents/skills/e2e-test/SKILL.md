@@ -142,7 +142,7 @@ When E2E is applicable, add the following fields to the test plan/report before 
 | ---------------------- | ----------------- | ---------------- | ------------ | ------------------------ | ------------------- | ------------------------ | ------------------ | --------------------------- |
 | `{file:line}` | `{owner}` / `{path}` | `{configured stack}` | `{copy-ready command}` | `{copy-ready command or N/A + evidence}` | `{documented non-zero behavior}` | `{unique identity; reference/additive mode}` | `{worker/root strategy}` | `{entry point or N/A + evidence}` |
 
-- Use only configured browser/service commands. A focused selection must be copy-ready and invalid or zero-match selections must fail or follow the runner's documented non-green behavior; never report zero matches as a passing scope.
+- Use only configured browser/service commands. A focused selection must be copy-ready and invalid or zero-match explicit selections must fail or follow the runner's documented non-green behavior; never report zero matches as a passing scope. A legitimately empty computed affected selection is reported SKIPPED, naming what it skipped, never as green evidence; only the full run is merge evidence.
 - Generate unique self-sufficient data through supported public paths. Reference data is count-before-create, idempotent, and restart-safe; intentional persistent data is keyed and additive. Preserve realistic actor pacing and arrange barriers, and isolate mutable data across parallel workers.
 - Capture exact Passed/Failed/Skipped counts and exit status for each applicable focused/full scope; one fresh green full run converges unless the project configures more (`e2eTesting.execution.convergence.consecutiveGreen`). Two consecutive runs are the integration-test rule, not this one. If no runnable E2E stack exists, report the evidence-backed N/A instead of substituting generic browser tooling.
 
@@ -458,7 +458,7 @@ Standalone (no parent workflow): after writing or updating E2E tests, suggest `$
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple Windows/macOS/Linux entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
+**IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, explicit-filter zero-match failures, owner/root/data, CI/simple Windows/macOS/Linux entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
 **IMPORTANT MUST ATTENTION Goal:** Produce or select maintainable, spec-traceable E2E tests from the user prompt/current context, recordings, canonical artifacts, or code changes with the project's configured framework (Playwright, Selenium, Cypress, or another). Resolve owner-qualified case identity from the configured profile, map it to the real test assertion and result, and use TC/§8 only when no native `specArtifacts` profile is declared. Then exercise the declared scope like a human QC tester and protect business behavior so cosmetic UI changes do not break tests and intended behavior breaks do.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**

@@ -28,6 +28,8 @@
  *   TC-AMM-010 — no live source names the removed skills (allow-list: the "formerly" lines and the
  *                report/output file names).
  *   TC-AMM-011 — the description keeps the step-skill form and advertises every mode.
+ *   TC-AMM-012 — the scorecard's Build & CI area, G2 bar and cadence, the scalability G2 row and the
+ *                design scorecard input carry the measured, layout-independent F6 bar.
  *
  * Portability: TC-AMM-008's gate row runs on in-memory fixture registries. Every other row asserts this
  * framework repository's own skills and registry and is skipped in any other project (framework-repo
@@ -453,6 +455,45 @@ const tests = [
             // Discovery names every task intent; implementation detail belongs to its mode reference.
             for (const intent of [/architecture design|solution architecture/, /compliance review/, /scalability grading|scale grade/, /whole-project audit/]) {
                 assert.match(description, intent, `description retains routing intent ${intent}`);
+            }
+        }
+    },
+    {
+        name: 'TC-AMM-012 the Build & CI scalability grade needs measured stage times and never accepts N/A from the current layout',
+        skip: SKIP,
+        fn: () => {
+            // Business Intent / Invariant Guarded: G2 used to pass on an N/A read from the package layout under review.
+            // The grade now needs a measured stage time within budget plus a revisit trigger, and the per-diff
+            // review judges a change that grows the build surface.
+            const scorecard = read(SKILLS, 'architecture', 'references', 'scorecard.md');
+            const row = prefix => scorecard.split('\n').find(line => line.startsWith(prefix)) || '';
+            const g2 = row('| G2 Build & CI Scalability |');
+            assert.match(g2, /measured stage time within the recorded budget plus its revisit trigger/);
+            assert.match(g2, /current package\/deployable layout alone never justifies `N\/A`/);
+            const area = row('| 1 | Build & CI Scalability |');
+            assert.match(area, /`N\/A` justified only by the current package\/deployable layout/);
+            assert.match(area, /whole-app stages named and bounded, aggregate gates reconciled, CI cost within allowance/);
+            assert.match(
+                row('| Build & CI Scalability | `architecture --mode=scalability` |'),
+                /shared generated artifact, migration chain, CI job, or whole-repo step \(build-scope drift\)/
+            );
+            const gate =
+                mode('scalability')
+                    .split('\n')
+                    .find(line => line.startsWith('| G2 Build & CI Scalability |')) || '';
+            assert.match(gate, /The current package\/deployable layout alone never justifies `N\/A`/);
+            const input =
+                mode('design')
+                    .split('\n')
+                    .find(line => line.startsWith('| Build & CI scalability |')) || '';
+            for (const decision of [
+                '**budget**',
+                '**module→build-unit map**',
+                '**whole-app stages**',
+                '**shared generated artifact**',
+                '**revisit trigger**'
+            ]) {
+                assert.ok(input.includes(decision), `design scorecard input records ${decision}`);
             }
         }
     }

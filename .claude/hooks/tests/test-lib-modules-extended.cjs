@@ -675,9 +675,11 @@ logSection('describeSchema');
     // `uiReview.complexityBudget` action-density keys (one line each, measured 707 -> 711), then to 790
     // for the optional `dependencySecurity` section (scanner item shape, accepted-entry, per-severity
     // deadline, alert-owner and scheduled-scan fields, each with its required one-line note: 33 lines,
-    // measured 730 -> 763). This remains a runaway-bloat guard, not a suppression of schema output.
+    // measured 730 -> 763), then to 820 for the optional `featureMap` section (section + `sources` and
+    // `strict`, each with its one-line note, measured 784 -> 791). This remains a runaway-bloat guard,
+    // not a suppression of schema output.
     const lineCount = output.split('\n').length;
-    logResult('output under 790 lines', lineCount < 790, `${lineCount} lines`);
+    logResult('output under 820 lines', lineCount < 820, `${lineCount} lines`);
 }
 
 // ════════════════════════════════════════════════════════════════════════════

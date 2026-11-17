@@ -151,7 +151,7 @@ Owning depth: **production-readiness-review**, **`architecture --mode=scalabilit
 | Infrastructure as Code   | Any non-trivial infra                     | T1       | IaC for a single hand-managed box may not pay off yet           |
 | Terraform                | Multi-resource cloud infra                | T1       | — (an IaC choice)                                               |
 | Helm Charts              | Kubernetes app packaging                  | T2       | Only relevant once on K8s                                       |
-| Build Caching            | Slow/large CI builds                      | T1       | —                                                               |
+| Build Caching            | Measured build/CI time over budget        | T0       | Key to measured build time, not users; hit rate measured        |
 | Dependency Hell (manage) | Many transitive deps                      | T0       | Lockfiles + renovate; don't hand-pin everything                 |
 | Semantic Versioning      | Published libraries/APIs                  | T0       | —                                                               |
 | API Versioning           | Evolving public/consumed APIs             | T1       | Versioning an internal-only unstable API early adds ceremony    |
