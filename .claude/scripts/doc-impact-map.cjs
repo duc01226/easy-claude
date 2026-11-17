@@ -54,6 +54,7 @@ const referenceRegistry = requireQuiet('../hooks/lib/project-reference-registry.
 const loader = requireQuiet('../hooks/lib/project-config-loader.cjs');
 const pathUtils = requireQuiet('../hooks/lib/ck-path-utils.cjs');
 const fileConventions = requireQuiet('../hooks/lib/file-conventions.cjs');
+const featureMapLib = requireQuiet('./lib/feature-map.cjs');
 
 /**
  * Segment-boundary root match. Shared normalizer when available; the inline fallback
@@ -243,6 +244,40 @@ function collectChangedFiles(baseRef) {
     if (untrackedCount > 0) source += ` + ${untrackedCount} untracked`;
 
     return { rows, source };
+}
+
+/**
+ * Every change a pull request from this checkout would carry: the branch since its merge base with
+ * `baseRef`, staged and unstaged edits, and untracked files — one merge-base lookup, one diff and
+ * one listing, no network. Renames are split into a deletion and an addition, so a rule that
+ * matches only the old path (a moved page) still fires. Paths are relative to the project root
+ * even when it is a subfolder of the git work tree (`--relative`), and come NUL-separated (`-z`),
+ * so a name git would quote (non-ASCII, tabs) is matched as written. Returns null rows when git
+ * cannot answer (no work tree, unknown base): a caller that gates on the answer must fail closed.
+ */
+function collectBranchChanges(baseRef) {
+    const mergeBase = (tryGit(['merge-base', baseRef, 'HEAD']) || '').trim();
+    if (!mergeBase) return { rows: null, source: `no merge base with ${baseRef}`, mergeBase: null };
+    const diff = tryGit(['diff', '--name-status', '--no-renames', '--relative', '-z', mergeBase]);
+    const untracked = tryGit(['ls-files', '--others', '--exclude-standard', '-z']);
+    if (diff === null || untracked === null) return { rows: null, source: `git could not list the changes since ${baseRef}`, mergeBase };
+    // `-z --name-status` without renames: status NUL path NUL, repeated.
+    const fields = diff.split('\0');
+    const rows = [];
+    for (let index = 0; index + 1 < fields.length; index += 2) {
+        const status = fields[index].trim().charAt(0).toUpperCase();
+        const file = toRepoRel(fields[index + 1]);
+        if (status && file) rows.push({ status, file });
+    }
+    const seen = new Set(rows.map(row => row.file));
+    for (const line of untracked.split('\0')) {
+        const file = toRepoRel(line);
+        if (file && !seen.has(file)) {
+            seen.add(file);
+            rows.push({ status: 'A', file });
+        }
+    }
+    return { rows, source: `git diff ${baseRef}...working tree + untracked`, mergeBase };
 }
 
 // ---------------------------------------------------------------------------
@@ -525,6 +560,22 @@ function buildRules(config) {
         configSections: [],
         checks: ['claims', 'coverage'],
         match: rel => !!businessSpecRoot && isPathWithinRoot(rel, businessSpecRoot)
+    });
+
+    // R9c — feature map, source side (opt-in `featureMap.sources`): each matching file maps to one
+    // entry, so adding, moving or removing one can leave a file without an entry or an entry whose
+    // Source is gone. A separate rule that never suppresses the fallback: a page change still
+    // reaches every doc it would reach without this option.
+    const featureMapSources = featureMapLib ? featureMapLib.configuredSources(config) : null;
+    const isFeatureMapSource = featureMapSources ? featureMapLib.sourceMatcher(featureMapSources.patterns) : () => false;
+    add({
+        id: 'feature-map-sources',
+        reason: 'a featureMap.sources file changed — a new file can lack an entry, and a moved or removed one can leave an entry whose Source is gone',
+        docs: [builtinRefDoc('feature-map-reference.md')],
+        configSections: [],
+        checks: ['claims', 'coverage'],
+        suppressesFallback: false,
+        match: rel => isFeatureMapSource(rel)
     });
 
     // R10 — domain entities (heuristic: no config field declares entity roots).
@@ -1180,6 +1231,7 @@ module.exports = {
     checkClaims,
     defaultClaimTargets,
     collectChangedFiles,
+    collectBranchChanges,
     toRepoRel,
     probePath,
     SCAN_SKILL_MAP

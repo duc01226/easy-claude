@@ -197,7 +197,7 @@ sections those changes can make stale. Backs the impact-scoped context checks in
 so a post-change freshness check costs a few targeted verifications instead of a full `/scan-all`.
 
 Routing is derived from `docs/project-config.json` (`contextGroups`, `modules`, `testing`, `e2eTesting`,
-`styling`, `designSystem`, `specRoots`) plus change-class rules for manifests, infra/CI, the docs tree, and
+`styling`, `designSystem`, `specRoots`, `featureMap.sources`) plus change-class rules for manifests, infra/CI, the docs tree, and
 the AI-harness surface — no project paths are hardcoded. It is fail-open: bad config, bad regex, or a git
 failure degrades to "route it anyway / warn", never to a false "fresh".
 
@@ -250,6 +250,24 @@ its own line only — never doc-wide — so later rot in the same file still fai
 
 Tests: `node .claude/hooks/tests/run-all-tests.cjs --filter=doc-impact-map`
 `node .claude/hooks/tests/run-all-tests.cjs --filter=reference-doc-freshness`
+
+## docs-staleness-check.cjs
+
+The pull-request docs gate built on `doc-impact-map.cjs`: it maps a pull request's changes (the branch since
+its merge base with the target, plus staged, unstaged and untracked files) to the docs they can make stale,
+and exits `1` for each impacted doc the change neither updates nor had recorded fresh by
+`/docs-manager --mode=update` for that exact change. Heuristic routes and docs that do not exist are not
+checked. One merge-base lookup, one diff and one listing; it never fetches.
+
+```bash
+node .claude/scripts/docs-staleness-check.cjs --base=origin/main            # PASS, or FAIL with one fix per doc
+node .claude/scripts/docs-staleness-check.cjs record --fresh=<doc>          # docs-manager: verified, no edit needed
+node .claude/scripts/docs-staleness-check.cjs --bypass-reason="<reason>"    # only when the user explicitly asks
+```
+
+Records live in `tmp/docs-staleness/record.json` <!-- path-role: user-local --> and bind to the content of the changed files, so any later
+edit voids them. An edit to a feature-map area doc counts as an edit to the map. Exit `2` means no merge base, a git error or an invalid project config. Tests:
+`node --test .claude/scripts/tests/docs-staleness-check.test.cjs`.
 
 ## Context delivery tools
 

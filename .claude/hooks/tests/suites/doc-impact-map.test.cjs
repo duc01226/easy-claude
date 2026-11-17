@@ -222,6 +222,47 @@ const tests = [
         }
     },
     {
+        // TC-PCI-090: with featureMap.sources, adding, moving or removing a source file can leave a
+        // page with no entry or an entry whose Source is gone, so the selected map is re-audited.
+        name: '[doc-impact-map] TC-PCI-090 a configured feature-map source change routes the selected map',
+        fn: () => {
+            const selected = { ...MINIMAL_CONFIG, referenceDocs: [{ filename: 'feature-map-reference.md', purpose: 'Feature map' }] };
+            const config = { ...selected, featureMap: { sources: ['app/**/page.tsx'] } };
+            const routed = (files, cfg) => mapWith(files, cfg).docs.find(item => item.doc.endsWith('/feature-map-reference.md'));
+            for (const row of [
+                { status: 'A', file: 'app/admin/users/page.tsx' },
+                { status: 'D', file: 'app/admin/old/page.tsx' },
+                { status: 'M', file: 'app\\admin\\users\\page.tsx' }
+            ]) {
+                const doc = routed([row], config);
+                assertTrue(!!doc, `${row.status} ${row.file} must route the selected feature map`);
+                assertEqual(doc.scanTarget, 'scan --target=feature-map');
+                assertTrue(doc.rules.includes('feature-map-sources'), 'the source rule owns the route');
+            }
+            assertTrue(!routed(['app/admin/users/table.tsx'], config), 'a file outside the globs does not route the map');
+            assertTrue(!routed(['app/admin/users/page.tsx'], selected), 'without featureMap.sources a page change does not route the map');
+            assertTrue(
+                !routed(['app/admin/users/page.tsx'], { ...config, referenceDocs: [] }),
+                'an unselected map is never routed, even for a configured source'
+            );
+            // The source rule never shrinks what a page change already reaches: the code-conventions
+            // fallback still fires for a page no other rule owns.
+            const conventions = {
+                ...config,
+                referenceDocs: [...config.referenceDocs, { filename: 'code-review-rules.md', purpose: 'Review rules' }]
+            };
+            const docs = docNames(mapWith(['app/admin/users/page.tsx'], conventions));
+            assertTrue(
+                docs.some(doc => doc.endsWith('/code-review-rules.md')),
+                `the conventions fallback must still apply; got ${docs.join(', ')}`
+            );
+            assertTrue(
+                docs.some(doc => doc.endsWith('/feature-map-reference.md')),
+                `got ${docs.join(', ')}`
+            );
+        }
+    },
+    {
         name: '[doc-impact-map] D1 harness edits route to the glob-derived inventory docs',
         fn: () => {
             const result = mapWith(['.claude/skills/example-skill/SKILL.md'], MINIMAL_CONFIG);

@@ -9,7 +9,17 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
-const { auditFeatureMap, parseSpec } = require('../lib/feature-map.cjs');
+const {
+    auditFeatureMap,
+    parseSpec,
+    parseFeatureMap,
+    normalizeSourcePath,
+    configuredSources,
+    sourceMatcher,
+    listSourceFiles,
+    exactPathExists
+} = require('../lib/feature-map.cjs');
+const { validateConfig } = require('../../hooks/lib/project-config-schema.cjs');
 
 const SCRIPT = path.resolve(__dirname, '..', 'lib', 'feature-map.cjs');
 const SPEC_PATH = 'docs/specs/Profile/README.Profile.md';
@@ -270,4 +280,351 @@ test('TC-PCI-074 (a): a truncated paste of a long flow step is still a copy', ()
     assert.deepEqual(kinds(auditFeatureMap({ mapText: map(pasted), specs: [{ path: TABLE_PATH, text: longFlow }] })), ['copied-user-path']);
     const invalid = auditFeatureMap({ mapText: map(entry('token=abc', ['- Surface: x'])), specs: [] });
     assert.equal(invalid.entries[0].id, null, 'an invalid heading is never echoed in the entry list');
+});
+
+// Source audit (opt-in featureMap.sources): every matching source file maps to exactly one entry.
+const INDEX_PATH = 'docs/project-reference/feature-map-reference.md';
+const ADMIN_DOC = 'docs/project-reference/feature-map/admin.md';
+const BILLING_DOC = 'docs/project-reference/feature-map/billing.md';
+const USERS_PAGE = 'app/admin/users/page.tsx';
+const ROLES_PAGE = 'app/admin/roles/page.tsx';
+const INVOICES_PAGE = 'app/billing/invoices/page.tsx';
+
+function sourced(id, source, extra = []) {
+    return entry(id, ['- Surface: `web`', '- Entry: `/x`', '- End state: the page renders', `- Source: \`${source}\``, ...extra]);
+}
+function areaDocs({ admin = [], billing = [] } = {}) {
+    return [
+        { path: INDEX_PATH, text: '# Feature Map\n\nRead feature-map/admin.md when working on admin pages.\n' },
+        { path: ADMIN_DOC, text: `# Admin\n\n${admin.join('\n\n')}\n` },
+        { path: BILLING_DOC, text: `# Billing\n\n${billing.join('\n\n')}\n` }
+    ];
+}
+const sourceKinds = result => result.findings.filter(item => /source/.test(item.kind));
+
+test('TC-PCI-087: standalone source audit reports a source with no entry, a gone Source and a shared Source, each with its fix', () => {
+    const files = [USERS_PAGE, ROLES_PAGE, INVOICES_PAGE];
+    const clean = auditFeatureMap({
+        maps: areaDocs({ admin: [sourced('FM-001', USERS_PAGE), sourced('FM-002', ROLES_PAGE)], billing: [sourced('FM-003', INVOICES_PAGE)] }),
+        sources: { files }
+    });
+    assert.equal(clean.mode, 'standalone');
+    assert.deepEqual(clean.findings, [], 'one entry per source file is clean');
+
+    // A new page with no entry: a gap that names the doc already holding its neighbours.
+    const added = auditFeatureMap({
+        maps: areaDocs({ admin: [sourced('FM-001', USERS_PAGE)], billing: [sourced('FM-003', INVOICES_PAGE)] }),
+        sources: { files }
+    });
+    assert.deepEqual(kinds(added), ['missing-source-entry']);
+    const gap = added.findings[0];
+    assert.equal(gap.severity, 'gap');
+    assert.equal(gap.source, ROLES_PAGE);
+    assert.match(gap.detail, new RegExp(`Add an FM- entry in ${ADMIN_DOC.replace(/[/.]/g, '\\$&')}`), 'the fix names the area doc of the nearest sibling');
+    assert.match(gap.detail, /- Source: `app\/admin\/roles\/page\.tsx`/);
+
+    // A page removed or moved: its entry's Source no longer exists.
+    const moved = auditFeatureMap({
+        maps: areaDocs({ admin: [sourced('FM-001', USERS_PAGE), sourced('FM-1234', 'app/admin/old/page.tsx')], billing: [sourced('FM-003', INVOICES_PAGE)] }),
+        sources: { files: [USERS_PAGE, INVOICES_PAGE] }
+    });
+    assert.deepEqual(kinds(moved), ['stale-source']);
+    assert.equal(moved.findings[0].severity, 'error');
+    assert.equal(moved.findings[0].id, 'FM-1234');
+    assert.match(moved.findings[0].detail, /remove FM-1234/);
+
+    // Two entries for one page.
+    const shared = auditFeatureMap({
+        maps: areaDocs({
+            admin: [sourced('FM-001', USERS_PAGE), sourced('FM-002', ROLES_PAGE)],
+            billing: [sourced('FM-003', INVOICES_PAGE), sourced('FM-004', USERS_PAGE)]
+        }),
+        sources: { files }
+    });
+    assert.deepEqual(kinds(shared), ['duplicate-source']);
+    assert.equal(shared.findings[0].severity, 'error');
+    assert.match(
+        shared.findings[0].detail,
+        /FM-001 at docs\/project-reference\/feature-map\/admin\.md:\d+, FM-004 at docs\/project-reference\/feature-map\/billing\.md:\d+/
+    );
+    assert.match(shared.findings[0].detail, /Merge the two entries/);
+});
+
+test('TC-PCI-087: strict makes a source with no entry an error; the other rules stay errors', () => {
+    const result = auditFeatureMap({
+        maps: areaDocs({ admin: [sourced('FM-001', USERS_PAGE), sourced('FM-009', 'app/gone/page.tsx')] }),
+        sources: { files: [USERS_PAGE, INVOICES_PAGE], strict: true }
+    });
+    assert.deepEqual(
+        sourceKinds(result).map(item => `${item.kind}:${item.severity}`),
+        ['stale-source:error', 'missing-source-entry:error']
+    );
+    assert.match(
+        result.findings.find(item => item.kind === 'missing-source-entry').detail,
+        new RegExp(`in ${INDEX_PATH.replace(/[/.]/g, '\\$&')}`),
+        'with no sibling, the fix names the index'
+    );
+});
+
+test('TC-PCI-087: spec-linked mode applies the same three rules to US- and FM- entries', () => {
+    const story = entry('US-PRF-01', [
+        `- Spec: \`${SPEC_PATH}\``,
+        '- Surface: `web`',
+        '- Entry: `/account/profile`',
+        '- End state: the new display name shows in the page header',
+        '- Source: `app/account/profile/page.tsx`'
+    ]);
+    const specs = [{ path: SPEC_PATH, text: SPEC }];
+    const clean = auditFeatureMap({ mapText: map(story), specs, sources: { files: ['app/account/profile/page.tsx'] } });
+    assert.equal(clean.mode, 'spec-linked');
+    assert.deepEqual(clean.findings, []);
+
+    const drift = auditFeatureMap({
+        mapText: map(story, sourced('FM-010', 'app/account/profile/page.tsx'), sourced('FM-011', 'app/removed/page.tsx')),
+        specs,
+        sources: { files: ['app/account/profile/page.tsx', 'app/account/export/page.tsx'] }
+    });
+    assert.deepEqual(kinds(drift), ['duplicate-source', 'missing-source-entry', 'stale-source']);
+    const gap = drift.findings.find(item => item.kind === 'missing-source-entry');
+    assert.equal(gap.severity, 'gap');
+    assert.match(gap.detail, /its US- story id, or an FM- id when no story owns it/);
+});
+
+test('TC-PCI-088: with no sources configured the audit is unchanged', () => {
+    const maps = areaDocs({ admin: [sourced('FM-001', 'app/gone/page.tsx'), sourced('FM-002', 'app/gone/page.tsx')] });
+    const off = auditFeatureMap({ maps });
+    assert.deepEqual(off.findings, [], 'Source lines are not checked until featureMap.sources is set');
+    assert.deepEqual(auditFeatureMap({ maps, sources: null }), off);
+    for (const config of [
+        {},
+        { featureMap: {} },
+        { featureMap: { sources: [] } },
+        { featureMap: { sources: ['  '] } },
+        { featureMap: { sources: ['../x/**'] } }
+    ]) {
+        assert.equal(configuredSources(config), null, JSON.stringify(config));
+    }
+    assert.deepEqual(configuredSources({ featureMap: { sources: ['.\\app\\**\\page.tsx'], strict: true } }), { patterns: ['app/**/page.tsx'], strict: true });
+});
+
+test('TC-PCI-088: an entry is an FM- or US- heading anywhere in the index, and Source is a recognized field', () => {
+    const index = [
+        '# Feature Map',
+        '## Admin pages',
+        '### FM-001 · Users',
+        '- Source: `app/admin/users/page.tsx`',
+        '- **Surface:** `web`',
+        '## Upkeep',
+        '### Not an entry',
+        '<!--',
+        '### FM-999 · commented-out example',
+        '-->',
+        '## How to write an entry',
+        '```markdown',
+        '### FM-001 · Example in a fenced block',
+        '- Surface: `web`',
+        '```',
+        '~~~',
+        '### FM-998 · Example in a tilde fence',
+        '~~~'
+    ].join('\n');
+    const entries = parseFeatureMap(index);
+    assert.deepEqual(
+        entries.map(item => item.id),
+        ['FM-001'],
+        'a stable-id heading outside ## Entries is an entry; prose, comments and fenced examples are not'
+    );
+    assert.equal(entries[0].fields.source, '`app/admin/users/page.tsx`');
+    assert.equal(entries[0].fields.surface, '`web`');
+    assert.deepEqual(
+        auditFeatureMap({ mapText: index }).findings.filter(item => item.kind !== 'missing-field'),
+        [],
+        'a fenced example never duplicates a real entry'
+    );
+    const area = parseFeatureMap('# Area\n\n```\n### FM-500 · example\n```\n\n### FM-501 · Real\n', { area: true });
+    assert.deepEqual(
+        area.map(item => item.id),
+        ['FM-501'],
+        'an area doc ignores fenced headings too'
+    );
+    const example = parseFeatureMap(
+        [
+            '# Area',
+            '',
+            '### FM-601 · Real',
+            '- Source: `app/real/page.tsx`',
+            '',
+            '```markdown',
+            '### FM-602 · Example',
+            '- Source: `app/example/page.tsx`',
+            '```'
+        ].join('\n'),
+        { area: true }
+    );
+    assert.deepEqual(
+        example.map(item => item.id),
+        ['FM-601']
+    );
+    assert.equal(example[0].fields.source, '`app/real/page.tsx`', "a Source line inside a fenced example after an entry is not that entry's Source");
+});
+
+test('TC-PCI-089: a listing cut short is reported, never CLEAN, and three entries on one Source are named', () => {
+    const maps = areaDocs({ admin: [sourced('FM-001', USERS_PAGE)] });
+    const cut = auditFeatureMap({ maps, sources: { files: [USERS_PAGE], truncated: true } });
+    assert.deepEqual(
+        cut.findings.map(item => `${item.kind}:${item.severity}`),
+        ['sources-truncated:gap']
+    );
+    assert.match(cut.findings[0].detail, /Narrow featureMap\.sources/);
+    assert.equal(auditFeatureMap({ maps, sources: { files: [USERS_PAGE], truncated: true, strict: true } }).findings[0].severity, 'error');
+    const three = auditFeatureMap({
+        maps: areaDocs({ admin: [sourced('FM-001', USERS_PAGE), sourced('FM-002', USERS_PAGE), sourced('FM-003', USERS_PAGE)] }),
+        sources: { files: [USERS_PAGE] }
+    });
+    assert.deepEqual(kinds(three), ['duplicate-source']);
+    assert.match(three.findings[0].detail, /FM-001 at .*, FM-002 at .*, FM-003 at .*Merge the 3 entries into one\./);
+});
+
+test('TC-PCI-088: the project-config schema accepts featureMap and still accepts a config without it', () => {
+    // An existing project's config, written before featureMap existed.
+    const oldConfig = {
+        schemaVersion: 2,
+        project: { name: 'Fixture' },
+        referenceDocs: [{ filename: 'feature-map-reference.md', purpose: 'Feature map' }],
+        specRoots: { business: { path: 'docs/specs' } }
+    };
+    const old = validateConfig(oldConfig);
+    assert.equal(old.valid, true, old.errors.join('; '));
+    assert.ok(!old.warnings.some(item => /featureMap/.test(item)));
+
+    const withSources = validateConfig({ ...oldConfig, featureMap: { sources: ['app/**/page.tsx', 'src/commands/*.ts'], strict: true } });
+    assert.equal(withSources.valid, true, withSources.errors.join('; '));
+    assert.ok(!withSources.warnings.some(item => /featureMap/.test(item)));
+
+    const invalid = [
+        [{ sources: 'app/**/page.tsx' }, /featureMap\.sources: expected array/],
+        [{ sources: [42] }, /featureMap\.sources\[0\]: expected string/],
+        [{ sources: [''] }, /featureMap\.sources\[0\]: expected a non-empty glob/],
+        [{ sources: ['/abs/**/page.tsx'] }, /featureMap\.sources\[0\]: .* relative to the repository root/],
+        [{ sources: ['C:\\repo\\page.tsx'] }, /featureMap\.sources\[0\]: .* relative to the repository root/],
+        [{ sources: ['app/../x/*.tsx'] }, /no "\.\." segment/],
+        [{ sources: ['x'.repeat(301)] }, /longer than 300/],
+        [{ sources: Array.from({ length: 65 }, (_, index) => `a${index}/*.ts`) }, /at most 64 globs/],
+        [{ sources: ['app/**'], strict: 'yes' }, /featureMap\.strict: expected boolean/],
+        [{ source: ['app/**'] }, /featureMap\.source: unknown property/]
+    ];
+    for (const [featureMap, message] of invalid) {
+        const result = validateConfig({ ...oldConfig, featureMap });
+        assert.equal(result.valid, false, JSON.stringify(featureMap));
+        assert.ok(
+            result.errors.some(item => message.test(item)),
+            `${JSON.stringify(featureMap)} -> ${result.errors.join('; ')}`
+        );
+    }
+    const strictAlone = validateConfig({ ...oldConfig, featureMap: { strict: true } });
+    assert.equal(strictAlone.valid, true);
+    assert.ok(strictAlone.warnings.some(item => /featureMap\.strict: has no effect/.test(item)));
+});
+
+test('TC-PCI-089: Source paths compare as repository-relative POSIX, whatever separator or prefix was written', () => {
+    assert.equal(normalizeSourcePath('app\\admin\\users\\page.tsx'), USERS_PAGE);
+    assert.equal(normalizeSourcePath('.\\app\\admin\\users\\page.tsx'), USERS_PAGE);
+    assert.equal(normalizeSourcePath('./app//admin/users/page.tsx'), USERS_PAGE);
+    assert.equal(normalizeSourcePath('App/Admin/users/page.tsx'), 'App/Admin/users/page.tsx', 'case is kept: it names another path');
+
+    const windowsStyle = auditFeatureMap({
+        maps: areaDocs({ admin: [sourced('FM-001', 'app\\admin\\users\\page.tsx'), sourced('FM-002', './app/admin/users/page.tsx')] }),
+        sources: { files: ['app\\admin\\users\\page.tsx'] }
+    });
+    assert.deepEqual(kinds(windowsStyle), ['duplicate-source'], 'two spellings of one path are one Source');
+
+    const absolute = auditFeatureMap({
+        maps: areaDocs({ admin: [sourced('FM-001', 'C:\\repo\\app\\page.tsx'), sourced('FM-002', '../outside/page.tsx')] }),
+        sources: { files: [] }
+    });
+    assert.deepEqual(kinds(absolute), ['stale-source', 'stale-source']);
+    assert.match(absolute.findings[0].detail, /not a repository-relative path/);
+
+    const matches = sourceMatcher(['app/**/page.tsx']);
+    assert.equal(matches('app/page.tsx'), true);
+    assert.equal(matches('app\\admin\\users\\page.tsx'), true);
+    assert.equal(matches('app/admin/users/Page.tsx'), false, 'matching is case-sensitive on every OS');
+    assert.equal(matches('lib/app/page.tsx'), false);
+});
+
+test('TC-PCI-089: the source listing is one bounded walk below each glob prefix, and Source existence is exact-case', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'feature-map-sources-'));
+    try {
+        const write = rel => {
+            fs.mkdirSync(path.join(root, path.dirname(rel)), { recursive: true });
+            fs.writeFileSync(path.join(root, rel), 'export default function Page() {}\n');
+        };
+        for (const rel of [
+            USERS_PAGE,
+            ROLES_PAGE,
+            'app/admin/users/table.tsx',
+            'app/node_modules/pkg/page.tsx',
+            'app/.next/server/page.tsx',
+            'outside/page.tsx'
+        ])
+            write(rel);
+        const listing = listSourceFiles(root, ['app/**/page.tsx', 'app/admin/*/page.tsx']);
+        assert.deepEqual(listing, { files: [ROLES_PAGE, USERS_PAGE], truncated: false }, 'dependency and dot folders are skipped; overlapping globs walk once');
+        const bounded = listSourceFiles(root, ['app/**/page.tsx'], { maxEntries: 2 });
+        assert.equal(bounded.truncated, true, 'the walk stops at its bound and says so');
+        assert.deepEqual(listSourceFiles(root, ['missing/**/page.tsx']), { files: [], truncated: false });
+        assert.deepEqual(
+            listSourceFiles(root, ['App/**/page.tsx']),
+            { files: [], truncated: false },
+            'a glob folder spelled differently from the disk lists nothing, also on a case-insensitive filesystem'
+        );
+
+        const exists = exactPathExists(root);
+        assert.equal(exists(USERS_PAGE), true);
+        assert.equal(exists('app/admin/users/Page.tsx'), false, 'a case-insensitive filesystem must not hide a renamed file');
+        assert.equal(exists('app/admin/gone/page.tsx'), false);
+    } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test('TC-PCI-087: the CLI reads featureMap.sources from the project config under --root', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'feature-map-cli-'));
+    try {
+        const write = (rel, text) => {
+            fs.mkdirSync(path.join(root, path.dirname(rel)), { recursive: true });
+            fs.writeFileSync(path.join(root, rel), text);
+        };
+        write(USERS_PAGE, 'page\n');
+        write(ROLES_PAGE, 'page\n');
+        write(INDEX_PATH, '# Feature Map\n');
+        write(ADMIN_DOC, `# Admin\n\n${sourced('FM-001', USERS_PAGE)}\n\n${sourced('FM-002', 'app/admin/old/page.tsx')}\n`);
+        const config = { schemaVersion: 2, project: { name: 'Fixture' } };
+        const writeConfig = extra => write('docs/project-config.json', JSON.stringify({ ...config, ...extra }));
+        // A clean machine: no user-level framework settings, temp files inside the fixture.
+        const env = { ...process.env, HOME: root, USERPROFILE: root, TMPDIR: root, TEMP: root, TMP: root, CLAUDE_PROJECT_DIR: root };
+        const run = () =>
+            spawnSync(process.execPath, [SCRIPT, 'audit', `--root=${root}`, `--map=${INDEX_PATH}`, '--specs=docs/specs'], { encoding: 'utf8', cwd: root, env });
+
+        writeConfig({});
+        let out = run();
+        let result = JSON.parse(out.stdout);
+        assert.equal(out.status, 0, out.stdout + out.stderr);
+        assert.equal(result.sources, undefined, 'an old config without featureMap leaves the audit unchanged');
+
+        writeConfig({ featureMap: { sources: ['app/**/page.tsx'] } });
+        out = run();
+        result = JSON.parse(out.stdout);
+        assert.equal(out.status, 1, out.stderr);
+        assert.deepEqual(result.sources, { patterns: ['app/**/page.tsx'], strict: false, files: 2 });
+        assert.deepEqual(kinds(result), ['missing-source-entry', 'stale-source']);
+
+        writeConfig({ featureMap: { sources: ['../outside/**'] } });
+        out = run();
+        result = JSON.parse(out.stdout);
+        assert.equal(out.status, 0, 'an invalid config is never trusted');
+        assert.match(result.sourcesSkipped, /project config is invalid/);
+    } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+    }
 });

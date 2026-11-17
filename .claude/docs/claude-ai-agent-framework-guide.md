@@ -332,6 +332,7 @@ Read `spec-system-reference.md` in the project-reference docs root (default `doc
 | ------------------------------------------ | -------------------------------------------------------- |
 | `project`, `framework`, `modules`          | Identity, stack metadata, module map                     |
 | `specRoots`, `docsRoots`, `referenceDocs`  | Where specs and docs live; which reference docs apply    |
+| `featureMap`                               | Source globs the feature-map audit holds one entry each to |
 | `contextGroups`, `conventionInjection`     | Per-path conventions and their hook delivery             |
 | `designSystem`, `uiReview`, `styling`, `componentSystem` | UI capability and review settings        |
 | `testing`, `e2eTesting`, `integrationTestVerify`, `experienceVerification` | Test commands and evidence contracts |
@@ -408,6 +409,7 @@ Codex transforms `/skill` into `$skill`, `Agent` into `spawn_agent` and strips C
 | Post-edit formatter             | `formatting.formatter` (`none` disables)          | Prettier         |
 | Commit `Fix-Origin` trailer     | `commit.fixOriginTrailer`                         | off              |
 | Commit `Bug-Class` trailer      | `commit.bugClassTrailer`                          | off              |
+| Feature-map source audit        | `featureMap.sources` (+ `featureMap.strict`)      | off              |
 | PR target branch                | `pullRequest.targetBranch`                        | `main`           |
 | PR pushed-branch update         | `pullRequest.pushedBranchUpdate` (`merge`/`rebase`) | `merge`        |
 | Skill visibility                | `skillProfile.preset`                             | `full`           |

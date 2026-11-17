@@ -243,6 +243,21 @@ const FEATURES = [
         }
     },
     {
+        key: 'featureMap.sources',
+        default: 'off',
+        scope: TEAM_ONLY,
+        what: 'globs of route, page or command source files that each map to one feature-map entry; feature-map.cjs audit then reports a file with no entry (an error with featureMap.strict), an entry whose Source is gone and two entries naming one Source, and a change to a matching file routes the map for re-audit',
+        change: '{ "featureMap": { "sources": ["app/**/page.tsx"], "strict": false } } in the project config (pull request), with feature-map-reference.md selected in referenceDocs (/project-config)',
+        resolve: ({ rootDir }) => {
+            const section = projectConfig(rootDir).featureMap;
+            const sources = section && Array.isArray(section.sources) ? section.sources.filter(item => typeof item === 'string' && item.trim()) : [];
+            return {
+                value: sources.length ? `${sources.length} glob(s)${section.strict === true ? ', strict' : ''}` : 'off',
+                source: section ? 'project-config' : 'default'
+            };
+        }
+    },
+    {
         key: 'contextDelivery.profile',
         default: 'compatible',
         scope: 'shipped, personal, team, checkout',

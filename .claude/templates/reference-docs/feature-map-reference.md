@@ -6,7 +6,7 @@ Read when you need to find where a feature lives or how to drive it: a vague bug
 
 ## Mode and Sources
 
-State the mode. **Spec-linked:** entries are headed by the spec story id (`US-<CODE>-<NN>`) and name the spec that owns it; the spec's §6.5 Per-Story Interaction Flow holds the user path, so the map links it and never copies it. **Standalone** (no specs): entries use stable `FM-<NNN>` ids. Name the spec root or the route, command and anchor sources the entries were seeded from. For a large project, list the per-area docs here, each as `read <path> when <situation>`.
+State the mode. **Spec-linked:** entries are headed by the spec story id (`US-<CODE>-<NN>`) and name the spec that owns it; the spec's §6.5 Per-Story Interaction Flow holds the user path, so the map links it and never copies it. **Standalone** (no specs): entries use stable `FM-<NNN>` ids. Name the spec root or the route, command and anchor sources the entries were seeded from. When `featureMap.sources` in the project config lists source globs (one page, route or command file per entry), each entry names its file on a `Source` line and the audit reports a matching file with no entry, an entry whose Source is gone and two entries naming one Source. For a large project, list the per-area docs here, each as `read <path> when <situation>`.
 
 ## Entries
 
@@ -19,8 +19,9 @@ State the mode. **Spec-linked:** entries are headed by the spec story id (`US-<C
 - Fixture/role: seeded member account (a credential reference, never a value)
 - End state: what the driver observes when the flow worked
 - Gotchas: anything that makes driving it fail for a non-product reason
+- Source: `path/to/the/page-or-command-file` (repository-relative, forward slashes; required for each file `featureMap.sources` matches)
 -->
 
 ## Upkeep
 
-Name who updates the map and when: after a spec story is added, renamed or removed, after a route or command moves, and after a runtime review finds a stale entry. `docs-manager --mode=update` runs the audit and reports its findings.
+Name who updates the map and when: after a spec story is added, renamed or removed, after a route, page or command file is added, moved or removed, and after a runtime review finds a stale entry. `docs-manager --mode=update` runs the audit and reports its findings.
