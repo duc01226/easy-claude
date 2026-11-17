@@ -1054,7 +1054,9 @@ const tests = [
                 git(repo, ['add', '-A']);
                 await verify().runVerify({ repository: repo });
                 const api = receipts();
-                const descriptor = { repository: repo, cwd: repo, mode: 'staged', literalPaths: [], amend: true };
+                // Context comes from the capture options (canonicalized there); a raw fixture path in the descriptor
+                // is a different spelling on Windows (case, 8.3 names) and is refused as DESCRIPTOR_CONTEXT_CHANGED.
+                const descriptor = { mode: 'staged', literalPaths: [], amend: true };
                 const candidate = api.captureReviewTarget({ repository: repo, cwd: repo, target: 'commit-descriptor', descriptor });
                 api.issueReceipt({ repository: repo, snapshot: candidate, scope: 'full-changeset', kind: 'changes-review' });
                 assert.equal(gate().evaluate(commitInput(repo, ' --amend')), undefined, 'the amend is reviewed and verified');
