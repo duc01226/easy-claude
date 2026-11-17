@@ -956,9 +956,10 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Testing] Use when reviewing the tests of a change, branch or pull
-    request: coverage of each changed behavior per layer (unit, integration, E2E,
-    performance, seed data) and test quality. --fix-loop repairs tests; runs no suites.'
+  description: '[Testing] Use when a workflow step or the user asks for a test review
+    of a change, branch or pull request: coverage of each changed behavior per layer
+    (unit, integration, E2E, performance, seed data) and test quality. --fix-loop
+    repairs tests.'
   has_references: true
   has_scripts: false
   name: test-review

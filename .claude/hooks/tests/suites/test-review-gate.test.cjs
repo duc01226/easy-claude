@@ -370,7 +370,7 @@ const tests = [
             assert.match(FALLBACK_BODY, /tests → `test-review` \(coverage and quality of a change's tests\)/);
             // The hub keeps the description form and length every skill description follows
             const description = /^description: '([^']*)'$/m.exec(hub());
-            assert.ok(description && description[1].startsWith('[Testing] Use when'), 'step-skill description form');
+            assert.ok(description && description[1].startsWith('[Testing] Use when a workflow step or the user asks for '), 'step-skill description form');
             assert.ok(description[1].length <= 250, `description is ${description[1].length} chars, over 250`);
             // When the hub's skill map is followed
             const map = section(hub(), 'Test skill map');
