@@ -250,6 +250,9 @@ node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs --verbose
 # Every read-only gate (no mutation):
 node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs --verify-only
 
+# Every writer, no gate (what $sync-codex runs before its own verify stages read .opencode/):
+node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs --sync-only
+
 # Just regenerate the plugin:
 node .claude/scripts/opencode/sync-hooks.mjs
 

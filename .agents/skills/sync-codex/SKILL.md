@@ -62,7 +62,7 @@ Also upserts the TUI notification and status-line keys into `.codex/config.toml`
 - Test stages set `CK_FRAMEWORK_MODE=on` only in their child processes so verification still exercises hooks when chat mode is `quiet` or `off`; saved preferences remain unchanged.
 - No npm dependency — pure `node` + spawned subprocesses
 - Idempotent — safe to re-run; second run produces only timestamp diffs
-- **opencode handoff:** when the project has a local `.opencode/` directory, the runner hands off to `$sync-opencode` after all 20 stages pass (its `--verify-only` form under `--verify-only`). The handoff is an integration step, NOT a 21st stage — the 20-stage roster stays fixed
+- **opencode handoff:** when the project has a local `.opencode/` directory, the runner hands off to `$sync-opencode` in two legs: its writers (`--sync-only`) between the last mutate stage and the first verify stage, and its gates (`--verify-only`) after all 20 stages pass; under `--verify-only` only the gates run. The handoff is an integration step, NOT a 21st stage — the 20-stage roster stays fixed
 
 ## Contents
 
@@ -82,15 +82,20 @@ opencode has no shell-command hooks, so its hook surface is a generated JS bridg
 `$sync-opencode` also reconciles the framework's recommended opencode defaults
 (`.opencode/opencode.recommended.json`) into the project-root `opencode.json`. Because a project
 running opencode expects both surfaces to track the framework, a full `$sync-codex` run
-automatically hands off to the opencode pipeline once the 20 Codex stages pass:
+automatically hands off to the opencode pipeline in two legs:
 
 ```bash
-# Runs automatically at the end of a full codex sync when .opencode/ exists:
-node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs
+# Run automatically by a full codex sync when .opencode/ exists.
+# 1. After the last mutate stage, before the first verify stage — the opencode writers:
+node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs --sync-only
+# 2. After all 20 stages pass — the opencode tests and byte-compare gates:
+node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs --verify-only
 ```
 
+- The writers run before the verify stages because those stages read opencode output: `hooks-parity` compares every `.opencode/agent/*.md` with its `.claude/agents/*.md` source, so a change to an agent's SYNC tags would otherwise fail the first full sync on a mirror nothing had regenerated yet.
+- A subset run (`--only`/`--skip`) runs neither leg; the handoff belongs to the full roster.
 - The handoff is skipped silently when the project has no `.opencode/` directory, and skipped with an explicit message when `.opencode/` exists but the opencode runner is absent.
-- Under `--verify-only` the handoff inherits the read-only contract (`run-opencode-sync.mjs --verify-only`), so no invocation of the codex runner ever mutates the opencode surface in verify mode.
+- Under `--verify-only` the handoff inherits the read-only contract (only `run-opencode-sync.mjs --verify-only`), so no invocation of the codex runner ever mutates the opencode surface in verify mode.
 - A handoff failure fails the codex run with the opencode stage's exit code — a green `$sync-codex` never hides a red opencode surface.
 - opencode discovers skills directly from `.claude/skills` and `.agents/skills`, so the handoff syncs **hooks + recommended config + the sub-agent mirror** — no skill mirror is produced (sub-agents are not auto-discovered, so `.claude/agents/*.md` is mirrored into `.opencode/agent/*.md`).
 
