@@ -375,6 +375,22 @@ Connected contracts:
 
 <!-- /SYNC:measured-capacity-engineering -->
 
+<!-- SYNC:test-review-gate -->
+
+> **Test Review Gate** — Every review of a change also reviews its tests. `/test-review` is the single owner of this gate: review skills call it on the whole target and never re-implement its layer routing. It is static: running the suites belongs to the later verify step (`SYNC:verify-last-order`).
+>
+> 1. **Always run, record N/A honestly.** Every review pass of a change — a focused diff, a branch, a pull request, a commit — runs it on the whole target, zero-finding passes included. A target with no code, test, spec/test-case or test-configuration change records `N/A — no testable change` with the inspected paths. A review may defer it only to a named caller step that runs it as a gate.
+> 2. **Layers from evidence.** Classify the unit, integration, E2E, performance and seed-data layers `APPLICABLE` (a runner, configuration or suite exists: project config, the layer's project reference doc, CI) or `N/A — <evidence>`. Never invent a layer, and never pass one that applies but cannot be judged (`SYNC:test-architecture-execution-contract`).
+> 3. **Coverage matrix per changed behavior.** Each changed behavior, error path, boundary, state transition and acceptance criterion maps, per applicable layer, to a test that asserts its owned outcome, or to a named `TEST-GAP` with reason and owner. The cheapest layer that proves a behavior may own it. A bug fix names its regression test. Line coverage is a diagnostic, never proof (`SYNC:test-coverage-goal`).
+> 4. **Route each layer to its one owner.** Unit → `/test-review`'s own unit gates · integration → `/integration-test --mode=review` · E2E → `/e2e-test --mode=review` · performance → `/performance-test --mode=review` · seed data → `/seed-test-data --mode=review`. Pass each owner the caller's loop mode in the flags the hub's routing table names, and merge their findings once.
+> 5. **Quality bar on every covering test.** It names the intent or invariant it guards and asserts an outcome it owns. Name the break (mutant) it must catch; a test that would survive it is `WEAK-TEST`. Assertion-free, duplicate or padding tests do not count. Cases cover happy, error, edge and boundary paths, and each [HARD] rule as a property with a boundary counter-case.
+> 6. **No flaky patterns.** Uncontrolled clock, randomness, network, file system or ordering; a fixed sleep standing in for readiness; mutable state shared across tests; a retry around an assertion; an unbounded wait — each is a `FLAKY-RISK` finding fixed at its cause. It blocks (HIGH) in a new or changed test and in an unchanged test that is the only proof of a changed behavior; in any other pre-existing test it is an observation with an owner (`SYNC:severity-rubric`). A retry, skip, widened timeout or weakened assertion is never the fix (`SYNC:repeatable-test-principle`, `SYNC:test-data-isolation`, `SYNC:real-world-fidelity-testing`).
+> 7. **Spec ↔ tests ↔ code in sync.** For a behavior change, triangulate the governing spec, its cases and the code (`SYNC:spec-tests-code-triangulation`) and adjudicate each disagreement (`SYNC:spec-drift-adjudication`). When no spec governs the behavior, say so and name the intent source used.
+> 8. **Project rules add.** Apply the project's overlays for `test-review` and its test reference docs on top; they never waive a rule here.
+> 9. **Verdict.** Emit the Test Review Matrix (`layer | applicable | changed behaviors | covering tests | gaps | findings | verdict`) and a `Spec sync:` result. This item owns the test-finding severity: an untested changed behavior and a blocking flaky pattern (item 6) are HIGH; a weak test is MEDIUM or higher by the risk it leaves. PASS needs no open MEDIUM+ test finding; a gap accepted with an owner is disclosed, never silent.
+
+<!-- /SYNC:test-review-gate -->
+
 <!-- SYNC:sequential-thinking-protocol:reminder -->
 
 **MUST ATTENTION** use structured reasoning for complex or ambiguous work, implicitly when visible markers would clutter. Verify hypotheses, revise assumptions, and close with confidence, assumptions, open questions and a concrete next action.
@@ -436,6 +452,12 @@ Connected contracts:
 **IMPORTANT MUST ATTENTION** verify WHAT the code does matches WHY it changed, and every changed file serves the stated purpose. Trace happy + error paths. Flag scope creep.
 
 <!-- /SYNC:logic-and-intention-review:reminder -->
+
+<!-- SYNC:test-review-gate:reminder -->
+
+**IMPORTANT MUST ATTENTION** every review of a change runs `/test-review` on the whole target — static, `N/A` with the inspected paths when nothing testable changed: a per-layer coverage matrix of each changed behavior (unit, integration, E2E, performance, seed data, applicable only from evidence), each layer judged by its one owner's review mode, every covering test naming its intent and the break it catches, flaky patterns fixed at their cause (never a retry, skip or longer timeout), and spec ↔ tests ↔ code triangulated. An untested changed behavior is HIGH, and so is a flaky pattern in a new or changed test or in the only proof of a changed behavior.
+
+<!-- /SYNC:test-review-gate:reminder -->
 
 ## Closing Reminders
 

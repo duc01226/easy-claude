@@ -64,7 +64,7 @@ test('TC-CONVLOOP-042: all real review-family skills pass both rules', () => {
     assert.deepEqual(failures, [], `real review-family skills must have zero gaps:\n${failures.join('\n')}`);
 });
 
-// TC-CONVLOOP-043 — the allow-list is the finding-producing review skills plus the integration-test, domain-analysis, architecture, ui-design and work-item review mode
+// TC-CONVLOOP-043 — the allow-list is the finding-producing review skills (test-review included) plus the integration-test, domain-analysis, architecture, ui-design, work-item and e2e-test review mode
 // references (and the architecture scalability grader mode); no non-review skill leaks in (so a skill merely using the word "finding"/"Severity" is never
 // scanned = no false positive).
 test('TC-CONVLOOP-043: allow-list includes the review-family skills plus the review-mode references, no non-review skill included', () => {
@@ -76,7 +76,8 @@ test('TC-CONVLOOP-043: allow-list includes the review-family skills plus the rev
         'production-readiness-review',
         'knowledge-review',
         'ai-engineering-review',
-        'web-design-guidelines'
+        'web-design-guidelines',
+        'test-review'
     ]);
     assert.deepEqual(REVIEW_MODE_REFERENCES, [
         'integration-test/references/mode-review.md',
@@ -84,7 +85,8 @@ test('TC-CONVLOOP-043: allow-list includes the review-family skills plus the rev
         'architecture/references/mode-review.md',
         'architecture/references/mode-full.md',
         'ui-design/references/mode-review.md',
-        'work-item/references/mode-review.md'
+        'work-item/references/mode-review.md',
+        'e2e-test/references/mode-review.md'
     ]);
     assert.deepEqual(GRADER_MODE_REFERENCES, ['architecture/references/mode-scalability.md']);
     for (const nonReview of ['plan', 'investigate', 'fix', 'why-review']) {

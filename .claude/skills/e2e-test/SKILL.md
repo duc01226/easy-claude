@@ -1,9 +1,9 @@
 ---
 name: e2e-test
-description: '[Testing] Use when a workflow step or the user asks for E2E test selection, generation or updates. --mode=verify runs tests; --fix-loop repairs failures; --visual-review={true|false}.'
+description: '[Testing] Use when a workflow step or the user asks for E2E test selection, generation or updates. --mode=review checks test quality; --mode=verify runs tests; --fix-loop repairs failures; --visual-review={true|false}.'
 ---
 
-> **[BLOCKING] Mode routing — detect FIRST.** Explicit `--mode=verify` selects verification; no mode is default E2E test authoring (everything below, unchanged). `/e2e-test --mode=verify` is the former `/e2e-test-verify`: that slash command no longer exists, and the mode works called directly with no workflow. Read the mode file in full before anything else (see [Mode Dispatch](#mode-dispatch)).
+> **[BLOCKING] Mode routing — detect FIRST.** Explicit `--mode=verify` selects verification; explicit `--mode=review` selects the static test-quality review; no mode is default E2E test authoring (everything below, unchanged). `/e2e-test --mode=verify` is the former `/e2e-test-verify`: that slash command no longer exists, and the mode works called directly with no workflow. Read the mode file in full before anything else (see [Mode Dispatch](#mode-dispatch)).
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
@@ -79,8 +79,10 @@ Select the invocation route before execution; load only its mode reference.
 | --- | --- | --- |
 | _(none)_ | Default E2E test authoring — this file | — |
 | `--mode=verify [--fix-loop] [--visual-review={true\|false}] [scope]` | Verify an existing configured E2E scope with exact runner evidence: a report-only default pass, or with `--fix-loop` the bounded convergence engine (`workflow-e2e` calls it). | [references/mode-verify.md](references/mode-verify.md) |
+| `--mode=review [--report-only\|--loop-owner=caller] [scope]` | Static, read-only quality review of existing E2E tests under the shared E2E quality protocol: journey coverage, gate rows, flaky patterns; never runs the runner (`test-review` calls it for the E2E layer). | [references/mode-review.md](references/mode-review.md) |
 
 - **[BLOCKING]** When `--mode=verify`, read `references/mode-verify.md` in full FIRST; it replaces test authoring for the invocation and owns `--fix-loop` and `--visual-review={true|false}` (no flag is set by default: no `--fix-loop` = one report-only pass that edits nothing). Workflow invocation and standalone both run it; report-only callers never pass `--fix-loop`.
+- **[BLOCKING]** When `--mode=review`, read `references/mode-review.md` in full FIRST; it replaces test authoring, edits nothing and runs nothing. Runtime-only gate rows stay `UNVERIFIED` for `--mode=verify`.
 - Authoring never chains into verification. The `verify` row of the Workflow Modes table names this separate invocation over existing tests.
 
 ## ⚠️ MANDATORY: Read Project E2E Reference (FIRST)

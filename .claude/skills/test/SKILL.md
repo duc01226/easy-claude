@@ -89,7 +89,7 @@ The `tester` subagent receives the resolved contract matrix and executes only co
 
 ## Next Steps
 
-After reporting, choose the appropriate follow-up from the results and the authorized task: `/fix` for failures after root-cause investigation, `/docs-manager --mode=update` for affected documentation, or `/watzup` for a requested wrap-up. Continue an active workflow at its next required step. Keep this test invocation read-only; execute authorized follow-up work through its owning skill. Ask only for indispensable missing information or action authority not already provided.
+After reporting, choose the appropriate follow-up from the results and the authorized task: `/test-review` when the question is whether the tests cover the change and are good enough (this skill only runs them), `/fix` for failures after root-cause investigation, `/docs-manager --mode=update` for affected documentation, or `/watzup` for a requested wrap-up. Continue an active workflow at its next required step. Keep this test invocation read-only; execute authorized follow-up work through its owning skill. Ask only for indispensable missing information or action authority not already provided.
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting. This prevents context loss from long files. Keep task depth proportional to the work.
 
