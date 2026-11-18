@@ -36,6 +36,7 @@ const FIXTURE_BODY = '**Quality skills first:** fixture digest — why-review, c
 const FIXTURE_PROTOCOL = '**Shared protocols:** fixture goal and evidence digest.';
 const ROUTES = [
     'investigate',
+    'brainstorm',
     'plan',
     'test',
     'e2e-test',

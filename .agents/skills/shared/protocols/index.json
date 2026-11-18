@@ -925,12 +925,12 @@
       "group": "universal",
       "summary": "Route common work to the project's registered skills first",
       "when": "delivered by the universal hook",
-      "chars": 2663,
+      "chars": 2752,
       "file": ".claude/skills/shared/protocols/quality-skill-routing.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/quality-skill-routing.md",
-          "chars": 2663
+          "chars": 2752
         }
       ]
     },
