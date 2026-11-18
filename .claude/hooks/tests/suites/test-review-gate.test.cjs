@@ -301,7 +301,7 @@ const tests = [
                 pr,
                 /the `Test review:` line \(verdict per test layer, gaps with their owners\) and the `Spec sync:` line from the final review round/
             );
-            assert.match(pr, /keep the final round's `Test review:` and `Spec sync:` lines for the PR body/);
+            assert.match(pr, /[Kk]eep the final round's `Test review:` and `Spec sync:` lines for the PR body/);
             assert.match(pr, /an open test gap or spec drift blocks Ready unless the user accepted it with an owner/);
             // And the final branch review reports both
             const review = skill('pr-review');
