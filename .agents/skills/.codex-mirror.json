@@ -75,6 +75,7 @@
     "pull-request",
     "release-doc",
     "remotion",
+    "rich-report",
     "scaffold",
     "scan",
     "scan-all",

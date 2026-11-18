@@ -2,7 +2,7 @@
 
 Read this guide when discovering, executing or authoring framework skills. **MUST** execute through the active host; **MUST** keep canonical source ownership separate from runtime paths; **MUST** preserve required gates and report an actual missing capability with evidence.
 
-> <!-- COUNT:skills -->109<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->16<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
+> <!-- COUNT:skills -->110<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->16<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
 
 Read [framework-benchmark](../../skills/framework-benchmark/SKILL.md) when comparing the complete framework with raw work on qualified fictional tasks, a committed consumer project or a reusable public-source template. Its corpus guide covers generic context preparation, archives and healthy/defective reviewer controls; its running guide covers native account execution and equally equipped independent assessment. Its `compare` command turns several saved runs into one task-level verdict, reporting insufficient evidence until enough tasks are decisive. Mechanical checks do not establish a framework quality gain.
 
@@ -73,7 +73,7 @@ Read `.claude/scripts/lib/workflow-skill-contract.cjs` when changing workflow re
 
 ## Skill Domains
 
-> Curated highlights — the full catalog has <!-- COUNT:skills -->109<!-- /COUNT --> runnable skills; the tables below list selected skills per domain, not the complete set.
+> Curated highlights — the full catalog has <!-- COUNT:skills -->110<!-- /COUNT --> runnable skills; the tables below list selected skills per domain, not the complete set.
 
 | Domain                                            | Skills | Description                                    |
 | ------------------------------------------------- | ------ | ---------------------------------------------- |
@@ -147,6 +147,7 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 | `web-research`  | find docs, library docs                                  | Source discovery and triage (Context7 MCP optional accelerator)            |
 | `spec`          | business docs, module docs, feature docs, feature readme | Business/feature documentation (single canonical Feature Spec per feature) |
 | `release-doc` | release notes, git history                               | Release notes from git commits (tag-to-tag)                                |
+| `rich-report` | rich, visual, interactive, or standalone HTML report    | Reader-first report with sticky navigation, visuals, and a glossary. Delivers through Codex Sites, Claude Artifacts, or local HTML. |
 
 ---
 
@@ -348,7 +349,7 @@ Use `/skill-creator` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | <!-- COUNT:skills -->109<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->16<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
+_Source: `.claude/skills/` | <!-- COUNT:skills -->110<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->16<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
 
 ## Closing Reminders
 

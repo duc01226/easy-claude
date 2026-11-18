@@ -1,10 +1,10 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-11-17'
-  total_skills: 109
+  last_updated: '2026-11-19'
+  total_skills: 110
   total_by_status:
-    active: 109
+    active: 110
     deprecated: 0
     experimental: 0
 categories:
@@ -705,6 +705,18 @@ skills:
       path: remotion/SKILL.md
       description: '[User-Invoked] Use when creating, updating, or previewing Remotion
         videos.'
+      category: other
+      has_scripts: false
+      has_references: true
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: rich-report
+      path: rich-report/SKILL.md
+      description: '[Documentation] Use when asked for a rich report, an interactive
+        or visual report, or a standalone HTML report, document, explainer, or data
+        story. Uses Codex Sites, Claude Artifacts, or local HTML.'
       category: other
       has_scripts: false
       has_references: true
