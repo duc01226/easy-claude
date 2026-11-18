@@ -1,6 +1,6 @@
 # why-review fix-loop
 
-Read when `why-review` runs `--fix-loop` or issues a full-candidate review receipt. The carried `review-policy` protocol owns modes, tasks, the three-round budget, LOW deferral and explicit bounded extensions; read its full published text when absent from context.
+Read when `why-review` runs `--fix-loop` or issues a full-candidate review receipt. The carried `review-policy` protocol owns modes, tasks, the five-round budget, LOW deferral and explicit bounded extensions; read its full published text when absent from context.
 
 1. Resolve exact scope and saved goal; triage all targets and plan review, validation, fixes and fresh re-review tasks. Workflow review defaults to this mode; standalone review requires the flag.
 2. Capture the supported full commit candidate before each full review with `node .claude/hooks/lib/review-receipt.cjs snapshot --target=<worktree|staged|commit-descriptor|branch>`; preserve exact descriptor arguments for commit targets. A caller reviewing a whole pull-request branch passes `--target=branch --base=<base-ref>`. Subset, artifact-only and historical targets are not eligible for a live fix-loop receipt.

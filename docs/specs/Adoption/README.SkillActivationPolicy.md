@@ -73,7 +73,7 @@ to run, so restricting automatic work does not bypass checks or create interrupt
   Every change review invokes whole-target rationale review once per pass, including caller-owned
   passes and passes with no findings. The review workflow uses that result alongside applicable
   specialist reviews. Each review retains its inherited cap of
-  at most three rounds. The selected review's required chain remains eligible. An explicit human instruction
+  at most five rounds. The selected review's required chain remains eligible. An explicit human instruction
   about tests or review overrides the automatic choice. Selection
   preferences never substitute for current evidence or approve a skip.
 - **AC-SAP-06:** Optional unrelated procedures and attempts to obtain authorization by self-starting an agent
@@ -117,7 +117,7 @@ Commit and pull-request procedures own the test/review decision and never ask th
   fixed until all pass. Commit review follows its configured depth; only risk-based low-risk commits
   may skip automatically. Every pull request invokes change review in its fix-loop mode at every risk tier, independently of commit preferences. Every change review invokes whole-target
   rationale review alongside applicable specialists, even with no findings or a caller owning repairs;
-  transferring duties never waives that call. Each review retains its inherited cap of at most three rounds.
+  transferring duties never waives that call. Each review retains its inherited cap of at most five rounds.
   Any higher-risk signal outranks size, and unclear risk takes the higher tier. Material
   findings still open at that cap, a check that cannot pass and ambiguous intent stop the operation before
   the commit and are reported; a failed review never becomes a skip. An explicit human instruction about
@@ -446,7 +446,7 @@ And tests are skipped only when already passed in the session or the change is r
 And only risk-based low-risk commits may skip review automatically
 And every pull request invokes change review in its fix-loop mode regardless of risk
 And change review invokes whole-target rationale review exactly once per pass
-And every review retains the inherited limit of at most three rounds
+And every review retains the inherited limit of at most five rounds
 And findings still open at that cap or a check that cannot pass stop the operation with a report
 And pending questions and explicit human constraints remain binding
 And changed content requires current evidence rather than a transferred skip

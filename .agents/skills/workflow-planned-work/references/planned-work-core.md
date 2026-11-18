@@ -45,7 +45,7 @@ Every answer a step obtains from the user — the initiative Discovery Interview
 
 ## Findings and loop bounds
 
-Validate findings before fixing; fix in the owning artifact (`refine` for the task, `story` for stories, `spec` for the spec and its cases) and re-run the reviewer that raised the finding. Round 1 exits on zero open findings (LOW deferral); round 2 exits on zero CRITICAL/HIGH/MEDIUM with LOWs recorded as deferred; cap 3 review rounds, and on no progress escalate via `ask user question tool`.
+Validate findings before fixing; fix in the owning artifact (`refine` for the task, `story` for stories, `spec` for the spec and its cases) and re-run the reviewer that raised the finding. Round 1 exits on zero open findings (LOW deferral); round 2 exits on zero CRITICAL/HIGH/MEDIUM with LOWs recorded as deferred; cap 5 review rounds, and on no progress escalate via `ask user question tool`.
 
 ## Close tail
 

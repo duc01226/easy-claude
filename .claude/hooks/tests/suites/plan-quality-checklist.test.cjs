@@ -158,7 +158,7 @@ const tests = [
             assert.match(duty, /a behavior change with no test row is HIGH/);
             // Checklist quality remains enforced in either mode, with one fixing owner.
             assert.match(review, /Review-only and caller-owned leaves keep the target read-only/);
-            assert.match(review, /one shared three-round budget and the LOW\/extension rules/);
+            assert.match(review, /one shared five-round budget and the LOW\/extension rules/);
             assert.match(review, /caller-owned leaves never start another loop or edit/);
             assert.match(review, /Fix-loop repairs validated findings, then repeats the complete review/);
         }

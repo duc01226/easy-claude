@@ -8,7 +8,7 @@ context-budget: high
 
 ## Quick Summary
 
-> **Review modes:** For review/audit work, standalone defaults to `--review-only` (`--report-only` alias); `--fix-loop` enables review → validate → authorized fix → fresh re-review, default cap 3. `--fix-loop --loop-owner=caller` returns a read-only pass to the caller that owns fixes/re-review. Create triage, review, validation and re-review todo tasks first; apply the carried `review-policy` contract for LOW deferral and user-approved bounded extensions. Non-review modes and terminal findings validation keep their own dispatch.
+> **Review modes:** For review/audit work, standalone defaults to `--review-only` (`--report-only` alias); `--fix-loop` enables review → validate → authorized fix → fresh re-review, default cap 5. `--fix-loop --loop-owner=caller` returns a read-only pass to the caller that owns fixes/re-review. Create triage, review, validation and re-review todo tasks first; apply the carried `review-policy` contract for LOW deferral and user-approved bounded extensions. Non-review modes and terminal findings validation keep their own dispatch.
 
 **Goal:** Review a plan or a change that calls a model — LLM calls, prompts, agents, tool use, RAG, MCP, evals, guardrails, fine-tuned or classical ML — against the AI-engineering protocol, and report evidence-backed findings ranked by real consequence. Skip when nothing in scope touches a model.
 
@@ -280,7 +280,7 @@ Group files by AI SURFACE first (one sub-agent owns a surface end to end so no s
 3. Read the validation verdict path why-review returns (expected `tmp/reports/why-review-validate-{date}.md`).
 4. **Demoted or removed findings:** update the report with revised severities, remove false positives, and add a `## Why-Review Validation Notes` section stating what changed and why.
 5. **All confirmed:** append a `## Why-Review Validation` line stating "All N findings re-validated against actual code; no severity changes."
-6. **Report changed:** re-run this gate, maximum 3 validation passes.
+6. **Report changed:** re-run this gate, maximum 5 validation passes.
 
 **Why this exists:** AI reports inherit confirmation bias — severity claims get absorbed as ground truth. Adversarial validation catches over-flagged Highs and false positives at the source.
 
@@ -325,7 +325,7 @@ Before reporting ANY work done:
 - `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
 - `measured-capacity-engineering` — Model demand, reduce measured work safely and prove capacity before scaling; planning, building, testing or reviewing hot paths, caches or capacity → .claude/skills/shared/protocols/measured-capacity-engineering.md
 - `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
-- `review-policy` — Review-only or a three-round fix loop with explicit extension and fresh post-fix evidence; deciding round eligibility, blocking findings or review state → .claude/skills/shared/protocols/review-policy.md
+- `review-policy` — Review-only or a five-round fix loop with explicit extension and fresh post-fix evidence; deciding round eligibility, blocking findings or review state → .claude/skills/shared/protocols/review-policy.md
 - `review-principle-awareness` — Classify the change context first, then apply the current principles that fit it; starting any review → .claude/skills/shared/protocols/review-principle-awareness.md
 - `sequential-thinking-protocol` — Structured multi-step reasoning with revision, branch and hypothesis markers; planning, debugging or reviewing complex or ambiguous work → .claude/skills/shared/protocols/sequential-thinking-protocol.md
 - `severity-rubric` — One consequence-based Critical, High, Medium, Low scale for every finding and gate; classifying a finding or deciding whether a review round passes → .claude/skills/shared/protocols/severity-rubric.md
@@ -487,6 +487,6 @@ Before reporting ANY work done:
 
 <!-- SYNC:review-policy:reminder -->
 
-**MUST ATTENTION** Triage all targets, plan and create review/validation/fix/fresh re-review tasks first. Review-only reports without edits; fix-loop freshly reviews every repair under one fixing owner. Default cap three rounds: disclose deferred LOWs, ask and wait before a bounded extension for MEDIUM+ or failed required checks. Preserve scope, coverage and actual operation authority.
+**MUST ATTENTION** Triage all targets, plan and create review/validation/fix/fresh re-review tasks first. Review-only reports without edits; fix-loop freshly reviews every repair under one fixing owner. Default cap five rounds: disclose deferred LOWs, ask and wait before a bounded extension for MEDIUM+ or failed required checks. Preserve scope, coverage and actual operation authority.
 
 <!-- /SYNC:review-policy:reminder -->

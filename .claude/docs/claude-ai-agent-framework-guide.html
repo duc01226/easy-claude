@@ -446,7 +446,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
     <section id="quality" aria-labelledby="quality-h">
       <h2 id="quality-h">The quality chain — review, commit, pull request</h2>
       <ol class="steps">
-        <li><div><b>Review</b><span>Triage all changes and create review tasks first. Standalone reviews default to review-only; the review workflow defaults to fix-loop. Every applied fix needs fresh review; LOW may be deferred without edits. Default cap three rounds; LOW-only at the cap is acceptable, while Critical/High/Medium or failed required checks ask the user for a bounded extension.</span></div></li>
+        <li><div><b>Review</b><span>Triage all changes and create review tasks first. Standalone reviews default to review-only; the review workflow defaults to fix-loop. Every applied fix needs fresh review; LOW may be deferred without edits. Default cap five rounds; LOW-only at the cap is acceptable, while Critical/High/Medium or failed required checks ask the user for a bounded extension.</span></div></li>
         <li><div><b>Validate findings</b><span><code>why-review --validate-findings</code> checks each finding against evidence before any fix, and never recurses.</span></div></li>
         <li><div><b>Fix at the owner</b><span><code>fix --target=review</code> records FIXED / REJECTED / DEFERRED; an unexplained defect is traced first.</span></div></li>
         <li><div><b>Receipt</b><span>A converged fix-loop mints a receipt for that exact changeset; any later edit invalidates it.</span></div></li>

@@ -158,7 +158,7 @@ const tests = [
             assert.match(text, /tmp\/reports\/arch-review-\{date\}-\{slug\}\.md/);
             assert.match(text, /<!-- OVERRIDE:review-protocol-injection -->/);
             assert.match(skill(), /standalone defaults to `--review-only`/);
-            assert.match(skill(), /`--fix-loop` enables review → validate → authorized fix → fresh re-review, default cap 3/);
+            assert.match(skill(), /`--fix-loop` enables review → validate → authorized fix → fresh re-review, default cap 5/);
             assert.match(skill(), /`--fix-loop --loop-owner=caller` returns a read-only pass/);
         }
     },
@@ -190,7 +190,7 @@ const tests = [
             // A grader uses the shared review mode and round owner: fix-loop policy remains shared rather than duplicated in the mode reference
             assert.ok(!/double-round-trip-review/.test(text), 'the scalability grader must not embed the fix-loop engine');
             assert.match(text, /why-review --validate-findings/);
-            assert.match(text, /maximum 3 passes/);
+            assert.match(text, /maximum 5 passes/);
         }
     },
     {

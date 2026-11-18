@@ -45,7 +45,7 @@ description: '[Testing] Use when a workflow step or the user asks for a test rev
 | Invocation | Behavior |
 | --- | --- |
 | `/test-review [target]` or `--review-only` / `--report-only` | Standalone default: one validated read-only report; no source or test edits. |
-| `--fix-loop` | Standalone repair loop under the shared review policy: fix validated test findings at their owner, then a fresh whole-target re-review; three rounds by default. Layer owners run caller-owned (`--loop-owner=caller`) under this loop. |
+| `--fix-loop` | Standalone repair loop under the shared review policy: fix validated test findings at their owner, then a fresh whole-target re-review; five rounds by default. Layer owners run caller-owned (`--loop-owner=caller`) under this loop. |
 | `--fix-loop --loop-owner=caller` | Inside `changes-review` or `workflow-review-changes`: one read-only pass; the caller validates the merged report, fixes and asks for the fresh pass. Never a nested loop. |
 | `--prove-tests` | Only from a review-only caller with no later verify step: this skill owns that review's one test run. When the integration layer applies, pass `--prove-tests` to its owner, then run `/test --proven=<that owner's report>` for every other applicable layer; when it does not, run `/test` for the applicable layers. Record which owner ran which layer; with no applicable layer record `tests-pass: N/A — <evidence>`. |
 
@@ -159,7 +159,7 @@ Before Step 1, resolve project overlays targeting `test-review` (the project ski
 - `real-world-fidelity-testing` — Integration, E2E and system tests exercise real boundaries; authoring, reviewing or repairing integration, E2E or system tests → .claude/skills/shared/protocols/real-world-fidelity-testing.md
 - `repeatable-test-principle` — Same contract result across fresh runs and supported concurrency; writing or reviewing tests → .claude/skills/shared/protocols/repeatable-test-principle.md
 - `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
-- `review-policy` — Review-only or a three-round fix loop with explicit extension and fresh post-fix evidence; deciding round eligibility, blocking findings or review state → .claude/skills/shared/protocols/review-policy.md
+- `review-policy` — Review-only or a five-round fix loop with explicit extension and fresh post-fix evidence; deciding round eligibility, blocking findings or review state → .claude/skills/shared/protocols/review-policy.md
 - `severity-rubric` — One consequence-based Critical, High, Medium, Low scale for every finding and gate; classifying a finding or deciding whether a review round passes → .claude/skills/shared/protocols/severity-rubric.md
 - `source-test-drift-check` — When source behavior changes, reconcile the affected tests from evidence; code, fix, test or review work changes behavior → .claude/skills/shared/protocols/source-test-drift-check.md
 - `spec-drift-adjudication` — Decide code-wrong versus spec-stale from evidence, never silently; behavior diverges from its spec → .claude/skills/shared/protocols/spec-drift-adjudication.md
@@ -188,7 +188,7 @@ Before Step 1, resolve project overlays targeting `test-review` (the project ski
 
 <!-- SYNC:review-policy:reminder -->
 
-**MUST ATTENTION** Triage all targets, plan and create review/validation/fix/fresh re-review tasks first. Review-only reports without edits; fix-loop freshly reviews every repair under one fixing owner. Default cap three rounds: disclose deferred LOWs, ask and wait before a bounded extension for MEDIUM+ or failed required checks. Preserve scope, coverage and actual operation authority.
+**MUST ATTENTION** Triage all targets, plan and create review/validation/fix/fresh re-review tasks first. Review-only reports without edits; fix-loop freshly reviews every repair under one fixing owner. Default cap five rounds: disclose deferred LOWs, ask and wait before a bounded extension for MEDIUM+ or failed required checks. Preserve scope, coverage and actual operation authority.
 
 <!-- /SYNC:review-policy:reminder -->
 

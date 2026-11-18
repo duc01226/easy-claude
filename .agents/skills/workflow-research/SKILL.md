@@ -139,7 +139,7 @@ Retain this run’s source map and evidence base during synthesis, all review ro
 ## Findings & Fix Path
 
 - `$knowledge-review --fix-loop` owns the loop; each of its review passes is read-only. It validates each REVISE/BLOCKED finding against the evidence, has it fixed at its owner, then re-reviews the fixed artifact in a fresh pass. An evidence gap takes a targeted `$source-deep-dive` pass over the existing source map, or a `$web-research --chain=deep-dive` pass on the gap when the map lacks the needed sources. A synthesis defect (missing section, uncited claim, miscalibrated confidence) is fixed in the artifact through its synthesis skill.
-- Loop bounds: round 1 exits on zero open findings (LOW deferral); from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, with LOWs deferred and listed; cap 3 review rounds; escalate via `ask user question tool` when a round makes no progress.
+- Loop bounds: round 1 exits on zero open findings (LOW deferral); from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, with LOWs deferred and listed; cap 5 review rounds; escalate via `ask user question tool` when a round makes no progress.
 
 <!-- PROTOCOL-GUIDES:START -->
 

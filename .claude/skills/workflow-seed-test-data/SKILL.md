@@ -94,7 +94,7 @@ Skipping a recommended skill is fine when triage shows it does no real work; log
 
 **Conditional step note — `/experience-review`** runs when: the seeded data reaches a configured `experienceVerification` surface whose `reviewOn` trigger intersects the change, or the seeder creates or changes data a QC/operator actually observes through a running application, API, CLI, or generated artifact; when the latter holds without usable configuration, run the skill and record `ENVIRONMENT-BLOCKED` — never invent a runner. A relevant surface that cannot be run or inspected is `ENVIRONMENT-BLOCKED`, never PASS. Skip reason (registry, verbatim): After inspecting docs/project-config.json and the seeder diff, no configured or likely observable surface consumes the seeded data; record NOT-APPLICABLE with evidence citing the inspected paths.
 
-It sits before `/changes-review --fix-loop` because a seeder's deliverable is observed data: the review proves the seeder obeys the rules, the inspection proves the scenarios are the ones QC needs. No clean-up rewrite follows it, so it observes the final seeder code; a review fix lands under the re-verification rule below. It runs its own bounded remediation loop (`--rounds=N`, default 3), never rewrites an expectation or acceptance criterion to close a gap, and reports unresolved defects at the cap as `NOT-CONVERGED`, routed back to `/seed-test-data`.
+It sits before `/changes-review --fix-loop` because a seeder's deliverable is observed data: the review proves the seeder obeys the rules, the inspection proves the scenarios are the ones QC needs. No clean-up rewrite follows it, so it observes the final seeder code; a review fix lands under the re-verification rule below. It runs its own bounded remediation loop (`--rounds=N`, default 5), never rewrites an expectation or acceptance criterion to close a gap, and reports unresolved defects at the cap as `NOT-CONVERGED`, routed back to `/seed-test-data`.
 
 ## Orchestration Freedom
 
@@ -110,7 +110,7 @@ You choose inline vs sub-agent, batching and ordering, optimizing wall-clock and
 
 Validate each finding (evidence-backed, reproducible) before fixing. A failing test follows the test-investigation protocol before either side changes. Fix at the owning layer: a seeder that violates an invariant is fixed in the seeder; a command that rejects valid inputs or breaks a domain rule is a product defect — trace its root cause and route it, never work around it in the seeder. Re-run the test or reviewer that raised the finding, plus a holistic pass when fixes were non-trivial. Use `/plan` only when the fix set is large, cross-module or ambiguous.
 
-Review loop: round 1 zero open findings (LOW deferral) converges; round 2 converges on zero CRITICAL/HIGH/MEDIUM with LOWs deferred; cap 3 review rounds; failed checks block and at the three-round cap require explicit user-approved bounded extension; no progress → escalate via `ask user question tool`.
+Review loop: round 1 zero open findings (LOW deferral) converges; round 2 converges on zero CRITICAL/HIGH/MEDIUM with LOWs deferred; cap 5 review rounds; failed checks block and at the five-round cap require explicit user-approved bounded extension; no progress → escalate via `ask user question tool`.
 
 <!-- PROTOCOL-GUIDES:START -->
 

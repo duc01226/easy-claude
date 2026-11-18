@@ -44,14 +44,14 @@ function assertReportClosure(text) {
     assert.match(text, /validated findings/);
 }
 function assertDurableBudget(text) {
-    assert.match(local(text), /Default maximum three rounds/i);
-    assert.match(local(text), /At three rounds,[\s\S]*?require the host question tool/);
+    assert.match(local(text), /Default maximum five rounds/i);
+    assert.match(local(text), /At five rounds,[\s\S]*?require the host question tool/);
     assert.match(text, /completed-round evidence/);
     assert.match(text, /remaining MEDIUM|Remaining MEDIUM/);
     assert.match(local(text), /Wait for an explicit answer before further fixes or review rounds/);
     assert.doesNotMatch(text, /conversation context only|starts fresh at round 0/);
 }
-test('R2-14/15: report handoff and workflow three-round cap survive newline dialects', () => {
+test('R2-14/15: report handoff and workflow five-round cap survive newline dialects', () => {
     for (const text of [why, why.replace(/\r?\n/g, '\r\n')]) assertReportClosure(text);
     for (const text of [workflow, workflow.replace(/\r?\n/g, '\r\n')]) assertDurableBudget(text);
 });
@@ -59,14 +59,14 @@ test('R2-14/15: report handoff and workflow three-round cap survive newline dial
 test('R2-15: CLEAN report with a retained HIGH hands off without clearing the outer target', () => {
     assertReportClosure(why);
     const findings = [{ id: 'supported-path', severity: 'HIGH', summary: 'validated defect' }];
-    for (const round of [1, 2, 3]) {
+    for (const round of [1, 2, 3, 4, 5]) {
         assert.equal(policy.evaluateRound({ round, findings }).canComplete, false);
         assert.equal(policy.blockingFindings(round, findings).length, 1);
     }
-    // The generic policy allows round 3; the workflow's stricter cap requires user approval first.
+    // The workflow and executable policy share the same five-round ceiling.
     assert.equal(policy.evaluateRound({ round: 2, findings }).status, 'CONTINUE');
-    assert.equal(policy.evaluateRound({ round: 3, findings }).status, 'ESCALATE');
-    assert.equal(policy.evaluateRound({ round: 4, findings }).status, 'ESCALATE');
+    assert.equal(policy.evaluateRound({ round: 5, findings }).status, 'ESCALATE');
+    assert.equal(policy.evaluateRound({ round: 6, findings }).status, 'ESCALATE');
     assert.equal(policy.evaluateRound({ round: 2, findings: [{ id: 'polish', severity: 'LOW' }] }).canComplete, true);
     assert.equal(policy.evaluateRound({ round: 2, hardGates: [{ id: 'coverage', status: 'FAIL' }] }).canComplete, false);
 });

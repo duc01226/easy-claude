@@ -1,6 +1,6 @@
 # `/integration-test --mode=review` — integration-test review modes
 
-> Read in full on `/integration-test --mode=review [--review-only|--fix-loop]`. Standalone defaults to review-only; fix-loop repairs validated findings and freshly reviews, up to three rounds. Caller-owned leaves stay read-only. Apply the entrypoint’s shared `review-policy`.
+> Read in full on `/integration-test --mode=review [--review-only|--fix-loop]`. Standalone defaults to review-only; fix-loop repairs validated findings and freshly reviews, up to five rounds. Caller-owned leaves stay read-only. Apply the entrypoint’s shared `review-policy`.
 
 ## Quick Summary
 
@@ -17,7 +17,7 @@
 
 **Key Rules:**
 
-- Three review rounds by default in fix-loop; LOW-only at cap is accepted, MEDIUM+ or failed gates require a user-approved bounded extension.
+- Five review rounds by default in fix-loop; LOW-only at cap is accepted, MEDIUM+ or failed gates require a user-approved bounded extension.
 - Review-only/caller-owned leaves write reports only; the fix-loop owner performs authorized repairs.
 - Never weaken assertions, add skips, widen timeouts, or rewrite source/tests to force green.
 
@@ -35,7 +35,7 @@
 
 ## Modes and Round Ownership
 
-Create tasks for triage/plan, review, findings validation, authorized fixes, fresh re-review and final checks before execution. In review-only, run the full domain pass once and hand off. In fix-loop, validate findings, repair at the owner, then freshly review the settled target. Keep one shared three-round budget and the LOW/extension rules in `review-policy`; caller-owned leaves never start another loop or edit.
+Create tasks for triage/plan, review, findings validation, authorized fixes, fresh re-review and final checks before execution. In review-only, run the full domain pass once and hand off. In fix-loop, validate findings, repair at the owner, then freshly review the settled target. Keep one shared five-round budget and the LOW/extension rules in `review-policy`; caller-owned leaves never start another loop or edit.
 
 ## Scope and Case Profile
 
@@ -202,7 +202,7 @@ The protocols below are carried in full because only this mode needs them; the p
 >
 > **Consequence decision tree:** check binary gates separately, then select the first evidenced tier from CRITICAL → HIGH → MEDIUM → LOW. Missing evidence is **NOT VERIFIABLE**, not a fifth tier or a LOW fallback: name the missing proof. Unsettled reachability is NOT VERIFIABLE for potential MEDIUM+ impact and an observation for polish. Claims potentially affecting required behavior, security, privacy, authority, availability, data integrity or a gate remain evidence blockers until proved or explicitly owner-accepted with scope, rationale and residual risk. Owner acceptance does not make an open MEDIUM a clean pass or a failed gate pass.
 >
-> **Hard gates and rounds:** failed tests, required artifacts, security must-fix checks, generated parity and policy compliance block every round, independently of finding severity. The executable helper carries failures as synthetic CRITICAL blockers; reports name the gate and failure evidence. Default review budget is three rounds; unresolved findings or failed required checks at the cap ask the user for a bounded extension under `SYNC:review-policy`. Failed checks never pass by severity deferral.
+> **Hard gates and rounds:** failed tests, required artifacts, security must-fix checks, generated parity and policy compliance block every round, independently of finding severity. The executable helper carries failures as synthetic CRITICAL blockers; reports name the gate and failure evidence. Default review budget is five rounds; unresolved findings or failed required checks at the cap ask the user for a bounded extension under `SYNC:review-policy`. Failed checks never pass by severity deferral.
 >
 > **Domain-vocabulary normalization and scores:**
 > - `BLOCKED`/`HARD FAIL`/`FAIL` are local blocking verdicts, not automatic CRITICAL; classify by consequence while preserving the owning gate. `WARN` can be any tier; `PASS`/compliant is not a finding. INFO/advisory remains observational unless material consequence is evidenced.
@@ -235,7 +235,7 @@ The protocols below are carried in full because only this mode needs them; the p
 
 **MUST ATTENTION Route:** scope/profile → spec/test/source package and preparation → eight gates and applicable AI lens → validate/deduplicate → verdict/report → stop.
 
-- **MUST ATTENTION** review-only reports once; fix-loop validates → fixes → freshly reviews within the shared three-round cap.
+- **MUST ATTENTION** review-only reports once; fix-loop validates → fixes → freshly reviews within the shared five-round cap.
 - **MUST ATTENTION** review-only and caller-owned leaves never edit; standalone fix-loop repairs validated findings at their owner and freshly re-reviews.
 - **MUST ATTENTION** preserve assertion value, owned outcome, repeatability, behavior ownership, traceability, three-way sync, change coverage, and fidelity.
 - **MUST ATTENTION** keep the conditional AI-surface lens and route deep findings to the AI reviewer within each current review pass.

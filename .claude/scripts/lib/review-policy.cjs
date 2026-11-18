@@ -10,17 +10,17 @@
  * was performed by a trusted host.
  *
  * Policy:
- *   - budget of three rounds (a ceiling, not a target);
+ *   - budget of five rounds (a ceiling, not a target);
  *   - round 1 blocks every finding except an explicitly deferred LOW;
  *     every applied fix needs a fresh review of the settled target;
  *   - from round 2 only CRITICAL/HIGH/MEDIUM findings block;
  *   - failed binary gates always block, at every round;
  *   - LOW findings deferred by the severity floor remain in the record;
- *   - all review blockers may use up to three rounds; remaining blockers
- *     at round 3 escalate; no automatic extension is available;
+ *   - all review blockers may use up to five rounds; remaining blockers
+ *     at round 5 escalate; no automatic extension is available;
  *   - every failed gate remains blocking at the cap; further work needs
  *     explicit user approval and a linked bounded run;
- *   - an explicit minRounds may require up to three rounds, but a clean
+ *   - an explicit minRounds may require up to five rounds, but a clean
  *     review still ends as soon as that minimum is reached.
  *
  * CLI (JSON stdin, real clock):
@@ -36,10 +36,10 @@ const SCHEMA_VERSION = 1;
 // Bump whenever the round eligibility predicate changes.  Existing durable
 // records are intentionally invalidated rather than interpreted under a new
 // severity floor; callers must start a fresh run with the current policy.
-const POLICY_VERSION = 7;
-// Every run has three review rounds; approved extensions use a linked bounded run.
-const MAX_ROUNDS = 3;
-const HARD_MAX_ROUNDS = 3;
+const POLICY_VERSION = 8;
+// Every run has five review rounds; approved extensions use a linked bounded run.
+const MAX_ROUNDS = 5;
+const HARD_MAX_ROUNDS = MAX_ROUNDS;
 const SEVERITIES = Object.freeze(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']);
 const NON_SEVERITY_STATES = Object.freeze(['NOT VERIFIABLE']);
 const LOW_FINDING_FLOOR_ROUND = 2;
@@ -102,7 +102,7 @@ function validateRound(value, label = 'round') {
 
 function validateMinRounds(value, explicit = false) {
     const candidate = value === undefined ? 1 : value;
-    // A declared minimum cannot exceed the three-round review ceiling.
+    // A declared minimum cannot exceed the five-round review ceiling.
     if (!Number.isSafeInteger(candidate) || candidate < 1 || candidate > MAX_ROUNDS) {
         throw new Error(`minRounds must be an integer from 1 to ${MAX_ROUNDS}`);
     }
@@ -212,7 +212,7 @@ function reviewBlockers(blocking = []) {
     return blocking.filter(blocker => !isFailingTestGate(blocker));
 }
 
-/** Retained API: the fixed three-round policy grants no extension. */
+/** Retained API: the fixed five-round policy grants no extension. */
 function grantsExtension() {
     return false;
 }
@@ -475,7 +475,7 @@ function recordRound(options) {
         }
         const expected = state.roundsCompleted + 1;
         if (round !== expected) throw new Error(`Expected next round ${expected}, received ${round}`);
-        // No run continues beyond its three-round review cap without a new approved run.
+        // No run continues beyond its five-round review cap without a new approved run.
         if (round > state.maxRounds) throw new Error('Review round budget exhausted; explicit user approval requires a linked bounded run');
         const record = {
             round,

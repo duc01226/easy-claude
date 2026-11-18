@@ -211,7 +211,7 @@ test('TC-HARNESS-006: plan review supports read-only and the shared fix-loop', a
     assert.match(text, /standalone defaults to review-only/i);
     assert.match(text, /fix-loop/i);
     assert.match(text, /fresh.*review/i);
-    assert.match(text, /three-round/);
+    assert.match(text, /five-round/);
     assert.match(text, /caller-owned leaves.*read-only/i);
     assert.doesNotMatch(text, /maxRounds = 1|ONE ROUND MAXIMUM/);
 });
@@ -346,7 +346,7 @@ test('TC-HARNESS-006: integration review supports both modes without weakening i
     assert.match(review, /standalone defaults to review-only/i);
     assert.match(review, /fix-loop.*eight gates/i);
     assert.match(review, /caller-owned leaves.*read-only/i);
-    assert.match(review, /three-round/);
+    assert.match(review, /five-round/);
     assert.doesNotMatch(review, /ONE ROUND MAXIMUM|maxRounds = 1/);
     for (const gate of [
         'Assertion value',
@@ -388,7 +388,7 @@ test('TC-HARNESS-006: seeded stale-policy mutant is rejected by exact-body parit
     const expected = canonicalBody(canonical, 'review-policy');
     const mutant = '<!-- SYNC:review-policy -->\n> maxRounds=2; LOW findings are discarded\n<!-- /SYNC:review-policy -->';
     assert.notEqual(body(mutant, 'review-policy'), expected);
-    assert.match(expected, /Default maximum is three review rounds/);
+    assert.match(expected, /Default maximum is five review rounds/);
     assert.match(expected, /checkpoint the report under `tmp\/reports\/`/);
 });
 
@@ -669,6 +669,22 @@ test('review mode authority stays consistent at repair branches and closing remi
     const experience = await read('.claude/skills/experience-review/SKILL.md');
     assert.match(experience, /Skip repairs in review-only, report-only, caller-owned passes or `--rounds=0`/);
     assert.match(experience, /numeric budget never grants repair authority/);
+    assert.match(experience, /integers `0–5`/);
+    assert.match(experience, /standalone `--fix-loop` defaults to `5`/);
+    assert.match(experience, /--fix-loop --rounds=1–5/);
+    const prReview = await read('.claude/skills/pr-review/SKILL.md');
+    assert.match(prReview, /Five rounds at most/);
+    for (const relative of ['.claude/skills/knowledge-review/SKILL.md', '.claude/skills/architecture/references/mode-full.md']) {
+        const review = stripSyncBlocks(await read(relative));
+        assert.match(review, /default cap five\./, `${relative} closing default must match the shared ceiling`);
+        assert.doesNotMatch(review, /default cap three\./);
+    }
+    for (const skill of ['ai-engineering-review', 'security-audit', 'performance-review']) {
+        const review = await read(`.claude/skills/${skill}/SKILL.md`);
+        assert.match(review, /maximum 5 validation passes/);
+    }
+    const uiReview = await read('.claude/skills/ui-design/references/mode-review.md');
+    assert.match(uiReview, /maximum 5 validation passes/);
     const rationale = await read('.claude/skills/why-review/SKILL.md');
     assert.doesNotMatch(rationale, /2 re-dos|3 full cycles/);
     assert.match(rationale, /Reconcile report defects in the current pass/);

@@ -70,8 +70,8 @@
 | Round    | Purpose                                     | Agent                                                 | Memory                 |
 | -------- | ------------------------------------------- | ----------------------------------------------------- | ---------------------- |
 | Round 1  | Proactive analysis or main-session analysis | Main session, or a domain-specific agent (e.g., `performance-optimizer`) when the round uses one | —                      |
-| Rounds 2–3 | Post-fix re-verification with fresh eyes  | Fresh pass; a NEW domain-specific agent when the round uses one | A sub-agent: ZERO memory; inline: re-read from disk |
-| Max      | 3 rounds                                    | Then escalate to user via `ask user question tool`           | —                      |
+| Rounds 2–5 | Post-fix re-verification with fresh eyes  | Fresh pass; a NEW domain-specific agent when the round uses one | A sub-agent: ZERO memory; inline: re-read from disk |
+| Max      | 5 rounds                                    | Then escalate to user via `ask user question tool`           | —                      |
 
 **Key rules:**
 

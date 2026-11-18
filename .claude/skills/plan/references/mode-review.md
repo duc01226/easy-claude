@@ -1,6 +1,6 @@
 # `/plan --mode=review` — plan review modes
 
-> Read in full on `/plan --mode=review [--review-only|--fix-loop]`. Standalone defaults to review-only; fix-loop repairs validated findings and freshly reviews, up to three rounds. Caller-owned leaves stay read-only. Apply the entrypoint’s shared `review-policy`.
+> Read in full on `/plan --mode=review [--review-only|--fix-loop]`. Standalone defaults to review-only; fix-loop repairs validated findings and freshly reviews, up to five rounds. Caller-owned leaves stay read-only. Apply the entrypoint’s shared `review-policy`.
 
 ## Quick Summary
 
@@ -24,7 +24,7 @@
 
 ## Modes and Round Ownership
 
-Create tasks for triage/plan, review, findings validation, authorized fixes, fresh re-review and final checks before execution. In review-only, run the full domain pass once and hand off. In fix-loop, validate findings, repair at the owner, then freshly review the settled target. Keep one shared three-round budget and the LOW/extension rules in `review-policy`; caller-owned leaves never start another loop or edit.
+Create tasks for triage/plan, review, findings validation, authorized fixes, fresh re-review and final checks before execution. In review-only, run the full domain pass once and hand off. In fix-loop, validate findings, repair at the owner, then freshly review the settled target. Keep one shared five-round budget and the LOW/extension rules in `review-policy`; caller-owned leaves never start another loop or edit.
 
 ## Scope and Evidence
 
@@ -149,7 +149,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 >
 > **Consequence decision tree:** check binary gates separately, then select the first evidenced tier from CRITICAL → HIGH → MEDIUM → LOW. Missing evidence is **NOT VERIFIABLE**, not a fifth tier or a LOW fallback: name the missing proof. Unsettled reachability is NOT VERIFIABLE for potential MEDIUM+ impact and an observation for polish. Claims potentially affecting required behavior, security, privacy, authority, availability, data integrity or a gate remain evidence blockers until proved or explicitly owner-accepted with scope, rationale and residual risk. Owner acceptance does not make an open MEDIUM a clean pass or a failed gate pass.
 >
-> **Hard gates and rounds:** failed tests, required artifacts, security must-fix checks, generated parity and policy compliance block every round, independently of finding severity. The executable helper carries failures as synthetic CRITICAL blockers; reports name the gate and failure evidence. Default review budget is three rounds; unresolved findings or failed required checks at the cap ask the user for a bounded extension under `SYNC:review-policy`. Failed checks never pass by severity deferral.
+> **Hard gates and rounds:** failed tests, required artifacts, security must-fix checks, generated parity and policy compliance block every round, independently of finding severity. The executable helper carries failures as synthetic CRITICAL blockers; reports name the gate and failure evidence. Default review budget is five rounds; unresolved findings or failed required checks at the cap ask the user for a bounded extension under `SYNC:review-policy`. Failed checks never pass by severity deferral.
 >
 > **Domain-vocabulary normalization and scores:**
 > - `BLOCKED`/`HARD FAIL`/`FAIL` are local blocking verdicts, not automatic CRITICAL; classify by consequence while preserving the owning gate. `WARN` can be any tier; `PASS`/compliant is not a finding. INFO/advisory remains observational unless material consequence is evidenced.
@@ -190,7 +190,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 **MUST ATTENTION Main steps:** resolve goal/plan/evidence → read checklist owner → challenge rationale → validate findings → report and hand off → stop.
 
-- **MUST ATTENTION** review-only reports once; fix-loop validates → fixes → freshly reviews within the shared three-round cap.
+- **MUST ATTENTION** review-only reports once; fix-loop validates → fixes → freshly reviews within the shared five-round cap.
 - **MUST ATTENTION** resolve the active Goal Contract and emit its Goal Satisfaction matrix before a PASS verdict.
 - **MUST ATTENTION** review-only and caller-owned leaves never edit; standalone fix-loop repairs validated plan findings and freshly re-reviews.
 - **MUST ATTENTION** challenge purpose, necessity, alternatives, trade-offs and proof; keep the report concise.
@@ -202,5 +202,5 @@ The protocols below apply to this mode only; their full text is inline so this r
 | Evasion | Required action |
 | --- | --- |
 | "Fixing it is faster" | Review-only/caller-owned passes report the correction; standalone fix-loop repairs validated findings before fresh review. |
-| "One more round will prove it" | Review-only stops after its pass; fix-loop uses the shared three-round cap and asks before a bounded extension. |
+| "One more round will prove it" | Review-only stops after its pass; fix-loop uses the shared five-round cap and asks before a bounded extension. |
 | "The report mentions the trade-off" | Hand off every unconfirmed material decision in the returned verdict. |

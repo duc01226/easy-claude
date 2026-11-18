@@ -125,7 +125,7 @@ Read the full report. Apply the fresh-eyes protocol:
 - Do consumer-required sections retain valid syntax/data? Unsupported sections are omitted or explicitly dispositioned, not filled to satisfy a heading.
 - Does each section improve an action or discovery decision? Check exceptions, rationale and exemplar fit; put audit/coverage evidence in the report unless needed for action or required by the local owner.
 
-**Round 3 only if Round 2 finds issues.** Max 3 rounds → escalate to user if unresolved. (Clean Round 1 ends the scan; fresh-eyes is mandatory only after issues are found and fixed.)
+**Continue through Round 5 only while the preceding round finds issues.** Max 5 rounds → escalate to user if unresolved. (Clean Round 1 ends the scan; fresh-eyes is mandatory only after issues are found and fixed.)
 
 > **Authoring branch (init mode):** if the target entry defines one (e.g. `design-system` authors the canonical doc + token `.scss`), follow it exactly — including any **sentinel removal** (e.g. "First: REMOVE `PLACEHOLDER_MARKER_SCSS`") and regen-marker prepend.
 
@@ -178,7 +178,7 @@ Read the full report. Apply the fresh-eyes protocol:
 - **MUST ATTENTION** load the registry and target entry first; derive detection/search terms from evidence and honor Content Rules, Special slivers and Anti-Rationalization exceptions.
 - **MUST ATTENTION** verify every emitted path/name/claim and generated projection; cite `file:line`, document above 80% confidence, label 60–80% unresolved, omit below 60%. An optional graph is only a hint; trace source callers when absent. Absence is neither a scan limitation nor a finding.
 - **MUST ATTENTION** use small tracked tasks: one per phase/worker plus final quality review. Sub-agents append incremental findings to unique shards; tag PAR/SEQ tasks, dispatch each disjoint PAR wave together and reconcile at the barrier; the main agent is sole writer. Do not ask whether to skip a clear one-target scan.
-- **MUST ATTENTION** clean Round 1 ends the scan; after Round 1 finds and fixes issues, Round 2 fresh-eyes review is mandatory; Round 3 runs only if Round 2 finds issues (max 3 rounds).
+- **MUST ATTENTION** clean Round 1 ends the scan; after Round 1 finds and fixes issues, Round 2 fresh-eyes review is mandatory; continue through Round 5 only while the preceding round finds issues (max 5 rounds).
 - **MUST ATTENTION** preserve manual guidance and semantic dispositions; reject/reconcile live-byte conflicts, write nothing for no-ops, and advance full-scan freshness only for a full owner scan.
 - **MUST ATTENTION** report evidence-backed review-group/rule recommendations through project-config; write only the selected doc and existing authorized convention output, never review policy or tool installation.
 

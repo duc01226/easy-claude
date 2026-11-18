@@ -1418,6 +1418,10 @@ const integrationTests = [
                 const output = path.join(tmpDir, 'handbook', 'reference', 'performance-test-reference.md');
                 const { isPlaceholderFile } = require('../../lib/session-init-helpers.cjs');
                 assertEqual(fs.readFileSync(output, 'utf8'), fs.readFileSync(template, 'utf8'));
+                assertTrue(
+                    fs.readFileSync(output, 'utf8').includes('default maximum five rounds'),
+                    'New projects inherit the shared five-round review ceiling'
+                );
                 assertEqual(isPlaceholderFile(output), true, 'Copied performance scaffold remains recognizable for project authoring');
                 assertTrue(!fs.existsSync(path.join(docsDir, 'project-reference', 'performance-test-reference.md')));
                 fs.writeFileSync(output, '# Project preferences\n\nKeep the accepted latency budget.\n');

@@ -16,7 +16,7 @@ const tests = [
             );
             assert.equal(policy.evaluateRound({ round: 2, findings: [{ id: 'low', severity: 'LOW' }] }).canComplete, true);
             assert.equal(
-                policy.evaluateRound({ round: 3, findings: [{ id: 'low', severity: 'LOW' }], hardGates: [{ id: 'tests', kind: 'test', status: 'FAIL' }] })
+                policy.evaluateRound({ round: 5, findings: [{ id: 'low', severity: 'LOW' }], hardGates: [{ id: 'tests', kind: 'test', status: 'FAIL' }] })
                     .status,
                 'ESCALATE'
             );

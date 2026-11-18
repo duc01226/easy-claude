@@ -206,7 +206,7 @@ test('TC-HARNESS-006: review consumers name the executable canonical policy', as
     const policy = await import(pathToFileURL(path.join(repoRoot, '.claude', 'scripts', 'lib', 'review-policy.cjs')).href);
     assert.match(shared, /## SYNC:review-policy/);
     assert.match(shared, /blockingFindings\(round, findings, hardGates\)/);
-    assert.equal(policy.MAX_ROUNDS, 3);
+    assert.equal(policy.MAX_ROUNDS, 5);
     assert.deepEqual(policy.blockingFindings(2, [{ id: 'low', severity: 'LOW' }]), [], 'round-two LOW floor must be executable, not merely prose');
     assert.equal(policy.blockingFindings(2, [], [{ id: 'tests', status: 'FAIL' }]).length, 1, 'binary gates remain blocking at the LOW floor');
 });

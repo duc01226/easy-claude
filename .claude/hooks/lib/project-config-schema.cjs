@@ -1610,7 +1610,7 @@ const SCHEMA = {
                 required: false,
                 enumValues: ['lightweight', 'risk-based'],
                 describe:
-                    'Default lightweight: automatically run commit-review --fix-loop for commits at every risk tier, at most three rounds. risk-based restores Low skip / Medium why-review / High changes-review. Does not change PR whole-branch reviews, tests, receipts or Git authority. Later overrides: ~/.claude/.ck.json, .claude/.ck.local.json, CK_COMMIT_REVIEW_MODE.'
+                    'Default lightweight: automatically run commit-review --fix-loop for commits at every risk tier, at most five rounds. risk-based restores Low skip / Medium why-review / High changes-review. Does not change PR whole-branch reviews, tests, receipts or Git authority. Later overrides: ~/.claude/.ck.json, .claude/.ck.local.json, CK_COMMIT_REVIEW_MODE.'
             },
             fixOriginTrailer: {
                 type: 'boolean',

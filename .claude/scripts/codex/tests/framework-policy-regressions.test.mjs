@@ -420,14 +420,14 @@ test('plan creation never runs --mode=review and reviews its own plan with why-r
     const plan = await read('.claude/skills/plan/SKILL.md');
     assert.match(plan, /Plan creation never runs `--mode=review` or `--mode=execute`/);
     // Business intent: a generated plan gets an independent rationale review and its fixes before the user validates it:
-    // one round, or a fix loop of up to three rounds for a high-risk full-profile plan
+    // one round, or a fix loop of up to five rounds for a high-risk full-profile plan
     assert.match(
         plan,
         /## Self-Review Pass[\s\S]*run one `\/why-review --review-only` pass on the saved plan \(it validates its own findings and edits nothing\)[\s\S]*one review pass and one fix pass, with no second review round/
     );
     assert.match(
         plan,
-        /A full-profile plan with a one-way, cross-module, public-contract, data or security decision runs the pass as a fix loop[^\n]*up to three rounds/
+        /A full-profile plan with a one-way, cross-module, public-contract, data or security decision runs the pass as a fix loop[^\n]*up to five rounds/
     );
     assert.match(plan, /A workflow owns this run and lists its own `\/plan --mode=review` step\*\* — that step reviews the plan/);
     assert.match(
@@ -481,7 +481,7 @@ test('plan review reports once by default and fixes only under the shared opt-in
     assert.match(review, /review-only writes only the report/);
     assert.match(review, /run the full domain pass once and hand off/);
     assert.match(review, /fix-loop repairs validated findings, then repeats the complete review/i);
-    assert.match(review, /one shared three-round budget/);
+    assert.match(review, /one shared five-round budget/);
     assert.match(review, /caller-owned leaves never start another loop or edit/);
     assert.match(planSkill, /Plan creation never runs `--mode=review`/);
     assert.match(planSkill, /When `--mode=review`, read `references\/mode-review\.md` in full FIRST/);
@@ -494,7 +494,7 @@ test('plan review reports once by default and fixes only under the shared opt-in
 // Protect the mode contract, not retired phase numbering or unlimited test retries.
 function assertChangesReviewFixLoop(text) {
     assert.match(text, /Review-only is the standalone default/);
-    assert.match(text, /`--fix-loop` enables the shared three-round loop/);
+    assert.match(text, /`--fix-loop` enables the shared five-round loop/);
     assert.match(text, /--loop-owner=caller/);
     assert.match(text, /triage every changed file/i);
     assert.match(text, /tasks for triage, review, validation, fixes, fresh re-review and final checks/);

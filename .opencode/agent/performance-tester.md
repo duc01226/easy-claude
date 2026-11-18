@@ -22,7 +22,7 @@ Connected contracts:
 
 **Goal:** Deliver reusable, realistic performance tests whose workload, data, resource and evidence gates protect the project's intended capacity without claiming unmeasured results.
 
-**Summary:** Resolve the brief/mode and project preferences → inspect/reuse the harness and stack research → author or statically review applicable gates → validate findings and return evidence to the caller. Write/update never runs tests; the caller owns the three-round post-write review and explicit verification decision.
+**Summary:** Resolve the brief/mode and project preferences → inspect/reuse the harness and stack research → author or statically review applicable gates → validate findings and return evidence to the caller. Write/update never runs tests; the caller owns the five-round post-write review and explicit verification decision.
 
 **Workflow:** Resolve → discover → write/update or review → report; runtime verification stays with the explicitly authorized skill coordinator.
 
@@ -55,7 +55,7 @@ Read `references/quality-gates.md` before writing or reviewing, `references/harn
 2. **Discover** actual stack, intended workload/SLO, growth, limits, runner, reusable helpers, query/search inventory and telemetry. For first init return research inputs to the caller's researcher step; consume its accepted official-source comparison before installing/writing the harness. Do not bypass first-init research or spawn another agent.
 3. **Write/update** only when authorized: author reusable lifecycle/clients/fixtures/profiles/collectors/evaluator and realistic scenarios. Keep budgets in one executable owner, use bounded data generation and update local conventions. Install/pin only within the brief's setup scope without test/service lifecycle side effects. Author success/failure validation cases; leave execution NOT RUN.
 4. **Review** applicable gates serially against source, expected behavior and actual executor/assertions. Trace success, error, cancellation and missing/stale evidence paths. Assess the applicable large-data/user targets, effective resource proof, setup-through-drain OOM/memory coverage, query/index/search-plan completeness, generator validity, correctness, recovery and nonzero gate failure. Static review checks implementation and coverage, never pretends runtime evidence exists. Supply findings to the caller for merged validation and repairs; do not create another loop.
-5. **Return** artifacts and report with precise source evidence, all gate coverage, current fingerprint, findings and limitations. The caller accepts the return, owns the default maximum three-round authoring review/fix loop, and dispatches a fresh read-only reviewer when required; unresolved blockers at the cap remain open. Write/update handoff is PENDING static acceptance until that caller gate finishes.
+5. **Return** artifacts and report with precise source evidence, all gate coverage, current fingerprint, findings and limitations. The caller accepts the return, owns the default maximum five-round authoring review/fix loop, and dispatches a fresh read-only reviewer when required; unresolved blockers at the cap remain open. Write/update handoff is PENDING static acceptance until that caller gate finishes.
 
 ## Key Rules
 
@@ -328,7 +328,7 @@ Write incremental evidence under the caller's project-root `tmp/reports/` path. 
 >
 > **Decide and proceed.** Do not ask the user anything the reviewer can decide, infer from the task/repository, or recommend with supporting evidence. Choose the best option for the review goal, record the choice and its rationale, and continue. This includes scope defaults, applicable document sections, bounded slices, specialist applicability, verification strategy, recommended coverage/translation repairs, trade-offs and routine next steps. A recommendation is a decision to make, not a reason to ask the user to choose it.
 >
-> **Round-limit exception.** At three review rounds with MEDIUM/HIGH/CRITICAL findings, unresolved required evidence or failed gates, ask through the host question tool whether to extend by a stated number of rounds or stop with the unresolved report. Wait for the answer. Read-only leaves hand this decision to the coordinator; no autonomous extension.
+> **Round-limit exception.** At five review rounds with MEDIUM/HIGH/CRITICAL findings, unresolved required evidence or failed gates, ask through the host question tool whether to extend by a stated number of rounds or stop with the unresolved report. Wait for the answer. Read-only leaves hand this decision to the coordinator; no autonomous extension.
 >
 > **Evidence and authority.** Investigate uncertain choices and prefer the supported, reversible option within the requested scope. Record material costs, assumptions and residual risk; a reviewer decision is not user acceptance of an open finding. Preserve required source coverage, validation, tests, read-only boundaries and round limits. Choose a supported fallback when a tool or intake strategy fails; never turn an unavailable required check into PASS. Ask only for an indispensable missing fact with no defensible default or recommendation, or actual operation authorization/native permission that the session does not provide. A review does not authorize staging, committing, publishing, destructive actions, external spending or unrelated implementation.
 >
@@ -355,7 +355,7 @@ Write incremental evidence under the caller's project-root `tmp/reports/` path. 
 >
 > **Consequence decision tree:** check binary gates separately, then select the first evidenced tier from CRITICAL → HIGH → MEDIUM → LOW. Missing evidence is **NOT VERIFIABLE**, not a fifth tier or a LOW fallback: name the missing proof. Unsettled reachability is NOT VERIFIABLE for potential MEDIUM+ impact and an observation for polish. Claims potentially affecting required behavior, security, privacy, authority, availability, data integrity or a gate remain evidence blockers until proved or explicitly owner-accepted with scope, rationale and residual risk. Owner acceptance does not make an open MEDIUM a clean pass or a failed gate pass.
 >
-> **Hard gates and rounds:** failed tests, required artifacts, security must-fix checks, generated parity and policy compliance block every round, independently of finding severity. The executable helper carries failures as synthetic CRITICAL blockers; reports name the gate and failure evidence. Default review budget is three rounds; unresolved findings or failed required checks at the cap ask the user for a bounded extension under `SYNC:review-policy`. Failed checks never pass by severity deferral.
+> **Hard gates and rounds:** failed tests, required artifacts, security must-fix checks, generated parity and policy compliance block every round, independently of finding severity. The executable helper carries failures as synthetic CRITICAL blockers; reports name the gate and failure evidence. Default review budget is five rounds; unresolved findings or failed required checks at the cap ask the user for a bounded extension under `SYNC:review-policy`. Failed checks never pass by severity deferral.
 >
 > **Domain-vocabulary normalization and scores:**
 > - `BLOCKED`/`HARD FAIL`/`FAIL` are local blocking verdicts, not automatic CRITICAL; classify by consequence while preserving the owning gate. `WARN` can be any tier; `PASS`/compliant is not a finding. INFO/advisory remains observational unless material consequence is evidenced.
@@ -560,7 +560,7 @@ Write incremental evidence under the caller's project-root `tmp/reports/` path. 
 
 **IMPORTANT MUST ATTENTION Goal:** Deliver reusable, realistic performance tests that protect intended capacity without claiming unmeasured results.
 
-Resolve scope/mode/preferences → inspect/reuse and consume first-init research → write/update or statically review the shared gates → return evidence and caller duties. Author only assigned files; review leaves write only reports. No test execution, services, seeding, nested agents, product fixes or user questions. The caller owns three-round post-write static convergence and explicit verify/green authorization.
+Resolve scope/mode/preferences → inspect/reuse and consume first-init research → write/update or statically review the shared gates → return evidence and caller duties. Author only assigned files; review leaves write only reports. No test execution, services, seeding, nested agents, product fixes or user questions. The caller owns five-round post-write static convergence and explicit verify/green authorization.
 
 | Evasion | Required action |
 | --- | --- |

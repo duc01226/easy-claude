@@ -52,6 +52,8 @@ test('D2 clean scanner stops and corrected scanner requires fresh review in proc
     assert.match(scan, /Round 2 \(only after Round 1 finds and fixes issues/);
     assert.match(scan, /clean Round 1 ends the scan; after Round 1 finds and fixes issues, Round 2 fresh-eyes review is mandatory/);
     assert.match(scan, /Size does not waive the issue-triggered gate/);
+    assert.match(scan, /Continue through Round 5 only while the preceding round finds issues/);
+    assert.match(scan, /Max 5 rounds/);
     assert.doesNotMatch(scan, /Fresh sub-agent is non-negotiable/);
 });
 

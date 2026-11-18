@@ -131,7 +131,7 @@
           "trigger": "review-operation"
         },
         "review-policy": {
-          "summary": "Review-only or a three-round fix loop with explicit extension and fresh post-fix evidence",
+          "summary": "Review-only or a five-round fix loop with explicit extension and fresh post-fix evidence",
           "when": "deciding round eligibility, blocking findings or review state",
           "trigger": "review-operation"
         },

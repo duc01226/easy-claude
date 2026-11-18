@@ -123,7 +123,7 @@ const tests = [
             assert.match(text, /Verify-last \| Are tests authored with implementation and executed only after all implementation and static review\?/);
             assert.match(text, /Dependency order \| Do phases reflect real dependencies or disjoint ownership rather than ceremony\?/);
             assert.match(text, /In review-only, run the full domain pass once and hand off/);
-            assert.match(text, /one shared three-round budget and the LOW\/extension rules/);
+            assert.match(text, /one shared five-round budget and the LOW\/extension rules/);
             assert.match(text, /caller-owned leaves never start another loop or edit/);
         }
     },
