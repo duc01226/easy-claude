@@ -166,8 +166,11 @@ module.exports = {
                         assert.match(context, /resolve commit.reviewMode through .claude\/scripts\/lib\/commit-review-policy.cjs/);
                         assert.match(context, /default lightweight selects commit-review at every commit risk tier/);
                         assert.match(context, /Configured risk-based commits use Low skip \/ Medium why-review \/ High changes-review/);
-                        assert.match(context, /PR whole-branch scope always invokes changes-review --fix-loop at every risk tier/);
-                        assert.match(context, /changes-review always invokes whole-target why-review alongside applicable specialists/);
+                        assert.match(context, /PR whole-branch scope invokes workflow-review-changes --fix-loop at every risk tier/);
+                        assert.match(
+                            context,
+                            /runs changes-review for correctness and whole-target why-review through that child, plus applicable specialists and test-review/
+                        );
                         assert.match(context, /Each review has at most three rounds/);
                         assert.match(context, /Selected test\/review skills and their required nested calls remain eligible/);
                         assert.match(context, /explicitly requested workflow authorizes its required skill steps/);

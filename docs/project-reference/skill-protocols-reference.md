@@ -23,7 +23,7 @@ Two gates are always on: **adding** never stores raw wording — the skill draft
 
 | Target       | Scope | Name         | Description                                                      | Updated | Body |
 | ------------ | ----- | ------------ | ---------------------------------------------------------------- | ------- | ---- |
-| pull-request | exact | pr-local-ci-before-merge | Use when the pull-request skill prepares, readies or merges a PR in this repository — requires a local full CI run, the review fix loop and the docs-staleness check on the final head, each bypassed only on the user's explicit request. | 2026-11-17 | [pr-local-ci-before-merge.md](../project-protocols/pr-local-ci-before-merge.md) |
+| pull-request | exact | pr-local-ci-before-merge | Use when the pull-request skill prepares, readies or merges a PR in this repository — requires a local full CI run, the review fix loop and the docs-staleness check on the final head, each bypassed only on the user's explicit request. | 2026-11-18 | [pr-local-ci-before-merge.md](../project-protocols/pr-local-ci-before-merge.md) |
 | test-review | exact | test-review-framework-tests | Use when the test-review skill judges tests in this repository — adds the framework repository's own test conventions: owning test family, TC IDs, framework-repo guard, live source listing, pinned prose, cross-platform paths, suite totals and red-proof. | 2026-11-17 | [test-review-framework-tests.md](../project-protocols/test-review-framework-tests.md) |
 
 - **Target** — an exact skill name (`plan`), a glob (`*-review`), or `*` (all skills).

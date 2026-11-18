@@ -60,7 +60,7 @@ GitHub CI (`.github/workflows/ci.yml`) runs only when someone dispatches it: mer
 
 - **Local CI:** `node .claude/scripts/framework-ci.cjs --scope=changed` runs only the lanes and hook suites the changes against `origin/main` affect, working tree included (advisory). `--scope=full` runs every lane and the unfiltered hook aggregate with its count guard (merge evidence). `--plan` previews the selection without running it; one commit is `--base=<sha>~1 --head=<sha>`.
 - **GitHub CI, only when the user asks:** `gh workflow run ci.yml -f scope=changed -f ref=<branch|sha|refs/pull/<n>/merge>` (add `-f base=<sha>~1` for one commit), or `-f scope=full`. The pinned startup-install job runs on all three OSes in every run.
-- **Before a pull request merges:** run `--scope=full` locally on its final head, with no uncommitted changes and the target branch merged in, and `$changes-review --fix-loop` over the whole branch, and record the head SHA, command and lane summary in the PR. Leave either out only when the user explicitly asks to bypass, and record the bypass in the PR. The `pull-request` overlay `pr-local-ci-before-merge` (`docs/project-protocols/`) holds the full rules.
+- **Before a pull request merges:** run `$workflow-review-changes --fix-loop --tests=defer` over the whole branch, then `--scope=full` locally on the final clean head with the target branch merged in. Record the head SHA, command and lane summary in the PR. Leave either check out only when the user explicitly asks to bypass it, and record the bypass in the PR. The `pull-request` overlay `pr-local-ci-before-merge` (`docs/project-protocols/`) holds the full rules.
 
 ## TL;DR — What You Must Know Before Writing Any Code
 

@@ -58,7 +58,7 @@ const CK_SCHEMA = {
                 required: false,
                 enum: ['lightweight', 'risk-based'],
                 describe:
-                    'Default lightweight runs commit-review --fix-loop at every commit risk tier; risk-based restores Low skip / Medium why-review / High changes-review. PR whole-branch review always requires changes-review --fix-loop. Later wins: project config, ~/.claude/.ck.json, .claude/.ck.local.json, CK_COMMIT_REVIEW_MODE.'
+                    'Default lightweight runs commit-review --fix-loop at every commit risk tier; risk-based restores Low skip / Medium why-review / High changes-review. PR whole-branch review uses workflow-review-changes --fix-loop. Later wins: project config, ~/.claude/.ck.json, .claude/.ck.local.json, CK_COMMIT_REVIEW_MODE.'
             }
         }
     },

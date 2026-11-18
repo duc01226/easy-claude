@@ -265,11 +265,14 @@ test('TC-PDL-065: a severity consumer passes with a guide entry backed by a cano
     assert.equal(carriesSeverityRubric('<!-- SYNC:severity-rubric -->\n\n> Edited.\n\n<!-- /SYNC:severity-rubric -->', `${expected}\n`, expected), false);
 });
 
-test('TC-HARNESS-006: workflow owns fixes and fresh review after all reports', () => {
+test('TC-HARNESS-006: workflow owns fixes and reruns whole-target and test reviews after reports settle', async () => {
     const workflow = readSkillContract('.claude/skills/workflow-review-changes/SKILL.md');
+    const entry = JSON.parse(await read('.claude/workflows.json')).workflows['workflow-review-changes'];
     assert.match(workflow, /Wait for every report before fixing/);
     assert.match(workflow, /--loop-owner=caller/);
-    assert.match(workflow, /Only changes-review and why-review may repeat/);
+    assert.match(workflow, /Re-invoke `initial-changes-review` as `rerun N` on the whole settled target/);
+    assert.match(workflow, /Re-invoke `tests-review` as `rerun N` on that same target/);
+    assert.match(entry.preActions.injectContext, /Repeat initial-changes-review and tests-review on the whole settled target after each repair/);
     assert.match(workflow, /All other occurrences run at most once per workflow invocation/);
     assert.match(workflow, /Run the conditional domain refresh and docs-manager once/);
     assert.match(workflow, /A previously run specialist stays closed/);
