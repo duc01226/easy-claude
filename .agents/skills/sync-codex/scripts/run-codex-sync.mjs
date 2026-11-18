@@ -26,6 +26,7 @@ const require = createRequire(import.meta.url);
 const here = path.dirname(url.fileURLToPath(import.meta.url));
 const rootDir = path.resolve(here, "..", "..", "..", "..");
 const sourceScriptsDir = path.join(rootDir, ".claude", "scripts", "codex");
+const antigravityHooksSync = path.join(rootDir, ".claude", "scripts", "antigravity", "sync-hooks.mjs");
 const claudeMdGenerator = path.join(rootDir, ".claude", "skills", "ai-context-refresh", "scripts", "generate-claude-md.cjs");
 const techSpecGenerator = path.join(rootDir, ".claude", "skills", "tech-spec", "scripts", "generate-tech-specs.mjs");
 
@@ -517,6 +518,12 @@ async function main() {
                 const { syncWorkflowSkillContracts } = require(path.join(rootDir, ".claude", "scripts", "lib", "workflow-skill-contract.cjs"));
                 const updated = syncWorkflowSkillContracts(rootDir);
                 process.stdout.write(`[workflow-calls] updated: ${updated.length}\n`);
+            }
+            if (active[i].id === "hooks" || active[i].id === "sync-divergence") {
+                const check = active[i].id === "sync-divergence";
+                const result = await runCaptured(process.execPath, [antigravityHooksSync, ...(check ? ["--check"] : [])]);
+                relay(result);
+                if (result.code !== 0) throw Object.assign(new Error("Antigravity hook sync failed"), { exitCode: result.code || 1 });
             }
             await runStage(active[i], i + 1, active.length);
         } catch (err) {

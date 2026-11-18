@@ -74,17 +74,17 @@ Three core execution layers solve different failure modes. Specialized agents pl
 
 **1. Copy the framework folders into your project root.**
 
-The framework ships one canonical folder and two generated Codex-compatibility folders. Copy whichever surfaces you use; copy all three to get Claude Code and both Codex compatibility surfaces in one shot:
+The framework ships one canonical folder and two generated compatibility folders. Copy the surfaces you use:
 
 ```bash
 cp -r .claude  /path/to/your-project/.claude    # Claude Code — the source of truth (required)
 cp -r .codex   /path/to/your-project/.codex     # Codex agents, hooks, context parity (optional)
-cp -r .agents  /path/to/your-project/.agents    # Codex skill mirror generated from .claude/skills (optional)
+cp -r .agents  /path/to/your-project/.agents    # shared skill mirror and Antigravity workspace hooks (optional)
 ```
 
 `.claude/` is the canonical source. `.codex/` and `.agents/` (plus the root `AGENTS.md`) are **generated mirrors** — never edit them by hand; they are re-synced from `.claude/` by the AI-sync skills below.
 
-> No Codex? Copy only `.claude/`. The mirrors are regenerated on demand by `/sync-codex`.
+> Claude Code only? Copy just `.claude/`. The mirrors are regenerated on demand by `/sync-codex`.
 >
 > **Updating later?** Ask the agent to "update the skills framework to the latest version" (or run `/framework-update`, `$framework-update` on Codex). It downloads the `main` branch of this repository and merges it into your project, keeping your own skills, hooks, agents, settings and edits to framework files, then regenerates the Codex and OpenCode mirrors. It ends by listing the upgrade actions and notices your project has not handled yet (new settings to fill, checks to set up), and the agent runs them with your consent. Never copy over an installed framework: that reverts every framework file your project changed. Without an agent: `node .claude/skills/framework-update/scripts/update-from-upstream.mjs --dry-run`, then the same without `--dry-run`. A project that does not have the skill yet updates once from a clone of this repository with `node <easy-claude>/.claude/skills/framework-update/scripts/update-from-upstream.mjs --project=/path/to/your-project`. See [.claude/docs/framework-portability.md](.claude/docs/framework-portability.md#updating-an-installed-framework).
 
@@ -107,7 +107,7 @@ cp -r .agents  /path/to/your-project/.agents    # Codex skill mirror generated f
 
 `/project-init` surfaces the Codex mirror sync as a follow-up — run the AI-sync skill (step 3) when prompted.
 
-**3. Sync the Codex mirrors (only if you copied `.codex` or `.agents`).**
+**3. Sync the workspace mirrors for Codex or Antigravity.**
 
 The mirrors are derived from `.claude/`. After `/project-init` (or any time `.claude/` changes), regenerate them:
 
@@ -120,6 +120,10 @@ Equivalent CLI (no slash command needed):
 ```bash
 node .claude/skills/sync-codex/scripts/run-codex-sync.mjs   # standalone Codex sync, no npm required
 ```
+
+**Using Google Antigravity?** The same sync produces `.agents/hooks.json` and the shared skill
+mirror. Read the [Antigravity setup guide](.claude/docs/antigravity.md) for Node PATH, hook activation
+and supported events.
 
 > **Hook-only delivery — host requirements.** The universal rules, the workflow route and the skill-overlay reminder reach a session only through hooks. On Codex, trust the project and review the new handlers in `/hooks` after the first sync: until then Codex receives no universal rules and no route (no static fallback exists). OpenCode sub-agent delivery depends on the child session's first `chat.message` and is unverified. A host that runs no hooks is unsupported. Details: `.claude/docs/hooks/README.md#hook-only-delivery-host-requirements`.
 

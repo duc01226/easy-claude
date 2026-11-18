@@ -12,6 +12,10 @@ project can take them as-is and have them work, with nothing of this repository 
 hand-edit them — fix the `.claude/**` source and regenerate, or the next sync silently reverts you.
 A leak in a mirror means the leak is in the source.
 
+Antigravity shares the generated skill mirror in `.agents/skills/`. Its workspace hook
+group is generated separately in `.agents/hooks.json`. Read [Antigravity workspace support](antigravity.md)
+when configuring that host or changing its bridge.
+
 ## Contents
 
 - [What counts as a leak](#what-counts-as-a-leak)

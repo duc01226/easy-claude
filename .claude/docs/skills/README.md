@@ -63,6 +63,8 @@ Skills Activated: fix, investigate
 
 Skill loading activates instructions; execution performs their steps through the active host. Claude Code uses its `Skill` tool. Codex loads the registered `.agents/skills/<name>/SKILL.md` and follows it with available tools; OpenCode uses its native skill loader. A canonical `.claude/**` source read never changes the session's host. Read `.claude/docs/troubleshooting.md` when a discovered skill is incorrectly blocked on a foreign-host tool name.
 
+Antigravity uses the same generated workspace skills in `.agents/skills/`. Read [Antigravity workspace support](../antigravity.md) when installing its hooks or tracing how skill guidance reaches the next model call.
+
 1. **Detection**: Claude analyzes your message for trigger keywords
 2. **Activation**: Matching skills are loaded into context
 3. **Enhancement**: Skill knowledge guides the response

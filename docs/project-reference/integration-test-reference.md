@@ -36,6 +36,8 @@ The project uses a dependency-free CommonJS harness (`package.json:1-24`; `docs/
 
 Tooling and mirror tests use `node:test` under `.claude/scripts/tests/`, `.claude/scripts/codex/tests/`, and `.claude/scripts/opencode/tests/`. The hook aggregate discovers only its own `suites/`; it does not discover these tooling roots. Read `.claude/skills/sync-codex/scripts/run-codex-sync.mjs` when selecting their verification stages: it discovers test files itself, passes literal argv, serializes scripts-test files where the Node version supports the concurrency flag, and uses the same Node executable for that flag and child. Read `.claude/skills/sync-opencode/scripts/run-opencode-sync.mjs` when verifying an OpenCode surface; the Codex pipeline delegates to it only when `.opencode/` is present, running its writers before the Codex verify stages and its gates after them.
 
+Antigravity bridge checks run in the scripts-test stage. Read `.claude/scripts/tests/antigravity-hooks.test.cjs` when updating the bridge or its generated group. Each fixture uses a temporary workspace, launches the scripts with Antigravity-shaped input, and asserts the emitted decisions or context.
+
 Integration is process/filesystem based: `runHook` spawns `node`, merges test environment overrides, writes JSON to stdin, captures stdout/stderr, and kills timed-out children (`.claude/hooks/tests/lib/hook-runner.cjs:37-119`). No container, web server, database, broker, or service startup is configured (`docs/project-config.json`, `databases`, `messaging`, `api`, `infrastructure`).
 
 ## Test Base Classes

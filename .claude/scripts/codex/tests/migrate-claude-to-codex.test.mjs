@@ -284,6 +284,8 @@ test('sync-codex runner works from copied .claude without a root scripts folder'
     const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-sync-portable-'));
     try {
         await copyPortableCodexTooling(tempRoot);
+        const bridgeDir = path.join('.claude', 'scripts', 'antigravity');
+        await fs.cp(path.join(repoRoot, bridgeDir), path.join(tempRoot, bridgeDir), { recursive: true });
 
         const runnerTarget = path.join(tempRoot, '.claude', 'skills', 'sync-codex', 'scripts', 'run-codex-sync.mjs');
         await fs.mkdir(path.dirname(runnerTarget), { recursive: true });
@@ -320,6 +322,8 @@ test('sync-codex runner works from copied .claude without a root scripts folder'
         assert.equal(await pathExists(path.join(tempRoot, '.codex', 'scripts', 'codex', 'codex-notify.mjs')), false);
         assert.equal(await pathExists(path.join(tempRoot, 'scripts')), false);
         assert.equal(await pathExists(path.join(tempRoot, 'AGENTS.md')), true);
+        const antigravityConfig = JSON.parse(await fs.readFile(path.join(tempRoot, '.agents', 'hooks.json'), 'utf8'));
+        assert.match(antigravityConfig['easy-claude'].PreInvocation[0].command, /hook-bridge\.cjs PreInvocation$/);
     } finally {
         await fs.rm(tempRoot, { recursive: true, force: true });
     }

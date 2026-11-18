@@ -101,6 +101,7 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 | How lessons system works                    | [hooks/README.md](./hooks/README.md) — `/learn` skill + lessons read contract in the hook-delivered universal bundle |
 | How hooks intercept events                  | [hooks/README.md](./hooks/README.md) — hook catalog + lifecycle                                                 |
 | Hook execution order by event               | [hooks/README.md](./hooks/README.md) — hook catalog + execution order                                           |
+| Antigravity workspace setup and hook parity | [antigravity.md](./antigravity.md) — installation, runtime bridge and supported events                         |
 | Session lifecycle (init → compact → resume) | [hooks/README.md#session-lifecycle](./hooks/README.md#session-lifecycle)                                        |
 | Workflow detection and routing              | Default-on `workflow-route-inject.cjs` (gate) and `workflow-catalog-inject.cjs` (catalog), the only carriers of the route; per-person mode `ask` / `auto` / `off` (project default, `~/.claude/.ck.json`, `.claude/.ck.local.json`, env `CK_WORKFLOW_ROUTE_MODE`); definitions in `.claude/workflows.json` |
 | How to create custom hooks                  | [hooks/extending-hooks.md](./hooks/extending-hooks.md)                                                          |

@@ -265,6 +265,8 @@ async function buildHandoffFixture() {
         await fs.mkdir(path.dirname(path.join(tmp, rel)), { recursive: true });
         await fs.copyFile(path.join(repoRoot, ...rel.split('/')), path.join(tmp, rel));
     }
+    const bridgeDir = path.join('.claude', 'scripts', 'antigravity');
+    await fs.cp(path.join(repoRoot, bridgeDir), path.join(tmp, bridgeDir), { recursive: true });
     // An agent whose SYNC tags changed, and the opencode mirror still carrying the old set.
     await write(
         '.claude/agents/code-reviewer.md',
@@ -377,6 +379,13 @@ test('STAGE-006 a full sync regenerates the opencode agent mirror before the par
     assert.equal(verifyFresh.code, 0, `${verifyFresh.stdout}\n${verifyFresh.stderr}`);
     assert.ok(verifyFresh.calls.includes('opencode/sync-agents --check'), verifyFresh.calls.join('\n'));
     assert.deepEqual(verifyFresh.calls.filter(isOpencodeWrite), []);
+
+    const antigravityConfig = path.join(tmp, '.agents', 'hooks.json');
+    await fs.writeFile(antigravityConfig, '{}');
+    const staleAntigravity = await runHandoff(tmp, ['--only=sync-divergence']);
+    assert.equal(staleAntigravity.code, 1);
+    assert.match(staleAntigravity.stderr, /Missing or stale easy-claude group/);
+    assert.equal(await fs.readFile(antigravityConfig, 'utf8'), '{}');
 });
 
 test('STAGE-006 the opencode runner rejects --sync-only together with --verify-only', async () => {

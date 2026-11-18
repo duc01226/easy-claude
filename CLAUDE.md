@@ -161,7 +161,7 @@ docs/project-protocols/  (2 files)
 docs/project-reference/  (20 files)
 docs/release/  (1 files)
 docs/release-notes/  (2 files)
-docs/specs/  (33 files)
+docs/specs/  (34 files)
 docs/templates/  (1 files)
 ```
 
