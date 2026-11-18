@@ -29,6 +29,7 @@ const REPO_ROOT = path.resolve(HOOKS_DIR, '..', '..');
 const HOOK = path.join(HOOKS_DIR, 'core-principles-inject.cjs');
 const hook = require(HOOK);
 const { BYTES_PER_TOKEN } = require(path.join(HOOKS_DIR, 'lib', 'file-conventions.cjs'));
+const { CORE_TAG, readConciseProtocol } = require(path.join(HOOKS_DIR, 'lib', 'context-delivery.cjs'));
 const { runHook } = require(path.join(HOOKS_DIR, 'tests', 'lib', 'hook-runner.cjs'));
 const { isFrameworkRepo } = require(path.join(HOOKS_DIR, 'tests', 'lib', 'framework-repo-guard.cjs'));
 
@@ -568,7 +569,7 @@ const tests = [
             })
     },
     {
-        name: '[core-principles] TC-CEP-010 shipped canonical body and universal carrier name all three pillars (framework repo only)',
+        name: '[core-principles] TC-CEP-010 shipped principles name the pillars and both profiles route boundary work to QA questions',
         skip: IS_FRAMEWORK_REPO ? false : "asserts the framework repo's own canonical file (framework-repo signal)",
         fn: () => {
             const canonical = fs.readFileSync(path.join(REPO_ROOT, ...CANONICAL_REL), 'utf8').replace(/\r\n/g, '\n');
@@ -585,6 +586,13 @@ const tests = [
             }
             // The body must drive plan, implement and review, not only state the ideal
             for (const phase of [/\*\*Plan\*\*/, /\*\*Implement\*\*/, /\*\*Review\*\*/]) assert.match(body, phase);
+            const qaPointer = /trust, state, dependency, or resource boundaries[^\n]*system-design-qa\.md`/;
+            assert.match(body, qaPointer, 'compatible principles route boundary work to the catalog');
+            const concise = readConciseProtocol(REPO_ROOT, CORE_TAG);
+            assert.ok(concise, 'the concise carrier fits the runtime reader');
+            assert.match(concise, qaPointer, 'concise principles route boundary work to the same catalog');
+            const catalog = fs.readFileSync(path.join(REPO_ROOT, '.claude', 'docs', 'system-design-qa.md'), 'utf8').replace(/\r\n/g, '\n');
+            assert.match(catalog, /^# System design and QA questions$/m);
         }
     },
     {

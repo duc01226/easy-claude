@@ -15,7 +15,7 @@ Read this index when locating the authoritative document for a project question 
 - Resolve configured roots; regenerate category globs into a normalized unique-path union.
 - Compare broad `docs/**/*.md` results with the category union and expose every remainder.
 - Verify relationships and lookup paths; keep every path real, unique, and traceable to the current tree.
-- Index <!-- COUNT:markdown:authored -->614<!-- /COUNT --> unique authored Markdown files across 14 categories; `docs/` contains <!-- COUNT:markdown:docs -->73<!-- /COUNT --> files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
+- Index <!-- COUNT:markdown:authored -->615<!-- /COUNT --> unique authored Markdown files across 14 categories; `docs/` contains <!-- COUNT:markdown:docs -->73<!-- /COUNT --> files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
 
 ## Contents
 
@@ -45,7 +45,7 @@ Read this index when locating the authoritative document for a project question 
 
 ## Documentation System
 
-<!-- COUNT:markdown:authored -->614<!-- /COUNT --> unique authored markdown files across 14 indexed categories. Last scanned: 2026-10-22. Benchmark inventory/navigation impact verified: 2026-10-27.
+<!-- COUNT:markdown:authored -->615<!-- /COUNT --> unique authored markdown files across 14 indexed categories. Last scanned: 2026-10-22. Benchmark inventory/navigation impact verified: 2026-10-27.
 
 **Relocatable roots.** Resolve these configurable roots before running their category globs:
 
@@ -70,7 +70,7 @@ The **Reproducible scope** column states each glob relative to its category's ro
 | Knowledge Reports      |              2 | `docs/knowledge/**/*.md`                                                             |
 | Knowledge Packs        | <!-- COUNT:markdown:knowledge-packs -->3<!-- /COUNT --> | `*.md` in the packs directory named by `knowledge-base-reference.md` (default `docs/knowledge-base/`) |
 | Project Protocols      |              1 | `*.md` in the protocols directory named by `skill-protocols-reference.md` (default `docs/project-protocols/`) |
-| Framework Docs         |             43 | `.claude/docs/**/*.md`                                                                |
+| Framework Docs         |             45 | `.claude/docs/**/*.md`                                                                |
 | Skill Markdown         | <!-- COUNT:markdown:skills -->494<!-- /COUNT --> | `rg --files .claude/skills -g '*.md'`                                                 |
 
 The unique total is the normalized union returned by `rg --files` for Root-Level Docs, all `docs/**/*.md`, Framework Docs, and Skill Markdown. Design System is nested inside Project Reference, so its count is informative rather than additive. For this inventory, the authored/tracked scope includes generated protocol projections deliberately published as reader-facing documentation; Codex/OpenCode mirrors are excluded. Ignored dependency artifacts such as skill-local `.venv/` files are excluded.
@@ -161,8 +161,8 @@ easy-claude/
 │   │   └── stageshow-and-reusable-agent-skills.md
 │   ├── knowledge-base/                            # project knowledge packs + generated index.json; each pack is listed in knowledge-base-reference.md
 │   └── templates/                                 # 1 Feature Spec template
-├── .claude/docs/                                  # 43 framework docs
-│   ├── 25 direct Markdown files (includes README.md)
+├── .claude/docs/                                  # 45 framework docs
+│   ├── 27 direct Markdown files (includes README.md)
 │   ├── agents/                                    # 2
 │   ├── configuration/                             # 5
 │   ├── hooks/                                     # 3
@@ -315,6 +315,7 @@ Read `docs/project-config.json` first for any project question or task — paths
 | Architecture Decisions | asking why a project updates the framework itself from the upstream repository, and which update options were rejected | `0008-self-update-from-upstream.md` |
 | Templates              | writing a new detailed Feature Spec                                                                                                                                                | `detailed-feature-spec-template.md`                                                                         |
 | Release Notes          | checking release history                                                                                                                                                           | `docs/release/`, `docs/release-notes/`                                                                      |
+| Framework Docs | asking system design and QA questions for trust, state, dependency, or resource boundaries | `.claude/docs/system-design-qa.md` |
 | Framework Docs         | asking how hooks, skills, agents, workflows, or configuration work                                                                                                                 | `.claude/docs/README.md`                                                                                    |
 | Skill Markdown | designing, building, testing or reviewing capacity, hot paths, caches or scaling | `.claude/skills/shared/protocols/measured-capacity-engineering.md` |
 | Skill Markdown | designing realistic capacity experiments or proving safe cache placement — read §10.1 and §6.1 | `.claude/skills/performance-review/references/performance-knowledge.md` |

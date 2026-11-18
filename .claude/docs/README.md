@@ -137,6 +137,7 @@ Unprefixed filenames resolve inside the project-reference docs root — default 
 | `feature-spec-reference.md`                                  | Feature doc templates, app/service mapping                  |
 | `domain-entities-reference.md`                               | Domain entity catalog, relationships, cross-service sync    |
 | [skill-naming-conventions.md](./skill-naming-conventions.md) | Skill naming rules and prefix guide                         |
+| [System design and QA questions](./system-design-qa.md) | Read before designing, implementing or reviewing work that affects trust, state, dependency or resource boundaries |
 | `.claude/skills/shared/protocols/measured-capacity-engineering.md` | Read when designing, testing or reviewing capacity, hot paths, cache placement or scaling — shared decision contract |
 | `.claude/skills/performance-review/references/performance-knowledge.md` §6.1, §10.1 | Read when proving safe cache placement or designing a workload-defined capacity experiment |
 | [configuration/README.md](./configuration/README.md)         | Settings schema, permissions, hooks config                  |
