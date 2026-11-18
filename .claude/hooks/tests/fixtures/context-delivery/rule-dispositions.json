@@ -5,7 +5,7 @@
     "universal-1": "dfc0605fdce45f2064f405f4f997ad2c07c772e78c3d5925226a988276d1ee28",
     "universal-2": "b1d5ec9ac73d85f578ac5426e830006f1b426a1038edb84337f46ec6c758dbf4",
     "universal-3": "e02ba4fe62b665e8c9e75aa1f83d7a10da1ca401c12b787d9449202a082eb496",
-    "universal-4": "807fcf02efa377e73f45aaf274683baf618474e6910c759f9d2a6a20cbaa55ed",
+    "universal-4": "1214715843fe0dbf1a83e74e8100871802b9ad4fe2db484848337635e0fff6e4",
     "route": "46422fdacf61e11928a242baf5170b8d56abe1f5652d1cb524554b971ce3e994",
     "catalog": "bc4b08b2e295377737dd97273815b824d794d3371216564a0e561bd4af204c8a",
     "core": "8f07a0dcf0c4b4c945e920de0ca0a08d23d4e24c644238f9ed00c823d185d3cd"
@@ -951,7 +951,7 @@
       "id": "universal-4:16",
       "source": "universal-4",
       "line": 16,
-      "sha256": "ceaf711b216f8d973ae18db3bd8f8883443fb06ef752ba88fdd3033cbc3b1203",
+      "sha256": "8e13ea183c2077977de6d54a80146b87de38187cb59321791195537e5717ab9e",
       "disposition": "defer",
       "destination": ".claude/skills/shared/protocols/quality-skill-routing.md",
       "readWhen": "choosing a registered skill for investigation, planning, decisions, design, mock-ups, testing, review, pull requests, fixes, lessons, performance or documentation",
