@@ -57,14 +57,14 @@ test('risk-based commits retain tier selection including the Low-risk skip', t =
     }
 });
 
-test('every PR risk tier requires changes-review regardless of commit preferences', t => {
+test('every PR risk tier selects the whole-branch review workflow regardless of commit preferences', t => {
     const f = fixture(t);
     for (const mode of policy.MODES) {
         f.write(f.team, { commit: { reviewMode: mode } });
         for (const risk of policy.RISKS) {
             const pr = policy.decideReview({ ...f, risk, operation: 'pull-request' });
             assert.equal(pr.action, 'review');
-            assert.equal(pr.skill, 'changes-review');
+            assert.equal(pr.skill, 'workflow-review-changes');
             assert.equal(pr.risk, risk, 'review depth must not rewrite the assessed branch risk');
             assert.equal(pr.maxRounds, 3);
             assert.equal(pr.source, 'pull-request');
@@ -136,7 +136,7 @@ test('the read-only CLI reports its selected review and refuses unknown argument
     assert.equal(JSON.parse(result.stdout).skill, 'changes-review');
     const pr = run(['--operation=pull-request', '--risk=low']);
     assert.equal(pr.status, 0, pr.stderr);
-    assert.equal(JSON.parse(pr.stdout).skill, 'changes-review');
+    assert.equal(JSON.parse(pr.stdout).skill, 'workflow-review-changes');
     assert.equal(JSON.parse(pr.stdout).action, 'review');
     assert.deepEqual(fs.readFileSync(f.team), before);
     assert.equal(run(['--risk=high', '--risk=low']).status, 1);

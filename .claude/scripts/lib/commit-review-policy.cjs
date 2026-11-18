@@ -185,11 +185,21 @@ function decideReview(options = {}) {
     const operation = options.operation || 'commit';
     if (!['commit', 'pull-request'].includes(operation)) throw new Error('Expected operation: commit or pull-request');
     if (!RISKS.includes(options.risk)) throw new Error(`Expected risk: ${RISKS.join(', ')}`);
-    // Every PR needs a real whole-branch review, independently of commit preferences.
-    const settings = operation === 'pull-request' ? { mode: 'risk-based', source: 'pull-request', layers: [] } : resolveCommitReviewMode(options);
-    // PRs use changes-review's full depth while the result retains the assessed branch risk.
-    const reviewRisk = operation === 'pull-request' ? 'high' : options.risk;
-    return { operation, risk: options.risk, ...settings, ...selectReview(reviewRisk, settings.mode) };
+    // The PR review workflow owns the whole branch independently of commit preferences.
+    if (operation === 'pull-request') {
+        return {
+            operation,
+            risk: options.risk,
+            mode: 'risk-based',
+            source: 'pull-request',
+            layers: [],
+            action: 'review',
+            skill: 'workflow-review-changes',
+            maxRounds: require('./review-policy.cjs').MAX_ROUNDS
+        };
+    }
+    const settings = resolveCommitReviewMode(options);
+    return { operation, risk: options.risk, ...settings, ...selectReview(options.risk, settings.mode) };
 }
 
 function main(argv = process.argv.slice(2)) {

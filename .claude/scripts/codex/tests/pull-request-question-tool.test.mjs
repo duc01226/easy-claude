@@ -17,7 +17,7 @@ function section(text, heading, nextHeading) {
     return text.slice(start, end);
 }
 
-test('PR test and review gates decide automatically and never display a test/review question', () => {
+test('TC-WFR-019 PR gates use the required whole-branch workflow without a test or review question', () => {
     for (const text of [source, codex]) {
         for (const [heading, nextHeading] of [
             ['### Step 3.5', '### Step 4'],
@@ -31,12 +31,13 @@ test('PR test and review gates decide automatically and never display a test/rev
         assert.match(tests, /resolve every failure at its owning layer until all pass/);
         assert.match(tests, /that is a \*\*Blocker\*\*, not a skip/);
         const review = section(text, '### Step 4', '### Step 5');
-        assert.match(review, /Every PR risk tier runs `[/$]changes-review --fix-loop`, with at most three review rounds over the whole scope/);
+        assert.match(review, /Every PR risk tier runs `[/$]workflow-review-changes --fix-loop`, with at most three review rounds over the whole scope/);
         assert.match(review, /no risk tier permits an automatic skip/);
-        const dispatch = review.slice(review.indexOf('**Choose one review coordinator.**'));
-        assert.match(dispatch, /By default run `[/$]changes-review --fix-loop` directly/);
-        assert.match(dispatch, /When the user requests the full workflow, run `[/$]workflow-review-changes --fix-loop` as the coordinator/);
-        assert.match(dispatch, /Its registered `changes-review --fix-loop --loop-owner=caller` child satisfies the required call/);
+        assert.match(review, /Invoke `[/$]workflow-review-changes --fix-loop --target=branch --base=<base-ref> --staged` inline/);
+        assert.match(review, /as a required nested workflow/);
+        assert.match(review, /runs its registered `changes-review` child with `--loop-owner=caller`/);
+        assert.match(review, /issues the `workflow-review-changes` receipt/);
+        assert.match(review, /Pass `--tests=defer` when the PR's named verifier owns execution/);
         assert.match(review, /Invoke the selected skill on every PR run/);
         assert.match(review, /A failed review is not a skip: never mint one to get past it/);
         const contract = section(text, '## User Choice Contract', '## Related');

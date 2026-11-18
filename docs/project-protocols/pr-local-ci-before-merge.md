@@ -3,8 +3,8 @@ name: pr-local-ci-before-merge
 description: Use when the pull-request skill prepares, readies or merges a PR in this repository — requires a local full CI run, the review fix loop and the docs-staleness check on the final head, each bypassed only on the user's explicit request.
 target: pull-request
 scope: exact
-version: 1.3.0
-updated: 2026-11-17
+version: 1.4.0
+updated: 2026-11-18
 tags: [ci, merge-gate]
 ---
 
@@ -16,7 +16,7 @@ Every `pull-request` run in this repository: creating, finishing or readying a p
 
 1. Before marking the PR ready, and again before any merge, run `node .claude/scripts/framework-ci.cjs --scope=full` on the PR's final head with no uncommitted changes (its `Tree:` line reads `(clean)`), after `git fetch origin` and with `origin/<target>` merged into the branch (no `Behind` line), and require exit 0. — why: GitHub CI is manual-only, so the local full run is this project's merge evidence.
 2. Use `--scope=changed` only between iterations, and record it as advisory, never as merge evidence. — why: changed scope can miss suites that scan whole directories.
-3. Run `/changes-review --fix-loop` over the whole branch after the last code change and before the final local run. — why: review fixes change code the local run must cover.
+3. Run `/workflow-review-changes --fix-loop --tests=defer` over the whole branch after the last code change. The full local run in rule 1 owns execution and covers the reviewed branch, including any review fixes.
 4. Record in the PR body: the head SHA, the command, the lane summary (lanes, pass/fail counts) and the review rounds. — why: reviewers cannot see local runs.
 5. When the PR head or its target branch changes after the local run, run it again before merge. — why: evidence binds to one tree.
 6. Only when the user explicitly asks in this session to bypass, naming the PR, may the local run (rule 1) or the review loop (rule 3) be left out; record `Local CI: bypassed at user request — <reason>` or `Review: bypassed at user request — <reason>` in the PR body. — why: a bypass must stay visible.

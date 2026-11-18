@@ -1894,7 +1894,7 @@ And with ask, the ask route arrives
 
 **Objective:** Prove that the route the assistant receives in ask and auto, and the off notice, each say that a workflow required by a skill step, a named skill or a running parent workflow is part of that run, while a workflow the assistant chooses by itself still asks (ask and auto) or is not started (off).
 
-**Business Intent / Invariant Guarded:** A skill the user invoked keeps its documented flow — a pull-request run reaches its review workflow without a question and without being skipped — while the person's ask and off policy still binds every workflow the assistant picks on its own (BR-WFR-13).
+**Business Intent / Invariant Guarded:** A skill the user invoked keeps its documented flow. A pull-request run reaches `workflow-review-changes` over the whole staged branch in every risk tier. The person's ask and off policy still binds every workflow the assistant picks on its own (BR-WFR-13).
 
 **Traces:** AC-WFR-19 / BR-WFR-13
 
@@ -1904,7 +1904,7 @@ And with ask, the ask route arrives
 
 **Real-World Reachability:** A user asks for a pull request; the skill's own step runs the review workflow.
 
-**Demo Flow:** Run the hook in ask, auto and off and read the delivered text.
+**Demo Flow:** Run the hook in ask, auto and off and read the delivered text. Check the pull-request entry point uses the required workflow coordinator and carries the branch scope to it.
 
 ```gherkin
 Given a project in mode ask, auto or off
@@ -1913,6 +1913,7 @@ Then the ask and auto route each say a workflow required by a skill step, a name
 And the off notice says off governs only a workflow the assistant chooses to start
 And the ask route still says a self-chosen catalog workflow never starts before the answer
 And the off notice still says not to choose or start a workflow by itself
+And the pull-request skill invokes the required workflow with whole staged branch scope without a review question
 ```
 
 **Expected Result:**
@@ -1946,7 +1947,7 @@ And the off notice still says not to choose or start a workflow by itself
 
 > **Evidence:** `[Source: operation/hooks/workflow-route-inject]`
 > **Related Behaviors:** `operation/hooks/workflow-route-inject` · `test/hooks/review-fix-r2-routing-pins`
-> **CoveredBy:** `.claude/hooks/tests/suites/review-fix-r2-routing-pins.test.cjs::[review-fix-r2-routing] TC-WFR-019 the ask and auto routes carry the required-workflow clause and a self-chosen workflow still asks first`, `.claude/hooks/tests/suites/review-fix-r2-routing-pins.test.cjs::[review-fix-r2-routing] TC-WFR-019 the off notice carries the required-workflow clause and a self-chosen workflow is still not started`, `.claude/hooks/tests/suites/review-fix-r2-routing-pins.test.cjs::[review-fix-r2-routing] TC-WFR-019 start-workflow and the configuration guide state the required-workflow clause` · **Status:** Tested
+> **CoveredBy:** `.claude/hooks/tests/suites/review-fix-r2-routing-pins.test.cjs::[review-fix-r2-routing] TC-WFR-019 the ask and auto routes carry the required-workflow clause and a self-chosen workflow still asks first`, `.claude/hooks/tests/suites/review-fix-r2-routing-pins.test.cjs::[review-fix-r2-routing] TC-WFR-019 the off notice carries the required-workflow clause and a self-chosen workflow is still not started`, `.claude/hooks/tests/suites/review-fix-r2-routing-pins.test.cjs::[review-fix-r2-routing] TC-WFR-019 start-workflow and the configuration guide state the required-workflow clause`, `.claude/scripts/codex/tests/pull-request-question-tool.test.mjs::TC-WFR-019 PR gates use the required whole-branch workflow without a test or review question` · **Status:** Tested
 
 ---
 

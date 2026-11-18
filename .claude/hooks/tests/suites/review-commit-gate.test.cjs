@@ -235,7 +235,8 @@ const ENFORCE_TESTS = [
                     const blocked = prGate(fx.repoA, 'gh pr create --base main --title "t" --body "b"');
                     assert.equal(blocked.code, 2, 'no receipt: refused');
                     assert.match(blocked.stderr, /--target=branch --base='main'/);
-                    assert.match(blocked.stderr, /\/changes-review --fix-loop at every risk tier/);
+                    assert.match(blocked.stderr, /\/workflow-review-changes --fix-loop at every risk tier/);
+                    assert.match(blocked.stderr, /\/workflow-review-changes --fix-loop --target=branch --base='main' --staged/);
                     assert.match(blocked.stderr, /Only an explicit user request to skip review permits a skip/);
                     assert.doesNotMatch(blocked.stderr, /\/why-review --fix-loop|auto: low risk/);
                     assert.equal(prGate(fx.repoA, 'gh pr ready').code, 2, 'ready is gated too');
@@ -243,8 +244,8 @@ const ENFORCE_TESTS = [
                     assert.equal(prGate(fx.repoA, 'gh pr create --draft --title t --body b'), undefined, 'a draft asks for no merge; ready is gated');
                     assert.equal(prGate(fx.repoA, 'gh pr view'), undefined, 'reads pass');
 
-                    api.recordAttestation({ repository: fx.repoA, kind: 'changes-review', now: reviewed.capturedAt - 1 });
-                    issueCandidate(api, fx.store, reviewed, 'changes-review');
+                    api.recordAttestation({ repository: fx.repoA, kind: 'workflow-review-changes', now: reviewed.capturedAt - 1 });
+                    issueCandidate(api, fx.store, reviewed, 'workflow-review-changes');
                     assert.equal(prGate(fx.repoA, 'gh pr create --base main --title "t" --body "b"'), undefined, 'reviewed branch passes');
                     assert.equal(prGate(fx.repoA, 'gh pr ready feature'), undefined, 'naming the checked-out branch is the same pull request');
                     // With a valid receipt in place, these refusals can only come from their own rules.
@@ -866,7 +867,7 @@ const tests = [
             assert.match(message, /\/commit-review --fix-loop\s+# default lightweight: every commit tier/);
             assert.match(message, /\/why-review --fix-loop\s+# risk-based commit mode: medium risk/);
             assert.match(message, /\/changes-review --fix-loop\s+# risk-based commit mode: high risk/);
-            assert.match(message, /For a pull request, follow its whole-branch changes-review --fix-loop policy/);
+            assert.match(message, /For a pull request, follow its whole-branch workflow-review-changes --fix-loop policy/);
             assert.match(message, /resolve commit.reviewMode with .claude\/scripts\/lib\/commit-review-policy.cjs/);
             assert.match(message, /Lightweight mode never selects an automatic skip/);
             assert.match(
@@ -881,7 +882,6 @@ const tests = [
                     `at most ${require('../../../scripts/lib/review-policy.cjs').MAX_ROUNDS} review rounds\\. MEDIUM\\+ findings still open at the cap: stop and report, no commit, no skip`
                 )
             );
-            assert.match(message, /\/workflow-review-changes --fix-loop also issues a valid receipt when the user asks for the full workflow/);
 
             // The coordinator delegates selection; executable policy tests own tier behavior.
             const commitSkill = fs.readFileSync(path.resolve(__dirname, '../../../skills/commit/SKILL.md'), 'utf8');
@@ -1875,8 +1875,7 @@ const STATUS_TESTS = [
                 const { result, fake } = publishStatus(api, fx);
                 assert.equal(result.status, 'REFUSED', 'a recorded skip is not a review');
                 assert.match(result.reason, /no review receipt matches pull request #7/);
-                assert.match(result.reason, /\/changes-review --fix-loop/);
-                assert.match(result.reason, /--target=branch --base=main/);
+                assert.match(result.reason, /\/workflow-review-changes --fix-loop --target=branch --base=main --staged/);
                 assert.match(result.reason, new RegExp(`Review-Bypass-Parent: ${headOf(fx.repoA)}`));
                 assert.deepEqual(fake.posts(), [], 'nothing is posted');
                 // A receipt for the working tree before a later change does not cover the changed head.

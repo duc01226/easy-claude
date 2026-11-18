@@ -1068,8 +1068,8 @@ function noReceiptMessage({ pr, head, base, snapshot, attested }) {
             : `the branch has no change against its merge-base with ${base}`;
     return (
         `no ${attested ? 'attested ' : ''}review receipt matches pull request #${pr} at ${head} (${measured}). ` +
-        `Review the whole branch from this checkout: the pull-request skill's review step, or /changes-review --fix-loop ` +
-        `over the branch (snapshot --target=branch --base=${base}); commit everything it reviewed, push, and publish again ` +
+        `Review from this checkout with the pull-request skill's review step or /workflow-review-changes --fix-loop ` +
+        `--target=branch --base=${base} --staged. Commit everything it reviewed, push, and publish again ` +
         `while the receipt is live (${DEFAULT_LIFETIME_MS / 3600000} hours by default). To skip the review on purpose, make the ` +
         `branch's last commit an empty one whose message ends with the trailers Review-Bypass: true, Review-Bypass-Reason: <${BYPASS_REASON_MIN}-${BYPASS_REASON_MAX} characters>, ` +
         `Review-Bypass-PR: ${pr} and Review-Bypass-Parent: ${head}, push it, and publish again.`

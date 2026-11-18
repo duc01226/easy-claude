@@ -346,6 +346,7 @@ Given the changes review and the review workflow in each of its modes
 When a maintainer follows the test duty
 Then the changes review calls the test review on every pass, recording not applicable for a pass with nothing testable
 And when the duty is deferred, the workflow runs the test review as a gate step in every mode
+And after a repair, the next whole-target pass reruns that gate on the settled candidate
 ```
 
 **Expected Result:**
@@ -376,7 +377,7 @@ boundaryCounterCase: 'a documentation-only pass still calls the test review, whi
 
 > **Evidence:** `[Source: constraint/skills/changes-review]`
 > **Related Behaviors:** `constraint/workflows/workflow-review-changes`
-> **CoveredBy:** `.claude/hooks/tests/suites/test-review-gate.test.cjs::TC-TRV-002` · **Status:** Tested
+> **CoveredBy:** `.claude/hooks/tests/suites/test-review-gate.test.cjs::TC-TRV-002`, `.claude/scripts/codex/tests/review-policy-consumers.test.mjs::TC-HARNESS-006` · **Status:** Tested
 
 #### TC-TRV-003: Every test layer has an existing review owner [P0]
 
