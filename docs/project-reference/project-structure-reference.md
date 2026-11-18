@@ -27,6 +27,7 @@ Read `.claude/docs/framework-portability.md` when changing portable framework co
 | `.claude/settings.json` → `hooks` | Resolving a lifecycle event's registered commands, matchers and timeouts | `.claude/settings.json:30–496` |
 | `.claude/hooks/session-init.cjs` | Tracing startup, resume, clear and persisted session/workflow state | `.claude/hooks/session-init.cjs:313–330` |
 | `.claude/hooks/lib/hook-runner.cjs` | Selecting normalized hook-event and result/error handling | `.claude/hooks/lib/hook-runner.cjs:294–323` |
+| `.agents/hooks.json` | Tracing Antigravity workspace events into the shared hook registry. Read `.claude/docs/antigravity.md` when setting up or changing the bridge. | `.claude/scripts/antigravity/sync-hooks.mjs`, `.claude/scripts/antigravity/hook-bridge.cjs` |
 | `.claude/skills/<name>/SKILL.md` | Executing a named task contract; discover current names through the skill catalog | `.claude/scripts/scan_skills.py:127–175` |
 | `.claude/workflows.json` + `.claude/scripts/lib/workflow-manifest.cjs` | Resolving workflow occurrences, variants, roles and outcome gates | `.claude/scripts/lib/workflow-manifest.cjs:162–212` |
 | `.claude/hooks/notifications/notify.cjs` | Tracing main-session alerts and configured providers | `.claude/hooks/notifications/notify.cjs:122–171,232–282,326–344` |

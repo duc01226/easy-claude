@@ -166,7 +166,7 @@ Many skills follow the same shared protocols — evidence rules, review rules, t
 
 ### US-PDL-05: Every load path on every host delivers
 
-**As a** developer using any of the three assistant hosts
+**As a** developer using a supported assistant host
 **I want** each way a skill can load to deliver its protocols
 **So that** my host choice does not change the rules the assistant follows
 
@@ -176,6 +176,9 @@ Many skills follow the same shared protocols — evidence rules, review rules, t
 - **AC-PDL-13** — **Given** the second host **When** a prompt names a skill, a shell command reads a skill file, or an agent that preloads skills starts **Then** the declared protocols are delivered within a per-message allowance of 3,000, and every delivery step that existed before renders exactly as before
 - **AC-PDL-14** — **Given** the third host **When** the skill tool loads a skill or a skill file is read **Then** the declared protocols are appended to that result; the host's missing agent-start and prompt-expansion triggers are reported as not available
 - **AC-PDL-15** — **Given** the second-host inline list **When** the second host's skill copy is generated **Then** listed protocols are full text and all others are guide entries; the decided list is empty
+- **AC-PDL-37** — **Given** an enabled Antigravity workspace **When** the assistant reads a workspace skill's projected definition **Then** its declared guidance reaches the next model call once; the bridge leaves unrelated conversations untouched
+
+See the [Antigravity test specification](README.ProtocolDelivery-Part2.md#tc-pdl-126-an-antigravity-workspace-skill-read-reaches-the-next-model-call-p1).
 
 ### US-PDL-06: Delivery costs nothing on unrelated events
 
@@ -360,7 +363,7 @@ Delivery at agent start is registered with no agent-type filter, so every agent 
 
 The budget is **per event and per host**: the added wall time of all delivery steps registered on one event, measured through the host's real start path (the primary host's own command, the second host's generated start command, the third host's bridge, which starts matching steps together, at most eight at once, and merges their outcomes in configured order).
 
-- IF a file that is not a skill file is read THEN no delivery step starts, on every host: the primary host filters the read with a handler condition on the skill file name; the third host's bridge checks the same condition before it starts anything; the second host registers no read step.
+- IF a file that is not a skill file is read THEN no delivery step starts: the primary host filters the read by skill file name; the third host and Antigravity check the condition in their bridges before they start a delivery handler; the second host registers no read step.
 - IF no such filter applies (events that are not tool uses, and the second host) THEN each step ends on a non-matching event before it loads any project module.
 - On the second host, delivery steps use a lean start path without the version-control lookup that other steps run.
 - Budget for a non-matching event: at most one bare host-path start per registered step plus 10 ms each, where the bare start is a no-op step through that same host path. The budget is measured, not asserted as a timing in a test; tests assert the deterministic parts (no project module loaded; no start for a non-skill read; no version-control lookup on the lean path). The reference figures are recorded in ADR-0004.
@@ -412,7 +415,8 @@ The published text — one file per protocol in use plus the protocol index (gro
 - **Primary host:** delivery steps for each group on the skill-use event, the skill-file read (with the skill file condition), the typed-command expansion and agent start (BR-PDL-08). The typed command and the assistant's own skill choice are separate triggers, so both are registered.
 - **Second host:** the prompt event (the host has no typed-command expansion, so that trigger is remapped to the prompt), the shell-read event (BR-PDL-06) and agent start; the skill-use and file-read steps are not mirrored because the host has neither tool, and each skip is recorded with its reason. Every added row and every skip is pinned by the host-surface check, and a new or changed step needs the user's handler review.
 - **Third host:** the skill tool and the file read, through the bridge; agent start and typed-command expansion are reported as not available on that host. The third host's prompt event is not a protocol load path.
-- Every delivery step is a bare command with no arguments, so every host's generated start command resolves to an existing file.
+- **Antigravity:** a leading typed skill name and a supported skill-file read are load paths. After a read, guidance is delivered on the next model call, once for the originating conversation. There is no dedicated agent-start signal.
+- Every canonical delivery step addresses an existing hook with no extra arguments. A host that needs event translation may pass its event name to the workspace bridge.
 
 `[Source: rule/scripts/protocol-host-registration]`
 

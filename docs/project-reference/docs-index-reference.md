@@ -15,7 +15,7 @@ Read this index when locating the authoritative document for a project question 
 - Resolve configured roots; regenerate category globs into a normalized unique-path union.
 - Compare broad `docs/**/*.md` results with the category union and expose every remainder.
 - Verify relationships and lookup paths; keep every path real, unique, and traceable to the current tree.
-- Index <!-- COUNT:markdown:authored -->612<!-- /COUNT --> unique authored Markdown files across 14 categories; `docs/` contains <!-- COUNT:markdown:docs -->72<!-- /COUNT --> files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
+- Index <!-- COUNT:markdown:authored -->614<!-- /COUNT --> unique authored Markdown files across 14 categories; `docs/` contains <!-- COUNT:markdown:docs -->73<!-- /COUNT --> files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
 
 ## Contents
 
@@ -45,7 +45,7 @@ Read this index when locating the authoritative document for a project question 
 
 ## Documentation System
 
-<!-- COUNT:markdown:authored -->612<!-- /COUNT --> unique authored markdown files across 14 indexed categories. Last scanned: 2026-10-22. Benchmark inventory/navigation impact verified: 2026-10-27.
+<!-- COUNT:markdown:authored -->614<!-- /COUNT --> unique authored markdown files across 14 indexed categories. Last scanned: 2026-10-22. Benchmark inventory/navigation impact verified: 2026-10-27.
 
 **Relocatable roots.** Resolve these configurable roots before running their category globs:
 
@@ -84,7 +84,7 @@ easy-claude/
 ├── AGENTS.md                                      # Codex/agent instructions
 ├── CLAUDE.md                                      # Claude project instructions
 ├── README.md                                      # Project overview and adoption entry point
-├── docs/                                          # <!-- COUNT:markdown:docs -->72<!-- /COUNT --> markdown files
+├── docs/                                          # <!-- COUNT:markdown:docs -->73<!-- /COUNT --> markdown files
 │   ├── adr/                                       # 8 architecture decisions
 │   │   ├── 0001-skill-lifecycle.md
 │   │   ├── 0002-canonical-count-metrics.md

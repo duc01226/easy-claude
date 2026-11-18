@@ -161,13 +161,14 @@ function pushName(names, name) {
  */
 function detectHost(input) {
     if (!isPlainObject(input)) return 'claude';
+    if (input.ck_hook_host === 'antigravity') return 'antigravity';
     if (input.hook_event_name === 'UserPromptSubmit') return 'codex';
     if (input.hook_event_name === 'PostToolUse' && SHELL_TOOLS.has(input.tool_name)) return 'codex';
     return nonBlank(input.turn_id) ? 'codex' : 'claude';
 }
 
 function skillRootsFor(host) {
-    return host === 'codex' ? [SEG.claudeSkills, SEG.codexSkills] : [SEG.claudeSkills];
+    return host === 'codex' || host === 'antigravity' ? [SEG.codexSkills, SEG.claudeSkills] : [SEG.claudeSkills];
 }
 
 /**
@@ -572,7 +573,7 @@ function readTriggerContext(provider) {
  * @param {string}   [deps.projectRoot]  absolute project root (default: resolved from `input.cwd`)
  * @param {Function} [deps.readFile]     (absPath) => string|null; every file open goes through it
  * @param {Function} [deps.isDelivered]  (tag) => boolean; ledger view — delivered tags are not packed
- * @param {string}   [deps.host]         'claude' | 'codex' | 'opencode' (default: detected from the event)
+ * @param {string}   [deps.host]         'claude' | 'codex' | 'opencode' | 'antigravity' (default: detected from the event)
  * @param {Function} [deps.triggerContext]  () => {prompts, transcript}; lazy source for trigger-gated tags (default: none)
  * @returns {{text:string, tags:string[], full:string[], named:string[], summarized:string[]}} `tags` =
  *   every tag the message covers (full text, named path, or the summary line); `full` / `named` /
@@ -618,9 +619,13 @@ function planDeliveryUnsafe(input, group, deps) {
     for (const name of resolved.names) {
         // BR-PDL-11: an inline skill keeps its role protocols as full bodies, so no group delivers to it.
         if (inline.has(name)) continue;
-        const skillRoot = ctx.host === 'codex' ? SEG.codexSkills : SEG.claudeSkills;
-        const file = containedPath(root, skillRoot, [name, SKILL_FILE]);
-        const text = file && read(file);
+        const roots = ctx.host === 'antigravity' ? skillRootsFor(ctx.host) : [skillRootsFor(ctx.host)[0]];
+        let text;
+        for (const skillRoot of roots) {
+            const file = containedPath(root, skillRoot, [name, SKILL_FILE]);
+            text = file && read(file);
+            if (text !== null && text !== undefined) break;
+        }
         if (text === null || text === undefined) continue; // unresolved → its guides remain
         const skillTags = declaredTags(text);
         if (!skillTags) continue; // undeclared (pre-conversion) skill → inert (BR-PDL-01)

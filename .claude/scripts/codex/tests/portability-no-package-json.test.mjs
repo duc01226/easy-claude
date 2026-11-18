@@ -124,7 +124,7 @@ async function pipelineFiles() {
             else if (entry.isFile() && /\.(?:mjs|cjs|js)$/.test(entry.name)) files.add(child);
         }
     }
-    for (const relativeDir of ['.claude/scripts/codex/tests', '.claude/scripts/tests', '.claude/scripts/lib', '.claude/hooks']) {
+    for (const relativeDir of ['.claude/scripts/codex/tests', '.claude/scripts/antigravity', '.claude/scripts/tests', '.claude/scripts/lib', '.claude/hooks']) {
         await addJavaScriptTree(relativeDir);
     }
 
