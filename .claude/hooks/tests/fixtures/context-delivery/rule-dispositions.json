@@ -1,6 +1,6 @@
 {
   "version": 5,
-  "policyVersion": "10b13a61455fa808c84d1c5f677beb7c68d44f741283ceb3cfa6c74162642a99",
+  "policyVersion": "755fbf52802dc25881e2e893503b75b48f8ac5c3ee1100e2348cc47985a9ccb6",
   "sourceHashes": {
     "universal-1": "dfc0605fdce45f2064f405f4f997ad2c07c772e78c3d5925226a988276d1ee28",
     "universal-2": "b1d5ec9ac73d85f578ac5426e830006f1b426a1038edb84337f46ec6c758dbf4",
@@ -8,7 +8,7 @@
     "universal-4": "807fcf02efa377e73f45aaf274683baf618474e6910c759f9d2a6a20cbaa55ed",
     "route": "46422fdacf61e11928a242baf5170b8d56abe1f5652d1cb524554b971ce3e994",
     "catalog": "bc4b08b2e295377737dd97273815b824d794d3371216564a0e561bd4af204c8a",
-    "core": "d68c9cb3ceae0d77d7931703575c37e65cb8d4ff7fc36a0b8e50ca6fbd490a84"
+    "core": "8f07a0dcf0c4b4c945e920de0ca0a08d23d4e24c644238f9ed00c823d185d3cd"
   },
   "unit": "Every nonblank line of the seven frozen compatible payloads: `id` is `<payload>:<line>` and `sha256` hashes its text. `policyVersion` is the sha256 of the concise core and route texts the dispositions were reviewed against.",
   "dispositions": {
@@ -1868,10 +1868,16 @@
       "id": "core:8",
       "source": "core",
       "line": 8,
-      "sha256": "88b6cba40d49b93d48552c3324a6bed501a8860413b967c06c268bb31879434d",
-      "disposition": "defer",
-      "destination": ".claude/skills/shared/protocols/core-engineering-principles.md",
-      "readWhen": "planning, implementing or reviewing any change"
+      "sha256": "b05726f946a3090469f083bfb0ee56dfd2902184d3f136570ff95fdf8a805795",
+      "disposition": "merge",
+      "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
+      "fullSources": [
+        ".claude/skills/shared/protocols/core-engineering-principles.md"
+      ],
+      "anchors": [
+        "trust, state, dependency, or resource boundaries",
+        "first read `.claude/docs/system-design-qa.md`"
+      ]
     },
     {
       "id": "core:9",

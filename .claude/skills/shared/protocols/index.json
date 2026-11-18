@@ -239,12 +239,12 @@
       "group": "design",
       "summary": "Consolidated essential working and discovery contract",
       "when": "concise universal delivery",
-      "chars": 8950,
+      "chars": 8936,
       "file": ".claude/skills/shared/protocols/concise-agent-core.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/concise-agent-core.md",
-          "chars": 8950
+          "chars": 8936
         }
       ]
     },
@@ -281,12 +281,12 @@
       "group": "design",
       "summary": "Core quality gate: easy to change, easy to scale, easy to maintain, judged by future change cost",
       "when": "planning, implementing or reviewing any change",
-      "chars": 4117,
+      "chars": 4341,
       "file": ".claude/skills/shared/protocols/core-engineering-principles.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/core-engineering-principles.md",
-          "chars": 4117
+          "chars": 4341
         }
       ]
     },

@@ -36,7 +36,7 @@ Load specialized procedures when their trigger applies:
 | Failure diagnosis | Project investigation/test references and the registered `investigate`, `fix` or relevant test skill; preserve root-cause and test-integrity rules above. |
 | Scripts, launchers or filesystem behavior change | Matching path rules and `.claude/skills/shared/protocols/ai-mistake-prevention.md`; verify platform behavior and keep security boundaries. |
 | Framework source or projections change | `.claude/skills/shared/sync-inline-versions.md` and registered `sync-codex` skill; regenerate after final source changes, verify parity, preserve unmanaged root text and report overflow. Do not sync when no framework source changed. |
-| Review, planning or implementation needs domain depth | Matching project guide and selected skill; load detailed review, engineering, test or orchestration protocols only when applicable. |
+| Design, build or review | Use relevant project docs and skills. For affected trust, state, dependency, or resource boundaries, first read `.claude/docs/system-design-qa.md`. |
 | Model calls, prompts, agents, tools, retrieval or evals change | `.claude/skills/shared/protocols/ai-engineering-gate.md` and registered `ai-engineering-review` skill; treat untrusted content and model output as data, retain controls outside the model and require behavioral evidence before rollout. |
 
 For omitted rule detail, find the protocol by summary in `.claude/skills/shared/protocols/index.json` and read its file.

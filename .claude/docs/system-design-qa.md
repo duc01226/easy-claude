@@ -1,0 +1,17 @@
+# System design and QA questions
+
+Use these question pairs when the work affects trust, state, dependency, or resource boundaries. Select the concerns the actual system presents and state the observable outcome each check should prove. Reuse applicable scenarios, acceptance criteria, and tests from their existing owners. Research keywords suggest options to investigate. Choose an approach using project evidence and constraints.
+
+| Concern | Design question | QA check | Research keywords |
+| --- | --- | --- | --- |
+| Access and ownership | Who may act on which resources? How is scope preserved through alternate entry points and deferred work? | Try with insufficient authority and with valid authority for a different resource. Is each request denied before it exposes data or causes an effect? | Object-level authorization, tenant isolation |
+| Temporary authority | If access can be elevated, who grants it, what may it do, and when does it end? | Exercise scope, expiration, and revocation. Can an operator reconstruct the grant and its use? | Least privilege, time-bound access, audit trail |
+| Input and execution limits | What are the supported bounds and what outcome should an actor see at each boundary? | Check just below, at, and above a limit. Can partial processing appear successful or leave protected state inconsistent? | Payload limits, timeouts, input validation |
+| Success and follow-up | What does acknowledging success promise about the saved change and any required follow-up? | Interrupt execution immediately before and after the save. Can a reported success lose required work? Can a failed save trigger dependent work? | Atomicity, durable handoff, transactional outbox |
+| Interruption and repetition | What effects may be repeated, and when should recovery stop or escalate? | Interrupt work after an effect takes place and before completion is recorded. Does retry or replay preserve the required outcome? | Idempotency, leases, backoff |
+| Dependency failure | What must remain usable while a dependency is slow or unavailable? Which work must catch up? | Make one dependency fail, then recover. Can independent work continue and can the affected path account for outstanding work? | Failure isolation, replay, reconciliation |
+| Capacity and fairness | What limits apply across actors, workloads, and running instances? | Saturate one workload while peers are active. Do they still make the required progress as instances are added? | Concurrency budgets, quotas, backpressure |
+| Heavy or untrusted work | What impact may malformed, stalled, or resource-intensive work have on shared state and other operations? | Use a representative worst-case input or task. Do unaffected operations stay usable, and is the affected outcome visible? | Resource isolation, resource limits |
+| Status and recovery | How can users and operators distinguish accepted, in progress, completed, and failed work? | Given a stuck operation, can an operator trace what took effect and recover safely without repeating an effect? | Observability, correlation IDs, reconciliation |
+
+Read [the scenario stress catalog](scenario-stress-catalog.md#scenario-families) when failure or load needs deeper analysis. Record the evidence in the active scenario, plan, test, or review. At design time, name the proof to obtain. At implementation and review time, distinguish that planned proof from evidence already observed.
