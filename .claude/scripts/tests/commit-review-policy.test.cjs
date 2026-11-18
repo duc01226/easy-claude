@@ -40,7 +40,7 @@ test('requested commits select a real lightweight review at every risk tier by d
         const result = policy.decideReview({ ...f, risk });
         assert.equal(result.skill, 'commit-review');
         assert.equal(result.action, 'review');
-        assert.equal(result.maxRounds, 3);
+        assert.equal(result.maxRounds, 5);
         assert.equal(result.source, 'default');
     }
 });
@@ -66,7 +66,7 @@ test('every PR risk tier selects the whole-branch review workflow regardless of 
             assert.equal(pr.action, 'review');
             assert.equal(pr.skill, 'workflow-review-changes');
             assert.equal(pr.risk, risk, 'review depth must not rewrite the assessed branch risk');
-            assert.equal(pr.maxRounds, 3);
+            assert.equal(pr.maxRounds, 5);
             assert.equal(pr.source, 'pull-request');
         }
     }

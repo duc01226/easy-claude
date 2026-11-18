@@ -144,7 +144,7 @@ Choose inline/delegated execution, waves and batching at equal quality under `$s
 ## 6. Memory, Reporting and Fix Path
 
 - One phase task per phase, one row per selected step and per capability; write the run report under `tmp/reports/` FIRST and append per section — never hold findings in memory.
-- Findings are validated before fixing; fix only validated gaps that block the current round, in the owning spec role, then repeat the full `$work-item --mode=review --type=spec-tests` pass. Review loop: round 1 exits on zero open findings (LOW deferral); round 2 on zero CRITICAL/HIGH/MEDIUM with LOWs recorded as deferred; binary gates always block; cap 3 review rounds; escalate via `ask user question tool` on no progress.
+- Findings are validated before fixing; fix only validated gaps that block the current round, in the owning spec role, then repeat the full `$work-item --mode=review --type=spec-tests` pass. Review loop: round 1 exits on zero open findings (LOW deferral); round 2 on zero CRITICAL/HIGH/MEDIUM with LOWs recorded as deferred; binary gates always block; cap 5 review rounds; escalate via `ask user question tool` on no progress.
 - **Spec-loop discipline:** derive property cases with boundary counter-cases for every hard invariant; protected core logic uses the mutation-score gate, not line coverage; feed uncovered behavior into both spec and tests through a dual-feedback ledger until no new gap or hidden rule remains.
 - **Audit output:** `tmp/reports/spec-audit-{date}-{Bucket}.md` — stale capabilities/roles, stale coverage %, priority order, validated by `$why-review --validate-findings`; the close handoff recommends an `update` run scoped to the stale capabilities.
 

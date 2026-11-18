@@ -17,7 +17,7 @@ description: '[Code Quality] Use when a workflow step or the user asks for a foc
 
 **Workflow:** Resolve scope → plan/tasks → review, with the whole-target `$why-review` rationale pass, the whole-target `$test-review` pass and a `$performance-review` pass when the change can affect performance → validate → review-only report or fix/re-review → final checks and recap.
 
-**Key Rules:** Always invoke `$why-review` and `$test-review` on the whole target alongside applicable specialist reviews, even when there are no findings. Review-only is the standalone default; `--fix-loop` enables the shared three-round loop. `--loop-owner=caller` returns a read-only pass to its fixing coordinator. Use the carried `review-policy` protocol for completion and user-approved extensions.
+**Key Rules:** Always invoke `$why-review` and `$test-review` on the whole target alongside applicable specialist reviews, even when there are no findings. Review-only is the standalone default; `--fix-loop` enables the shared five-round loop. `--loop-owner=caller` returns a read-only pass to its fixing coordinator. Use the carried `review-policy` protocol for completion and user-approved extensions.
 
 > **Todo first:** create tasks for triage, review, validation, fixes, fresh re-review and final checks before execution; keep one task in progress and attach evidence when completed.
 
@@ -94,7 +94,7 @@ Read [references/fix-loop.md](references/fix-loop.md) before running a standalon
 - `measured-capacity-engineering` — Model demand, reduce measured work safely and prove capacity before scaling; planning, building, testing or reviewing hot paths, caches or capacity → .claude/skills/shared/protocols/measured-capacity-engineering.md
 - `output-quality-principles` — Readable guidance and verified contents for long skill/doc files; writing, updating or auditing a skill or reference document, or another Markdown artifact over 200 lines → .claude/skills/shared/protocols/output-quality-principles.md
 - `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
-- `review-policy` — Review-only or a three-round fix loop with explicit extension and fresh post-fix evidence; deciding round eligibility, blocking findings or review state → .claude/skills/shared/protocols/review-policy.md
+- `review-policy` — Review-only or a five-round fix loop with explicit extension and fresh post-fix evidence; deciding round eligibility, blocking findings or review state → .claude/skills/shared/protocols/review-policy.md
 - `review-principle-awareness` — Classify the change context first, then apply the current principles that fit it; starting any review → .claude/skills/shared/protocols/review-principle-awareness.md
 - `review-protocol-injection` — Verbatim template and protocol blocks for every fresh sub-agent review prompt; spawning a fresh sub-agent to review → .claude/skills/shared/protocols/review-protocol-injection.md
 - `sequential-thinking-protocol` — Structured multi-step reasoning with revision, branch and hypothesis markers; planning, debugging or reviewing complex or ambiguous work → .claude/skills/shared/protocols/sequential-thinking-protocol.md
@@ -296,7 +296,7 @@ Read [references/fix-loop.md](references/fix-loop.md) before running a standalon
 
 <!-- SYNC:review-policy:reminder -->
 
-**MUST ATTENTION** Triage all targets, plan and create review/validation/fix/fresh re-review tasks first. Review-only reports without edits; fix-loop freshly reviews every repair under one fixing owner. Default cap three rounds: disclose deferred LOWs, ask and wait before a bounded extension for MEDIUM+ or failed required checks. Preserve scope, coverage and actual operation authority.
+**MUST ATTENTION** Triage all targets, plan and create review/validation/fix/fresh re-review tasks first. Review-only reports without edits; fix-loop freshly reviews every repair under one fixing owner. Default cap five rounds: disclose deferred LOWs, ask and wait before a bounded extension for MEDIUM+ or failed required checks. Preserve scope, coverage and actual operation authority.
 
 <!-- /SYNC:review-policy:reminder -->
 
@@ -314,4 +314,4 @@ Read [references/fix-loop.md](references/fix-loop.md) before running a standalon
 
 **Main steps:** scope → triage/plan/tasks → connected review and mandatory whole-target `$why-review` and `$test-review`, plus domain entity quality when entities change and `$performance-review` when the diff can affect performance → findings validation → report or fix/fresh re-review → final checks.
 
-Preserve exact scope, evidence and applicable gates. Default review-only; fix-loop has three rounds, accepts deferred LOWs and asks about bounded extension for remaining MEDIUM+ or failed checks. Never accept stale pre-fix evidence.
+Preserve exact scope, evidence and applicable gates. Default review-only; fix-loop has five rounds, accepts deferred LOWs and asks about bounded extension for remaining MEDIUM+ or failed checks. Never accept stale pre-fix evidence.

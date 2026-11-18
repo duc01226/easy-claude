@@ -170,7 +170,7 @@ const tests = [
             const text = modeReview();
             assert.match(text, /Standalone defaults to review-only/);
             assert.match(text, /Review-only\/caller-owned leaves write reports only; the fix-loop owner performs authorized repairs/);
-            assert.match(text, /one shared three-round budget and the LOW\/extension rules/);
+            assert.match(text, /one shared five-round budget and the LOW\/extension rules/);
             assert.match(text, /caller-owned leaves never start another loop or edit/);
             assert.match(text, /validate findings, repair at the owner, then freshly review the settled target/);
             assert.match(text, /Never weaken assertions, add skips, widen timeouts, or rewrite source\/tests to force green/);

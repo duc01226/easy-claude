@@ -194,7 +194,7 @@ The decomposition lives in the frontmatter block `large_idea_decomposition`: fou
 - **AC-RVQ-15** — **Given** a consequential answer to any request — a question, an investigation, a design, a fix, or work in which the assistant chose an approach by itself **When** the answer ends **Then** the offer follows from the answer, never from how the request was worded; the assistant learns the rule and the active mode once per session, and again after the conversation is condensed, never in a helper agent
 - **AC-RVQ-16** — **Given** each decision-support mode **When** a consequential answer ends **Then** ask asks one question; suggest closes with one line naming the checks and asks nothing; auto runs the adversarial review on the draft before replying, folds its validated findings in, and asks about the decision interview only when choices that only the user can make remain; off makes no offer while the self-review stays; auto reads as ask while automatic skill selection is restricted, and a team default yields to a person's own choice
 - **AC-RVQ-17** — **Given** the first offer in a session **When** it names its checks **Then** each check gets one short clause on what it does, who does the work and its rough cost, plus how to change the mode; later offers stay one line; a saved plan may be offered its validation interview, decisions spanning sessions a decision map, and an irreversible high-stakes choice an adversarial advisor council, never more than two checks at once
-- **AC-RVQ-14** — **Given** a plan created standalone, with a user present **When** its self-review and validation chain end (or the chain exits) **Then** the assistant asks one question — execute now, deeper review first (up to three rounds), or stop — recommends one with its reason, and acts only on the answer; inside a workflow, when another skill runs plan creation, or when no user can be reached, no question is asked and the hand-back names the same three next steps
+- **AC-RVQ-14** — **Given** a plan created standalone, with a user present **When** its self-review and validation chain end (or the chain exits) **Then** the assistant asks one question — execute now, deeper review first (up to five rounds), or stop — recommends one with its reason, and acts only on the answer; inside a workflow, when another skill runs plan creation, or when no user can be reached, no question is asked and the hand-back names the same three next steps
 
 ---
 
@@ -232,7 +232,7 @@ IF a second list of review dimensions exists
 
 ### BR-RVQ-03: Plan review scales with the plan profile [HARD]
 
-**Statement:** A light plan's review runs goal alignment, future change cost, decision readiness and test, specification and documentation sync. A full plan's review runs every applicable dimension, outsider read included in any session. A plan that declares no profile is reviewed as full. Plan creation's own review pass is one round, except for a full-profile plan with a one-way, cross-module, public-contract, data or security decision: that pass becomes a fix loop of up to three rounds. Both also check that the outcome has a clear owner and specification with non-goals and no silent expansion, that discovery is bounded, and that the not-yet-specified list parks no product, contract or irreversible decision. The profile split and the plan-only checks are stated once, in the dimension list that plan review and plan creation's own review pass both read.
+**Statement:** A light plan's review runs goal alignment, future change cost, decision readiness and test, specification and documentation sync. A full plan's review runs every applicable dimension, outsider read included in any session. A plan that declares no profile is reviewed as full. Plan creation's own review pass is one round, except for a full-profile plan with a one-way, cross-module, public-contract, data or security decision: that pass becomes a fix loop of up to five rounds. Both also check that the outcome has a clear owner and specification with non-goals and no silent expansion, that discovery is bounded, and that the not-yet-specified list parks no product, contract or irreversible decision. The profile split and the plan-only checks are stated once, in the dimension list that plan review and plan creation's own review pass both read.
 
 | Plan profile | Dimensions run                                                             | Plan-only checks                             |
 | ------------ | -------------------------------------------------------------------------- | -------------------------------------------- |
@@ -276,7 +276,7 @@ IF an exemption holds
 
 ### BR-RVQ-11: A standalone plan ends with one next-step question [HARD]
 
-**Statement:** A plan created standalone reviews itself (one round, or up to three for a high-risk full-profile plan) and is validated with the user; it then ends with one question: execute now, deeper review first, or stop. The recommendation follows the plan's state: execute when no finding stayed open and validation passed, a deeper review when a finding stayed open, validation was skipped, or a full-profile plan carries a one-way or cross-module decision and its self-review ran one round or none; when both fit, the deeper review is recommended. Plan creation never starts execution or a review on its own; the answer starts it. A workflow, a calling skill or a context with no user gets no question.
+**Statement:** A plan created standalone reviews itself (one round, or up to five for a high-risk full-profile plan) and is validated with the user; it then ends with one question: execute now, deeper review first, or stop. The recommendation follows the plan's state: execute when no finding stayed open and validation passed, a deeper review when a finding stayed open, validation was skipped, or a full-profile plan carries a one-way or cross-module decision and its self-review ran one round or none; when both fit, the deeper review is recommended. Plan creation never starts execution or a review on its own; the answer starts it. A workflow, a calling skill or a context with no user gets no question.
 
 ### BR-RVQ-12: Each person chooses how a deeper check is offered [HARD]
 
@@ -399,7 +399,7 @@ No user interface: this capability changes how the assistant reviews and audits,
 
 | Step | Actor | Action | System Response | Next |
 | ---- | ----- | ------ | --------------- | ---- |
-| 1 | Planner | Saves the plan, reviews it (one round, or up to three for a high-risk full plan) and runs the validation interview | Reviewed, validated plan | 2 |
+| 1 | Planner | Saves the plan, reviews it (one round, or up to five for a high-risk full plan) and runs the validation interview | Reviewed, validated plan | 2 |
 | 2 | Planner | Asks one question with a reasoned recommendation: execute now, deeper review first, or stop | The question waits for the developer | 3 |
 | 3 | Developer | Picks one | Only the answer starts the next run; in a workflow, a calling skill or with no user, the hand-back names the three steps instead | — |
 
@@ -556,7 +556,7 @@ When the plan declares no profile
 Then it is reviewed as full
 And every profile also checks a clear owner with non-goals and no silent expansion, bounded discovery and the not-yet-specified list
 And plan creation's own review pass applies the same profile scaling and records each dimension's verdict
-And a high-risk full-profile plan gets a fix loop of up to three rounds; every other plan gets one round
+And a high-risk full-profile plan gets a fix loop of up to five rounds; every other plan gets one round
 ```
 
 **Expected Result:**
@@ -577,7 +577,7 @@ And a high-risk full-profile plan gets a fix loop of up to three rounds; every o
 
 ```yaml
 inputDomain: 'any saved plan declaring the light profile, the full profile or no profile, reviewed by plan review or by plan creation''s own pass, in the session that wrote it or a later one'
-invariant: 'for ALL such plans the review runs exactly the dimension set its profile selects in the one dimension list (no profile counts as full) plus the three plan-only checks, and plan creation''s own pass loops up to three rounds only for a full plan with a one-way, cross-module, public-contract, data or security decision'
+invariant: 'for ALL such plans the review runs exactly the dimension set its profile selects in the one dimension list (no profile counts as full) plus the three plan-only checks, and plan creation''s own pass loops up to five rounds only for a full plan with a one-way, cross-module, public-contract, data or security decision'
 boundaryCounterCase: 'a light plan → still gets the three plan-only checks; a full plan reviewed in a later session → still runs outsider read'
 ```
 

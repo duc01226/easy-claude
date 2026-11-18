@@ -164,7 +164,7 @@ const tests = [
             assert.equal(
                 (
                     read(SKILLS, 'plan', 'SKILL.md').match(
-                        /`\/why-review` self-review[^\n]*\(one round; up to three for a high-risk full-profile plan\)[^\n]*a standalone run ends with the one Standalone Close question/g
+                        /`\/why-review` self-review[^\n]*\(one round; up to five for a high-risk full-profile plan\)[^\n]*a standalone run ends with the one Standalone Close question/g
                     ) || []
                 ).length,
                 3,
@@ -174,7 +174,7 @@ const tests = [
             // And its depth follows the plan's risk: a high-risk full plan gets a fix loop, every other plan one round
             assert.match(
                 read(SKILLS, 'plan', 'SKILL.md'),
-                /A full-profile plan with a one-way, cross-module, public-contract, data or security decision runs the pass as a fix loop: review, fix, then freshly review the fixed plan, up to three rounds, stopping when a fresh pass finds no MEDIUM or higher finding\. For every other plan the loop runs one round/
+                /A full-profile plan with a one-way, cross-module, public-contract, data or security decision runs the pass as a fix loop: review, fix, then freshly review the fixed plan, up to five rounds, stopping when a fresh pass finds no MEDIUM or higher finding\. For every other plan the loop runs one round/
             );
             // Boundary: outsider read is never limited to the session that drafted the plan
             assert.doesNotMatch(text, /Outsider read[^\n]*only (when|in) (this|the) session/i);
@@ -370,7 +370,7 @@ const tests = [
             // One question with three options, after the validation chain ran or exited
             assert.match(
                 close,
-                /ends with one question through the host's question tool, after the validation chain ran or took one of its exits: \*\*execute now\*\* \(`\/plan --mode=execute <plan-path>`\) · \*\*deeper review first\*\* \(`\/plan --mode=review --fix-loop <plan-path>`, up to three rounds\) · \*\*stop here\*\*/
+                /ends with one question through the host's question tool, after the validation chain ran or took one of its exits: \*\*execute now\*\* \(`\/plan --mode=execute <plan-path>`\) · \*\*deeper review first\*\* \(`\/plan --mode=review --fix-loop <plan-path>`, up to five rounds\) · \*\*stop here\*\*/
             );
             // A reasoned recommendation, and only the answer starts the next run
             assert.match(

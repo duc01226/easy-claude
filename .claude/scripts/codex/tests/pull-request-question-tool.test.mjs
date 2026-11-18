@@ -31,7 +31,7 @@ test('TC-WFR-019 PR gates use the required whole-branch workflow without a test 
         assert.match(tests, /resolve every failure at its owning layer until all pass/);
         assert.match(tests, /that is a \*\*Blocker\*\*, not a skip/);
         const review = section(text, '### Step 4', '### Step 5');
-        assert.match(review, /Every PR risk tier runs `[/$]workflow-review-changes --fix-loop`, with at most three review rounds over the whole scope/);
+        assert.match(review, /Every PR risk tier runs `[/$]workflow-review-changes --fix-loop`, with at most five review rounds over the whole scope/);
         assert.match(review, /no risk tier permits an automatic skip/);
         assert.match(review, /Invoke `[/$]workflow-review-changes --fix-loop --target=branch --base=<base-ref> --staged` inline/);
         assert.match(review, /as a required nested workflow/);
@@ -86,7 +86,7 @@ test('concise commit retains project inputs and configured review without boiler
         assert.doesNotMatch(text.replaceAll('project configuration and ', ''), projectInputs, 'project configuration is required');
         assert.doesNotMatch(text.replaceAll(' and matching skill overlays', ''), projectInputs, 'matching skill overlays are required');
         assert.match(text, /commit-review-policy\.cjs --operation=commit/);
-        assert.match(text, /default `[/$]commit-review --fix-loop`, at most three rounds/);
+        assert.match(text, /default `[/$]commit-review --fix-loop`, at most five rounds/);
         assert.match(text, /current matching review evidence/);
         assert.doesNotMatch(text, /Estimate:|Reviewers:|PROTOCOL-GUIDES|Closing Reminders/);
     }

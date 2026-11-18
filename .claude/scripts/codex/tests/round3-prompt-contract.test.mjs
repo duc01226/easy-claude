@@ -125,13 +125,13 @@ test('R3-PROMPT-027/031: advisory scores and category labels cannot bypass eligi
         assert.equal(policy.evaluateRound({ round, findings: [{ id: 'bounded', severity: 'MEDIUM' }] }).canComplete, false);
         assert.equal(policy.evaluateRound({ round, hardGates: [{ id: 'binary', status: 'FAIL' }] }).canComplete, false);
     }
-    // Round 3 exists only as the single extension a round-2 CRITICAL/HIGH earns.
+    // Later review rounds retain blockers until the shared five-round cap.
     assert.equal(policy.evaluateRound({ round: 2, findings: [{ id: 'material', severity: 'HIGH' }] }).extensionGranted, false);
     assert.equal(policy.evaluateRound({ round: 2, findings: [{ id: 'bounded', severity: 'MEDIUM' }] }).status, 'CONTINUE');
-    assert.equal(policy.evaluateRound({ round: 3, findings: [{ id: 'material', severity: 'HIGH' }] }).status, 'ESCALATE');
-    // Past the hard cap a review blocker still escalates; only failing test gates continue.
-    assert.equal(policy.evaluateRound({ round: 4, findings: [{ id: 'material', severity: 'HIGH' }] }).status, 'ESCALATE');
-    assert.equal(policy.evaluateRound({ round: 4, hardGates: [{ id: 'suite', kind: 'test', status: 'FAIL' }] }).status, 'ESCALATE');
+    assert.equal(policy.evaluateRound({ round: 5, findings: [{ id: 'material', severity: 'HIGH' }] }).status, 'ESCALATE');
+    // Both review blockers and failed test gates escalate past the shared cap.
+    assert.equal(policy.evaluateRound({ round: 6, findings: [{ id: 'material', severity: 'HIGH' }] }).status, 'ESCALATE');
+    assert.equal(policy.evaluateRound({ round: 6, hardGates: [{ id: 'suite', kind: 'test', status: 'FAIL' }] }).status, 'ESCALATE');
     assert.equal(policy.evaluateRound({ round: 1, findings: [{ id: 'polish', severity: 'LOW' }] }).canComplete, false);
     const deferred = policy.evaluateRound({ round: 2, findings: [{ id: 'polish', severity: 'LOW' }] });
     assert.equal(deferred.canComplete, true);
@@ -291,18 +291,18 @@ const CONVERGENCE_ROW = {
 // escalates at a spent budget, so the workflow loop has one extra row before the blocker row.
 test('R3-PROMPT-042/043/044: shared review cap blocks MEDIUM+, missing proof and failed gates, with explicit extension', () => {
     const source = read('skills/shared/protocols/review-policy.md');
-    assert.match(source, /three review rounds/);
+    assert.match(source, /five review rounds/);
     assert.match(source, /host question tool/);
     assert.match(source, /Wait for an explicit answer/);
     assert.match(source, /fresh review of the updated target/);
-    for (const round of [1, 2, 3]) {
+    for (const round of [1, 2, 3, 4, 5]) {
         for (const severity of ['HIGH', 'MEDIUM', 'CRITICAL', 'NOT VERIFIABLE']) {
-            assert.equal(policy.evaluateRound({ round, findings: [{ id: 'open', severity }] }).status, round < 3 ? 'CONTINUE' : 'ESCALATE');
+            assert.equal(policy.evaluateRound({ round, findings: [{ id: 'open', severity }] }).status, round < 5 ? 'CONTINUE' : 'ESCALATE');
         }
         for (const kind of ['test', 'binary']) {
-            assert.equal(policy.evaluateRound({ round, hardGates: [{ id: 'gate', kind, status: 'FAIL' }] }).status, round < 3 ? 'CONTINUE' : 'ESCALATE');
+            assert.equal(policy.evaluateRound({ round, hardGates: [{ id: 'gate', kind, status: 'FAIL' }] }).status, round < 5 ? 'CONTINUE' : 'ESCALATE');
         }
     }
     assert.equal(policy.evaluateRound({ round: 3, findings: [{ id: 'polish', severity: 'LOW' }] }).status, 'PASS');
-    assert.equal(policy.evaluateRound({ round: 4 }).status, 'ESCALATE');
+    assert.equal(policy.evaluateRound({ round: 6 }).status, 'ESCALATE');
 });

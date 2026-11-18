@@ -114,7 +114,7 @@ Choose inline vs sub-agent, batching and ordering at equal quality, subject to t
 ## Fix Path & Loop Bounds
 
 - Validate findings with evidence and reproduction, fix the contract owner, then re-run the raising reviewer/test; add a holistic pass for non-trivial fixes. Use `/plan` only for large, cross-module or ambiguous fix sets.
-- Review loops use the shared three-round cap and defer LOWs from round 2. MEDIUM+ and failed required checks block; at exhaustion ask and wait before a bounded extension. Verification recovery follows `verify-last-order`'s bounded turns; never retry failed tests indefinitely.
+- Review loops use the shared five-round cap and defer LOWs from round 2. MEDIUM+ and failed required checks block; at exhaustion ask and wait before a bounded extension. Verification recovery follows `verify-last-order`'s bounded turns; never retry failed tests indefinitely.
 
 ---
 

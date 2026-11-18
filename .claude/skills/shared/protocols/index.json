@@ -1009,26 +1009,26 @@
       "group": "review",
       "summary": "Choose supported review decisions and ask before extending the round budget",
       "when": "running any review or audit skill or mode",
-      "chars": 2914,
+      "chars": 2913,
       "file": ".claude/skills/shared/protocols/review-decision-autonomy.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/review-decision-autonomy.md",
-          "chars": 2914
+          "chars": 2913
         }
       ]
     },
     {
       "tag": "review-policy",
       "group": "review",
-      "summary": "Review-only or a three-round fix loop with explicit extension and fresh post-fix evidence",
+      "summary": "Review-only or a five-round fix loop with explicit extension and fresh post-fix evidence",
       "when": "deciding round eligibility, blocking findings or review state",
-      "chars": 4642,
+      "chars": 4640,
       "file": ".claude/skills/shared/protocols/review-policy.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/review-policy.md",
-          "chars": 4642
+          "chars": 4640
         }
       ]
     },
@@ -1181,12 +1181,12 @@
       "group": "review",
       "summary": "One consequence-based Critical, High, Medium, Low scale for every finding and gate",
       "when": "classifying a finding or deciding whether a review round passes",
-      "chars": 4304,
+      "chars": 4303,
       "file": ".claude/skills/shared/protocols/severity-rubric.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/severity-rubric.md",
-          "chars": 4304
+          "chars": 4303
         }
       ]
     },

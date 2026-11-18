@@ -23,7 +23,7 @@
 
 ## Review plan and tasks
 
-Before reviewing, inventory the complete target, risks and required evidence; choose the appropriate depth and authorized delegation. Create tasks for review, terminal findings validation, authorized fixes when in fix-loop, fresh re-review and final checks. Review-only and caller-owned passes stay read-only. Fix-loop uses the single shared three-round policy; there is no separate recursive report loop or required `/goal` command.
+Before reviewing, inventory the complete target, risks and required evidence; choose the appropriate depth and authorized delegation. Create tasks for review, terminal findings validation, authorized fixes when in fix-loop, fresh re-review and final checks. Review-only and caller-owned passes stay read-only. Fix-loop uses the single shared five-round policy; there is no separate recursive report loop or required `/goal` command.
 
 ## Adversarial Review Mindset (NON-NEGOTIABLE)
 

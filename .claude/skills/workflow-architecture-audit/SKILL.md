@@ -107,7 +107,7 @@ Recommended: XS/S → inline `/investigate` or engine scope resolution; L/XL →
 
 - Repair the report only, through the workflow-level `/why-review` that validates it (the engine defers its own validation to that gate). Source fixes belong to follow-up workflows.
 - Validate findings through `/why-review` with evidence. Hand off each with owner, severity and confidence: `/plan` for large, cross-module or ambiguous fixes; feature/refactor workflow for bounded fixes.
-- Loop bounds for the report-level `/why-review`: round 1 exits on zero open findings; from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, with LOWs deferred and listed; cap 3 review rounds; escalate via `ask user question tool` when a round makes no progress.
+- Loop bounds for the report-level `/why-review`: round 1 exits on zero open findings; from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, with LOWs deferred and listed; cap 5 review rounds; escalate via `ask user question tool` when a round makes no progress.
 
 <!-- PROTOCOL-GUIDES:START -->
 

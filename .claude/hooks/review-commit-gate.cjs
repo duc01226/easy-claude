@@ -447,7 +447,7 @@ function blockMessage(repository, snapshot, descriptor, reason) {
         '  3. /changes-review --fix-loop  # risk-based commit mode: high risk; explicit review requests also apply',
         'For a pull request, follow its whole-branch workflow-review-changes --fix-loop policy.',
         '',
-        'Each fix-loop runs at most 3 review rounds. MEDIUM+ findings still open at the cap: stop and report, no commit, no skip.',
+        'Each fix-loop runs at most 5 review rounds. MEDIUM+ findings still open at the cap: stop and report, no commit, no skip.',
         '',
         'Use the supported default staged, -a/--all, or exact literal -- <files> mode. Unsupported',
         'Git contexts and candidate errors fail closed. Restore the normal repository/default index,',

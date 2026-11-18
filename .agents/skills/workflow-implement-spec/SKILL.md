@@ -145,7 +145,7 @@ Choose inline/sub-agent execution, parallel waves, batching and ordering at equa
 - Validate findings (evidence-backed, reproducible) before fixing; fix at the owning layer; re-run the reviewer or test that raised each finding, plus a holistic pass when the fixes were non-trivial.
 - A failing test gets a root-cause verdict before either the source or the test is edited; never weaken an assertion to force green. A test that contradicts the supplied spec is adjudicated against the spec, never silently rewritten.
 - Re-run `$plan` only when a material scope or contract decision invalidates the saved plan; ordinary implementation discovery stays with the executor.
-- The nested review keeps the framework loop bounds: round 1 exits on zero open validated findings (LOW deferral); round 2 exits on zero CRITICAL/HIGH/MEDIUM with LOW-only findings deferred; cap 3 review rounds; failed checks block and at the three-round cap require explicit user-approved bounded extension; escalate with `ask user question tool` on no progress.
+- The nested review keeps the framework loop bounds: round 1 exits on zero open validated findings (LOW deferral); round 2 exits on zero CRITICAL/HIGH/MEDIUM with LOW-only findings deferred; cap 5 review rounds; failed checks block and at the five-round cap require explicit user-approved bounded extension; escalate with `ask user question tool` on no progress.
 
 <!-- PROTOCOL-GUIDES:START -->
 

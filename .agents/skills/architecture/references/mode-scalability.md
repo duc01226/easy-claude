@@ -13,7 +13,7 @@
 
 **Summary:**
 - **Purpose/ownership:** score 10 areas, apply G1-G7 and TVC, route sibling-owned depth, and emit one report; this skill owns the scorecard, not sibling checklists.
-- **Ordered run:** (1) resolve `mode=init`/`mode=audit` + scope; (2) load context/evidence; (3) read `references/scorecard.md`; (4) score all 10 areas 0-2; (5) run G1-G7, then TVC; (6) emit the report under `tmp/reports/`; (7) validate sub-80/risk findings with `$why-review` (max 3 passes), or record the zero-risk skip.
+- **Ordered run:** (1) resolve `mode=init`/`mode=audit` + scope; (2) load context/evidence; (3) read `references/scorecard.md`; (4) score all 10 areas 0-2; (5) run G1-G7, then TVC; (6) emit the report under `tmp/reports/`; (7) validate sub-80/risk findings with `$why-review` (max 5 passes), or record the zero-risk skip.
 - **Evidence/TVC:** every score needs `file:line`, command/artifact proof, or `N/A - reason`; otherwise score `0`. Resolve Unit/Integration/System/E2E applicability plus owner/root/data, full+focused commands, zero-match behavior, CI/simple Windows/macOS/Linux entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff.
 - **Modes/advisories:** `init` scores planned greenfield evidence; `audit` scores existing evidence. Self-audit 11 red flags before emission; treat `— VERIFY` rows/section banners as unverified and confirm named sources or project docs. Technique + Scenario are advice-only and never change `/20`, verdict, or gates; new tools require user confirmation.
 
@@ -25,7 +25,7 @@
 4. Score all 10 areas 0-2 with evidence.
 5. Run pass/fail gates (G1-G7), then the non-scoring TVC.
 6. Emit the architecture scalability review report under `tmp/reports/`.
-7. When triggered, validate sub-80 grades/risk findings with `$why-review` (maximum 3 passes); otherwise record the zero-risk skip.
+7. When triggered, validate sub-80 grades/risk findings with `$why-review` (maximum 5 passes); otherwise record the zero-risk skip.
 
 **Key Rules:**
 
@@ -232,7 +232,7 @@ List only user-confirmed recommendations or mark `N/A`.
 1. Read the finalized report from `tmp/reports/{skill}-{date}-{slug}.md` (or the exact path written).
 2. Invoke `$why-review --validate-findings <report-path>`; verify every sub-80 grade/risk finding has `file:line` evidence and clears the finding-survival bar.
 3. **If why-review demotes/removes a grade or finding:** update the scorecard, add `## Why-Review Validation Notes`, and cite what changed + why.
-4. **If validation changes the scorecard:** reconcile the report in the current pass. Review-only/caller-owned audits return it without repairs. Standalone `--fix-loop` repairs authorized findings at their owning component, then freshly repeats this audit over the updated target. Retain all score/gate rules and the single shared three-round budget; at the cap, MEDIUM+ or missing required evidence asks for a bounded extension.
+4. **If validation changes the scorecard:** reconcile the report in the current pass. Review-only/caller-owned audits return it without repairs. Standalone `--fix-loop` repairs authorized findings at their owning component, then freshly repeats this audit over the updated target. Retain all score/gate rules and the single shared five-round budget; at the cap, MEDIUM+ or missing required evidence asks for a bounded extension.
 
 **Anti-bias (MANDATORY before emitting):** steel-man each grade one band better and one band worse; only a grade surviving both arguments ships. An unchallenged grade is not validated.
 
@@ -377,7 +377,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 >
 > **Consequence decision tree:** check binary gates separately, then select the first evidenced tier from CRITICAL → HIGH → MEDIUM → LOW. Missing evidence is **NOT VERIFIABLE**, not a fifth tier or a LOW fallback: name the missing proof. Unsettled reachability is NOT VERIFIABLE for potential MEDIUM+ impact and an observation for polish. Claims potentially affecting required behavior, security, privacy, authority, availability, data integrity or a gate remain evidence blockers until proved or explicitly owner-accepted with scope, rationale and residual risk. Owner acceptance does not make an open MEDIUM a clean pass or a failed gate pass.
 >
-> **Hard gates and rounds:** failed tests, required artifacts, security must-fix checks, generated parity and policy compliance block every round, independently of finding severity. The executable helper carries failures as synthetic CRITICAL blockers; reports name the gate and failure evidence. Default review budget is three rounds; unresolved findings or failed required checks at the cap ask the user for a bounded extension under `SYNC:review-policy`. Failed checks never pass by severity deferral.
+> **Hard gates and rounds:** failed tests, required artifacts, security must-fix checks, generated parity and policy compliance block every round, independently of finding severity. The executable helper carries failures as synthetic CRITICAL blockers; reports name the gate and failure evidence. Default review budget is five rounds; unresolved findings or failed required checks at the cap ask the user for a bounded extension under `SYNC:review-policy`. Failed checks never pass by severity deferral.
 >
 > **Domain-vocabulary normalization and scores:**
 > - `BLOCKED`/`HARD FAIL`/`FAIL` are local blocking verdicts, not automatic CRITICAL; classify by consequence while preserving the owning gate. `WARN` can be any tier; `PASS`/compliant is not a finding. INFO/advisory remains observational unless material consequence is evidenced.
@@ -520,7 +520,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 **IMPORTANT MUST ATTENTION Goal:** Grade a project or planned architecture against architecture + scalability criteria and produce an evidence-backed `/20` verdict (`STRONG` / `NEEDS WORK` / `HIGH RISK`) before scale or delivery decisions harden; route deep checks to owner skills.
 **IMPORTANT MUST ATTENTION scorecard scope:** assess all 10 areas — Build & CI Scalability, Architecture Pattern/distributed-monolith, Module Isolation, Dependency Discipline, Loose Coupling, Horizontal Scaling, DRY, Abstraction/Easy-to-Change, Clean Architecture, and Observability & Delivery — then route sibling-owned depth instead of duplicating it.
-**IMPORTANT MUST ATTENTION main steps (same order):** (1) resolve `mode=init`/`mode=audit` + scope; (2) load project context + evidence; (3) read `references/scorecard.md`; (4) score all 10 areas 0-2 with evidence; (5) run G1-G7, then TVC; (6) emit the report under `tmp/reports/`; (7) validate sub-80/risk findings with `$why-review` (maximum 3 passes), or record the zero-risk skip.
+**IMPORTANT MUST ATTENTION main steps (same order):** (1) resolve `mode=init`/`mode=audit` + scope; (2) load project context + evidence; (3) read `references/scorecard.md`; (4) score all 10 areas 0-2 with evidence; (5) run G1-G7, then TVC; (6) emit the report under `tmp/reports/`; (7) validate sub-80/risk findings with `$why-review` (maximum 5 passes), or record the zero-risk skip.
 **IMPORTANT MUST ATTENTION modes/gates:** `mode=init` scores planned greenfield evidence; `mode=audit` scores existing evidence. Every score needs proof or explicit `N/A - reason`; unproven criteria score `0`. `TVC: BLOCKED` prevents a `setup complete` claim but never changes `/20`.
 **IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, owner/root/data, copy-ready full/focused commands, explicit-filter zero-match failures, CI/simple Windows/macOS/Linux entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
 **IMPORTANT MUST ATTENTION advisory boundaries:** derive scale and business-criticality from evidence; Technique and Scenario matrices advise only and NEVER mutate `/20`, verdict, or G1-G7. Engineering Foundation `MISSING-WARRANTED` blocks when creating a foundation and stays advisory when auditing. A correctly-lean system is a PASS; new Tech/Lib recommendations require user confirmation.

@@ -171,7 +171,7 @@ module.exports = {
                             context,
                             /runs changes-review for correctness and whole-target why-review through that child, plus applicable specialists and test-review/
                         );
-                        assert.match(context, /Each review has at most three rounds/);
+                        assert.match(context, /Each review has at most five rounds/);
                         assert.match(context, /Selected test\/review skills and their required nested calls remain eligible/);
                         assert.match(context, /explicitly requested workflow authorizes its required skill steps/);
                         assert.match(context, /todo\/task plan and executed later or after resume/);

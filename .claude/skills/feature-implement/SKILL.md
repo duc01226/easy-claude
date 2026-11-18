@@ -187,7 +187,7 @@ mistakes compound through later tasks.
 - Failed binary gates (tests, required artifacts, security must-fix, parity)
   block at every round and are never relabeled LOW.
 - Start a fresh full review after every fix cycle; a fix may write or amend tests but does not run them.
-- Stop when the current round's severity bar is clear; cap at three review rounds and
+- Stop when the current round's severity bar is clear; cap at five review rounds and
   escalate repeated/no-progress CRITICAL/HIGH/MEDIUM findings rather than
   looping open-ended.
 

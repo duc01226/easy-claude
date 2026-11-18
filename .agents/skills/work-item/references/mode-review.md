@@ -121,7 +121,7 @@ Use the output template in the resolved type's reference. All templates lead wit
 
 > **Protocol:** `SYNC:review-protocol-injection` (all inlined in this file).
 
-Review-only and caller-owned passes return validated findings. Standalone fix-loop applies authorized repairs, then freshly reviews the full current artifact under the shared three-round budget. Choose inline work or authorized specialists from risk and context; delegated re-review uses a fresh artifact reviewer. When constructing that prompt:
+Review-only and caller-owned passes return validated findings. Standalone fix-loop applies authorized repairs, then freshly reviews the full current artifact under the shared five-round budget. Choose inline work or authorized specialists from risk and context; delegated re-review uses a fresh artifact reviewer. When constructing that prompt:
 
 1. Copy the Agent call shape from the `SYNC:review-protocol-injection` template verbatim
 2. Set `agent_type: "general-purpose"`
@@ -425,7 +425,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >
 > **Consequence decision tree:** check binary gates separately, then select the first evidenced tier from CRITICAL → HIGH → MEDIUM → LOW. Missing evidence is **NOT VERIFIABLE**, not a fifth tier or a LOW fallback: name the missing proof. Unsettled reachability is NOT VERIFIABLE for potential MEDIUM+ impact and an observation for polish. Claims potentially affecting required behavior, security, privacy, authority, availability, data integrity or a gate remain evidence blockers until proved or explicitly owner-accepted with scope, rationale and residual risk. Owner acceptance does not make an open MEDIUM a clean pass or a failed gate pass.
 >
-> **Hard gates and rounds:** failed tests, required artifacts, security must-fix checks, generated parity and policy compliance block every round, independently of finding severity. The executable helper carries failures as synthetic CRITICAL blockers; reports name the gate and failure evidence. Default review budget is three rounds; unresolved findings or failed required checks at the cap ask the user for a bounded extension under `SYNC:review-policy`. Failed checks never pass by severity deferral.
+> **Hard gates and rounds:** failed tests, required artifacts, security must-fix checks, generated parity and policy compliance block every round, independently of finding severity. The executable helper carries failures as synthetic CRITICAL blockers; reports name the gate and failure evidence. Default review budget is five rounds; unresolved findings or failed required checks at the cap ask the user for a bounded extension under `SYNC:review-policy`. Failed checks never pass by severity deferral.
 >
 > **Domain-vocabulary normalization and scores:**
 > - `BLOCKED`/`HARD FAIL`/`FAIL` are local blocking verdicts, not automatic CRITICAL; classify by consequence while preserving the owning gate. `WARN` can be any tier; `PASS`/compliant is not a finding. INFO/advisory remains observational unless material consequence is evidenced.

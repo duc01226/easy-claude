@@ -11,7 +11,7 @@ description: '[Testing] Use when a workflow step or the user asks for runtime re
 > - Preserve protocol order unless the user approves a deviation. Workflows use `$start-workflow`: gates stay fixed; other steps may flex with logged reasons and evidence.
 ## Quick Summary
 
-> **Review modes:** For review/audit work, standalone defaults to `--review-only` (`--report-only` alias); `--fix-loop` enables review → validate → authorized fix → fresh re-review, default cap 3. `--fix-loop --loop-owner=caller` returns a read-only pass to the caller that owns fixes/re-review. Create triage, review, validation and re-review todo tasks first; apply the carried `review-policy` contract for LOW deferral and user-approved bounded extensions. Non-review modes and terminal findings validation keep their own dispatch.
+> **Review modes:** For review/audit work, standalone defaults to `--review-only` (`--report-only` alias); `--fix-loop` enables review → validate → authorized fix → fresh re-review, default cap 5. `--fix-loop --loop-owner=caller` returns a read-only pass to the caller that owns fixes/re-review. Create triage, review, validation and re-review todo tasks first; apply the carried `review-policy` contract for LOW deferral and user-approved bounded extensions. Non-review modes and terminal findings validation keep their own dispatch.
 
 **Goal:** Exercise the real interface and inspect evidence so acceptance decisions reflect observed behavior.
 
@@ -19,7 +19,7 @@ description: '[Testing] Use when a workflow step or the user asks for runtime re
 
 **Key Rules:**
 
-- `--rounds=N`: integers `0–3`; review-only defaults to `0`, standalone `--fix-loop` defaults to `3`. A numeric budget never grants repair authority; caller-owned passes stay read-only. State mode and budget before observation.
+- `--rounds=N`: integers `0–5`; review-only defaults to `0`, standalone `--fix-loop` defaults to `5`. A numeric budget never grants repair authority; caller-owned passes stay read-only. State mode and budget before observation.
 - Keep the evidence matrix and expectations intact; only BLOCKING defects open repair rounds.
 - A clean review recommends acceptance; explicit owner acceptance is required before promoting any baseline.
 
@@ -130,7 +130,7 @@ A complete clean review yields `AGENT-RECOMMENDED-ACCEPT` as a judgment and stay
 - `experience-acceptance-contract` — Review and evidence contract for a user-facing or observable surface; a change creates or changes a user-facing or observable surface → .claude/skills/shared/protocols/experience-acceptance-contract.md
 - `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
 - `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
-- `review-policy` — Review-only or a three-round fix loop with explicit extension and fresh post-fix evidence; deciding round eligibility, blocking findings or review state → .claude/skills/shared/protocols/review-policy.md
+- `review-policy` — Review-only or a five-round fix loop with explicit extension and fresh post-fix evidence; deciding round eligibility, blocking findings or review state → .claude/skills/shared/protocols/review-policy.md
 - `review-principle-awareness` — Classify the change context first, then apply the current principles that fit it; starting any review → .claude/skills/shared/protocols/review-principle-awareness.md
 
 <!-- PROTOCOL-GUIDES:END -->
@@ -171,7 +171,7 @@ A complete clean review yields `AGENT-RECOMMENDED-ACCEPT` as a judgment and stay
 
 **IMPORTANT MUST ATTENTION Main steps:** resolve intent → plan evidence/capability → start, instrument and exercise → inspect/judge → repair/re-exercise → compare, tear down and hand off.
 
-Review-only, caller-owned passes and `--rounds=0` are product-read-only; standalone `--fix-loop --rounds=1–3` permits only validated BLOCKING repairs within budget and actual authority. Preserve the matrix and expectations; human acceptance alone permits baseline promotion.
+Review-only, caller-owned passes and `--rounds=0` are product-read-only; standalone `--fix-loop --rounds=1–5` permits only validated BLOCKING repairs within budget and actual authority. Preserve the matrix and expectations; human acceptance alone permits baseline promotion.
 
 | Evasion | Required action |
 |---|---|
@@ -181,6 +181,6 @@ Review-only, caller-owned passes and `--rounds=0` are product-read-only; standal
 
 <!-- SYNC:review-policy:reminder -->
 
-**MUST ATTENTION** Triage all targets, plan and create review/validation/fix/fresh re-review tasks first. Review-only reports without edits; fix-loop freshly reviews every repair under one fixing owner. Default cap three rounds: disclose deferred LOWs, ask and wait before a bounded extension for MEDIUM+ or failed required checks. Preserve scope, coverage and actual operation authority.
+**MUST ATTENTION** Triage all targets, plan and create review/validation/fix/fresh re-review tasks first. Review-only reports without edits; fix-loop freshly reviews every repair under one fixing owner. Default cap five rounds: disclose deferred LOWs, ask and wait before a bounded extension for MEDIUM+ or failed required checks. Preserve scope, coverage and actual operation authority.
 
 <!-- /SYNC:review-policy:reminder -->

@@ -30,7 +30,7 @@ Old evidence never covers new content: a run from before the last edit to the co
 
 ## Decide review
 
-Run `node .claude/scripts/lib/commit-review-policy.cjs --operation=pull-request --risk=<actual-tier>`. Every PR risk tier requires `/workflow-review-changes --fix-loop`, regardless of `commit.reviewMode`. Invoke it on every PR run. The workflow owns a single review loop of at most three rounds and runs its `changes-review` child for correctness and whole-target `why-review`, with applicable specialists and the `test-review` gate. Reuse evidence only when the whole-branch scope and final candidate match. A commit-only review covers its commit scope.
+Run `node .claude/scripts/lib/commit-review-policy.cjs --operation=pull-request --risk=<actual-tier>`. Every PR risk tier requires `/workflow-review-changes --fix-loop`, regardless of `commit.reviewMode`. Invoke it on every PR run. The workflow owns a single review loop of at most five rounds and runs its `changes-review` child for correctness and whole-target `why-review`, with applicable specialists and the `test-review` gate. Reuse evidence only when the whole-branch scope and final candidate match. A commit-only review covers its commit scope.
 
 The PR coordinator captures `--target=branch --base=<base-ref> --staged` before the full review. Stage only intended work and review the entire candidate against the merge-base in that snapshot. After convergence, use `review-receipt.cjs check` with the same branch arguments to confirm the current receipt. When a commit is needed, compare the receipt's candidate tree with the exact commit-descriptor snapshot. An error is a blocker. The commit gate can accept the branch receipt when the base and candidate match its checks.
 
@@ -49,4 +49,4 @@ A clean candidate needs no receipt. A changed candidate requires a matching revi
 
 ## Stop and refresh boundaries
 
-Unavailable required checks, unresolved failures, ambiguous intent or MEDIUM+ findings after three review rounds block publication. Leave the pending candidate uncommitted and report the evidence. Changed content invalidates affected tests and review evidence; reclassify and refresh them before proceeding. Neither review evidence nor a skip waives CI, spec/test reconciliation, project gates or Git authority.
+Unavailable required checks, unresolved failures, ambiguous intent or MEDIUM+ findings after five review rounds block publication. Leave the pending candidate uncommitted and report the evidence. Changed content invalidates affected tests and review evidence; reclassify and refresh them before proceeding. Neither review evidence nor a skip waives CI, spec/test reconciliation, project gates or Git authority.
