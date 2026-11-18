@@ -5,7 +5,7 @@
     "universal-1": "dfc0605fdce45f2064f405f4f997ad2c07c772e78c3d5925226a988276d1ee28",
     "universal-2": "b1d5ec9ac73d85f578ac5426e830006f1b426a1038edb84337f46ec6c758dbf4",
     "universal-3": "e02ba4fe62b665e8c9e75aa1f83d7a10da1ca401c12b787d9449202a082eb496",
-    "universal-4": "de01c11556216b3e323efb4e88ac728255203301e802277bd6b59a9503a26738",
+    "universal-4": "807fcf02efa377e73f45aaf274683baf618474e6910c759f9d2a6a20cbaa55ed",
     "route": "46422fdacf61e11928a242baf5170b8d56abe1f5652d1cb524554b971ce3e994",
     "catalog": "bc4b08b2e295377737dd97273815b824d794d3371216564a0e561bd4af204c8a",
     "core": "d68c9cb3ceae0d77d7931703575c37e65cb8d4ff7fc36a0b8e50ca6fbd490a84"
@@ -941,54 +941,94 @@
       "id": "universal-4:14",
       "source": "universal-4",
       "line": 14,
-      "sha256": "0f5ae278f0f20cee52889e66ea382f721a1c78b54bf67f6aeec2bc1fcf271067",
+      "sha256": "1cb539cca403ddeea53180287c8c5ad963bcfb6522dd12915a55c5ac73a2f74a",
       "disposition": "defer",
       "destination": ".claude/skills/shared/protocols/quality-skill-routing.md",
-      "readWhen": "choosing a skill for review, test or failure work",
-      "note": "The concise core keeps the failure-diagnosis row naming `investigate`; the quality-skill reminder hook delivers the route digest after tool results in both profiles."
+      "readWhen": "choosing a registered skill for investigation, planning, decisions, design, mock-ups, testing, review, pull requests, fixes, lessons, performance or documentation",
+      "note": "The concise core retains the investigation route. The common skill digest is available on genuine prompts and refreshed by tool results in both profiles."
     },
     {
       "id": "universal-4:16",
       "source": "universal-4",
       "line": 16,
-      "sha256": "1bd5e75590d3e1c720a277587ea7fef287dcdd4f24b462411332b49c19a6c4d5",
+      "sha256": "ceaf711b216f8d973ae18db3bd8f8883443fb06ef752ba88fdd3033cbc3b1203",
       "disposition": "defer",
       "destination": ".claude/skills/shared/protocols/quality-skill-routing.md",
-      "readWhen": "choosing a skill for review, test or failure work",
-      "note": "The concise core keeps the failure-diagnosis row naming `investigate`; the quality-skill reminder hook delivers the route digest after tool results in both profiles."
+      "readWhen": "choosing a registered skill for investigation, planning, decisions, design, mock-ups, testing, review, pull requests, fixes, lessons, performance or documentation",
+      "note": "The concise core retains the investigation route. The common skill digest is available on genuine prompts and refreshed by tool results in both profiles."
     },
     {
       "id": "universal-4:17",
       "source": "universal-4",
       "line": 17,
-      "sha256": "6ff65f0dee913127c776c5562a30278b576de2d15115132718c9c59993147372",
+      "sha256": "47a2ba004a4d50d2f68df8a9ae632f30ee5092db6cca86c13c0ee5fb17b6a717",
       "disposition": "defer",
       "destination": ".claude/skills/shared/protocols/quality-skill-routing.md",
-      "readWhen": "choosing a skill for review, test or failure work",
-      "note": "The concise core keeps the failure-diagnosis row naming `investigate`; the quality-skill reminder hook delivers the route digest after tool results in both profiles."
+      "readWhen": "choosing a registered skill for investigation, planning, decisions, design, mock-ups, testing, review, pull requests, fixes, lessons, performance or documentation",
+      "note": "The concise core retains the investigation route. The common skill digest is available on genuine prompts and refreshed by tool results in both profiles."
     },
     {
       "id": "universal-4:18",
       "source": "universal-4",
       "line": 18,
-      "sha256": "f0a0346a407a536a06010a54e0ad194949f724bf91cd90765c5a6106a07ea827",
+      "sha256": "1bd5e75590d3e1c720a277587ea7fef287dcdd4f24b462411332b49c19a6c4d5",
       "disposition": "defer",
       "destination": ".claude/skills/shared/protocols/quality-skill-routing.md",
-      "readWhen": "choosing a skill for review, test or failure work",
-      "note": "The concise core keeps the failure-diagnosis row naming `investigate`; the quality-skill reminder hook delivers the route digest after tool results in both profiles."
+      "readWhen": "choosing a registered skill for investigation, planning, decisions, design, mock-ups, testing, review, pull requests, fixes, lessons, performance or documentation",
+      "note": "The concise core retains the investigation route. The common skill digest is available on genuine prompts and refreshed by tool results in both profiles."
+    },
+    {
+      "id": "universal-4:19",
+      "source": "universal-4",
+      "line": 19,
+      "sha256": "5e077821d485cb7e0121d78375c3f36577a51041c6e38ecb63a0a856f2bce726",
+      "disposition": "defer",
+      "destination": ".claude/skills/shared/protocols/quality-skill-routing.md",
+      "readWhen": "choosing a registered skill for investigation, planning, decisions, design, mock-ups, testing, review, pull requests, fixes, lessons, performance or documentation",
+      "note": "The concise core retains the investigation route. The common skill digest is available on genuine prompts and refreshed by tool results in both profiles."
     },
     {
       "id": "universal-4:20",
       "source": "universal-4",
       "line": 20,
-      "sha256": "8ab8dd7c008d488ff2f15a6f53127d286fd3490e421eb3d62986d34c75a96003",
-      "disposition": "remove-wrapper",
-      "destination": null
+      "sha256": "0b469abb45f3e974d72c6b1b12a4d95792e7ba1a6fae9e1070e08df7ffe143a5",
+      "disposition": "defer",
+      "destination": ".claude/skills/shared/protocols/quality-skill-routing.md",
+      "readWhen": "choosing a registered skill for investigation, planning, decisions, design, mock-ups, testing, review, pull requests, fixes, lessons, performance or documentation",
+      "note": "The concise core retains the investigation route. The common skill digest is available on genuine prompts and refreshed by tool results in both profiles."
+    },
+    {
+      "id": "universal-4:21",
+      "source": "universal-4",
+      "line": 21,
+      "sha256": "12e155917cb1d8375bedfd7b7bea643794cc85e66ca250c16f2f95b173b69486",
+      "disposition": "defer",
+      "destination": ".claude/skills/shared/protocols/quality-skill-routing.md",
+      "readWhen": "choosing a registered skill for investigation, planning, decisions, design, mock-ups, testing, review, pull requests, fixes, lessons, performance or documentation",
+      "note": "The concise core retains the investigation route. The common skill digest is available on genuine prompts and refreshed by tool results in both profiles."
     },
     {
       "id": "universal-4:22",
       "source": "universal-4",
       "line": 22,
+      "sha256": "f0a0346a407a536a06010a54e0ad194949f724bf91cd90765c5a6106a07ea827",
+      "disposition": "defer",
+      "destination": ".claude/skills/shared/protocols/quality-skill-routing.md",
+      "readWhen": "choosing a registered skill for investigation, planning, decisions, design, mock-ups, testing, review, pull requests, fixes, lessons, performance or documentation",
+      "note": "The concise core retains the investigation route. The common skill digest is available on genuine prompts and refreshed by tool results in both profiles."
+    },
+    {
+      "id": "universal-4:24",
+      "source": "universal-4",
+      "line": 24,
+      "sha256": "8ab8dd7c008d488ff2f15a6f53127d286fd3490e421eb3d62986d34c75a96003",
+      "disposition": "remove-wrapper",
+      "destination": null
+    },
+    {
+      "id": "universal-4:26",
+      "source": "universal-4",
+      "line": 26,
       "sha256": "cc0eb4f0d73cd2ea22c4320d5ba45c81b5f53c4981cc171fca07fb18375d9b97",
       "disposition": "defer",
       "destination": ".claude/skills/shared/protocols/test-coverage-goal.md",
@@ -996,40 +1036,10 @@
       "note": "The concise core keeps the Verification bullet (protect changed intent with meaningful, isolated tests); the per-layer coverage aim and the story and acceptance-criterion mapping are read from the protocol file found by its index summary."
     },
     {
-      "id": "universal-4:24",
+      "id": "universal-4:28",
       "source": "universal-4",
-      "line": 24,
+      "line": 28,
       "sha256": "59d0bc2ac5fa765ce72d36c1730cbfa20c81f46505d131e096323af63ba468ec",
-      "disposition": "defer",
-      "destination": ".claude/skills/shared/protocols/test-coverage-goal.md",
-      "readWhen": "planning, writing or reviewing the tests of a code change",
-      "note": "The concise core keeps the Verification bullet (protect changed intent with meaningful, isolated tests); the per-layer coverage aim and the story and acceptance-criterion mapping are read from the protocol file found by its index summary."
-    },
-    {
-      "id": "universal-4:25",
-      "source": "universal-4",
-      "line": 25,
-      "sha256": "45f6a1262020e9fa8a2a3b49e0e16fae4538b1b8e62ebaf004565a0454a529f6",
-      "disposition": "defer",
-      "destination": ".claude/skills/shared/protocols/test-coverage-goal.md",
-      "readWhen": "planning, writing or reviewing the tests of a code change",
-      "note": "The concise core keeps the Verification bullet (protect changed intent with meaningful, isolated tests); the per-layer coverage aim and the story and acceptance-criterion mapping are read from the protocol file found by its index summary."
-    },
-    {
-      "id": "universal-4:26",
-      "source": "universal-4",
-      "line": 26,
-      "sha256": "8a2666b61c84897ab947786e295ac363b06f58718bf42212821118cd3ecef1c1",
-      "disposition": "defer",
-      "destination": ".claude/skills/shared/protocols/test-coverage-goal.md",
-      "readWhen": "planning, writing or reviewing the tests of a code change",
-      "note": "The concise core keeps the Verification bullet (protect changed intent with meaningful, isolated tests); the per-layer coverage aim and the story and acceptance-criterion mapping are read from the protocol file found by its index summary."
-    },
-    {
-      "id": "universal-4:27",
-      "source": "universal-4",
-      "line": 27,
-      "sha256": "1652219ad3025d21293ea59068692c5d3d7ba4c42a3ea848f2eb88f20c3b0bd1",
       "disposition": "defer",
       "destination": ".claude/skills/shared/protocols/test-coverage-goal.md",
       "readWhen": "planning, writing or reviewing the tests of a code change",
@@ -1039,7 +1049,17 @@
       "id": "universal-4:29",
       "source": "universal-4",
       "line": 29,
-      "sha256": "a2507404b5ff5c527c61321b191b10aa79e77b62c1a9ce1528f332e2f5169e85",
+      "sha256": "45f6a1262020e9fa8a2a3b49e0e16fae4538b1b8e62ebaf004565a0454a529f6",
+      "disposition": "defer",
+      "destination": ".claude/skills/shared/protocols/test-coverage-goal.md",
+      "readWhen": "planning, writing or reviewing the tests of a code change",
+      "note": "The concise core keeps the Verification bullet (protect changed intent with meaningful, isolated tests); the per-layer coverage aim and the story and acceptance-criterion mapping are read from the protocol file found by its index summary."
+    },
+    {
+      "id": "universal-4:30",
+      "source": "universal-4",
+      "line": 30,
+      "sha256": "8a2666b61c84897ab947786e295ac363b06f58718bf42212821118cd3ecef1c1",
       "disposition": "defer",
       "destination": ".claude/skills/shared/protocols/test-coverage-goal.md",
       "readWhen": "planning, writing or reviewing the tests of a code change",
@@ -1049,6 +1069,26 @@
       "id": "universal-4:31",
       "source": "universal-4",
       "line": 31,
+      "sha256": "1652219ad3025d21293ea59068692c5d3d7ba4c42a3ea848f2eb88f20c3b0bd1",
+      "disposition": "defer",
+      "destination": ".claude/skills/shared/protocols/test-coverage-goal.md",
+      "readWhen": "planning, writing or reviewing the tests of a code change",
+      "note": "The concise core keeps the Verification bullet (protect changed intent with meaningful, isolated tests); the per-layer coverage aim and the story and acceptance-criterion mapping are read from the protocol file found by its index summary."
+    },
+    {
+      "id": "universal-4:33",
+      "source": "universal-4",
+      "line": 33,
+      "sha256": "a2507404b5ff5c527c61321b191b10aa79e77b62c1a9ce1528f332e2f5169e85",
+      "disposition": "defer",
+      "destination": ".claude/skills/shared/protocols/test-coverage-goal.md",
+      "readWhen": "planning, writing or reviewing the tests of a code change",
+      "note": "The concise core keeps the Verification bullet (protect changed intent with meaningful, isolated tests); the per-layer coverage aim and the story and acceptance-criterion mapping are read from the protocol file found by its index summary."
+    },
+    {
+      "id": "universal-4:35",
+      "source": "universal-4",
+      "line": 35,
       "sha256": "608b0f567bc5d3b84fe4fda4979c75dbc6c5c9c815524100f27a4613ac606d54",
       "disposition": "merge",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",

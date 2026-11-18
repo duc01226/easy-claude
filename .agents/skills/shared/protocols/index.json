@@ -923,14 +923,14 @@
     {
       "tag": "quality-skill-routing",
       "group": "universal",
-      "summary": "Route review, test and failure work to the project's registered skills first",
+      "summary": "Route common work to the project's registered skills first",
       "when": "delivered by the universal hook",
-      "chars": 1872,
+      "chars": 2663,
       "file": ".claude/skills/shared/protocols/quality-skill-routing.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/quality-skill-routing.md",
-          "chars": 1872
+          "chars": 2663
         }
       ]
     },

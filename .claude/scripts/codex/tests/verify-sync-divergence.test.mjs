@@ -527,6 +527,8 @@ const EXPECTED_RENDERED_GROUPS = [
     ['UserPromptSubmit', null, 1],
     // Concise UI reuse reminder shares its100K window with the pre-tool trigger.
     ['UserPromptSubmit', null, 1],
+    // Common skill reminder shares its delivery record with PostToolUse.
+    ['UserPromptSubmit', null, 1],
     // Protocol delivery: the five group entries and skill-overlay-remind, which Claude registers on
     // UserPromptExpansion, which Codex lacks. An explicit `$skill` on UserPromptSubmit is the Codex load path, so
     // they render here, after every native UserPromptSubmit group (reported as

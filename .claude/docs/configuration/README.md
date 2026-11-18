@@ -368,7 +368,20 @@ Six accelerators are ON by default and inject a short directive or pointer (five
 | `core-principles-inject.cjs`    | first prompt, task step or sub-agent start of a session scope, at once after a compaction, then again after ~`reinjectAfterTokens` (default 150000) of transcript growth — the `SYNC:core-engineering-principles` gate | `{ "corePrinciplesInject": { "enabled": false } }`  | `CK_CORE_PRINCIPLES_INJECT=0`    |
 | `ai-feature-route.cjs`          | the prompt asks to build, plan, change or review an AI feature (an AI technique such as LLM calls, RAG, embeddings, tool/function calling or the Claude API/SDK — not "Claude Code" — AND an action on it) and is not about the framework's own machinery — one short directive (one protocol pointer, the `ai-engineering-review` skill / reviewer sub-agent route) once per session window; questions and framework-meta prompts stay silent; also at a sub-agent start and after a compaction while the latest recorded prompt is one | `{ "aiFeatureRoute": { "enabled": false } }`        | `CK_AI_FEATURE_ROUTE=0`          |
 | `knowledge-route.cjs` | a prompt phrase, a starting skill or a starting helper agent matches a knowledge pack (project packs in the directory named by `knowledge-base-reference.md`, framework packs in `.claude/knowledge-base/`) — one short pointer (at most 3 packs, 700 characters) once per pack per session window; prompt phrases are on only when the held-out evaluation in `.claude/knowledge-base/evaluation.json` passed or `knowledgeRoute.promptTriggers: true`. This router also reads a team layer: `knowledgeRoute` in `docs/project-config.json`, which a framework refresh never replaces (order, later wins: `.claude/.ck.json`, project config, `.claude/.ck.local.json`) — put a team setting there | `{ "knowledgeRoute": { "enabled": false } }` (all triggers) · `{ "knowledgeRoute": { "promptTriggers": true } }` (prompt phrases on) | `CK_KNOWLEDGE_ROUTE=0` |
-| `quality-skill-remind.cjs`      | the first tool result of a scope, then again after ~150K tokens of growth or a compaction — the `SYNC:quality-skill-routing:reminder` digest (reviews → `why-review`, `changes-review` or `workflow-review-changes`; tests → the project's test skills; failures, errors or bugs → `investigate --mode=debug`, then `fix` or `workflow-bugfix`) | `{ "qualitySkillReminder": { "enabled": false } }` | `CK_QUALITY_SKILL_REMINDER=0`    |
+| `quality-skill-remind.cjs` | genuine prompts receive the skill digest. Tool results deliver the skill and shared protocol digests when absent, after the first configured threshold (default 60 minutes or about 250K tokens of transcript growth), after compaction without a confirmed compatible restore, or after a digest change. | `{ "qualitySkillReminder": { "enabled": false } }` | `CK_QUALITY_SKILL_REMINDER=0` |
+
+Set the thresholds in the top-level `qualitySkillReminder` section of `docs/project-config.json` for a team project:
+
+```json
+{
+  "qualitySkillReminder": {
+    "reinjectAfterMinutes": 90,
+    "reinjectAfterTokens": 300000
+  }
+}
+```
+
+Each field takes a positive safe integer and can be set independently. Omission uses the respective default of 60 minutes or 250,000 estimated transcript tokens. The hook also falls back to that field's default for an invalid value. Whichever threshold is reached first makes the next eligible tool result deliver both reminders. The existing per-key layer order applies, from the framework's `.claude/.ck.json` through the team project config and personal `~/.claude/.ck.json` to the checkout's `.claude/.ck.local.json`.
 
 In concise delivery, the principles hook checks the shared universal-core record
 and retries that core when needed. Its standalone reminder switch does not
@@ -1101,7 +1114,7 @@ The reminder also applies to detached `HEAD` in a regular checkout or linked wor
   "judgementIntegrityRoute": { "enabled": false }, // Disable the judgement-integrity prompt router
   "aiFeatureRoute": { "enabled": false },          // Disable the AI-feature prompt router
   "knowledgeRoute": { "enabled": true, "promptTriggers": true }, // Knowledge pointers; prompt phrases on (a team setting belongs in docs/project-config.json)
-  "qualitySkillReminder": { "enabled": false },    // Disable the quality-skill reminder after tool results
+  "qualitySkillReminder": { "enabled": false },    // Disable the common skill reminder on prompts and tool results
   "editTimeLint": { "enabled": true }              // Lint each edited file; report only problems on changed lines (needs testing.commands.lintFile)
 }
 
@@ -1194,7 +1207,7 @@ Set a personal switch as an `env` entry in the git-ignored `.claude/settings.loc
 | `CK_DECISION_SUPPORT_MODE`              | `ask`, `suggest`, `auto` or `off`: the decision-support mode for this shell or host, like `portability.decisionSupportMode` (see [Decision support](#decision-support-runtime-per-developer)) |
 | `CK_AI_FEATURE_ROUTE`                   | `0`: stops the AI-feature (AI-engineering gate) reminder, like `aiFeatureRoute.enabled: false`                                       |
 | `CK_KNOWLEDGE_ROUTE`                    | `0`: stops every knowledge pointer (prompt, skill and helper-agent triggers), like `knowledgeRoute.enabled: false`                    |
-| `CK_QUALITY_SKILL_REMINDER`             | `0`: stops the quality-skill reminder after tool results, like `qualitySkillReminder.enabled: false`                                 |
+| `CK_QUALITY_SKILL_REMINDER`             | `0`: stops the common skill reminder on prompts and tool results, like `qualitySkillReminder.enabled: false`                                 |
 | `CK_EDIT_TIME_LINT`                     | `1` or `0`: turns edit-time lint on or off for this shell or host, over every `editTimeLint.enabled` layer                          |
 | `DOC_SYNC_OVERRIDE`                     | `1`: silences the doc-sync commit warning (the gate only warns, never blocks); each use is appended to the gate's audit log            |
 | `ENABLE_DESKTOP_NOTIFICATIONS`          | `false`: turns off desktop turn-complete alerts (on by default)                                                                     |

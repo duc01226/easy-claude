@@ -312,7 +312,7 @@ const FEATURES = [
     router('commitSkillRoute', 'CK_COMMIT_SKILL_ROUTE', 'commit-skill-route', 'route commit requests to the commit skill'),
     router('judgementIntegrityRoute', 'CK_JUDGEMENT_INTEGRITY_ROUTE', 'judgement-integrity-route', 'verdict and evaluation reminder'),
     router('aiFeatureRoute', 'CK_AI_FEATURE_ROUTE', 'ai-feature-route', 'AI-feature engineering reminder'),
-    router('qualitySkillReminder', 'CK_QUALITY_SKILL_REMINDER', 'quality-skill-remind', 'review/test/failure skill routing digest'),
+    router('qualitySkillReminder', 'CK_QUALITY_SKILL_REMINDER', 'quality-skill-remind', 'common skill routing digest on prompts and tool results'),
     router('corePrinciplesInject', 'CK_CORE_PRINCIPLES_INJECT', 'core-principles-inject', 'easy to change, scale, maintain gate'),
     router('knowledgeRoute', 'CK_KNOWLEDGE_ROUTE', 'knowledge-route', 'points the assistant at matching knowledge packs')
 ];

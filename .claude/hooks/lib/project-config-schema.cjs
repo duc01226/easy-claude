@@ -14,6 +14,7 @@
 
 const { normalizeProjectRelativePath, validateReferenceDocDefinition } = require('./project-reference-registry.cjs');
 const { TASK_TRACKING_SCHEMA, validateTaskTracking } = require('./task-tracking-config.cjs');
+const { THRESHOLD_PROPERTIES, validateReminderThresholds } = require('./quality-skill-reminder-config.cjs');
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SCHEMA DEFINITION
@@ -100,13 +101,14 @@ const SCHEMA = {
             enabled: { type: 'boolean', required: false }
         }
     },
-    // Quality-skill reminder after tool results (quality-skill-remind.cjs). On by default;
+    // Common skill reminder on prompts and tool results (quality-skill-remind.cjs). On by default;
     // `enabled: false` or CK_QUALITY_SKILL_REMINDER=0 switches it off.
     qualitySkillReminder: {
         type: 'object',
         required: false,
         properties: {
-            enabled: { type: 'boolean', required: false }
+            enabled: { type: 'boolean', required: false },
+            ...THRESHOLD_PROPERTIES
         }
     },
     // Core engineering principles reminder (core-principles-inject.cjs). On by default;
@@ -2856,6 +2858,7 @@ function validateConfig(config) {
     validateFeatureDocTemplateSemantics(config, errors);
     validateConventionInjectionSemantics(config, errors);
     validateTokenBudgetSemantics(config, errors);
+    validateReminderThresholds(config.qualitySkillReminder, errors);
     validateVerifyCommandSemantics(config, errors, warnings);
     for (const name of ['uiReuseReminder', 'failureInvestigationReminder']) {
         const tokens = config.hooks?.[name]?.reinjectAfterTokens;

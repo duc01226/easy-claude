@@ -697,6 +697,14 @@
             "timeout": 3
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/quality-skill-remind.cjs",
+            "type": "command"
+          }
+        ]
       }
     ]
   },
