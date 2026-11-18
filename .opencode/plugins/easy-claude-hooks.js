@@ -683,6 +683,14 @@ const HOOKS = {
           "command": ".claude/hooks/ui-reuse-remind.cjs"
         }
       ]
+    },
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/quality-skill-remind.cjs"
+        }
+      ]
     }
   ]
 };

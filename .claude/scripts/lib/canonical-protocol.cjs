@@ -5,17 +5,23 @@ const path = require('path');
 const { extractSyncBody } = require('./extract-sync-block.cjs');
 
 /**
- * Body of one canonical shared protocol (`## SYNC:<tag>` in
- * `.claude/skills/shared/sync-inline-versions.md`), or null when the file or the tag is missing.
+ * Read the bodies of canonical shared protocols (`## SYNC:<tag>` in
+ * `.claude/skills/shared/sync-inline-versions.md`). Missing tags map to null. An unreadable file yields an empty map.
  * The one reader hooks use for a canonical text they re-deliver; it composes nothing.
  */
-function readCanonicalProtocol(rootDir, tag) {
+function readCanonicalProtocols(rootDir, tags) {
+    let markdown;
     try {
         const file = path.join(rootDir, '.claude', 'skills', 'shared', 'sync-inline-versions.md');
-        return extractSyncBody(fs.readFileSync(file, 'utf8'), tag);
+        markdown = fs.readFileSync(file, 'utf8');
     } catch {
-        return null;
+        return {};
     }
+    return Object.fromEntries(tags.map(tag => [tag, extractSyncBody(markdown, tag)]));
 }
 
-module.exports = { readCanonicalProtocol };
+function readCanonicalProtocol(rootDir, tag) {
+    return readCanonicalProtocols(rootDir, [tag])[tag] ?? null;
+}
+
+module.exports = { readCanonicalProtocol, readCanonicalProtocols };

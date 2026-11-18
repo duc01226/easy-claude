@@ -89,7 +89,7 @@ Read `docs/project-config.json` → `modules` when selecting a component; module
 | Component      | Count                                                                                         | Location                      | Format                                                                              |
 | -------------- | --------------------------------------------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------- |
 | Hooks          | <!-- COUNT:hooks -->38<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                         |
-| Hook Libraries | <!-- COUNT:lib-modules -->79<!-- /COUNT -->                                                   | `.claude/hooks/lib/*.cjs`     | CommonJS utility modules                                                            |
+| Hook Libraries | <!-- COUNT:lib-modules -->80<!-- /COUNT -->                                                   | `.claude/hooks/lib/*.cjs`     | CommonJS utility modules                                                            |
 | Skills         | <!-- COUNT:skills -->109<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                         |
 | Agents         | <!-- COUNT:agents -->25<!-- /COUNT -->                                                        | `.claude/agents/*.md`         | Markdown definitions                                                                |
 | Workflows      | <!-- COUNT:workflows -->17<!-- /COUNT -->                                                     | `.claude/workflows.json`      | JSON workflow definitions                                                           |
@@ -102,7 +102,7 @@ Read `docs/project-config.json` → `modules` when selecting a component; module
 | Code | Module         | Location                       | Description                                                                                                               |
 | ---- | -------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
 | HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->38<!-- /COUNT --> top-level `.cjs` runtime hook files (session init, safety gates, graph, formatting) |
-| HL   | Hook Libraries | `.claude/hooks/lib/`           | <!-- COUNT:lib-modules -->79<!-- /COUNT --> shared utility modules for hooks                                              |
+| HL   | Hook Libraries | `.claude/hooks/lib/`           | <!-- COUNT:lib-modules -->80<!-- /COUNT --> shared utility modules for hooks                                              |
 | SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->109<!-- /COUNT --> task automation skill definitions                                                 |
 | AG   | Agents         | `.claude/agents/`              | <!-- COUNT:agents -->25<!-- /COUNT --> specialized subagent role definitions                                              |
 | WF   | Workflows      | `.claude/workflows.json`       | <!-- COUNT:workflows -->17<!-- /COUNT --> end-to-end process orchestrations                                               |

@@ -309,6 +309,25 @@ function conciseCoreIsPresent(root, input, read = defaultRead, now = Date.now(),
     }
 }
 
+/** Reuse a complete compatible restore when all current bins reached this scope after compaction. */
+function compatibleRestoreCredit(projectDir, store, input, ctx, prior) {
+    const ledger = require('./convention-ledger.cjs');
+    const scope = ledger.scopeFor(input);
+    const { bins } = loadBundle(projectDir, defaultRead);
+    if (!bins.length || bins.length !== bins[0].total || bins[0].tags.includes('concise-agent-core') || bins.some(bin => bin.missing.length)) return null;
+    let earliest = null;
+    for (const bin of bins) {
+        const binHash = require('node:crypto').createHash('sha256').update(bin.text, 'utf8').digest('hex');
+        const receipt = ledger.readRecord(store, input.session_id, scope, `universal-bin-${bin.number}`);
+        // A receipt older than our own delivery cannot cover a subsequent compaction.
+        if (receipt?.hash !== binHash || receipt.form !== 'full' || !(receipt.deliveredAt > prior.deliveredAt)) return null;
+        const record = ledger.adoptExpectedBoundary(receipt, binHash, ctx);
+        if (!(record.deliveredAt > ctx.lastCompactionAt)) return null;
+        if (!earliest || record.deliveredAt < earliest.deliveredAt) earliest = record;
+    }
+    return { hash: prior.hash, form: 'evidence', deliveredAt: earliest.deliveredAt, transcriptBytes: earliest.transcriptBytes };
+}
+
 // The independent principles hook can recover an unsuccessful universal delivery,
 // including a PostToolUse event, through the same successful-write ledger.
 function ensureConciseCore(input, deps = {}) {
@@ -480,6 +499,7 @@ module.exports = {
     loadBins,
     loadBundle,
     conciseCoreIsPresent,
+    compatibleRestoreCredit,
     ensureConciseCore,
     unavailableNotice,
     getLedgerSettings,

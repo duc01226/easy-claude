@@ -285,8 +285,8 @@
       "by": "baseline"
     },
     "config:qualitySkillReminder": {
-      "hash": "0bbbeef8227b",
-      "by": "baseline"
+      "hash": "2454feafcd42",
+      "by": "common-skill-reminder-on-prompts"
     },
     "config:referenceDocs": {
       "hash": "fcbfa8ba87a8",
@@ -393,8 +393,8 @@
       "by": "baseline"
     },
     "hooks:UserPromptSubmit": {
-      "hash": "40ff35c20f2e",
-      "by": "baseline"
+      "hash": "fa8bc05be8ae",
+      "by": "common-skill-reminder-on-prompts"
     },
     "scan-targets": {
       "hash": "3b9590b1fe45",

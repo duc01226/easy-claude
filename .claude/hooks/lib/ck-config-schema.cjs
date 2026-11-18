@@ -12,6 +12,8 @@
  */
 'use strict';
 
+const { THRESHOLD_PROPERTIES, validateReminderThresholds } = require('./quality-skill-reminder-config.cjs');
+
 // ═══════════════════════════════════════════════════════════════════════════
 // SCHEMA DEFINITION
 // ═══════════════════════════════════════════════════════════════════════════
@@ -227,13 +229,14 @@ const CK_SCHEMA = {
             promptTriggers: { type: 'boolean', required: false }
         }
     },
-    // Quality-skill reminder after tool results (quality-skill-remind.cjs). On by default;
+    // Common skill reminder on prompts and tool results (quality-skill-remind.cjs). On by default;
     // `enabled: false` or CK_QUALITY_SKILL_REMINDER=0 switches it off.
     qualitySkillReminder: {
         type: 'object',
         required: false,
         properties: {
-            enabled: { type: 'boolean', required: false }
+            enabled: { type: 'boolean', required: false },
+            ...THRESHOLD_PROPERTIES
         }
     },
     // Core engineering principles reminder (core-principles-inject.cjs). On by default;
@@ -494,6 +497,7 @@ function validateCkConfig(config) {
     for (const [key, fieldSchema] of Object.entries(CK_SCHEMA)) {
         validateField(config[key], fieldSchema, key, errors, warnings);
     }
+    validateReminderThresholds(config.qualitySkillReminder, errors);
 
     // Check for unknown top-level keys
     const knownKeys = new Set(Object.keys(CK_SCHEMA));

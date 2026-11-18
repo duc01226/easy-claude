@@ -2403,17 +2403,35 @@ Add `Analyze AI mistakes & lessons learned` to non-trivial tasks. Extract the ro
 
 ## SYNC:quality-skill-routing
 
-**Quality skill routing:** For review, test or failure work, use the project's registered skill first; use a generic host or plugin equivalent only when no registered skill fits, and say why.
+**Common skill routing:** Use the project's registered skill first. Use a generic host or plugin equivalent only when no registered skill fits, and say why.
 
+- **Investigation and planning:** `investigate` traces code flow. Use `plan` to plan implementation and `grill` to stress-test a plan, design or decision in an interview before building.
+- **Design and mock-ups:** `ui-design` creates or reviews interfaces. `design-spec` specifies views, flows, states and accessibility. `work-item --mode=mockup` makes interactive HTML mock-ups.
 - **Review:** `why-review` judges a rationale, decision, plan, claim or statement: necessity, alternatives, trade-offs, or the validity of review findings. `changes-review` reviews a focused code change: staged, unstaged, one branch diff or a simple pull request. `workflow-review-changes` reviews a pull request or change set that is complex, risky or cross-module, with specialist reviewers and a fix loop; for a whole pull request, choose between the two by how complex its changes are, not by file count alone.
-- **Tests:** `test-review` reviews the tests of a change — coverage of every changed behavior per layer and test quality — and routes each layer to its owner's review mode; `test` runs the suites and summarizes the results; `integration-test` and `e2e-test` write, fix or verify their suites.
+- **Tests:** `test-review` reviews the tests of a change — coverage of every changed behavior per layer and test quality — and routes each layer to its owner's review mode. `test` runs the suites and summarizes the results. `integration-test` and `e2e-test` write, fix or verify their suites. `performance-test` writes, reviews or runs performance, load, soak and capacity tests.
+- **Bottlenecks and documentation:** `performance-review` investigates performance bottlenecks and validates fixes. `docs-manager` syncs documentation after code, spec or test changes.
+- **Pull requests and lessons:** `pull-request` opens, updates or marks a pull request ready when explicitly authorized. `learn` records reusable lessons when the user asks.
 - **Failures, errors and bugs:** fix every issue, failure or bug through these skills, never by an ad hoc patch or workaround: repair the cause at its owner, with no special-casing, retries, sleeps, skipped or loosened checks, suppressed errors or copied patches that hide it; when that fix is out of scope, stop and report rather than patch around it. `investigate --mode=debug` establishes the root cause of a failed command, test or unexpected error before any fix; `fix` then repairs it at that cause, or `workflow-bugfix` runs the whole route when the route picks the full workflow for a non-trivial bug (cause unknown or wide reach). Both run a bug-class prevention task (`fix --mode=prevent`) that reports sibling instances of the bug class and adds its strongest guard, structure-first with a `$learn` lesson last once the user confirms, or records why none fits.
 
 ---
 
 ## SYNC:quality-skill-routing:reminder
 
-**Quality skills first:** review → `why-review` (rationale, decision, claim or statement), `changes-review` (focused diff or simple pull request), `workflow-review-changes` (complex, risky or cross-module pull request or changes); tests → `test-review` (coverage and quality of a change's tests), `test`, `integration-test`, `e2e-test`; a failure, error or bug → `investigate --mode=debug` before any fix, then `fix` (or `workflow-bugfix` for a non-trivial bug), never an ad hoc patch or a workaround that hides the cause. Use a generic host or plugin equivalent only when none fits.
+**Common skills:** `investigate`, `plan`, `grill` (decision interview), `learn`, `docs-manager`.
+- UI → `ui-design`, `design-spec`, `work-item --mode=mockup`.
+- Review → `why-review`, `changes-review` (focused diff or simple pull request), `workflow-review-changes` (complex). PR actions → `pull-request`.
+- tests → `test-review` (coverage and quality of a change's tests), `test`, `e2e-test`, `integration-test`, `performance-test`.
+- `performance-review` for bottlenecks. `investigate --mode=debug` before `fix` (or `workflow-bugfix` for a non-trivial bug), never an ad hoc patch or a workaround.
+
+---
+
+## SYNC:long-run-protocols:reminder
+
+**Shared protocols for long runs**
+- Recheck the original goal, latest user instructions and current checkpoint before changing direction.
+- Verify the result against observable success criteria before closing. Tests should prove the intended behavior.
+- Trace failures to their source, test or environment cause before fixing.
+- Stay within user authority and project conventions. Keep required review, tests and spec or doc updates in scope.
 
 ---
 

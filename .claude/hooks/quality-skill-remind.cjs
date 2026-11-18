@@ -2,25 +2,21 @@
 'use strict';
 if ((require.main === module || !require.main) && require('./lib/framework-runtime.cjs').skipHook(module)) return;
 /**
- * Quality-skill reminder after tool results — keeps the review, test and failure routes in attention
- * during a long run.
+ * Common skills on genuine prompts, with shared protocol guidance during long tool runs.
  *
  * Re-delivers the canonical `SYNC:quality-skill-routing:reminder` digest from
- * `.claude/skills/shared/sync-inline-versions.md` (pick `why-review` for a rationale, `changes-review` for a
- * focused diff or simple pull request, `workflow-review-changes` for complex changes, `test-review` for the
- * coverage and quality of a change's tests, the project's test skills for tests, `investigate --mode=debug` for a failure or error). The universal bundle carries the full `quality-skill-routing` protocol; this
- * hook only refreshes the digest, because a long autonomous run sends no prompt that would re-deliver it.
+ * `.claude/skills/shared/sync-inline-versions.md`. The universal bundle carries the full routing protocol.
  *
- * Trigger: PostToolUse for every tool (JSON `additionalContext`). Sub-agent tool calls fire it too, so a
- * running sub-agent is covered after its own compaction, which no other event reports.
+ * Triggers: UserPromptSubmit (plain stdout) and PostToolUse for every tool (JSON `additionalContext`).
+ * Sub-agent tool calls also refresh the digest after the agent's own compaction.
  *
  * De-duplication: `deliverOnce` of the session-scoped convention ledger (`lib/convention-ledger.cjs`),
- * one record per scope (main conversation or one sub-agent) in the protocol-delivery store. The first
- * tool result of a scope delivers; afterwards only about 150,000 tokens of transcript growth
- * (`DEFAULT_REINJECT_TOKENS` × `BYTES_PER_TOKEN`), a compaction (the primary host's boundary or a Codex
- * `compacted` record) or a changed digest re-delivers. Elapsed time alone never does. A host that
- * exposes no transcript gets one delivery until a compaction. A call without a session id is never
- * delivered: a reminder that cannot be de-duplicated would repeat on every tool result.
+ * one record per scope (main conversation or one sub-agent) in the protocol-delivery store. Every genuine
+ * prompt refreshes the record. Tool results deliver when the record is absent, at the configured
+ * time or transcript growth threshold (defaults 60 minutes or about 250,000 tokens, whichever
+ * comes first), or when the digest changes.
+ * A detected compaction re-arms unless a complete compatible bundle has already restored the rules.
+ * The time cap still applies without a transcript. Both events require a session id.
  *
  * Cost: one process per tool result; it ends after one record read and one transcript size check when
  * the digest is still present. Advisory; never blocks; every failure stays silent (exit 0).
@@ -28,22 +24,35 @@ if ((require.main === module || !require.main) && require('./lib/framework-runti
  * On by default; off with `.claude/.ck.json` qualitySkillReminder.enabled:false (a developer override in
  * `.claude/.ck.local.json` wins) or CK_QUALITY_SKILL_REMINDER=0. CK_DEBUG=1 prints failures to stderr.
  *
+ * @hook UserPromptSubmit
  * @hook PostToolUse (*)
  */
 const path = require('node:path');
+const { DEFAULT_REINJECT_MINUTES, DEFAULT_REINJECT_TOKENS, resolveReminderThresholds } = require('./lib/quality-skill-reminder-config.cjs');
 
 const HOOK_NAME = 'quality-skill-remind';
 const SYNC_TAG = 'quality-skill-routing:reminder';
+const PROTOCOL_TAG = 'long-run-protocols:reminder';
 const MARKER_START = '<!-- CK:QUALITY-SKILL-REMINDER -->';
 const MARKER_END = '<!-- /CK:QUALITY-SKILL-REMINDER -->';
 const SETTINGS_SECTION = 'qualitySkillReminder';
 const ENV_SWITCH = 'CK_QUALITY_SKILL_REMINDER';
-// Long runs need the routes back in attention before they fade; compaction re-arms independently.
-const DEFAULT_REINJECT_TOKENS = 150000;
 // Used only when the canonical file cannot be read, so the reminder is never empty. Must equal the
 // canonical `SYNC:quality-skill-routing:reminder` body (parity asserted by the hook suite).
-const FALLBACK_BODY =
-    "**Quality skills first:** review → `why-review` (rationale, decision, claim or statement), `changes-review` (focused diff or simple pull request), `workflow-review-changes` (complex, risky or cross-module pull request or changes); tests → `test-review` (coverage and quality of a change's tests), `test`, `integration-test`, `e2e-test`; a failure, error or bug → `investigate --mode=debug` before any fix, then `fix` (or `workflow-bugfix` for a non-trivial bug), never an ad hoc patch or a workaround that hides the cause. Use a generic host or plugin equivalent only when none fits.";
+const FALLBACK_BODY = [
+    '**Common skills:** `investigate`, `plan`, `grill` (decision interview), `learn`, `docs-manager`.',
+    '- UI → `ui-design`, `design-spec`, `work-item --mode=mockup`.',
+    '- Review → `why-review`, `changes-review` (focused diff or simple pull request), `workflow-review-changes` (complex). PR actions → `pull-request`.',
+    "- tests → `test-review` (coverage and quality of a change's tests), `test`, `e2e-test`, `integration-test`, `performance-test`.",
+    '- `performance-review` for bottlenecks. `investigate --mode=debug` before `fix` (or `workflow-bugfix` for a non-trivial bug), never an ad hoc patch or a workaround.'
+].join('\n');
+const FALLBACK_PROTOCOLS = [
+    '**Shared protocols for long runs**',
+    '- Recheck the original goal, latest user instructions and current checkpoint before changing direction.',
+    '- Verify the result against observable success criteria before closing. Tests should prove the intended behavior.',
+    '- Trace failures to their source, test or environment cause before fixing.',
+    '- Stay within user authority and project conventions. Keep required review, tests and spec or doc updates in scope.'
+].join('\n');
 
 function nonBlank(value) {
     return typeof value === 'string' && value.trim().length > 0;
@@ -63,13 +72,11 @@ function defaultProjectDir(input, env) {
 }
 
 function buildContent(projectDir) {
-    let body = null;
-    try {
-        body = require('../scripts/lib/canonical-protocol.cjs').readCanonicalProtocol(projectDir, SYNC_TAG);
-    } catch (error) {
-        debug(error); // the reminder falls back to its built-in body
-    }
-    return [MARKER_START, nonBlank(body) ? body.trim() : FALLBACK_BODY, MARKER_END].join('\n');
+    const bodies = require('../scripts/lib/canonical-protocol.cjs').readCanonicalProtocols(projectDir, [SYNC_TAG, PROTOCOL_TAG]);
+    return {
+        skills: [MARKER_START, bodies[SYNC_TAG] || FALLBACK_BODY, MARKER_END].join('\n'),
+        protocols: bodies[PROTOCOL_TAG] || FALLBACK_PROTOCOLS
+    };
 }
 
 function defaultWrite(text, done) {
@@ -95,31 +102,47 @@ function defaultWrite(text, done) {
 
 /**
  * Resolve to the text written, or '' when the hook stays silent.
- * deps (tests): env, now, projectDir, rawSettings, content, storeRoot, write.
+ * deps (tests): env, now, projectDir, homeDir, rawSettings, storeRoot, write.
  */
 function run(input, deps = {}) {
     return new Promise(resolve => {
         try {
             if (!input || typeof input !== 'object' || Array.isArray(input)) return resolve('');
-            if (input.hook_event_name !== 'PostToolUse' || !nonBlank(input.session_id)) return resolve('');
+            const isPrompt = input.hook_event_name === 'UserPromptSubmit';
+            if ((!isPrompt && input.hook_event_name !== 'PostToolUse') || !nonBlank(input.session_id)) return resolve('');
+            const routeUtils = require('./lib/prompt-route-utils.cjs');
+            if (isPrompt && (!nonBlank(input.prompt) || routeUtils.isHostEnvelope(input.prompt))) return resolve('');
             const env = deps.env || process.env;
             const projectDir = deps.projectDir || defaultProjectDir(input, env);
-            const routeUtils = require('./lib/prompt-route-utils.cjs');
-            if (!routeUtils.isRouterEnabled(SETTINGS_SECTION, ENV_SWITCH, { env, projectDir, rawSettings: deps.rawSettings })) return resolve('');
-            const content = deps.content || buildContent(projectDir);
+            const rawSettings =
+                deps.rawSettings === undefined ? routeUtils.loadRouterSettings(projectDir, SETTINGS_SECTION, { homeDir: deps.homeDir }) : deps.rawSettings;
+            if (!routeUtils.isRouterEnabled(SETTINGS_SECTION, ENV_SWITCH, { env, projectDir, rawSettings })) return resolve('');
+            const { minutes, tokens } = resolveReminderThresholds(rawSettings);
+            const { skills, protocols } = buildContent(projectDir);
+            const content = `${skills}\n\n${protocols}`;
+            const hash = require('node:crypto').createHash('sha256').update(content, 'utf8').digest('hex');
+            const store = deps.storeRoot || path.join(projectDir, 'tmp', 'protocol-delivery');
             const ledger = require('./lib/convention-ledger.cjs');
             const { BYTES_PER_TOKEN } = require('./lib/file-conventions.cjs');
             ledger
                 .deliverOnce({
-                    root: deps.storeRoot || path.join(projectDir, 'tmp', 'protocol-delivery'),
+                    root: store,
                     input,
                     group: HOOK_NAME,
-                    hash: require('node:crypto').createHash('sha256').update(content, 'utf8').digest('hex'),
-                    payload: JSON.stringify({ hookSpecificOutput: { hookEventName: 'PostToolUse', additionalContext: content } }),
+                    hash,
+                    payload: routeUtils.routerOutput(input, isPrompt ? `${skills}\n` : content),
+                    loadCredit: isPrompt
+                        ? undefined
+                        : (ctx, record) =>
+                              record?.hash === hash && record.deliveredAt <= ctx.lastCompactionAt
+                                  ? require('./lib/universal-delivery.cjs').compatibleRestoreCredit(projectDir, store, input, ctx, record)
+                                  : null,
                     settings: {
-                        reinjectAfterBytes: DEFAULT_REINJECT_TOKENS * BYTES_PER_TOKEN,
-                        reinjectAfterMinutes: null,
-                        blindReinjectAfterMinutes: null,
+                        // Prompts always refresh the record that subsequent tool results consult.
+                        reinjectAfterBytes: isPrompt ? 0 : tokens * BYTES_PER_TOKEN,
+                        reinjectAfterMinutes: isPrompt ? 0 : null,
+                        blindReinjectAfterMinutes: isPrompt ? 0 : null,
+                        maxAgeMinutes: isPrompt ? undefined : minutes,
                         compactionMarkers: [ledger.CODEX_COMPACTION_MARKER]
                     },
                     now: typeof deps.now === 'number' ? deps.now : Date.now(),
@@ -136,12 +159,15 @@ function run(input, deps = {}) {
 module.exports = {
     HOOK_NAME,
     SYNC_TAG,
+    PROTOCOL_TAG,
     MARKER_START,
     MARKER_END,
     SETTINGS_SECTION,
     ENV_SWITCH,
     DEFAULT_REINJECT_TOKENS,
+    DEFAULT_REINJECT_MINUTES,
     FALLBACK_BODY,
+    FALLBACK_PROTOCOLS,
     buildContent,
     run
 };

@@ -650,7 +650,7 @@
           "when": "delivered by the universal hook"
         },
         "quality-skill-routing": {
-          "summary": "Route review, test and failure work to the project's registered skills first",
+          "summary": "Route common work to the project's registered skills first",
           "when": "delivered by the universal hook"
         },
         "test-coverage-goal": {

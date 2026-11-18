@@ -21,7 +21,7 @@ entities:
 status: draft
 provisional: true
 owner: 'Framework maintainers'
-last_updated: '2026-11-17'
+last_updated: '2026-11-18'
 scope_mode: FRAMEWORK-LIBRARY
 large_idea_decomposition: null
 roadmap: null
@@ -254,14 +254,14 @@ Many skills follow the same shared protocols — evidence rules, review rules, t
 ### US-PDL-12: Keep prompt-time guidance in delegated and long-running work
 
 **As a** project maintainer
-**I want** delegated agents and long, compacted runs to keep the guidance a user prompt brings, and the assistant reminded which project skills own reviews, tests and failures
+**I want** the assistant to see the common skill routes when I prompt it and for delegated or compacted runs to retain routing guidance
 **So that** work done without a fresh prompt follows the same rules and uses the project's own quality skills
 
 **Acceptance Criteria:**
 
 - **AC-PDL-32** — **Given** an agent of any type starts **When** its start is reported **Then** it receives the core engineering principles and the UI reuse guidance once for that spawn, plus the verdict and AI-feature directives when the session's latest recorded user prompt asks for one; workflow routing, commit and tracking guidance, setup offers and the prompt record stay with the main conversation (BR-PDL-21)
 - **AC-PDL-33** — **Given** the host reports a compaction **When** no prompt follows **Then** the core principles, the UI reuse guidance, the workflow route and catalog, and those two directives (judged on the latest recorded prompt) arrive at once, and the prompt that follows the host's own compaction boundary stays silent (BR-PDL-21)
-- **AC-PDL-34** — **Given** a long run that produces tool results **When** a scope's first tool result arrives, or about 150,000 tokens of growth, a compaction or a changed digest occurred since the last delivery **Then** a short digest routes reviews (a rationale or claim, a focused change or simple pull request, a complex pull request), tests, failure diagnosis and fixes to the project's registered skills and rules out ad hoc patches and workarounds that hide the cause; otherwise nothing arrives (BR-PDL-22)
+- **AC-PDL-34** — **Given** the skill reminder is enabled **When** a genuine user prompt arrives, a scope gets its first tool result without a prior delivery, or a tool result follows the first configured time or growth threshold, a compaction without a confirmed restore, or a changed digest **Then** prompts receive the common skill routes and tool results receive those routes alongside a short reminder of the shared protocols (BR-PDL-22)
 - **AC-PDL-35** — **Given** a project that opted into agent guides (off by default) and an agent definition converted by them (a trigger-gated protocol it neither keeps inline nor needs as a code-tier rule is carried as one guide line plus its reminder) **When** the agent starts **Then** the group hooks deliver that protocol's full text when its trigger applies or the trigger context cannot be read, deliver nothing for it otherwise, never repeat a protocol the agent still carries in full, and the guide line's published path stays the fallback; a second conversion run changes no byte, and disabling the policy (or keeping a tag inline) restores the full body verbatim (BR-PDL-08, BR-PDL-14)
 
 ## 4. Business Rules
@@ -291,7 +291,7 @@ Many skills follow the same shared protocols — evidence rules, review rules, t
 | BR-PDL-19 | A skill start reminds the assistant of its project overlays                  | Delivery  | [HARD]      |
 | BR-PDL-20 | Concise UI reuse guidance precedes interface work within one refresh window | Delivery | [HARD] |
 | BR-PDL-21 | Prompt-time guidance reaches delegated agents and survives compaction        | Delivery  | [HARD]      |
-| BR-PDL-22 | Quality-skill routes refresh after tool results                              | Delivery  | [HARD]      |
+| BR-PDL-22 | Common skill routes are delivered on prompts and refreshed after tool results                              | Delivery  | [HARD]      |
 
 ### BR-PDL-01: Every converted skill keeps a guide entry per protocol [HARD]
 
@@ -467,9 +467,11 @@ An agent start and a compaction report carry no user prompt, yet both begin work
 
 `[Source: rule/hooks/prompt-context-agent-start-compaction]`
 
-### BR-PDL-22: Quality-skill routes refresh after tool results [HARD]
+### BR-PDL-22: Common skill routes are available at prompts and refresh after tool results [HARD]
 
-The universal bundle carries the quality-skill routing protocol: review, test and failure work use the project's registered skills first — judging a rationale, decision, claim or statement; reviewing a focused code change or a simple pull request; reviewing a pull request or change set that is complex, risky or cross-module; running or writing tests; diagnosing the root cause of a failure or error before any fix, then fixing every issue, failure or bug through the registered fix skill, or the bug-fix workflow for a non-trivial bug, never by an ad hoc patch or a workaround that hides the cause (the cause is repaired at its owner, or the work stops and is reported when that repair is out of scope) — and a generic equivalent only when none fits. IF a tool result arrives in a scope (the main conversation or one agent) THEN a short digest of those routes is delivered once; afterwards it is delivered again only after about 150,000 tokens of conversation growth, a compaction recorded in that scope's own conversation (an agent's included) or a changed digest. Elapsed time alone never re-delivers it, and a host that exposes no conversation record receives one delivery until a compaction. A tool result without a session identity receives nothing. The project may switch the digest off; the universal protocol still binds.
+The universal bundle describes the registered skills for investigation, planning, decision interviews, design, mock-ups, testing, review, pull requests, bottleneck analysis, lessons and doc sync. It routes errors through root-cause diagnosis before a fix. Repairs use the registered fix skill or, for a non-trivial bug, the bug-fix workflow. Ad hoc patches and workarounds that hide the cause are disallowed. Use a generic equivalent only when no registered skill fits.
+
+Every genuine user prompt with a session identity receives the short skill digest. Blank prompts and host-generated notices stay silent. Successful prompt delivery starts the tool refresh window for that scope. A tool result in a scope with no current reminder receives the skill digest alongside a short recap of the existing goal, evidence, investigation and authority rules. The next tool result refreshes both when either the configured time or conversation growth threshold is reached since the last delivery, whichever comes first. The project may set either positive whole-number threshold independently. The corresponding defaults are 60 minutes and about 250,000 tokens. An omitted or invalid override uses its respective default. Time still applies when a conversation record is unavailable. A changed reminder or a compaction with no confirmed compatible bundle restore makes the next tool result eligible. A confirmed compatible bundle restored by compaction starts a fresh window from the restore. A missing identity or a disabled reminder stays silent. The universal protocol still applies.
 
 `[Source: rule/hooks/quality-skill-reminder]`
 
@@ -7216,11 +7218,11 @@ boundaryCounterCase: 'a bare safe name → its body path'
 
 ### Quality-Skill Reminder Tests
 
-> Reviews, tests and failures go to the project's registered skills, refreshed during long runs (US-PDL-12).
+> Common skills are surfaced at prompts and refreshed during long runs (US-PDL-12).
 
-#### TC-PDL-120: Tool results refresh the quality-skill routes once per window and scope [P1]
+#### TC-PDL-120: User prompts deliver common skill routes and tool results refresh them per scope [P1]
 
-**Objective:** A long run keeps choosing the project's review, test and diagnosis skills.
+**Objective:** An assistant sees common skill routes before it acts and during long runs.
 
 **Business Intent / Invariant Guarded:** BR-PDL-22; AC-PDL-34.
 
@@ -7228,17 +7230,17 @@ boundaryCounterCase: 'a bare safe name → its body path'
 
 **Real-World Reachability:** The assistant runs many tools during one long request, sometimes inside a delegated agent that compacts its own context.
 
-**Demo Flow / GWT:** Given the preconditions, when tool results arrive below and at the 150,000-token boundary, after a compaction in the main conversation or in an agent's own conversation, after a changed digest and after days with no growth, then the expected result holds.
+**Demo Flow / GWT:** Given one genuine prompt, when tool results arrive just below and at either default or configured threshold, after a compaction with or without a successful full restore, or after a changed digest, then the expected result holds.
 
-**Expected Result:** The first tool result of each scope delivers the digest as advisory context naming the rationale, focused-change and complex-pull-request review routes, the test skills, root-cause diagnosis and the fix routes (the fix skill, or the bug-fix workflow for a non-trivial bug) and the ban on ad hoc patches and workarounds that hide the cause; it is delivered again only at the growth boundary, after that scope's compaction or after a changed digest. Elapsed time, other events, a missing session identity and a switched-off project deliver nothing.
+**Expected Result:** Genuine prompts name the common registered skills. Eligible tool results deliver those same routes with the canonical goal, evidence, investigation and scope reminders in one advisory message. The first applicable threshold controls refresh even without further user input. A successful compatible bundle restore counts toward freshness. Unreported or incomplete restoration leaves a detected compaction eligible. Blank or synthetic prompts, other events, missing identity or a switched-off reminder stay silent.
 
 **Acceptance Criteria:** AC-PDL-34.
 
 **Test Data:** Synthetic projects with a fixture digest, main and agent conversation records and bounded growth.
 
-**Edge Cases:** Exact boundary minus one; second-host compaction record; malformed input; switch off by setting or environment.
+**Edge Cases:** Exact default or configured distance minus one byte; exact default or configured time minus one millisecond; omitted or invalid overrides; missing transcript; successful versus incomplete compaction restore; second-host compaction record; failed output write; opt-out.
 
-**Property:** inputDomain = all tool results in one scope below the refresh distance; invariant = at most one delivery; boundaryCounterCase = the exact distance or that scope's compaction makes the next tool result eligible.
+**Property:** inputDomain = tool results in one scope below both thresholds after a successful current delivery; invariant = no additional delivery without content change or uncompensated compaction; boundaryCounterCase = either threshold makes the next tool result eligible.
 
 **Evidence:** [Source: rule/hooks/quality-skill-reminder]
 

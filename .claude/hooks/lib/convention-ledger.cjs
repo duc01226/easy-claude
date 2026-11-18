@@ -466,6 +466,9 @@ function isPresent(record, hash, ctx, settings) {
     if (!record || !PRESENT_FORMS.has(record.form)) return false;
     if (record.hash !== hash || typeof record.deliveredAt !== 'number') return false;
     if (!(record.deliveredAt > ctx.lastCompactionAt)) return false;
+    const elapsed = ctx.now - record.deliveredAt;
+    // An explicit age cap also runs when transcript growth can be measured.
+    if (Number.isFinite(settings.maxAgeMinutes) && elapsed >= settings.maxAgeMinutes * 60 * 1000) return false;
     if (typeof ctx.transcriptSize === 'number') {
         // A record written while the history did not exist yet carries no size: everything in the
         // file now is growth since that delivery, so the baseline is 0. Falling through to the age
@@ -483,7 +486,6 @@ function isPresent(record, hash, ctx, settings) {
     // A record stamped in the future (clock moved backwards, or a store carried over from
     // another machine) is treated as absent, exactly as the byte path treats negative growth:
     // an unmeasurable distance costs one extra reminder, never a missed one.
-    const elapsed = ctx.now - record.deliveredAt;
     return elapsed >= 0 && elapsed < minutes * 60 * 1000;
 }
 
@@ -858,9 +860,23 @@ function maybePrune(root, now = Date.now(), intervalMs = PRUNE_INTERVAL_MS) {
  * With `expectBoundary`, the caller says this delivery answers a host-reported compaction whose own
  * transcript boundary line may be written after it; the record then absorbs that one boundary
  * (see adoptExpectedBoundary).
+ * `loadCredit` may supply a verified alternate delivery after the locked presence check.
  * `onPresent`, when supplied, reports only a verified current record, never a peer lock or error.
  */
-function deliverOnce({ root, input, group, hash, payload, settings, now = Date.now(), write, failOpen = false, expectBoundary = false, onPresent }) {
+function deliverOnce({
+    root,
+    input,
+    group,
+    hash,
+    payload,
+    settings,
+    now = Date.now(),
+    write,
+    failOpen = false,
+    expectBoundary = false,
+    loadCredit,
+    onPresent
+}) {
     return new Promise(resolve => {
         let lock = null;
         let token = null;
@@ -903,8 +919,16 @@ function deliverOnce({ root, input, group, hash, payload, settings, now = Date.n
             token = acquireLock(lock, now);
             if (!token && (!failOpen || peerHoldsLock(lock, now))) return resolve('');
             if (token) {
-                const again = recheckContext(context());
-                if (isPresent(storedRecord(again), hash, again, settings)) {
+                const current = context();
+                const record = storedRecord(current);
+                if (isPresent(record, hash, recheckContext(current), settings)) {
+                    release();
+                    onPresent?.();
+                    return resolve('');
+                }
+                const credit = loadCredit?.(current, record);
+                if (credit && isPresent(credit, hash, current, settings)) {
+                    writeRecordAtomic(root, sessionId, scope, group, credit);
                     release();
                     onPresent?.();
                     return resolve('');
@@ -974,6 +998,7 @@ module.exports = {
     recordFile,
     lockFile,
     readRecord,
+    adoptExpectedBoundary,
     readSessionState,
     writeSessionState,
     markSessionOwned,

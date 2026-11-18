@@ -170,7 +170,7 @@ Unprefixed filenames resolve inside the project-reference docs root — default 
 | ---------------------- | ----- |
 | Skills                 | <!-- COUNT:skills -->109<!-- /COUNT --> |
 | Hook files (top-level) | <!-- COUNT:hooks -->38<!-- /COUNT --> |
-| Lib Modules            | <!-- COUNT:lib-modules -->79<!-- /COUNT --> |
+| Lib Modules            | <!-- COUNT:lib-modules -->80<!-- /COUNT --> |
 | Hook Events            | 10     |
 | Agents                 | <!-- COUNT:agents -->25<!-- /COUNT --> |
 | Workflows              | <!-- COUNT:workflows -->17<!-- /COUNT --> |
