@@ -20,7 +20,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->38<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->109<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->17<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->25<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from initiative capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->38<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->110<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->17<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->25<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from initiative capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -186,7 +186,7 @@ again after 150K tokens of growth or a compaction, and to every sub-agent; the w
 `workflow-route-inject.cjs` (the gate) and `workflow-catalog-inject.cjs` (the catalog). `CLAUDE.md` and `AGENTS.md` hold project information only. This design prevents
 context drift over long sessions.
 
-### Skills (<!-- COUNT:skills -->109<!-- /COUNT --> definitions)
+### Skills (<!-- COUNT:skills -->110<!-- /COUNT --> definitions)
 
 Markdown-based prompts with YAML frontmatter that guide AI behavior.
 
