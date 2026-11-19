@@ -61,13 +61,13 @@ test('universal workflow guidance supports every host while preserving authority
     // When read by a native host or translated into the Codex mirror.
     for (const guidance of [protocol, rewriteClaudeToolTermsForCodex(protocol)]) {
         // Then host identities, native execution, capability checks and authority survive.
-        assert.match(guidance, /Claude Code uses its Skill loader/);
-        assert.match(guidance, /Codex loads the registered `SKILL\.md` and executes its protocol with available tools/);
-        assert.match(guidance, /OpenCode uses its native skill loader/);
-        assert.match(guidance, /a registry\/source read does not change hosts/);
-        assert.match(guidance, /loading a selected skill activates its instructions; no separate tool named Skill is required/);
-        assert.match(guidance, /never block on a foreign-host tool name alone/);
-        assert.match(guidance, /All gates and authority limits still apply/);
+        assert.match(guidance, /registered skill loader in Claude Code or OpenCode/);
+        assert.match(guidance, /load and follow the registered `SKILL\.md` in Codex/);
+        assert.match(guidance, /Author in `\.claude\/\*\*`/);
+        assert.match(guidance, /Native execution and equivalent tracking need no deviation approval/);
+        assert.match(guidance, /Check for an equivalent host operation before asking/);
+        assert.match(guidance, /Name the step and evidence when a required operation is unavailable/);
+        assert.match(guidance, /Follow the canonical sequence, gates and authority limits/);
     }
 });
 
