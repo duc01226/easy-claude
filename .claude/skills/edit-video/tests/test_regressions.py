@@ -667,6 +667,23 @@ class ModelAndGeometryContracts(OfflineCase):
                 m.main()
             self.assertEqual(next(r[0] for r in m.ROWS if r[1] == "node"), expected)
 
+    def test_EV13_missing_footage_fails_closed_and_guard_routes_to_voiceover(self):
+        m = self.module("init_workspace")
+        empty = self.root / "empty-folder"
+        empty.mkdir()
+        with patch.object(sys, "argv", ["init_workspace.py", str(empty), "--out", str(self.root / "ws"), "--no-sync"]):
+            with self.assertRaisesRegex(SystemExit, "No video files"):
+                m.main()
+        skill_root = Path(__file__).resolve().parents[1]
+        skill_md = (skill_root / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("/usr/bin/say", skill_md)
+        self.assertIn("SAPI5", skill_md)
+        self.assertIn("edge-tts", skill_md)
+        self.assertIn("voiceover", skill_md)
+        pyproject = (SCRIPTS / "pyproject.toml").read_text(encoding="utf-8")
+        for forbidden in ("sherpa-onnx", "kokoro", "piper-tts", "edge-tts"):
+            self.assertNotIn(forbidden, pyproject)
+
 
 if __name__ == "__main__":
     unittest.main()

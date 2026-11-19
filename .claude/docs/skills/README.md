@@ -2,7 +2,7 @@
 
 Read this guide when discovering, executing or authoring framework skills. **MUST** execute through the active host; **MUST** keep canonical source ownership separate from runtime paths; **MUST** preserve required gates and report an actual missing capability with evidence.
 
-> <!-- COUNT:skills -->112<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->16<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
+> <!-- COUNT:skills -->113<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->16<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
 
 Read [framework-benchmark](../../skills/framework-benchmark/SKILL.md) when comparing the complete framework with raw work on qualified fictional tasks, a committed consumer project or a reusable public-source template. Its corpus guide covers generic context preparation, archives and healthy/defective reviewer controls; its running guide covers native account execution and equally equipped independent assessment. Its `compare` command turns several saved runs into one task-level verdict, reporting insufficient evidence until enough tasks are decisive. Mechanical checks do not establish a framework quality gain.
 
@@ -73,7 +73,7 @@ Read `.claude/scripts/lib/workflow-skill-contract.cjs` when changing workflow re
 
 ## Skill Domains
 
-> Curated highlights — the full catalog has <!-- COUNT:skills -->112<!-- /COUNT --> runnable skills; the tables below list selected skills per domain, not the complete set.
+> Curated highlights — the full catalog has <!-- COUNT:skills -->113<!-- /COUNT --> runnable skills; the tables below list selected skills per domain, not the complete set.
 
 | Domain                                            | Skills | Description                                    |
 | ------------------------------------------------- | ------ | ---------------------------------------------- |
@@ -88,7 +88,7 @@ Read `.claude/scripts/lib/workflow-skill-contract.cjs` when changing workflow re
 | [Context/Memory](#contextmemory)                  | 2      | Code cleanup, learning                         |
 | [Team Collaboration](#team-collaboration)         | 6      | Test specs, UX design specs, planned-work shaping   |
 | [Web/Frameworks](#webframeworks)                  | 2      | Package updates, markdown                      |
-| [Document Processing](#document-processing)       | 4      | PDF, DOCX, Markdown conversions, HTML export, recorded-video editing |
+| [Document Processing](#document-processing)       | 5      | PDF, DOCX, Markdown conversions, HTML export, recorded-video editing, neural voiceover |
 | [Utility](#utility)                               | 2      | Skill creation, framework updates              |
 
 **Additional:** Shared reference/protocol entries (<!-- COUNT:shared -->16<!-- /COUNT -->: files plus the generated `protocols/` projection) -- see [Shared Protocols](#shared-protocols-sync-bodies-and-guides)
@@ -228,9 +228,10 @@ Read `.claude/skills/shared/workflow-first-gate.md` when selecting discovery dep
 | Skill          | Triggers                                                         | Description                                                |
 | -------------- | ---------------------------------------------------------------- | ---------------------------------------------------------- |
 | `docx-convert` | DOCX to markdown, Word conversion, markdown to DOCX, Word export | Word ⇄ Markdown via `--to {markdown\|docx}`                |
-| `edit-video` | edit video, trim clips, captions, B-roll, screen recording, Shorts | Recorded footage → checked MP4 + SRT; local pipeline by default, optional cloud steps on request |
+| `edit-video` | edit video, trim clips, captions, B-roll, screen recording, Shorts | Recorded footage → checked MP4 + SRT; local pipeline by default, optional cloud steps on request; script-only narration routes to `voiceover` |
 | `html-export`  | HTML screenshot, render check, deck to PDF, animation to MP4/GIF | HTML → PNG/PDF/MP4/GIF via `--to {png\|pdf\|mp4\|gif}`     |
 | `pdf-convert`  | PDF to markdown, PDF extraction, markdown to PDF, PDF export     | PDF ⇄ Markdown via `--to {markdown\|pdf}`                  |
+| `voiceover`    | voiceover, narration, text-to-speech, TTS, re-voice video, audio cues | Script/cues → free offline neural (`sherpa-onnx`: Kokoro EN + Piper Vietnamese/multilingual) or opt-in cloud studio → `-14 LUFS` mastered WAV + `manifest.json` on macOS and Windows |
 
 ---
 
@@ -353,7 +354,7 @@ Use `/skill-creator` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | <!-- COUNT:skills -->112<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->16<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
+_Source: `.claude/skills/` | <!-- COUNT:skills -->113<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->16<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
 
 ## Closing Reminders
 

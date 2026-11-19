@@ -1,0 +1,17 @@
+{
+  "language": "en",
+  "cues": [
+    {
+      "id": "c01-intro",
+      "chapter": "01-intro",
+      "text": "Welcome to the architecture walkthrough. Today we trace how CI/CD checks run locally before every merge.",
+      "pauseAfter": 0.45
+    },
+    {
+      "id": "c02-pipeline",
+      "chapter": "01-intro",
+      "text": "Each pull request validates static lint, mirror parity, and isolated tests with zero hidden side effects.",
+      "pauseAfter": 0.35
+    }
+  ]
+}

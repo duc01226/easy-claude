@@ -1,0 +1,8 @@
+{
+  "_note": "Technical acronyms and product names mapped to natural spoken forms.",
+  "CI/CD": "C I C D",
+  "kubectl": "kube control",
+  "LUFS": "luffs",
+  "YAML": "yammel",
+  "gRPC": "G R P C"
+}

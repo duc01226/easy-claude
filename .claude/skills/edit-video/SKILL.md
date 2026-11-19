@@ -118,6 +118,8 @@ providers.
 
 ## 0. Ask first (one message, then go)
 
+**No recorded footage / narration-from-script gate:** `edit-video` edits recorded video clips (`$ARGUMENTS`). If no recorded video exists or the user wants narration generated from a script/docs, **stop before synthesizing or rendering** — never silently fall back to legacy OS TTS (`/usr/bin/say` on macOS, Windows SAPI5 `System.Speech`) or unofficial scrapers (`edge-tts`). Route narration to the `voiceover` skill (free offline neural `sherpa-onnx` default on macOS and Windows, or explicit cloud studio opt-in) paired with `remotion` or `html-export --to=mp4 --audio=...` for script-to-explainer videos. `fix_word.py` (full mode) repairs a misspoken word or line inside recorded footage only, never full-video narration.
+
 1. **Deliverables:** clean cut, captions, B-roll? One version or variants to compare? Burned captions or an .srt?
 2. **Approved script?** Copy approved by a client or brand partner is reproduced verbatim. Nothing added (no disclosure
    line, no call to action) unless asked.
@@ -257,6 +259,7 @@ the exported file itself, not an intermediate.
 ## Hard rules
 
 - **Never overwrite** a source file or an earlier export. Every version gets a new number or folder.
+- **No silent OS-TTS fallback.** Never synthesize narration with `/usr/bin/say`, Windows SAPI5, or `edge-tts` when recorded footage or neural TTS is missing; use the `voiceover` skill (free offline `sherpa-onnx` default on macOS/Windows) and audition 1 cue first.
 - **Whisper's timestamps place nothing.** Word ends run 50-300 ms early and Whisper completes words from their first
   half. Cuts between words come from `align.py` plus the waveform; ASR is a second check, never proof.
 - **Read the evidence.** Frame grids, word diffs and numbers are how the agent watches. Never call a cut or a render

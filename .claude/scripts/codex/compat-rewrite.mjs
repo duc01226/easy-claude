@@ -32,9 +32,19 @@ export function buildSkillReferenceMap(skillNames) {
 }
 
 export function rewriteSkillMentionsForCodex(text, skillReferenceMap) {
-    return text.replace(/(^|[^A-Za-z0-9_$-])([/$])([a-z][a-z0-9-]*)(?=$|[^A-Za-z0-9_-])/gm, (match, prefix, sigil, commandName) => {
+    return text.replace(/(^|[^A-Za-z0-9_$-])([/$])([a-z][a-z0-9-]*)(?=$|[^A-Za-z0-9_-])/gm, (match, prefix, sigil, commandName, offset, fullText) => {
         if (sigil === '/' && prefix && !/[\s([{'"`>:-]/.test(prefix)) {
             return match;
+        }
+        if (sigil === '/') {
+            const after = fullText.slice(offset + match.length, offset + match.length + 2);
+            // Never rewrite path segments like `<run>/voiceover.wav` or `<dir>/plan/foo` (sentence-final `/voiceover.` still rewrites).
+            if (/^\.[A-Za-z0-9]/.test(after) || after.startsWith('/')) {
+                return match;
+            }
+            if (prefix === '>' && /<[^>\r\n]+$/.test(fullText.slice(Math.max(0, offset - 64), offset))) {
+                return match;
+            }
         }
         const normalizedName = normalizeName(commandName);
         const mappedName = skillReferenceMap.get(normalizedName);

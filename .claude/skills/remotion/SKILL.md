@@ -45,7 +45,7 @@ disable-model-invocation: true
 | TikTok-style captions with word highlight  | `refs/captions.tsx` — CaptionedVideo, CaptionPage, delayRender, createTikTokStyleCaptions                     |
 | Video/audio duration, dimensions, frames   | `refs/mediabunny-utils.ts` — getVideoDuration, getAudioDuration, getVideoDimensions, canDecode, extractFrames |
 | Mapbox map scene                           | `refs/maps-mapbox.tsx` — MapScene component, interactive:false, camera animation                              |
-| ElevenLabs TTS voiceover generation        | `refs/generate-voiceover.ts` — TTS script + calculateMetadata integration                                     |
+| Neural voiceover narration (free offline or cloud) | Use `.claude/skills/voiceover` (`voiceover.cjs` → `manifest.json` + `voiceover.wav`), or `refs/generate-voiceover.ts` for ElevenLabs-only |
 
 ---
 
