@@ -101,6 +101,8 @@ Declared not applicable in `referenceDocs` (skip unless the project adds that st
 ```bash
 node .claude/hooks/tests/test-all-hooks.cjs   # hook tests
 node .claude/hooks/tests/run-all-tests.cjs    # all suites
+node .claude/scripts/framework-ci.cjs --lane=static --scope=changed # static checks affected
+node .claude/scripts/framework-ci.cjs --lane=static --scope=full # static checks full
 node .claude/scripts/framework-ci.cjs --scope=changed # ci changed scope
 node .claude/scripts/framework-ci.cjs --scope=full # ci full scope
 ```
@@ -142,7 +144,7 @@ See [integration-test-reference.md](docs/project-reference/integration-test-refe
 
 | Kind        | Count                                       |
 | ----------- | ------------------------------------------- |
-| Skills      | <!-- COUNT:skills -->110<!-- /COUNT -->     |
+| Skills      | <!-- COUNT:skills -->111<!-- /COUNT -->     |
 | Hooks       | <!-- COUNT:hooks -->38<!-- /COUNT -->       |
 | Agents      | <!-- COUNT:agents -->25<!-- /COUNT -->      |
 | Workflows   | <!-- COUNT:workflows -->17<!-- /COUNT -->   |

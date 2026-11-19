@@ -123,6 +123,8 @@ The table above maps path classes to their project docs. Two framework paths hav
 ```bash
 node .claude/hooks/tests/test-all-hooks.cjs   # hook tests
 node .claude/hooks/tests/run-all-tests.cjs    # all suites
+node .claude/scripts/framework-ci.cjs --lane=static --scope=changed # static checks affected
+node .claude/scripts/framework-ci.cjs --lane=static --scope=full # static checks full
 node .claude/scripts/framework-ci.cjs --scope=changed # ci changed scope
 node .claude/scripts/framework-ci.cjs --scope=full # ci full scope
 ```

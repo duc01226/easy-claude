@@ -401,8 +401,8 @@
       "by": "seed-feature-map"
     },
     "skills": {
-      "hash": "f4462c19f216",
-      "by": "rich-report-skill"
+      "hash": "ea4178baa797",
+      "by": "review-harness-opportunities"
     },
     "workflow:workflow-architecture-audit": {
       "hash": "a2da7ba0b037",
@@ -457,8 +457,8 @@
       "by": "baseline"
     },
     "workflow:workflow-review-changes": {
-      "hash": "e6ebd08fbc9e",
-      "by": "test-review-gate"
+      "hash": "790b76f509cc",
+      "by": "review-harness-opportunities"
     },
     "workflow:workflow-seed-test-data": {
       "hash": "e36f05f1dfbe",

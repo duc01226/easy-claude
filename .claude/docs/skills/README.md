@@ -2,7 +2,7 @@
 
 Read this guide when discovering, executing or authoring framework skills. **MUST** execute through the active host; **MUST** keep canonical source ownership separate from runtime paths; **MUST** preserve required gates and report an actual missing capability with evidence.
 
-> <!-- COUNT:skills -->110<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->16<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
+> <!-- COUNT:skills -->111<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->16<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
 
 Read [framework-benchmark](../../skills/framework-benchmark/SKILL.md) when comparing the complete framework with raw work on qualified fictional tasks, a committed consumer project or a reusable public-source template. Its corpus guide covers generic context preparation, archives and healthy/defective reviewer controls; its running guide covers native account execution and equally equipped independent assessment. Its `compare` command turns several saved runs into one task-level verdict, reporting insufficient evidence until enough tasks are decisive. Mechanical checks do not establish a framework quality gain.
 
@@ -73,7 +73,7 @@ Read `.claude/scripts/lib/workflow-skill-contract.cjs` when changing workflow re
 
 ## Skill Domains
 
-> Curated highlights — the full catalog has <!-- COUNT:skills -->110<!-- /COUNT --> runnable skills; the tables below list selected skills per domain, not the complete set.
+> Curated highlights — the full catalog has <!-- COUNT:skills -->111<!-- /COUNT --> runnable skills; the tables below list selected skills per domain, not the complete set.
 
 | Domain                                            | Skills | Description                                    |
 | ------------------------------------------------- | ------ | ---------------------------------------------- |
@@ -171,6 +171,9 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 | `graph-code`         | build graph, sync graph, update graph, refresh graph after pull, who calls, what imports, tests for, graph query, trace flow, blast radius, impact analysis, connect api, export graph, JSON dump, export Mermaid, graph diagram, visualize graph | Code knowledge graph via `--mode={build\|query\|trace\|blast-radius\|connect-api\|export}`: build/update/sync (`--scope={full\|update\|sync}`, Tree-sitter + SQLite; installs the Python graph tooling on first use; refused while `hooks.codeGraph.enabled` is `off`), relationship queries, system-flow traces, blast radius of current changes, frontend-to-backend API matching, JSON exports (`--format=json`, default) and single-file Mermaid diagrams (`--format=mermaid`) |
 | `linter-setup`       | linter setup, formatter setup, pre-commit, quality gate                                                                         | Configure stack-appropriate lint/format/type-check quality tooling                                               |
 | `harness-setup`      | harness setup, quality harness, feedback sensors, is this project ready                                                         | Set up feedforward guides and feedback sensors for coding workflows; `--mode=readiness` is the task-start check  |
+| `harness-opportunities` | harness opportunities, learn from a fix or refactor | Classify a reviewed diff and recommend a guard or reusable lesson with evidence. Both change-review routes call it. |
+
+Read [harness-opportunities](../../skills/harness-opportunities/SKILL.md) when reviewing an incoming fix or refactor, or for a manual assessment of an explicit historical diff. Use the repository's existing check commands, baseline and CI owner to enforce an approved guard. Configure an affected scope and a manual full scope when the tools support them. A draft requires proof and project-owner approval before it becomes an enforced rule.
 
 ---
 
@@ -349,7 +352,7 @@ Use `/skill-creator` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | <!-- COUNT:skills -->110<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->16<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
+_Source: `.claude/skills/` | <!-- COUNT:skills -->111<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->16<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
 
 ## Closing Reminders
 

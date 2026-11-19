@@ -7,7 +7,7 @@
     "universal-3": "e02ba4fe62b665e8c9e75aa1f83d7a10da1ca401c12b787d9449202a082eb496",
     "universal-4": "1214715843fe0dbf1a83e74e8100871802b9ad4fe2db484848337635e0fff6e4",
     "route": "46422fdacf61e11928a242baf5170b8d56abe1f5652d1cb524554b971ce3e994",
-    "catalog": "bc4b08b2e295377737dd97273815b824d794d3371216564a0e561bd4af204c8a",
+    "catalog": "43f14950fbdfeb4d38d6cf41962a8cec74157d180ce8d619a189e9d366665936",
     "core": "8f07a0dcf0c4b4c945e920de0ca0a08d23d4e24c644238f9ed00c823d185d3cd"
   },
   "unit": "Every nonblank line of the seven frozen compatible payloads: `id` is `<payload>:<line>` and `sha256` hashes its text. `policyVersion` is the sha256 of the concise core and route texts the dispositions were reviewed against.",
@@ -1723,7 +1723,7 @@
       "id": "catalog:33",
       "source": "catalog",
       "line": 33,
-      "sha256": "eb806692867dc9a9b06838bd8b117ec09f143fbca09cdf26cd2fcc892d4a95be",
+      "sha256": "a6f63daac47ed392b670e7741654f92a9a481374f16390688076fadee1ce135e",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"
@@ -1759,7 +1759,7 @@
       "id": "catalog:38",
       "source": "catalog",
       "line": 38,
-      "sha256": "ef65df121f1b206f6426034c8a7355124626516d12b3d1c29bab3822dcd53464",
+      "sha256": "6e910edd190d6b374d090836f49d5020927b8faba74103e601205a0915b8afdc",
       "disposition": "defer",
       "destination": ".claude/scripts/workflow-catalog.cjs",
       "readWhen": "before choosing a workflow"

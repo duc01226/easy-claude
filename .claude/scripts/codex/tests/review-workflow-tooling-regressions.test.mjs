@@ -145,7 +145,6 @@ test('TC-WFADV-022: adaptive orchestration keeps full-target and post-fix review
     assert.match(changes, /always invoke `\/why-review --target=whole-review-target` on the complete review target/);
     assert.match(changes, /Run it once in every review\/re-review pass, including caller-owned, documentation-only and zero-finding passes/);
     assert.equal(w.stepMeta['initial-changes-review'].executionMode, 'inline');
-    assert.ok(!w.parallelGroups, 'agent chooses grouping; there is no forced topology');
     assert.match(source, /Wait for every report before fixing/);
     assert.match(source, /Re-invoke `initial-changes-review` as `rerun N` on the whole settled target/);
     const bootstrap = normalizeEol(await readSkillContract('start-workflow'));

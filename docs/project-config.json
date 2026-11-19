@@ -438,6 +438,8 @@
     "commands": {
       "hook tests": "node .claude/hooks/tests/test-all-hooks.cjs",
       "all suites": "node .claude/hooks/tests/run-all-tests.cjs",
+      "static checks affected": "node .claude/scripts/framework-ci.cjs --lane=static --scope=changed",
+      "static checks full": "node .claude/scripts/framework-ci.cjs --lane=static --scope=full",
       "ci changed scope": "node .claude/scripts/framework-ci.cjs --scope=changed",
       "ci full scope": "node .claude/scripts/framework-ci.cjs --scope=full"
     },
