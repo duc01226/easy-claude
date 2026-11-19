@@ -195,6 +195,17 @@ const FEATURES = [
         }
     },
     {
+        key: 'workTracking.guided',
+        default: 'off',
+        scope: TEAM_ONLY,
+        what: 'guided claim intake using the project tracker guide; optional allows pending or untracked local work, required pauses governed edits until claimed',
+        change: '{ "workTracking": { "guided": "optional" } } in the project config',
+        resolve: ({ rootDir }) => {
+            const profile = lib('hooks/lib/guided-work-claim.cjs').guidedProfile(rootDir);
+            return { value: profile.available || profile.policy === 'off' ? profile.policy : 'unavailable', source: profile.source };
+        }
+    },
+    {
         key: 'workTracking.autoMerge',
         default: 'ask',
         scope: PERSONAL,

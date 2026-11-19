@@ -11,7 +11,7 @@ parent_spec: README.TaskTracking.md
 continuation: 9
 ---
 
-> **DRAFT — inherits the main owner’s provisional evidence. All fifteen cases are Untested; CoveredBy names the current source registrations; their execution is NOT RUN.**
+> **DRAFT — inherits the main owner’s provisional evidence. All twenty cases are Untested; CoveredBy names the current source registrations; their execution is NOT RUN.**
 
 # Work tracking case continuation 9
 
@@ -25,9 +25,9 @@ continuation: 9
 
 | Priority | Untested | Executed |
 |---|---:|---:|
-| P0 | 4 | 0 |
-| P1 | 11 | 0 |
-| Total | 15 | 0 |
+| P0 | 8 | 0 |
+| P1 | 12 | 0 |
+| Total | 20 | 0 |
 
 #### TC-TPT-263: Area placement conserves acyclic direct-level ordering [P0]
 
@@ -1142,4 +1142,184 @@ And Reads include Implemented in the delivery standing and list only its declare
 **Does Not Prove:** The primary guard covers failed return and cancellation, successful reasoned task cancellation and delivery-vocabulary pairs; successful return, every read surface and every supporting-kind variant remain outside that executor’s complete proof.
 
 **CoveredBy:** `.claude/hooks/tests/suites/task-tracking-core.test.cjs::TC-TPT-336: implemented work returns to in progress under the rules for starting work and is canceled with a reason, and every read lists the state in the delivery lifecycle`
+**Status:** Untested
+
+#### TC-TPT-341: A selected project opts in to guided claims [P0]
+
+**Objective:** A selected project opts in to guided claims.
+
+**Business Intent / Invariant Guarded:** For ALL cases in the stated input domain, only a valid team opt-in activates guided intake, and personal suppression leaves required policy and explicit intake available.
+
+**Proves:** AC-TPT-48, BR-TPT-34.
+
+**Property:**
+
+- inputDomain: team policies and personal preferences
+- invariant: only a valid team opt-in activates guided intake, and personal suppression leaves required policy and explicit intake available
+- boundaryCounterCase: A malformed declaration or an optional personal opt-out leaves the guided notice unavailable or silent as appropriate.
+
+**Preconditions:** The project's selected policy and current scope are known; any shared destination is an isolated fixture.
+
+**Real-World Reachability:** A contributor starts delivery from a selected project with a project guide.
+
+**Demo Flow:** Inspect the selected policy and open explicit intake; repeat with the team switch off, personal suppression, and a malformed profile.
+
+**Expected Result:** The observed policy, ownership, review and local continuity facts meet the invariant. Shared state changes only through the selected writer.
+
+**Acceptance Criteria:** AC-TPT-48, BR-TPT-34.
+
+**Test Data:** Two isolated project workspaces, opaque task and operation identifiers, and independently selectable project and actor scopes.
+
+**Edge Cases:** A malformed declaration or an optional personal opt-out leaves the guided notice unavailable or silent as appropriate.
+
+**Evidence:** [Source: test/work-tracking/TC-TPT-341]
+
+**Related Behaviors:** Guided delivery, exact permission and retained published outcomes.
+
+**CoveredBy:** `.claude/hooks/tests/suites/guided-work-claim.test.cjs::TC-TPT-341 team-only opt-in works without Git or tracker paths and leaves the legacy rule tied to remind`
+
+**Status:** Untested
+
+#### TC-TPT-342: One main conversation receives local guidance [P1]
+
+**Objective:** One main conversation receives local guidance.
+
+**Business Intent / Invariant Guarded:** For ALL cases in the stated input domain, standing advice identifies the pre-delivery decision without executing it, and remains available across changed requests and recovery.
+
+**Proves:** AC-TPT-48, BR-TPT-34, BR-TPT-35.
+
+**Property:**
+
+- inputDomain: supported main and helper conversations and their prompt events
+- invariant: standing advice identifies the pre-delivery decision without executing it, and remains available across changed requests and recovery
+- boundaryCounterCase: A helper conversation or host-generated prompt never delivers the guided notice.
+
+**Preconditions:** The project's selected policy and current scope are known; any shared destination is an isolated fixture.
+
+**Real-World Reachability:** A contributor investigates a task, then asks for delivery in the same conversation.
+
+**Demo Flow:** Read the first prompt advice, continue the conversation into delivery, then recover context after compaction and in another checkout.
+
+**Expected Result:** The observed policy, ownership, review and local continuity facts meet the invariant. Shared state changes only through the selected writer.
+
+**Acceptance Criteria:** AC-TPT-48, BR-TPT-34, BR-TPT-35.
+
+**Test Data:** Two isolated project workspaces, opaque task and operation identifiers, and independently selectable project and actor scopes.
+
+**Edge Cases:** A helper conversation or host-generated prompt never delivers the guided notice.
+
+**Evidence:** [Source: test/work-tracking/TC-TPT-342]
+
+**Related Behaviors:** Guided delivery, exact permission and retained published outcomes.
+
+**CoveredBy:** `.claude/hooks/tests/suites/guided-work-claim.test.cjs::TC-TPT-342 standing advice is main-session only, re-arms on compaction and carries no prompt or write authority`, `.claude/scripts/opencode/tests/sync-hooks.test.mjs::TC-TPT-342 V1 and V2 forward known prompt ownership and mark unaffiliated sessions unknown`
+
+**Status:** Untested
+
+#### TC-TPT-343: Two workspaces observe one shared claim [P0]
+
+**Objective:** Two workspaces observe one shared claim.
+
+**Business Intent / Invariant Guarded:** For ALL cases in the stated input domain, one shared claim wins, both workspaces can read its exact owner, and repetition does not create another claim.
+
+**Proves:** AC-TPT-48, AC-TPT-49, BR-TPT-34, BR-TPT-35, BR-TPT-36.
+
+**Property:**
+
+- inputDomain: eligible competing claims through a project guide with a conditional writer
+- invariant: one shared claim wins, both workspaces can read its exact owner, and repetition does not create another claim
+- boundaryCounterCase: The competing owner receives a conflict and creates no draft action.
+
+**Preconditions:** The project's selected policy and current scope are known; any shared destination is an isolated fixture.
+
+**Real-World Reachability:** Two contributors in separate workspaces begin work for the same shared tracker.
+
+**Demo Flow:** Open each workspace, claim one item concurrently through its guide, read it from the second workspace, and replay the exact winning operation.
+
+**Expected Result:** The observed policy, ownership, review and local continuity facts meet the invariant. Shared state changes only through the selected writer.
+
+**Acceptance Criteria:** AC-TPT-48, AC-TPT-49, BR-TPT-34, BR-TPT-35, BR-TPT-36.
+
+**Test Data:** Two isolated project workspaces, opaque task and operation identifiers, and independently selectable project and actor scopes.
+
+**Edge Cases:** The competing owner receives a conflict and creates no draft action.
+
+**Evidence:** [Source: test/work-tracking/TC-TPT-343]
+
+**Related Behaviors:** Guided delivery, exact permission and retained published outcomes.
+
+**CoveredBy:** `.claude/hooks/tests/suites/guided-work-claim.test.cjs::TC-TPT-343 the no-Git pilot shares one conditionally claimed item and the losing actor opens no review`
+
+**Status:** Untested
+
+#### TC-TPT-351: Exact authority and partial review outcomes stay independent [P0]
+
+**Objective:** Exact authority and partial review outcomes stay independent.
+
+**Business Intent / Invariant Guarded:** For ALL cases in the stated input domain, only current scoped authority changes a target and review failure does not erase a confirmed claim.
+
+**Proves:** AC-TPT-49, BR-TPT-35, BR-TPT-36.
+
+**Property:**
+
+- inputDomain: guided tracker and draft actions, including lost responses
+- invariant: only current scoped authority changes a target and review failure does not erase a confirmed claim
+- boundaryCounterCase: An unknown review with no exact correlated match remains unresolved, and a mismatched actor or project receives no effect.
+
+**Preconditions:** The project's selected policy and current scope are known; any shared destination is an isolated fixture.
+
+**Real-World Reachability:** A contributor claims a task and requests a supported draft; the review writer loses its response.
+
+**Demo Flow:** Try mismatched requests; approve the exact effects, observe an unknown review before and after its effect, and read the correlated item and review.
+
+**Expected Result:** The observed policy, ownership, review and local continuity facts meet the invariant. Shared state changes only through the selected writer.
+
+**Acceptance Criteria:** AC-TPT-49, BR-TPT-35, BR-TPT-36.
+
+**Test Data:** Two isolated project workspaces, opaque task and operation identifiers, and independently selectable project and actor scopes.
+
+**Edge Cases:** An unknown review with no exact correlated match remains unresolved, and a mismatched actor or project receives no effect.
+
+**Evidence:** [Source: test/work-tracking/TC-TPT-351]
+
+**Related Behaviors:** Guided delivery, exact permission and retained published outcomes.
+
+**CoveredBy:** `.claude/hooks/tests/suites/guided-work-claim.test.cjs::TC-TPT-351 fixture reconciliation retains the claim through denied, stale and uncertain review effects`
+
+**Status:** Untested
+
+#### TC-TPT-361: A saved claim remains scoped candidate context [P0]
+
+**Objective:** A saved claim remains scoped candidate context.
+
+**Business Intent / Invariant Guarded:** For ALL cases in the stated input domain, only bounded exact candidate facts persist, and a changed scope or outdated revision cannot repurpose them.
+
+**Proves:** AC-TPT-48, AC-TPT-49, BR-TPT-35, BR-TPT-36.
+
+**Property:**
+
+- inputDomain: local continuity requests in a selected workspace and conversation
+- invariant: only bounded exact candidate facts persist, and a changed scope or outdated revision cannot repurpose them
+- boundaryCounterCase: Extra metadata, a missing review identity for a confirmed review, and a different conversation cannot be used as a confirmed candidate.
+
+**Preconditions:** The project's selected policy and current scope are known; any shared destination is an isolated fixture.
+
+**Real-World Reachability:** A contributor receives a claim result and later needs to resume its pending review.
+
+**Demo Flow:** Remember the exact claim, reread in the same and different scopes, submit a stale revision, then save the verified review under the current revision.
+
+**Expected Result:** The observed policy, ownership, review and local continuity facts meet the invariant. Shared state changes only through the selected writer.
+
+**Acceptance Criteria:** AC-TPT-48, AC-TPT-49, BR-TPT-35, BR-TPT-36.
+
+**Test Data:** Two isolated project workspaces, opaque task and operation identifiers, and independently selectable project and actor scopes.
+
+**Edge Cases:** Extra metadata, a missing review identity for a confirmed review, and a different conversation cannot be used as a confirmed candidate.
+
+**Evidence:** [Source: test/work-tracking/TC-TPT-361]
+
+**Related Behaviors:** Guided delivery, exact permission and retained published outcomes.
+
+**CoveredBy:** `.claude/hooks/tests/suites/guided-work-claim.test.cjs::TC-TPT-361 bounded memory retains exact facts under one workspace and session and rejects stale or extra metadata`
+
 **Status:** Untested

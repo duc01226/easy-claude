@@ -1,7 +1,7 @@
 ---
 name: task-track
 version: 2.1.0
-description: '[Project Management] Use for explicit project-owned tracker guidance (--mode=guide), or portable-engine work records, placement, linked concerns, lifecycle, evidence, acceptance and local status. Existing engine modes and bare inspect remain supported.'
+description: '[Project Management] Use for guided work claims (--mode=claim), explicit project-owned tracker guidance (--mode=guide), or portable-engine work records, placement, linked concerns, lifecycle, evidence, acceptance and local status. Existing engine modes and bare inspect remain supported.'
 disable-model-invocation: true
 ---
 
@@ -13,6 +13,7 @@ skill purposes, not CLI flags; never pass `--mode=guide` to the engine command.
 
 | Invocation | Read and follow |
 | --- | --- |
+| `--mode=claim` | [Guided claim](references/guided-claim.md): start or continue delivery under the selected project's guided claim policy |
 | `--mode=guide` | [Project guide](references/project-guide.md): discover the selected checkout's root-linked work-tracking instruction and use its documented mechanism |
 | Bare invocation, or `--mode=inspect\|maintain\|link\|lifecycle\|verify\|accept\|report\|serve` | [Engine protocol](references/engine-protocol.md): preserve the bare `inspect` default and existing operation safeguards |
 | Any other mode | Refuse without an operation |

@@ -1,6 +1,6 @@
 # Hooks Reference
 
-> <!-- COUNT:hooks -->38<!-- /COUNT --> top-level `.cjs` hooks and <!-- COUNT:lib-modules -->80<!-- /COUNT --> lib modules for context-aware AI behavior (some hooks register on multiple events; the unified notification router lives under `.claude/hooks/notifications/notify.cjs`)
+> <!-- COUNT:hooks -->38<!-- /COUNT --> top-level `.cjs` hooks and <!-- COUNT:lib-modules -->81<!-- /COUNT --> lib modules for context-aware AI behavior (some hooks register on multiple events; the unified notification router lives under `.claude/hooks/notifications/notify.cjs`)
 
 ## Contents
 
@@ -404,6 +404,8 @@ The universal rules, the workflow route and the skill-overlay reminder reach a s
 
 `task-tracking-observer.cjs` registers on PostToolUse `Edit|Write|MultiEdit|NotebookEdit|apply_patch` with a three-second bounded owner. It emits deduplicated reminders for actual successful public edit targets, including delete/move hints; generated/private/temp/dependency paths are excluded. Hints never grant readiness, proof, acceptance or a canonical saved checkpoint. Optional project mode defaults to `off`. Shell scripts and external editors are not assumed instrumented; explicit check/report/checkpoint provides recovery. See [linked integration](../../skills/task-track/references/integration-guide.md).
 
+**Guided work claims.** With team `workTracking.guided` set to `optional` or `required`, the main prompt route delivers a short standing pointer to the [shared claim procedure](../../skills/task-track/references/guided-claim.md). It re-arms after compaction or clear, and the assistant reevaluates by objective or exact task change. The hook reads local config and records only local delivery metadata. OpenCode forwards known conversation ownership and withholds guided claims when it cannot identify the main conversation. It makes no tracker, Git publication or draft calls in the guided path. The guide owns the external operations and requires current scoped authority. Optional personal reminder suppression does not affect explicit intake. If both modes are set, use guided intake and retain the team's independent legacy commit exemption. See [guided work-claim setup](../configuration/README.md#guided-work-claims-worktrackingguided).
+
 **Work-claim reminders (`workTracking`, off by default).** A project that claims its work before changing anything — one tracker-only claim commit and a draft pull request, made by its own claim command — sets `workTracking.mode: "remind"`, names `claimCommand` and `declineCommand`, and lists its `trackerPaths` (no default). `lib/work-claim.cjs` then reads the branch's claim record from local Git configuration (`branch.<name>.workClaim`, `.workClaimPr`, `.workClaimDeclined`; at most two Git calls for branch state, never the network). On a prompt, `task-tracking-route.cjs` gives a branch with no claim a short rule (claim real change work before the first edit, ask once when unclear, record a decline), and a claimed branch one status line; each state is told once per session, and SessionStart `compact|clear` re-arms it for hosts without a transcript (Codex mirrors that registration). After the first successful edit of a non-tracker file on an unclaimed branch, `task-tracking-observer.cjs` adds one nudge per session and branch, in the main conversation only (a helper agent cannot ask the user); edits to `trackerPaths` and to files Git ignores never nudge. Each Git call is bounded to 0.8 s. `main` and `master` get the rule and the nudge too, since work starts there; a claim or decline recorded on them is ignored (a decline there would silence every later session on the shared trunk), and the rule says to decline on the work's own branch. Detached `HEAD` in a Git checkout gets the unclaimed rule and nudge, including in linked worktrees. If Claude launches from the original checkout, the claim hooks use the event’s active linked worktree after verifying shared Git storage. If the project claim command requires a named branch, create one at the current commit and retry the command before editing. A declined work branch, a directory outside Git, `mode: off` (team or personal) and quiet mode are silent. With the team's `mode: remind`, `review-commit-gate.cjs` lets a commit through without a receipt when it is not an amend, fixup, squash, template or reused message, its literal `-m` or `-F` message starts with `claimCommitPrefix`, and every entry it commits (read without rename detection and with submodules shown) is a regular file whose path matches `trackerPaths`; a rename, deletion, symlink or gitlink is never exempt, and any other commit is gated as before. There is no Stop-hook notice: Stop output reaches the model on no host the same way, so the first-edit nudge carries the reminder everywhere.
 
 `task-tracking-route.cjs` registers on UserPromptSubmit with a three-second limit. A fresh eligible, unquoted work/publication prompt receives one concise purpose and concern notice when tracking and its instructions are available. Repeated context, off/unavailable tracking, quoted examples and unrelated prompts are silent. The notice preserves the actual skill-selection choice, pending answer, same-task Skip and permissions; it starts no procedure and supplies no save, proof or acceptance. `lib/task-tracking-advisory.cjs` owns bounded eligibility and receipts, without scanning the planned work or persisting raw prompt/item content. Read [manual operations](../../skills/task-track/references/manual-operations.md) for actual maintenance authority and [linked integration](../../skills/task-track/references/integration-guide.md#exact-linked-concerns) for exact concerns.
@@ -499,7 +501,7 @@ SESSION START (13 hooks)                        DURING SESSION
 
 ## Lib Modules
 
-<!-- COUNT:lib-modules -->80<!-- /COUNT --> direct `.cjs` modules under `.claude/hooks/lib/`.
+<!-- COUNT:lib-modules -->81<!-- /COUNT --> direct `.cjs` modules under `.claude/hooks/lib/`.
 
 ### State Management
 
@@ -876,12 +878,12 @@ Doc paths in this file are defaults resolved against the project-reference docs 
 
 ## Testing
 
-The primary runner declares 133 tests. The aggregate runner `run-all-tests.cjs` discovers 2383 tests declared across 140 suite files. Source inventory is not an execution result; read the runner output for observed discovery, outcomes and skips. The aggregate includes eighteen task-tracking suites with 591 declared executors.
+The primary runner declares 133 tests. The aggregate runner `run-all-tests.cjs` discovers 2388 tests declared across 141 suite files. Source inventory is not an execution result; read the runner output for observed discovery, outcomes and skips. The aggregate includes eighteen task-tracking suites with 591 declared executors.
 
 | Test Surface          | Count | File/Location                                                     |
 | --------------------- | ----- | ----------------------------------------------------------------- |
 | Primary hook runner   | 133   | `.claude/hooks/tests/test-all-hooks.cjs`                          |
-| Aggregate runner      | 2383 | `.claude/hooks/tests/run-all-tests.cjs` (all suites, declared)  |
+| Aggregate runner      | 2388 | `.claude/hooks/tests/run-all-tests.cjs` (all suites, declared)  |
 | Standalone test files | TODO  | `tests/test-*.cjs/.js` excluding runner (re-verify before citing) |
 | Lib unit tests        | TODO  | `lib/__tests__/*.test.cjs` (re-verify before citing)              |
 

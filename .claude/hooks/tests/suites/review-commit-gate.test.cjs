@@ -2254,6 +2254,11 @@ const CLAIM_TESTS = [
                     process.env.CK_WORK_TRACKING_MODE = 'remind';
                     try {
                         assert.equal(commitGate(fx.repoA, `git ${C_WORD} -m "${CLAIM}"`)?.code, 2, 'the environment layer is personal too');
+                        fs.writeFileSync(
+                            path.join(fx.repoA, 'docs', 'project-config.json'),
+                            JSON.stringify({ project: { name: 'Fixture' }, workTracking: { guided: 'required', trackerPaths: REMIND.trackerPaths } })
+                        );
+                        assert.equal(commitGate(fx.repoA, `git ${C_WORD} -m "${CLAIM}"`)?.code, 2, 'guided opt-in never supplies the legacy team exemption');
                     } finally {
                         if (saved === undefined) delete process.env.CK_WORK_TRACKING_MODE;
                         else process.env.CK_WORK_TRACKING_MODE = saved;

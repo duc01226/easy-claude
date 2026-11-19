@@ -50,6 +50,8 @@ Current work organization stays in existing owners: `.claude/hooks/lib/task-trac
 
 No required application port is established by this configuration. Record a port only after reading the owning runtime configuration. A repository-wide maintained-manifest search found no CI, IaC or container deployment definition; delivery provider, promotion and rollback remain unknown.
 
+The guided work-claim opt-in lives in the project work-claim policy and runs through the existing prompt hook. Read `.claude/skills/task-track/references/guided-claim.md` when starting or recovering guided work. The framework supplies local policy and candidate continuity. The root-linked project guide owns the selected tracker and review operations.
+
 ## Build, Delivery & Operations
 
 Use these platform-neutral Node entry points on Windows, macOS and Linux:
@@ -90,11 +92,11 @@ Read `docs/project-config.json` → `modules` when selecting a component; module
 | Component      | Count                                                                                         | Location                      | Format                                                                              |
 | -------------- | --------------------------------------------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------- |
 | Hooks          | <!-- COUNT:hooks -->38<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                         |
-| Hook Libraries | <!-- COUNT:lib-modules -->80<!-- /COUNT -->                                                   | `.claude/hooks/lib/*.cjs`     | CommonJS utility modules                                                            |
+| Hook Libraries | <!-- COUNT:lib-modules -->81<!-- /COUNT -->                                                   | `.claude/hooks/lib/*.cjs`     | CommonJS utility modules                                                            |
 | Skills         | <!-- COUNT:skills -->110<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                         |
 | Agents         | <!-- COUNT:agents -->25<!-- /COUNT -->                                                        | `.claude/agents/*.md`         | Markdown definitions                                                                |
 | Workflows      | <!-- COUNT:workflows -->17<!-- /COUNT -->                                                     | `.claude/workflows.json`      | JSON workflow definitions                                                           |
-| Hook Tests     | 140 suites + 9 `test-*` files                                                                  | `.claude/hooks/tests/`        | CJS/JS test files; top-level `test-*` files plus `run-all-tests.cjs` aggregate      |
+| Hook Tests     | 141 suites + 9 `test-*` files                                                                  | `.claude/hooks/tests/`        | CJS/JS test files; top-level `test-*` files plus `run-all-tests.cjs` aggregate      |
 | Codex Source Projection | <!-- COUNT:skills -->110<!-- /COUNT --> skills, <!-- COUNT:agents -->25<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Source counts supplied to generated host projections; verify the projections through their owner                                                     |
 
 
@@ -103,7 +105,7 @@ Read `docs/project-config.json` → `modules` when selecting a component; module
 | Code | Module         | Location                       | Description                                                                                                               |
 | ---- | -------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
 | HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->38<!-- /COUNT --> top-level `.cjs` runtime hook files (session init, safety gates, graph, formatting) |
-| HL   | Hook Libraries | `.claude/hooks/lib/`           | <!-- COUNT:lib-modules -->80<!-- /COUNT --> shared utility modules for hooks                                              |
+| HL   | Hook Libraries | `.claude/hooks/lib/`           | <!-- COUNT:lib-modules -->81<!-- /COUNT --> shared utility modules for hooks                                              |
 | SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->110<!-- /COUNT --> task automation skill definitions                                                 |
 | AG   | Agents         | `.claude/agents/`              | <!-- COUNT:agents -->25<!-- /COUNT --> specialized subagent role definitions                                              |
 | WF   | Workflows      | `.claude/workflows.json`       | <!-- COUNT:workflows -->17<!-- /COUNT --> end-to-end process orchestrations                                               |
@@ -111,7 +113,7 @@ Read `docs/project-config.json` → `modules` when selecting a component; module
 | CX   | Codex Tooling  | `.claude/scripts/codex/`       | ESM sync, migration, notification and verification tools                                                  |
 | CM   | Codex Source Projection | `.agents/`, `.codex/`          | Generated Codex-compatible skills, agents, hooks                                                                          |
 | NT   | Notifications  | `.claude/hooks/notifications/` | `notify.cjs` dispatcher + 4 channel providers in `providers/` (desktop, telegram, discord, slack)                         |
-| HT   | Hook Tests     | `.claude/hooks/tests/`         | 140 suite files + 9 top-level `test-*` files + `run-all-tests.cjs` aggregate                                               |
+| HT   | Hook Tests     | `.claude/hooks/tests/`         | 141 suite files + 9 top-level `test-*` files + `run-all-tests.cjs` aggregate                                               |
 
 
 ## Advisory Selection and Workflow Discovery

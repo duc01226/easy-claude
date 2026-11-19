@@ -1631,8 +1631,15 @@ const SCHEMA = {
         type: 'object',
         required: false,
         describe:
-            "Optional claim-first work tracking: remind an agent to claim work (a tracker-only claim commit and a draft pull request, made by the project's claim command) before changing tracked files, and let that claim commit through the commit review gate. Omitted = off. Personal layers may set mode and autoMerge.",
+            "Optional work claims before delivery. Guided claims use the project's tracker guide. Legacy remind mode uses the project's Git claim workflow. Omitted = off.",
         properties: {
+            guided: {
+                type: 'string',
+                required: false,
+                enumValues: ['off', 'optional', 'required'],
+                describe:
+                    'Team-only guided claim policy. Optional permits local work when a claim is unavailable. Required pauses governed delivery edits until claimed. No Git or tracker paths are required.'
+            },
             mode: {
                 type: 'string',
                 required: false,

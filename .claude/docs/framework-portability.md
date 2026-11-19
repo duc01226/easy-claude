@@ -12,6 +12,10 @@ project can take them as-is and have them work, with nothing of this repository 
 hand-edit them — fix the `.claude/**` source and regenerate, or the next sync silently reverts you.
 A leak in a mirror means the leak is in the source.
 
+Read [guided work-claim setup](configuration/README.md#guided-work-claims-worktrackingguided)
+when installing the optional claim procedure. Its explicit skill route works without a hook
+or Git, and each adopter keeps its tracker destination and writer in its project guide.
+
 Antigravity shares the generated skill mirror in `.agents/skills/`. Its workspace hook
 group is generated separately in `.agents/hooks.json`. Read [Antigravity workspace support](antigravity.md)
 when configuring that host or changing its bridge.

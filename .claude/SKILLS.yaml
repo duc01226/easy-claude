@@ -877,10 +877,10 @@ skills:
       removal_after: null
     - name: task-track
       path: task-track/SKILL.md
-      description: '[Project Management] Use for explicit project-owned tracker guidance
-        (--mode=guide), or portable-engine work records, placement, linked concerns,
-        lifecycle, evidence, acceptance and local status. Existing engine modes and
-        bare inspect remain supported.'
+      description: '[Project Management] Use for guided work claims (--mode=claim),
+        explicit project-owned tracker guidance (--mode=guide), or portable-engine
+        work records, placement, linked concerns, lifecycle, evidence, acceptance
+        and local status. Existing engine modes and bare inspect remain supported.'
       category: other
       has_scripts: true
       has_references: true

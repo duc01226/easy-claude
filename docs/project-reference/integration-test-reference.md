@@ -146,6 +146,12 @@ rg --files .claude/hooks/tests | rg '(^|[\\/])test-[^\\/]+\.(cjs|js)$'
 rg -n 'TC-[A-Z0-9-]+-[0-9]+' .claude/hooks/tests -g '*.cjs' -g '*.js'
 ```
 
+
+For guided claims, run `node .claude/hooks/tests/run-all-tests.cjs --filter=guided-work-claim`.
+The suite launches the hook and explicit intake tool against isolated project roots. Its test-only
+writer shares a disposable store across two workspaces with Git absent. Check provider facts
+separately from assistant decisions and local binding state.
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Keep integration-test guidance aligned with the executable custom CJS harness, observable assertions, and repeatable local verification.

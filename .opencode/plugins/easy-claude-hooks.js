@@ -1119,6 +1119,12 @@ function createBridgeCore(seed, project) {
     rememberSessionInfo({ id: info.id || props.sessionID, parentID: info.parentID });
   }
 
+  function userPromptPayload(sessionID, prompt) {
+    const key = sessionKey(sessionID);
+    const conversationKind = !knownSessions.has(key) ? "unknown" : delegatedSessions.has(key) ? "delegated" : "main";
+    return { hook_event_name: "UserPromptSubmit", prompt, session_id: sessionID, cwd: seed, conversation_kind: conversationKind };
+  }
+
   async function ensureSessionStart(sessionID, source) {
     const key = sessionKey(sessionID);
     if (startedSessions.has(key)) return;
@@ -1141,6 +1147,7 @@ function createBridgeCore(seed, project) {
     queueToolContext,
     rememberSessionInfo,
     rememberSessionKind,
+    userPromptPayload,
     ensureSessionStart,
   };
 }
@@ -1189,6 +1196,7 @@ export const EasyClaudeHooks = async (input) => {
     delegatedSessions,
     queueToolContext,
     rememberSessionKind,
+    userPromptPayload,
     ensureSessionStart,
   } = core;
 
@@ -1357,7 +1365,7 @@ export const EasyClaudeHooks = async (input) => {
         .map((part) => part.text)
         .join("\n");
       const result = await runEventHooks(root, "UserPromptSubmit", {
-        payload: { hook_event_name: "UserPromptSubmit", prompt, session_id: sessionID, cwd: seed },
+        payload: userPromptPayload(sessionID, prompt),
       });
       const command = /^\s*\/([a-z0-9][a-z0-9-]*)\b/i.exec(prompt);
       const expansion = command
@@ -1462,6 +1470,7 @@ export async function EasyClaudeHooksV2(ctx) {
     knownSessions,
     queueToolContext,
     rememberSessionInfo,
+    userPromptPayload,
     ensureSessionStart,
   } = core;
   // A form or permission prompt means the turn paused for the developer. The input
@@ -1790,7 +1799,7 @@ export async function EasyClaudeHooksV2(ctx) {
         })
       : null;
     const result = await runEventHooks(root, "UserPromptSubmit", {
-      payload: { hook_event_name: "UserPromptSubmit", prompt, session_id: sessionID, cwd: seed },
+      payload: userPromptPayload(sessionID, prompt),
     });
     const contexts = [...(expansion ? expansion.contexts : []), ...result.contexts];
     if (contexts.length > 0) pendingPromptContext.set(key, contexts);

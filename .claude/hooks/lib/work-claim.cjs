@@ -247,9 +247,31 @@ async function deliverPromptNotice(input, deps = {}) {
         if (!usableSession(input)) return '';
         const projectRoot = deps.root || require('./protocol-delivery.cjs').resolveRoot(input, deps);
         if (!projectRoot) return '';
-        const root = deps.root || claimRoot(input, projectRoot, deps.git || runGit);
         const ledger = require('./convention-ledger.cjs');
+        const guided = require('./guided-work-claim.cjs');
+        const activeRoot = deps.root || guided.guidedRoot(input.cwd || process.cwd());
+        const profile = activeRoot && guided.guidedProfile(activeRoot);
+        const notice = profile && guided.guidedNotice(profile);
+        if (notice && (ledger.scopeFor(input) !== ledger.MAIN_SCOPE || (input.conversation_kind !== undefined && input.conversation_kind !== 'main')))
+            return '';
+        const root = notice ? activeRoot : deps.root || claimRoot(input, projectRoot, deps.git || runGit);
         const records = store(root);
+        if (notice) {
+            // Use the same contained storage as other linked-work guidance before any ledger write.
+            if (input.session_id.length > 512) return '';
+            const files = require('./task-tracking-files.cjs');
+            const session = ledger.sessionDir(records, input.session_id);
+            files.scopedPath(root, path.relative(root, session));
+            const stateFiles = [
+                path.join(session, '_owner.json'),
+                path.join(session, `_${GENERATION_STATE}.json`),
+                path.join(session, '_session.json'),
+                path.join(session, ledger.MAIN_SCOPE, '_scan.json'),
+                path.join(session, ledger.MAIN_SCOPE, `${guided.GROUP}.json`),
+                ledger.lockFile(records, input.session_id, ledger.MAIN_SCOPE, guided.GROUP)
+            ];
+            for (const file of stateFiles) files.scopedPath(root, path.relative(root, file));
+        }
         if (input.hook_event_name === 'SessionStart') {
             if (['compact', 'clear'].includes(input.source) && fs.existsSync(ledger.sessionDir(records, input.session_id))) {
                 ledger.writeSessionState(records, input.session_id, GENERATION_STATE, { generation: crypto.randomBytes(8).toString('hex') });
@@ -257,16 +279,19 @@ async function deliverPromptNotice(input, deps = {}) {
             return '';
         }
         if (input.hook_event_name !== 'UserPromptSubmit') return '';
-        const { settings } = resolveWorkTracking({ rootDir: root, env: deps.env, homeDir: deps.homeDir });
-        if (settings.mode === 'off') return '';
-        const text = promptNotice(settings, branchState(root, deps.git || runGit));
+        const { settings, sources } = resolveWorkTracking({ rootDir: root, env: deps.env, homeDir: deps.homeDir });
+        const personalOff = settings.mode === 'off' && !['default', 'project-config'].includes(sources.mode);
+        if (notice && profile.policy === 'optional' && personalOff) return '';
+        if (!notice && settings.mode === 'off') return '';
+        if (notice && !require('./prompt-route-utils.cjs').readUserPrompt(input.prompt)?.trim()) return '';
+        const text = notice || promptNotice(settings, branchState(root, deps.git || runGit));
         if (!text) return '';
         const generation = ledger.readSessionState(records, input.session_id, GENERATION_STATE)?.generation || '';
         const { BYTES_PER_TOKEN } = require('./file-conventions.cjs');
         return await ledger.deliverOnce({
             root: records,
             input,
-            group: GROUP,
+            group: notice ? guided.GROUP : GROUP,
             hash: crypto
                 .createHash('sha256')
                 .update(JSON.stringify([text, generation]))

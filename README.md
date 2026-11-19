@@ -158,7 +158,7 @@ and supported events.
 
 ## What's Inside
 
-### Hooks (<!-- COUNT:hooks -->38<!-- /COUNT --> top-level `.cjs` files, <!-- COUNT:lib-modules -->80<!-- /COUNT --> lib modules)
+### Hooks (<!-- COUNT:hooks -->38<!-- /COUNT --> top-level `.cjs` files, <!-- COUNT:lib-modules -->81<!-- /COUNT --> lib modules)
 
 Runtime Node.js scripts that fire on Claude Code lifecycle events.
 

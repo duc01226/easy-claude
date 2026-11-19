@@ -1077,9 +1077,25 @@ opencode has no absolute compaction threshold — it compacts relative to the mo
 ---
 
 
+### Guided work claims (`workTracking.guided`)
+
+Read this section when a project wants the assistant to continue or claim work before delivery. Set the team policy in the project config:
+
+```json
+{ "workTracking": { "guided": "optional" } }
+```
+
+- `optional` allows authorized local delivery with a pending or untracked claim when tracking is unavailable. `required` pauses governed edits until the claim is satisfied. Both allow read-only and scratch-only work.
+- `off` or omission disables guided intake. Roll back by removing the field or setting it to `off`. Existing tracker and review records are retained.
+- The project's root instructions point to its existing tracker guide. Document the exact tracker and actor scope, supported status and conditional claim operations, isolation procedure, and draft capability there. A tracker-only project can use a shared tracker without Git or tracker path globs.
+- With hooks unavailable, run `/task-track --mode=claim` (Codex: `$task-track --mode=claim`) or follow the [guided claim procedure](../../skills/task-track/references/guided-claim.md) directly. Required policy also belongs in the project's own instructions because shell and other writers can bypass the advisory.
+- Guided intake checks the current exact task and scope before asking for authority. Approval covers the specific destination and effects. A confirmed task stays claimed when review is pending or its outcome is unknown. Reconcile the exact review before retrying.
+- Guided intake supplies the work-claim notice when both modes are configured. The team's separate legacy `mode: "remind"` still governs its existing commit exemption. Personal `mode: "off"` can suppress optional guided notices. It does not change required policy or explicit intake. Framework quiet/off modes can suppress automatic hook delivery.
+- Check the effective setting with `node .claude/scripts/framework-features.cjs --json`. The portable `taskTracking` engine and direct project-guide mode remain independently available.
+
 ### Work-claim reminders (`workTracking`)
 
-Read this section when a project claims its work before changing anything and wants the assistant reminded to do it. Off by default. It is separate from [Team work tracking](#team-work-tracking) (`taskTracking`), which records work in the portable tracker; `workTracking` only reminds and exempts the project's own claim commit.
+Read this section when a project claims its work before changing anything and wants the assistant reminded to do it. Off by default. It is separate from [Team work tracking](#team-work-tracking) (`taskTracking`), which records work in the portable tracker; this legacy mode reminds and exempts the project's own claim commit.
 
 ```jsonc
 {
