@@ -85,12 +85,12 @@
       "group": "universal",
       "summary": "Failure modes to avoid on every task",
       "when": "delivered by the universal hook",
-      "chars": 6024,
+      "chars": 4637,
       "file": ".claude/skills/shared/protocols/ai-mistake-prevention.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/ai-mistake-prevention.md",
-          "chars": 6024
+          "chars": 4637
         }
       ]
     },
@@ -1671,12 +1671,12 @@
       "group": "universal",
       "summary": "Model-driven step advancement and the parallel-phase barrier",
       "when": "delivered by the universal hook",
-      "chars": 2559,
+      "chars": 1728,
       "file": ".claude/skills/shared/protocols/workflow-step-advancement.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/workflow-step-advancement.md",
-          "chars": 2559
+          "chars": 1728
         }
       ]
     }

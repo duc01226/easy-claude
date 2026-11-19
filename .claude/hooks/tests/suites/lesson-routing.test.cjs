@@ -6,8 +6,7 @@
  * mistake impossible by design, else an automatic check (a lint rule or architecture test whose
  * message names the fix, landing with a frozen baseline), else a test, else a hook, and prose last.
  * Agents also stop inheriting bad code: a workaround they find is reported, never propagated, and a
- * documented exemplar outranks the most frequent pattern (baselined or legacy-marked code is not
- * precedent).
+ * documented exemplar outranks the most frequent pattern.
  *
  * Coverage:
  *   TC-LRS-001 — `/learn` walks the prevention tiers strongest first, keeps its value and recurrence
@@ -15,9 +14,9 @@
  *                mistake to prose.
  *   TC-LRS-002 — the universal Lesson Extraction Gate (canonical block and its published file)
  *                states the same structure-first order.
- *   TC-LRS-003 — the universal mistake-prevention rules guard against copying: the precedent order,
- *                the workaround guard and the intentional-values carve-out, plus the search-first,
- *                the concise core (concise-profile sessions load only it) and the code reviewer.
+ *   TC-LRS-003 — the universal mistake-prevention rules combine impact tracing and require evidence
+ *                before flagging existing values. Search-first, the concise core and the code
+ *                reviewer retain their own precedent guidance.
  *   TC-LRS-004 — the bug-class prevention task (`fix --mode=prevent`, which replaced the post-fix
  *                lesson check) sweeps and reports sibling instances, then adds the strongest guard
  *                before a `/learn` lesson; `fix` and `workflow-bugfix` say so.
@@ -185,28 +184,21 @@ const tests = [
         }
     },
     {
-        name: 'TC-LRS-003 the universal rules make a documented exemplar the precedent, rule out baselined or legacy code, and report a found workaround instead of copying it',
+        name: 'TC-LRS-003 universal mistake prevention consolidates impact tracing and verifies intent',
         skip: SKIP,
         fn: () => {
             for (const [where, text] of protocolTexts('ai-mistake-prevention')) {
-                const copyRule = lineStartingWith(text, '- **Evaluate fit before copying a nearby pattern.**', where);
-                // Then the precedent order puts a documented exemplar above prevalence
-                assert.match(copyRule, /an exemplar the project documents beats the most frequent pattern/, where);
-                // And baselined or legacy-marked code is not precedent
-                assert.match(
-                    copyRule,
-                    /code in a file with lint or check baseline entries, or under a path a project rule marks legacy, is not precedent/,
-                    where
-                );
-                // And a found workaround is reported, never propagated
-                assert.match(
-                    copyRule,
-                    /Never propagate a workaround you find \(a sleep or timer used for ordering, a blind retry, a suppression or disabled check, a comment excusing a deviation\): report it to the user with `file:line` and follow the intended pattern instead; when none exists, ask\./,
-                    where
-                );
-                // And the intentional-values rule no longer reads a justifying comment as intent
-                const intentRule = lineStartingWith(text, '- **Assume existing values are intentional', where);
-                assert.match(intentRule, /A workaround is the exception: its justifying comment is a claim to verify, never proof of intent\./, where);
+                const traceRule = lineStartingWith(text, '- **Trace consumers and execution paths.**', where);
+                assert.match(traceRule, /references and follow the full dependency chain/, where);
+                assert.match(traceRule, /early exits, errors and conditional skips/, where);
+                assert.match(traceRule, /templates, configs, catalogs and generated files, for old names/, where);
+                assert.match(traceRule, /Update docs that embed the changed source data/, where);
+                assert.doesNotMatch(text, /Resolve project applicability before using framework examples|Evaluate fit before copying a nearby pattern/, where);
+                assert.doesNotMatch(text, /Trace every consumer before and after a change|Trace ALL code paths when verifying correctness/, where);
+
+                const intentRule = lineStartingWith(text, '- **Check intent before changing or flagging an existing value.**', where);
+                assert.match(intentRule, /comments, `git blame`, caller order and at least two sibling call sites/, where);
+                assert.match(intentRule, /Verify workaround claims and require behavior evidence for a defect/, where);
             }
             for (const [where, text] of protocolTexts('discovery-and-first-principles')) {
                 // And the search-first rule prefers the documented exemplar over the most frequent match
