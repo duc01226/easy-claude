@@ -244,6 +244,18 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
+  description: '[Document Processing] Use when editing talking-head or screen recordings:
+    trim and stitch clips, add captions or motion-graphics B-roll, insert segments,
+    or make Shorts. Exports a verified MP4 and SRT.'
+  has_references: true
+  has_scripts: true
+  name: edit-video
+  path: edit-video/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
   description: '[Testing] Use when a workflow step or the user asks for runtime review
     of a UI, API, CLI or service against intended behavior. --rounds=0 reports only;
     --rounds=N bounds repairs.'
@@ -371,6 +383,18 @@
   has_scripts: false
   name: grill
   path: grill/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
+  description: '[Code Quality] Use when a workflow step or the user asks for harness
+    opportunities in a change. Classifies the diff and identifies worthwhile deterministic
+    guards or reusable lessons.'
+  has_references: false
+  has_scripts: false
+  name: harness-opportunities
+  path: harness-opportunities/SKILL.md
   removal_after: null
   status: active
 - category: other
@@ -921,10 +945,10 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Project Management] Use for explicit project-owned tracker guidance
-    (--mode=guide), or portable-engine work records, placement, linked concerns, lifecycle,
-    evidence, acceptance and local status. Existing engine modes and bare inspect
-    remain supported.'
+  description: '[Project Management] Use for guided work claims (--mode=claim), explicit
+    project-owned tracker guidance (--mode=guide), or portable-engine work records,
+    placement, linked concerns, lifecycle, evidence, acceptance and local status.
+    Existing engine modes and bare inspect remain supported.'
   has_references: true
   has_scripts: true
   name: task-track

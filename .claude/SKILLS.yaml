@@ -2,9 +2,9 @@ metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
   last_updated: '2026-11-19'
-  total_skills: 111
+  total_skills: 112
   total_by_status:
-    active: 111
+    active: 112
     deprecated: 0
     experimental: 0
 categories:
@@ -243,6 +243,18 @@ skills:
         runs tests; --fix-loop repairs failures; --visual-review={true|false}.'
       category: other
       has_scripts: false
+      has_references: true
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: edit-video
+      path: edit-video/SKILL.md
+      description: '[Document Processing] Use when editing talking-head or screen
+        recordings: trim and stitch clips, add captions or motion-graphics B-roll,
+        insert segments, or make Shorts. Exports a verified MP4 and SRT.'
+      category: other
+      has_scripts: true
       has_references: true
       status: active
       deprecated_by: null
