@@ -7,14 +7,20 @@ const { runHook, isHookEntryPoint } = require('./lib/hook-runner.cjs');
 const { resolveProjectRoot } = require('./lib/project-root.cjs');
 const { observedPaths, observerHint } = require('./lib/task-tracking-upkeep.cjs');
 const { claimRoot, observeEdit } = require('./lib/work-claim.cjs');
+const { guidedRoot, guidedProfile, guidedNotice } = require('./lib/guided-work-claim.cjs');
 
 function observe(event) {
     try {
         const selected = resolveProjectRoot({ cwd: event?.cwd || process.cwd(), scriptPath: __filename, env: process.env });
         if (selected.error) return;
         // The work-claim nudge (`workTracking`) and the task-tracking hint are independent; either may be silent.
-        const root = claimRoot(event, selected.rootDir);
-        const nudge = observeEdit(event, root, observedPaths(event, root));
+        const active = guidedRoot(event?.cwd || process.cwd());
+        const guided = active && guidedNotice(guidedProfile(active));
+        let nudge;
+        if (!guided) {
+            const root = claimRoot(event, selected.rootDir);
+            nudge = observeEdit(event, root, observedPaths(event, root));
+        }
         let hint = null;
         try {
             hint = observerHint(event, selected.rootDir);

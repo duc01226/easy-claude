@@ -26,6 +26,8 @@ Persist the selected runner, pinned dependencies, executable config, clients, fi
 
 No project-specific numerical SLO, repeat override or hardware acceptance profile is established. First-init proposals must distinguish library/CLI/hook workloads from any real multiuser service; use realistic repository/file/record sizes and bounded owned fixtures. Apply the skill's growable-dataset and concurrent-user policies only to evidenced applicable surfaces, and record each N/A rationale.
 
+Guided-claim functional tests isolate the advisory from shared tracker effects. The hook performs bounded local discovery and uses the existing prompt ledger; it does not run the project writer or scan tracker records. These checks do not establish a hook latency or provider throughput budget.
+
 Store selected numerical budgets in one executable owner and link it here. Separate accepted requirements from provisional local benchmarks. Record data counts/skew/width, hardware model and effective per-service/total resources, generator headroom and all required measurement/recovery windows before running acceptance.
 
 ## Evidence and Maintenance

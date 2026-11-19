@@ -620,6 +620,36 @@ test('generated bridge injects UserPromptSubmit context and SessionStart system 
     }
 });
 
+test('TC-TPT-342 V1 and V2 forward known prompt ownership and mark unaffiliated sessions unknown', async () => {
+    const settings = { hooks: { UserPromptSubmit: [{ hooks: [{ type: 'command', command: hookCommand('record-all.cjs') }] }] } };
+    const root = await createProject(settings);
+    try {
+        const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+        const bridge = await importPlugin(pluginPath);
+        const v1 = await bridge.EasyClaudeHooks({ directory: root });
+        const sessions = { main: { id: 'main' }, child: { id: 'child', parentID: 'main' } };
+        for (const info of Object.values(sessions)) await v1.event({ event: { type: 'session.created', properties: { info } } });
+        for (const sessionID of ['main', 'child', 'unknown']) await v1['chat.message']({ sessionID }, userMessage('Implement', { sessionID }));
+
+        const v2 = createV2Host(root, { ...sessions, unknown: null });
+        const cleanup = await bridge.default.setup(v2.ctx);
+        try {
+            for (const sessionID of ['main', 'child', 'unknown']) await v2.registrations.session.prompt({ sessionID, prompt: { text: 'Implement' } });
+        } finally {
+            cleanup();
+        }
+        const lines = (await fs.readFile(path.join(root, 'tmp', 'hook-payloads.jsonl'), 'utf8')).trim().split(/\r?\n/);
+        const payloads = lines.map(line => JSON.parse(line));
+        const scopes = ['main', 'delegated', 'unknown'];
+        assert.deepEqual(
+            payloads.map(payload => payload.conversation_kind),
+            [...scopes, ...scopes]
+        );
+    } finally {
+        await removeProject(root);
+    }
+});
+
 test('TC-SAP-007 real policy reaches OpenCode main/child sessions, keeps commit routing and refreshes local changes', async () => {
     const policyCommand = hookCommand('skill-activation-inject.cjs');
     const root = await createProject({

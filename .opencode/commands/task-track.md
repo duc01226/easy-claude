@@ -1,5 +1,5 @@
 ---
-description: "[Project Management] Use for explicit project-owned tracker guidance (--mode=guide), or portable-engine work records, placement, linked concerns, lifecycle, evidence, acceptance and local status. Existing engine modes and bare inspect remain supported."
+description: "[Project Management] Use for guided work claims (--mode=claim), explicit project-owned tracker guidance (--mode=guide), or portable-engine work records, placement, linked concerns, lifecycle, evidence, acceptance and local status. Existing engine modes and bare inspect remain supported."
 ---
 
 <!-- GENERATED OPENCODE COMMAND (sync-skills.mjs) for .claude/skills/task-track/SKILL.md — do not hand-edit; re-run:
