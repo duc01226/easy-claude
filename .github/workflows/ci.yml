@@ -52,8 +52,10 @@ jobs:
     outputs:
       sha: ${{ steps.target.outputs.sha }}
       scope: ${{ steps.plan.outputs.scope }}
+      static_base: ${{ steps.plan.outputs.static_base }}
       run_static: ${{ steps.plan.outputs.run_static }}
       run_sync: ${{ steps.plan.outputs.run_sync }}
+      run_repo_checks: ${{ (steps.plan.outputs.run_sync == 'true' || steps.plan.outputs.run_static == 'true') && 'true' || 'false' }}
       run_hook_unit: ${{ steps.plan.outputs.run_hook_unit }}
       run_hook_suites: ${{ steps.plan.outputs.run_hook_suites }}
       hook_suites: ${{ steps.plan.outputs.hook_suites }}
@@ -81,7 +83,7 @@ jobs:
   repo-checks:
     name: repo-checks (${{ matrix.os }})
     needs: gate
-    if: ${{ needs.gate.outputs.run_sync == 'true' }}
+    if: ${{ needs.gate.outputs.run_repo_checks == 'true' }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:
@@ -93,20 +95,31 @@ jobs:
         with:
           ref: ${{ needs.gate.outputs.sha }}
           persist-credentials: false
-          fetch-depth: 2
+          fetch-depth: ${{ needs.gate.outputs.scope == 'changed' && needs.gate.outputs.run_static == 'true' && needs.gate.outputs.static_base != '' && '0' || '2' }}
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: "24"
       - run: npm ci --ignore-scripts
-      - name: Static checks (ESLint frozen baseline, prettier)
-        if: ${{ needs.gate.outputs.run_static == 'true' }}
+      - name: Affected static checks (ESLint frozen baseline, prettier)
+        if: ${{ needs.gate.outputs.run_static == 'true' && needs.gate.outputs.scope == 'changed' && needs.gate.outputs.static_base != '' }}
+        shell: bash
+        env:
+          CHECK_BASE: ${{ needs.gate.outputs.static_base }}
+          CHECK_HEAD: ${{ needs.gate.outputs.sha }}
+        run: node .claude/scripts/framework-ci.cjs --lane=static --scope=changed --base="$CHECK_BASE" --head="$CHECK_HEAD"
+      # Full scope, including older revisions whose planner does not emit a static base.
+      - name: Full static checks (ESLint frozen baseline, prettier)
+        if: ${{ needs.gate.outputs.run_static == 'true' && (needs.gate.outputs.scope != 'changed' || needs.gate.outputs.static_base == '') }}
         run: node .claude/scripts/static-checks.cjs
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        if: ${{ needs.gate.outputs.run_sync == 'true' }}
         with:
           python-version: "3.12"
       - name: Install declared Python dependencies
+        if: ${{ needs.gate.outputs.run_sync == 'true' }}
         run: python -m pip install -r .claude/scripts/requirements.txt
       - name: Codex mirror and tooling gates
+        if: ${{ needs.gate.outputs.run_sync == 'true' }}
         run: node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --verify-only
 
   # Network-bound, so it is not a framework-ci lane; it runs once and never hides lane results.
@@ -191,17 +204,17 @@ jobs:
       - name: Every required job succeeded
         shell: bash
         env:
-          RUN_SYNC: ${{ needs.gate.outputs.run_sync }}
+          RUN_REPO_CHECKS: ${{ needs.gate.outputs.run_repo_checks }}
           RUN_HOOK_UNIT: ${{ needs.gate.outputs.run_hook_unit }}
         run: |
           echo "gate: ${{ needs.gate.result }}"
-          echo "repo-checks: ${{ needs.repo-checks.result }} (selected: $RUN_SYNC)"
+          echo "repo-checks: ${{ needs.repo-checks.result }} (selected: $RUN_REPO_CHECKS)"
           echo "unit-tests: ${{ needs.unit-tests.result }} (selected: $RUN_HOOK_UNIT)"
           echo "startup-install-platform-security: ${{ needs.startup-install-platform-security.result }}"
           # A lane the plan selected must succeed; one it did not select must be skipped, never failed or cancelled.
           expect() { if [ "$3" = true ]; then want=success; else want=skipped; fi; test "$2" = "$want" || { echo "required: $1: $want (got $2)"; exit 1; }; }
           test "${{ needs.gate.result }}" = success
-          expect repo-checks "${{ needs.repo-checks.result }}" "$RUN_SYNC"
+          expect repo-checks "${{ needs.repo-checks.result }}" "$RUN_REPO_CHECKS"
           expect unit-tests "${{ needs.unit-tests.result }}" "$RUN_HOOK_UNIT"
           test "${{ needs.startup-install-platform-security.result }}" = success || { echo "required: startup-install-platform-security: success"; exit 1; }
 

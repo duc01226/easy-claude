@@ -218,6 +218,202 @@ test('a commit range counts a rename as a deletion plus an addition', () => {
     }
 });
 
+test('TC-GWF-101 the static lane runs native tools on the selected paths and widens when their inputs change', t => {
+    const repo = makeRepo();
+    try {
+        for (const name of ['framework-ci.cjs', 'static-checks.cjs']) {
+            const relative = `.claude/scripts/${name}`;
+            repo.write(relative, fs.readFileSync(path.join(REPO_ROOT, relative)));
+        }
+        repo.write('.gitignore', 'node_modules/\n');
+        repo.write('eslint.config.cjs', 'module.exports = [];\n');
+        repo.write(
+            'node_modules/eslint/index.js',
+            `
+            exports.loadESLint = async () => class {
+                async isPathIgnored(file) { return file.endsWith('ignored.cjs') || file.endsWith('formatter-only.cjs'); }
+            };
+        `
+        );
+        repo.write(
+            'node_modules/prettier/index.js',
+            `
+            exports.getFileInfo = async file => ({ ignored: file.endsWith('ignored.cjs') });
+        `
+        );
+        const switchAwayAndBack = `
+            execFileSync('git', ['switch', '-q', '--detach', 'HEAD^']);
+            console.log('alternate checkout');
+            execFileSync('git', ['switch', '-q', 'main']);
+        `;
+        repo.write(
+            '.claude/scripts/lib/test-run-lock.cjs',
+            `
+            const { execFileSync } = require('node:child_process');
+            const { writeFileSync } = require('node:fs');
+            exports.forwardTerminationSignals = () => {};
+            exports.admitTestRun = async () => {
+                if (process.env.CK_STATIC_FIXTURE_DIRTIES === 'admission') writeFileSync('keep.md', 'edited while waiting');
+                if (process.env.CK_STATIC_FIXTURE_DIRTIES === 'admission-main') execFileSync('git', ['switch', '-q', 'main']);
+                if (process.env.CK_STATIC_FIXTURE_DIRTIES === 'admission-restore') { ${switchAwayAndBack} }
+                return { admitted: true, release() {} };
+            };
+        `
+        );
+        // Observe the two tool invocations at their normal bin paths without requiring them in an adopter project.
+        repo.write(
+            'node_modules/eslint/bin/eslint.js',
+            `
+            const args = process.argv.slice(2);
+            console.log('lint ' + JSON.stringify(args));
+            if (process.env.CK_STATIC_FIXTURE_DIRTIES === 'lint') require('node:fs').writeFileSync('keep.md', 'edited during lint');
+            if (process.env.CK_STATIC_FIXTURE_DIRTIES === 'switch') {
+                const { execFileSync } = require('node:child_process');
+                ${switchAwayAndBack}
+            }
+            if (args.includes('./forbidden.cjs') || (args.includes('.') && require('node:fs').existsSync('forbidden.cjs'))) process.exitCode = 1;
+        `
+        );
+        repo.write('node_modules/prettier/bin/prettier.cjs', "console.log('format ' + JSON.stringify(process.argv.slice(2)));");
+        repo.write('prior file.cjs', '// existing\n');
+        repo.run('add', '-A');
+        repo.run('commit', '-q', '-m', 'tools');
+        const base = repo.run('rev-parse', 'HEAD');
+        const execute = (args, dirties = '') =>
+            childProcess.spawnSync(process.execPath, [path.join(repo.root, '.claude/scripts/framework-ci.cjs'), '--lane=static', ...args], {
+                cwd: repo.root,
+                encoding: 'utf8',
+                env: { ...process.env, CK_STATIC_FIXTURE_DIRTIES: dirties }
+            });
+        const focused = ['--scope=changed', `--base=${base}`];
+
+        repo.write('keep.md', 'only documentation\n');
+        const skipped = execute(focused);
+        assert.equal(skipped.status, 0);
+        assert.match(skipped.stdout, /SKIP static/);
+        assert.doesNotMatch(skipped.stdout, /^(lint|format) /m);
+
+        repo.write('ignored.cjs', '// both tools ignore this\n');
+        const allIgnored = execute(focused);
+        assert.equal(allIgnored.status, 0, allIgnored.stderr);
+        assert.match(allIgnored.stdout, /SKIP {2}static {2}\(no applicable JS files\)/);
+        assert.doesNotMatch(allIgnored.stdout, /^(lint|format) /m);
+        fs.unlinkSync(path.join(repo.root, 'ignored.cjs'));
+
+        repo.write('formatter-only.cjs', '// only the formatter checks this\n');
+        const oneApplies = execute(focused);
+        assert.equal(oneApplies.status, 0, oneApplies.stderr);
+        assert.match(oneApplies.stdout, /^format .*formatter-only\.cjs/m);
+        assert.doesNotMatch(oneApplies.stdout, /SKIP {2}static/);
+        fs.unlinkSync(path.join(repo.root, 'formatter-only.cjs'));
+
+        repo.run('mv', 'prior file.cjs', 'allowed file.cjs');
+        repo.run('commit', '-q', '-am', 'move source');
+        const head = repo.run('rev-parse', 'HEAD');
+        const pinned = [...focused, `--head=${head}`];
+        const allowed = execute(pinned);
+        assert.equal(allowed.status, 0, `a stable pinned checkout must pass: ${allowed.stderr}`);
+        assert.match(allowed.stdout, /PASS {2}static/);
+        assert.match(allowed.stdout, /^lint \["--max-warnings=0","--no-warn-ignored","--","\.\/allowed file\.cjs"\]$/m);
+        assert.match(allowed.stdout, /^format \["--check","--ignore-path=\.gitignore","--ignore-path=\.prettierignore","--","\.\/allowed file\.cjs"\]$/m);
+        assert.doesNotMatch(allowed.stdout, /prior file\.cjs/);
+
+        repo.run('switch', '-q', '--detach', base);
+        const wrongAtStart = execute(pinned, 'admission-main');
+        assert.equal(wrongAtStart.status, 2, 'the requested head must be checked out before waiting');
+        assert.match(wrongAtStart.stderr, /require that commit checked out with a clean working tree/);
+        assert.doesNotMatch(wrongAtStart.stdout, /^lint /m);
+        assert.equal(repo.run('rev-parse', 'HEAD'), base, 'the admission callback was never invoked');
+        repo.run('switch', '-q', 'main');
+
+        const restoredAfterAdmission = execute(pinned, 'admission-restore');
+        assert.equal(restoredAfterAdmission.status, 2, 'restoring the requested head while waiting cannot earn pinned proof');
+        assert.match(restoredAfterAdmission.stdout, /alternate checkout/);
+        assert.match(restoredAfterAdmission.stderr, /detected a checkout change during admission/);
+        assert.doesNotMatch(restoredAfterAdmission.stdout, /^lint /m);
+
+        const queued = execute(pinned, 'admission');
+        assert.equal(queued.status, 2, 'a changed checkout after admission is refused');
+        assert.doesNotMatch(queued.stdout, /^lint /m);
+        repo.write('keep.md', 'only documentation\n');
+        const changedDuringLint = execute(pinned, 'lint');
+        assert.equal(changedDuringLint.status, 2, 'a changed checkout during lint cannot earn proof');
+        assert.match(changedDuringLint.stdout, /^lint /m);
+        assert.doesNotMatch(changedDuringLint.stdout, /PASS {2}static/);
+        repo.write('keep.md', 'only documentation\n');
+        const switched = execute(pinned, 'switch');
+        assert.equal(switched.status, 2, 'changing the checkout and then restoring its head cannot earn pinned proof');
+        assert.match(switched.stdout, /alternate checkout/);
+        assert.match(switched.stderr, /detected a checkout change during execution/);
+        assert.equal(repo.run('rev-parse', 'HEAD'), head);
+
+        for (const flag of ['assume-unchanged', 'skip-worktree']) {
+            const file = 'allowed file.cjs';
+            repo.run('update-index', `--${flag}`, file);
+            if (flag === 'assume-unchanged') repo.write(file, '// changed with a clean status\n');
+            else fs.unlinkSync(path.join(repo.root, file));
+            assert.equal(repo.run('status', '--porcelain'), '', `${flag} fixture must hide the change from porcelain`);
+            const hidden = execute(pinned);
+            assert.equal(hidden.status, 2);
+            assert.match(hidden.stderr, /complete checkout without hidden index entries/);
+            assert.doesNotMatch(hidden.stdout, /^(lint|format) /m);
+            repo.run('update-index', `--no-${flag}`, file);
+            repo.write(file, '// existing\n');
+        }
+
+        const link = path.join(repo.root, 'linked.cjs');
+        try {
+            fs.symlinkSync('allowed file.cjs', link, 'file');
+        } catch (error) {
+            if (process.platform !== 'win32' || error.code !== 'EPERM') throw error;
+            t.diagnostic('fixture cannot create a symlink without Windows symlink privileges');
+        }
+        if (fs.existsSync(link)) {
+            const linked = execute(focused);
+            assert.equal(linked.status, 0, linked.stderr);
+            assert.match(linked.stdout, /Static scope widened to full/);
+            assert.doesNotMatch(linked.stdout, /linked\.cjs/);
+            fs.unlinkSync(link);
+        }
+
+        repo.write('forbidden.cjs', '// new violation\n');
+        const blocked = execute(focused);
+        assert.equal(blocked.status, 1, blocked.stderr);
+        assert.match(blocked.stdout, /FAIL {2}static/);
+        assert.match(blocked.stdout, /^format /m, 'format still runs when lint rejects a change');
+
+        repo.write('.prettierignore', '# input change\n');
+        const widened = execute(focused);
+        assert.equal(widened.status, 1, widened.stderr);
+        assert.match(widened.stdout, /Static scope widened to full/);
+        assert.match(widened.stdout, /^lint \["--max-warnings=0","\."\]$/m);
+
+        const full = execute(['--scope=full']);
+        assert.equal(full.status, 1, full.stderr);
+        assert.match(full.stdout, /scope: full/);
+        assert.match(full.stdout, /^format \["--check","\*\*\/\*\.\{cjs,mjs,js\}"\]$/m);
+    } finally {
+        repo.cleanup();
+    }
+});
+
+test('TC-GWF-101 a changed suppressions file or large path list cannot narrow the static check', () => {
+    for (const script of ['framework-ci.cjs', 'static-checks.cjs']) {
+        assert.equal(ci.staticFiles([{ status: 'M', file: `.claude/scripts/${script}` }]), null);
+    }
+    assert.equal(ci.staticFiles([{ status: 'D', file: 'eslint-suppressions.json' }]), null);
+    assert.equal(ci.staticFiles([{ status: 'T', file: 'src/check.cjs' }]), null);
+    assert.equal(ci.staticFiles(Array.from({ length: 80 }, (_, i) => ({ status: 'M', file: `src/${'x'.repeat(100)}${i}.cjs` }))), null);
+    assert.deepEqual(
+        ci.staticFiles([
+            { status: 'D', file: 'old.cjs' },
+            { status: 'A', file: 'new.cjs' }
+        ]),
+        ['./new.cjs']
+    );
+    assert.equal(plan(['.prettierignore']).lanes.static, true);
+});
+
 test('without a head, staged, unstaged and untracked work counts', () => {
     const repo = makeRepo();
     try {
@@ -317,7 +513,7 @@ test('the gate writes its plan as GitHub outputs and runs nothing', () => {
         assert.equal(code, 0);
         assert.equal(
             fs.readFileSync(output, 'utf8'),
-            'scope=changed\nrun_static=true\nrun_sync=false\nrun_hook_unit=false\nrun_hook_suites=true\nhook_suites=alpha\n'
+            `scope=changed\nrun_static=true\nrun_sync=false\nrun_hook_unit=false\nrun_hook_suites=true\nhook_suites=alpha\nstatic_base=${repo.run('rev-parse', 'HEAD')}\n`
         );
     } finally {
         repo.cleanup();
@@ -413,7 +609,18 @@ test('ci jobs run only commands the lane table owns', { skip: UPSTREAM_SKIP }, (
 test('the gate plans the run and every lane job is gated on its plan output', { skip: UPSTREAM_SKIP }, () => {
     const text = fs.readFileSync(CI_WORKFLOW, 'utf8');
     assert.match(jobBlock(text, 'gate'), /node \.claude\/scripts\/framework-ci\.cjs --plan .*--github-output="\$GITHUB_OUTPUT"/);
-    assert.match(jobBlock(text, 'repo-checks'), /if: \$\{\{ needs\.gate\.outputs\.run_sync == 'true' \}\}/);
+    const gate = jobBlock(text, 'gate');
+    const repoChecks = jobBlock(text, 'repo-checks');
+    assert.match(gate, /run_repo_checks: .*run_sync == 'true' \|\| steps\.plan\.outputs\.run_static == 'true'/);
+    assert.match(repoChecks, /if: \$\{\{ needs\.gate\.outputs\.run_repo_checks == 'true' \}\}/);
+    assert.match(repoChecks, /CHECK_BASE: \$\{\{ needs\.gate\.outputs\.static_base \}\}/);
+    assert.match(repoChecks, /run_static == 'true' && needs\.gate\.outputs\.scope == 'changed' && needs\.gate\.outputs\.static_base != ''/);
+    assert.match(repoChecks, /--lane=static --scope=changed --base="\$CHECK_BASE" --head="\$CHECK_HEAD"/);
+    assert.match(
+        repoChecks,
+        /run_static == 'true' && \(needs\.gate\.outputs\.scope != 'changed' \|\| needs\.gate\.outputs\.static_base == ''\) \}\}\r?\n +run: node \.claude\/scripts\/static-checks\.cjs/,
+        'the old planner without a static_base still reaches the compatible full command'
+    );
     assert.match(jobBlock(text, 'unit-tests'), /if: \$\{\{ needs\.gate\.outputs\.run_hook_unit == 'true' \}\}/);
     // Regression: with a bare `if:` the implicit success() skipped a selected leg whenever an unselected lane upstream was skipped.
     assert.match(
@@ -437,11 +644,11 @@ test('the summary jobs fail closed: selected lanes must succeed and unselected o
     const text = fs.readFileSync(CI_WORKFLOW, 'utf8');
     const staticAndUnit = jobBlock(text, 'static-and-unit');
     assert.match(staticAndUnit, /needs: \[gate, repo-checks, unit-tests, startup-install-platform-security\]/);
-    assert.match(staticAndUnit, /RUN_SYNC: \$\{\{ needs\.gate\.outputs\.run_sync \}\}/);
+    assert.match(staticAndUnit, /RUN_REPO_CHECKS: \$\{\{ needs\.gate\.outputs\.run_repo_checks \}\}/);
     assert.match(staticAndUnit, /RUN_HOOK_UNIT: \$\{\{ needs\.gate\.outputs\.run_hook_unit \}\}/);
     assert.match(staticAndUnit, /expect\(\) \{ if \[ "\$3" = true \]; then want=success; else want=skipped; fi; test "\$2" = "\$want"/);
     assert.match(staticAndUnit, /test "\$\{\{ needs\.gate\.result \}\}" = success/);
-    assert.match(staticAndUnit, /expect repo-checks "\$\{\{ needs\.repo-checks\.result \}\}" "\$RUN_SYNC"/);
+    assert.match(staticAndUnit, /expect repo-checks "\$\{\{ needs\.repo-checks\.result \}\}" "\$RUN_REPO_CHECKS"/);
     assert.match(staticAndUnit, /expect unit-tests "\$\{\{ needs\.unit-tests\.result \}\}" "\$RUN_HOOK_UNIT"/);
     const required = jobBlock(text, 'ci-required');
     assert.match(required, /needs: \[gate, static-and-unit, integration-test-shards\]/);

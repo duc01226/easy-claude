@@ -14,6 +14,9 @@ const { assertEqual, assertContains, assertNotContains, assertTrue } = require('
 
 // Project root (4 levels up from suites/)
 const PROJECT_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
+const FRAMEWORK_REGISTRY_SKIP = require('../lib/framework-repo-guard.cjs').isFrameworkRepo(PROJECT_ROOT)
+    ? false
+    : 'asserts the framework repo workflow registry only';
 
 // ============================================================================
 // Dead Module Removal Verification Tests
@@ -1103,6 +1106,53 @@ const annotatedRegistryTests = [
         }
     },
     {
+        name: '[guided-workflow] TC-GWF-100 every review mode assesses the pinned change before repairs and keeps that assessment separate from recurrence proof',
+        skip: FRAMEWORK_REGISTRY_SKIP,
+        fn: () => {
+            // Intent: an incoming fix or refactor is assessed even when the review repairs nothing.
+            const config = loadWorkflowConfig();
+            const modes = manifestsOf(config, 'workflow-review-changes');
+            assertDeepEqual(modes.map(mode => mode.mode).sort(), ['fix-loop', 'review-only']);
+            for (const manifest of modes) {
+                const opportunities = manifest.occurrences.filter(step => step.skill === 'harness-opportunities');
+                assertEqual(opportunities.length, 1, `${manifest.mode}: one assessment owner`);
+                const [assessment] = opportunities;
+                assertEqual(assessment.role, 'gate', `${manifest.mode}: an assessment is required even without findings`);
+                assertEqual(assessment.applicability.when, 'always');
+                const correctness = manifest.occurrences.find(step => step.id === 'initial-changes-review');
+                assertTrue(correctness.args.includes('entities,harness-opportunities '), 'correctness delegates the single assessment');
+                assertEqual(manifest.parallelGroups.length, 1, 'specialist grouping remains adaptive outside the prevention barrier');
+                const barrier = manifest.parallelGroups.find(group => group.id === correctness.barrier);
+                assertDeepEqual(barrier?.members, [correctness.id, assessment.id], 'both readers join before the workflow can advance');
+                assertEqual(barrier.barrier, true);
+                assertEqual(assessment.barrier, barrier.id);
+                const repair = manifest.occurrences.findIndex(step => step.id === 'fix-findings');
+                assertTrue(repair === -1 || manifest.occurrences.indexOf(assessment) < repair, 'assessment precedes any repair');
+                for (const gate of manifest.outcomeGates.filter(gate => ['review-converged', 'recurrence-guarded'].includes(gate.id))) {
+                    assertTrue(!gate.satisfiedBy.includes(assessment.skill), 'a proposal cannot satisfy an existing quality outcome');
+                }
+            }
+            const skill = name => fs.readFileSync(path.join(PROJECT_ROOT, '.claude', 'skills', name, 'SKILL.md'), 'utf8');
+            assertTrue(skill('changes-review').includes('../harness-opportunities/SKILL.md'), 'standalone review uses the same assessor');
+            const pr = skill('pull-request');
+            assertTrue(pr.includes('final `Harness opportunities:` result'), 'PR evidence consumes the review result');
+            const [, publication, ciRepair, ready] = pr.split(/^### Step [789] — .*$/m);
+            const check = 'Run [affected-scope verification](#affected-scope-verification), then';
+            assertTrue(
+                publication.includes('Run the approved check on the exact clean committed head'),
+                'Step 5 deferral must be resolved for the candidate being published'
+            );
+            assertTrue(publication.includes(`${check} \`git push -u origin <branch>\``), 'verify the committed head before either ordinary or lease push');
+            assertTrue(publication.includes('commit via Step 6, then restart Step 7.1 on the new head'), 'a rejected push invalidates prior evidence');
+            assertTrue(publication.includes('return to Step 7.1 before retrying publication'), 'a missing receipt cannot bypass the push gate');
+            assertTrue(ciRepair.includes('Step 5 → `commit` (Step 6) → Step 7.1 on the repair head'), 'a CI repair verifies its new head before publishing');
+            assertTrue(ready.includes('Step 7.1 on the rebased head'), 'verify the new revision after a rebase');
+            assertTrue(ready.includes('Step 7.1 on the merge head'), 'verify the new revision after a merge');
+            assertTrue(ready.includes(`${check} run \`gh pr ready\``), 'verify the head before marking Ready');
+            assertTrue(skill('harness-opportunities').includes('requires explicit approval for the exact guard'), 'a draft never authorizes activation');
+        }
+    },
+    {
         name: '[guided-workflow] TC-GWF-073 the session report step runs when asked for; otherwise the close gives the summary',
         fn: () => {
             // Business Intent / Invariant Guarded: every run still ends with a summary the developer can act on,
@@ -1566,10 +1616,6 @@ const isLeanRouteGate = step => LEAN_ROUTE_GATE_SKILLS.includes(step.skill) || i
 const LEAN_ROUTE_OUTCOME_GATES = ['tests-pass', 'review-converged', 'spec-synced', 'run-closed'];
 const LEAN_ROUTE_PREDICATE = 'requested behavior is already written in a canonical spec';
 const FEATURE_ROUTE_PREDICATES = ['no canonical spec yet', 'does not contain the requested behavior', 'update the spec first'];
-// The catalog build reads this repository's registry and skill tree, so it is an authoring-repo self-check.
-const LEAN_CATALOG_SKIP = require('../lib/framework-repo-guard.cjs').isFrameworkRepo(PROJECT_ROOT)
-    ? false
-    : 'asserts the framework repo workflow registry only';
 
 const stepSkill = step => (typeof step === 'string' ? step.split(/\s+/, 1)[0] : step && step.skill);
 // The full invocation of a step (`skill args`): `spec` serves several roles, so the mode is part of the identity.
@@ -1765,7 +1811,7 @@ const leanRouteTests = [
     },
     {
         name: '[guided-workflow] TC-GWF-043 the lean route is registered and the routing catalog builds and lists it',
-        skip: LEAN_CATALOG_SKIP,
+        skip: FRAMEWORK_REGISTRY_SKIP,
         fn: () => {
             // Given this repository's registry with the lean route
             const { buildWorkflowSkillsCatalog } = require(path.join(SCRIPTS_DIR, 'lib', 'workflow-skills-catalog.cjs'));

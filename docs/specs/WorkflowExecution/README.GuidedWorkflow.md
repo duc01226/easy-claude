@@ -243,6 +243,16 @@ Every workflow states the goal it must reach and the quality results a finished 
 - **AC-GWF-44** — **Given** a fix that started in this session **When** the assistant commits with no valid record written after the fix **Then** the commit gets one warning line saying why it matters and how to clear it (a refusal only when the project opted into strict checks); with a valid record, or with no fix, nothing is said
 - **AC-GWF-45** — **Given** a project that turned on the bug-class commit line **When** a commit fixes a bug whose record is valid **Then** its message carries `Bug-Class: <class>` in exactly that form; with the setting off, or without a valid record, no such line is written
 
+### US-GWF-11: Learn from changes already made
+
+**As a** developer reviewing a change
+**I want** to see which recurring mistakes could be prevented, and to check approved rules on the affected work
+**So that** the project learns from past changes without adding unnecessary rules or repeating entire scans for local edits
+
+- **AC-GWF-46** — **Given** a focused review, a workflow review in either mode, or an explicit historical review **When** the target is reviewed **Then** one read-only assessment classifies its intent, examines fixes and refactors for reusable prevention, and returns evidence before any repair. The workflow can run it alongside correctness review. The PR summary carries its result.
+- **AC-GWF-47** — **Given** a candidate guard or lesson **When** review completes **Then** a read-only review can report it and an authorized fixing owner can draft it. Only the project owner can approve enforcement after evidence of useful detection, acceptable exclusions and baseline impact. Candidates never satisfy proof of a completed repair.
+- **AC-GWF-48** — **Given** an approved project check **When** the developer verifies a PR or asks for a full scan **Then** the same check accepts both scopes, reports which scope was checked, reports when no files apply, and widens when shared inputs make the affected scope insufficient. Failed checks or unavailable required proof stay visible.
+
 ---
 
 ## 4. Business Rules
@@ -275,6 +285,8 @@ Every workflow states the goal it must reach and the quality results a finished 
 | BR-GWF-22 | The regression-test step never dead-ends without a test project          | Quality      | [HARD]      |
 | BR-GWF-24 | Every bug fix ends with a bug-class prevention record                    | Quality      | [HARD]      |
 | BR-GWF-25 | A prevention record is checked, holds no secret, and the commit line warns by default | Quality      | [HARD]      |
+| BR-GWF-26 | Reviews assess opportunities before changes and approval governs activation | Quality | [HARD] |
+| BR-GWF-27 | Approved checks distinguish affected, full and skipped scope | Quality | [HARD] |
 
 ### BR-GWF-01: Gate steps are fixed [HARD]
 
@@ -456,6 +468,14 @@ IF the route starts no catalog workflow
 ### BR-GWF-25: A prevention record is checked, holds no secret, and the commit line warns by default [HARD]
 
 **Statement:** A deterministic checker, runnable on its own, validates the record and answers valid, missing or invalid with each problem, why it matters and the fix: a guard location must exist in the project and not be ignored by version control, "no guard" needs an owner, an environment-only cause needs its evidence, a fix that repaired no behavior defect records only its reason as "not applicable" (this clears the commit reminder but never satisfies "recurrence guarded"), a guard must be a file, and a value shaped like a secret is refused and never echoed back. The close and the direct fix trust only the checker's answer. When a fix started in the session and no valid record was written after it, a commit gets one warning line under the default verify setting, a refusal only under its opted-in strict setting, and nothing when verification is off; a fault in that check never blocks, and a fix marker expires after a working day. A project may opt into a `Bug-Class: <class>` commit line, written in exactly that form only for a fix with a valid record and only on new commits.
+
+### BR-GWF-26: Reviews assess opportunities before changes and approval governs activation [HARD]
+
+**Statement:** Each review target receives one prevention assessment, including changes that arrive already fixed. Classify mixed intent with evidence. An evidenced no-candidate result completes the assessment. A candidate that duplicates an existing guard, costs more than its value or lacks evidence does not enable a rule. A workflow joins the assessment and correctness evidence before repair. A change to the evidence or protected invariant refreshes the assessment. Read-only and historical reviews report only. An authorized fixing owner may draft, and activation needs owner approval on the proved bad and valid examples, affected scope and frozen legacy baseline where applicable. Existing repair and review outcomes retain their own proof.
+
+### BR-GWF-27: Approved checks distinguish affected, full and skipped scope [HARD]
+
+**Statement:** Verification runs the repository's approved checks on the affected part of the exact PR candidate or uses already current proof for those checks. A project can require full verification independently. The same check is callable for a manual full scan. The check accounts for moves, deletions and shared inputs that can affect the outcome. If scope cannot be safely narrowed, the report says why it expanded. Empty selections are skipped and missing required proof is unavailable. An unchanged working snapshot and a different reviewed snapshot cannot share one verdict.
 
 ## 5. Domain Model
 
@@ -3844,6 +3864,94 @@ boundaryCounterCase: 'the close refusal removed → detected'
 > **Evidence:** `[Source: rule/workflows/prevention-instructions]`
 > **Related Behaviors:** `rule/workflows/prevention-instructions`
 > **CoveredBy:** `.claude/hooks/tests/suites/content-presence.test.cjs::[content-presence] TC-GWF-099 fix, workflow-bugfix and workflow-end run and check the bug-class prevention task before the reviews and the verify; /learn only after the user confirms`, `.claude/hooks/tests/suites/project-config-refactor-keys.test.cjs::[project-config-refactor-keys] commit.fixOriginTrailer is an optional boolean section` · **Status:** Implemented — evidence: written with the change; run at the change's final verify
+
+---
+
+### Review-driven harness tests
+
+#### TC-GWF-100: Review assesses what can be learned from incoming changes [P1]
+
+**Objective:** Verify one read-only opportunity assessment in both review modes and its handoff to focused and pull request reviews.
+
+**Business Intent / Invariant Guarded:** The assessment requires evidence before fixes and cannot approve a guard or satisfy a repair outcome (BR-GWF-26).
+
+**Traces:** AC-GWF-46 / AC-GWF-47 / BR-GWF-26
+
+**Preconditions:** A review target and the project's available check and lesson owners.
+
+**Real-World Reachability:** A PR may already fix the defect when a reviewer takes it up.
+
+**Demo Flow:** Review a mixed change with a bug fix and a refactor. Compare the classification and candidate evidence with the correctness review of that target.
+
+```gherkin
+Given an incoming bug fix or refactor on the selected review target
+When the change is reviewed and the reviewer makes no repair
+Then one assessment reports the change intent and an evidenced candidate or reason to have none
+And neither the assessment nor a draft activates a guard or records repair proof
+```
+
+**Expected Result:** Both workflow modes join the independently owned assessment with correctness before mutation. Focused review uses the same owner and PR review presents its result.
+
+**Acceptance Criteria:** One required assessment, an all-return barrier, continued separate repair proof and explicit activation authority.
+
+**Test Data:**
+
+```yaml
+inputDomain: 'both workflow modes, focused review and pull request evidence'
+invariant: 'one evidence owner evaluates opportunities, with approval reserved for activation'
+boundaryCounterCase: 'a read-only review repairs nothing and still requires the assessment'
+```
+
+**Edge Cases:** A fully guarded fix yields an evidenced no-candidate outcome. An explicitly selected historical target stays read-only.
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: operation/workflows/review-harness-opportunities]`
+> **Related Behaviors:** `operation/workflows/review-harness-opportunities`
+> **CoveredBy:** `.claude/hooks/tests/suites/workflow.test.cjs::[guided-workflow] TC-GWF-100 every review mode assesses the pinned change before repairs and keeps that assessment separate from recurrence proof` · **Status:** Implemented — registry and instruction contract. Semantic classification requires a model-driven review.
+
+#### TC-GWF-101: Approved checks run on the affected scope and on demand for all source [P1]
+
+**Objective:** Verify changed, expanded, skipped and full invocations reach the approved checks with the intended files.
+
+**Business Intent / Invariant Guarded:** A narrow result describes the candidate and cannot substitute a different tree or obscure an applicable failure (BR-GWF-27).
+
+**Traces:** AC-GWF-48 / BR-GWF-27
+
+**Preconditions:** The project has approved checks and a comparison base.
+
+**Real-World Reachability:** A developer checks a small PR, changes a rule input or requests a full audit.
+
+**Demo Flow:** Verify a documentation-only change, move a source file, introduce a failing change, change check configuration, and request a full scan.
+
+```gherkin
+Given a comparison with unchanged check inputs
+When affected checks run on a small change
+Then the matching live changed files reach the tools and the failure result is preserved
+And an empty selection is skipped
+When shared check inputs change or the operator requests a full scan
+Then the whole check runs
+```
+
+**Expected Result:** The report shows the scope, and a dirty checkout cannot supply proof for a different pinned candidate.
+
+**Acceptance Criteria:** Empty selection is visible, moves check the destination, a failure stays red, shared inputs expand, and manual full runs both tools.
+
+**Test Data:**
+
+```yaml
+inputDomain: 'an unrelated diff, a moved file, a violation, a dirty candidate, changed check inputs and a requested full scan'
+invariant: 'one native check path preserves scope and failure'
+boundaryCounterCase: 'a shared input changes while the source selection is small, so the check widens'
+```
+
+**Edge Cases:** A large argument set or a linked source path widens the check. Shared runner edits and a deleted legacy baseline trigger full verification. A checkout that moves during admission or checking cannot produce pinned evidence. A selected older revision without a scoped plan uses full verification of its static checks.
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: operation/verification/affected-approved-check]`
+> **Related Behaviors:** `operation/verification/affected-approved-check`
+> **CoveredBy:** `.claude/scripts/tests/framework-ci.test.cjs::TC-GWF-101 the static lane runs native tools on the selected paths and widens when their inputs change` · **Status:** Implemented
 
 ---
 

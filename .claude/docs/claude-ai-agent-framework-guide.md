@@ -2,7 +2,7 @@
 
 > **Purpose:** the one-page map of the portable `.claude/` framework — what it does, how the parts fit, how to use it day to day, and where each topic's detailed owner doc lives. Read it first when you adopt the framework, change it, or need to explain a hook block, a routing decision or a workflow step.
 >
-> **Framework inventory:** <!-- COUNT:hooks -->38<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->81<!-- /COUNT --> hook-library modules · <!-- COUNT:skills -->110<!-- /COUNT --> skills · <!-- COUNT:workflows -->17<!-- /COUNT --> workflows · <!-- COUNT:agents -->25<!-- /COUNT --> agents · <!-- COUNT:shared -->16<!-- /COUNT --> shared reference/protocol entries.
+> **Framework inventory:** <!-- COUNT:hooks -->38<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->81<!-- /COUNT --> hook-library modules · <!-- COUNT:skills -->111<!-- /COUNT --> skills · <!-- COUNT:workflows -->17<!-- /COUNT --> workflows · <!-- COUNT:agents -->25<!-- /COUNT --> agents · <!-- COUNT:shared -->16<!-- /COUNT --> shared reference/protocol entries.
 >
 > **Visual overview:** `.claude/docs/claude-ai-agent-framework-guide.html`. Use this Markdown guide for current inventories and source-owner pointers.
 
@@ -40,7 +40,7 @@
 
 ## 1. What the framework is
 
-A generic LLM is capable but forgetful, confident without evidence, and unaware of your project. This framework wraps Claude Code in **38 top-level hook files**, **<!-- COUNT:skills -->110<!-- /COUNT --> skills**, **17 registered workflows**, and **25 specialized agents** that make it project-aware, evidence-driven and gated at every quality step — from idea and spec through implementation, testing, review, commit and pull request.
+A generic LLM is capable but forgetful, confident without evidence, and unaware of your project. This framework wraps Claude Code in **38 top-level hook files**, **<!-- COUNT:skills -->111<!-- /COUNT --> skills**, **17 registered workflows**, and **25 specialized agents** that make it project-aware, evidence-driven and gated at every quality step — from idea and spec through implementation, testing, review, commit and pull request.
 
 | Failure mode of a plain agent        | What counters it                                            | Where it lives                                     |
 | ------------------------------------ | ----------------------------------------------------------- | -------------------------------------------------- |
@@ -161,7 +161,7 @@ A workflow is an **intent** plus **outcome gates** plus an ordered list of **ste
 | `workflow-implement-spec`         | auto    | 13    | Behavior already written in a canonical spec; a greenfield first slice |
 | `workflow-bugfix`                 | auto    | 15    | A bug, crash, regression or stale output                          |
 | `workflow-refactor`               | auto    | 14    | Restructure without changing behavior                             |
-| `workflow-review-changes`         | auto    | 13–19 | Review uncommitted changes before commit                          |
+| `workflow-review-changes`         | auto    | 14–21 | Review a complex pull request or risky changes                    |
 | `workflow-spec-to-mockup`         | auto    | 6     | Clickable mockup of a UI spec, 1–3 design directions              |
 | `workflow-feature-spec`           | auto    | 10    | Create or update a canonical feature spec                         |
 | `workflow-code-to-spec`           | auto    | 5–9   | Spec prose from existing code: first spec, rewrite, staleness audit |
@@ -181,7 +181,7 @@ A workflow is an **intent** plus **outcome gates** plus an ordered list of **ste
 - **Refactor:** investigate → optional characterization tests → **run tests (green baseline)** → plan → execute → **review changes** → **test** → **close**.
 - **Implement spec:** investigate → spec [mode=clarify] → plan → execute → integration tests → **review changes** (static) → **verify** → **test** → **close**.
 - **Spec to mockup:** design spec → **design review** → `work-item --mode=mockup --explore` (renders its own PNG evidence) → **UI review** → **close**.
-- **Review changes:** `changes-review` ∥ whole-target `why-review` → triage-selected specialists as read-only `--fix-loop --loop-owner=caller` passes (the integration-test review with `--prove-tests` always runs; a parent workflow that verifies once, last — `SYNC:verify-last-order` — passes `--tests=defer` and the review stays static) → validate findings once → trace unexplained defects → `fix --target=review` (applying the simplifier lens's validated suggestions) → `scan --target=domain-entities → docs-manager --mode=update` → fresh re-run of every applicable lens, the post-fix re-review. The domain-entity scan runs only when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence; otherwise complete the scan task with a cited skip reason. `docs-manager --mode=update` always applies the spec/doc gaps the reviewers flagged read-only.
+- **Review changes:** `changes-review` and `harness-opportunities` assess the same candidate in parallel. `changes-review` owns the whole-target `why-review` pass. The workflow joins both reports, runs `test-review` and applicable specialist reviews, and validates findings. In fix-loop mode it traces and repairs validated defects, updates relevant docs and specs, and repeats whole-target and test review on the settled candidate. A caller that verifies the final tree passes `--tests=defer`.
 
 ---
 
@@ -385,11 +385,11 @@ Codex transforms `/skill` into `$skill`, `Agent` into `spawn_agent` and strips C
 | Runner                                  | Tests  | Covers                                                                 |
 | --------------------------------------- | ------ | ---------------------------------------------------------------------- |
 | `test-all-hooks.cjs` (primary gate)  | **133** | Hook behaviors, bridged suites and the count guard                     |
-| `run-all-tests.cjs` (full aggregate) | **2388** | 141 `tests/suites/*.test.cjs` files; primary gate runs separately |
+| `run-all-tests.cjs` (full aggregate) | **2389** | 141 `tests/suites/*.test.cjs` files; primary gate runs separately |
 | `node --test .claude/scripts/codex/tests` | —      | Mirror generators and verifiers                                        |
 | `run-codex-sync.mjs --verify-only`      | —      | Every read-only gate before a commit                                   |
 
-> Source-declared inventory: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 2388 executors across 141 suite files. Both runners fail when these numbers drift from the docs. Counts do not establish runtime results; read the actual runner output for outcomes.
+> Source-declared inventory: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 2389 executors across 141 suite files. Both runners fail when these numbers drift from the docs. Counts do not establish runtime results; read the actual runner output for outcomes.
 
 **Portable test contract** — shipped tests must pass in any project layout on Windows, macOS and Linux: build a temp fixture project instead of reading this repository's config or git state; blank inherited feature switches and provider keys; point `HOME`, `USERPROFILE`, `TMPDIR`, `TEMP` and `TMP` at the temp dir; name OS differences explicitly (paths, symlinks, `py -3` vs `python3`); run the full suite twice to prove repeatability.
 

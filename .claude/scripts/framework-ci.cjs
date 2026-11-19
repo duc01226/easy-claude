@@ -11,9 +11,11 @@
  *   node .claude/scripts/framework-ci.cjs --plan [--json]      # print what would run; nothing executes
  *   node .claude/scripts/framework-ci.cjs --plan --github-output=<file> [--github-summary=<file>]   # CI gate job
  *   node .claude/scripts/framework-ci.cjs --lane=hook-suites --suites=<all|a,b>   # CI lane job: run one lane as planned
+ *   node .claude/scripts/framework-ci.cjs --lane=static --scope=changed --base=<rev>   # affected lint and format
+ *   node .claude/scripts/framework-ci.cjs --lane=static --scope=full   # full lint and format
  *
  * Lanes (one owner: LANES below; `.github/workflows/ci.yml` runs the same commands, pinned by framework-ci.test.cjs):
- *   static      static-checks.cjs: ESLint with its frozen baseline, then prettier --check (any JS change)
+ *   static      static-checks.cjs: ESLint with its frozen baseline, then prettier --check
  *   sync        Codex sync verify: mirrors, codex/scripts/OpenCode tests, count drift, parity
  *   hook-unit   test-all-hooks.cjs
  *   hook-suites run-all-tests.cjs — every suite (full) or the selected suites, one `--filter` run each
@@ -21,6 +23,8 @@
  * Changed scope maps each changed file to lanes through RULES (first match wins). Shared harness and manifests
  * escalate to full; a hook no suite names escalates to full; more than half of the suites selected escalates to
  * full. Selection is a heuristic: it is advisory, and only the full scope is merge evidence.
+ * Changed static checks inspect existing changed JS files. Lint/format inputs and large argument sets run the full
+ * static lane. With an explicit --head, execution requires that commit checked out cleanly.
  *
  * Parallel runs: a run that executes lanes is admitted once, for all its lanes (lanes run nested and are
  * admitted at once). It waits for this checkout's test-run lock, because the lanes share the live tree,
@@ -41,11 +45,17 @@
 const fs = require('fs');
 const path = require('path');
 const childProcess = require('child_process');
+const { SCOPED_SKIP } = require('./static-checks.cjs');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const SUITE_RE = /^\.claude\/hooks\/tests\/suites\/([^/]+)\.test\.cjs$/;
 const CODE_RE = /\.(?:c|m)?js$/;
 const SUITE_NAME_RE = /^[A-Za-z0-9._-]+$/;
+const STATIC_RUNNERS_RE = /^\.claude\/scripts\/(?:framework-ci|static-checks)\.cjs$/;
+const STATIC_INPUT_RE =
+    /(?:^|\/)(?:eslint\.config\.[^/]+|eslint-suppressions\.json|\.eslintrc(?:\.[^/]+)?|\.eslintignore|prettier\.config\.[^/]+|\.prettierrc(?:\.[^/]+)?|\.prettierignore|\.editorconfig|\.gitignore|\.gitattributes|package(?:-lock)?\.json)$/;
+// Bound both the literal argument list and its quoting overhead on Windows.
+const MAX_STATIC_PATH_BYTES = 8000;
 
 const LANES = [
     { id: 'static', title: 'Static checks (ESLint baseline, prettier)', argv: ['.claude/scripts/static-checks.cjs'] },
@@ -165,6 +175,48 @@ function collectChanges({ root = REPO_ROOT, base, head } = {}) {
     };
 }
 
+/** null means full: the pilot's lexical checks use each file independently when their inputs stay fixed. */
+function staticFiles(changes) {
+    if (changes.some(({ file, status }) => STATIC_INPUT_RE.test(file) || STATIC_RUNNERS_RE.test(file) || (CODE_RE.test(file) && status === 'T'))) return null;
+    const files = changes.filter(({ file, status }) => status !== 'D' && CODE_RE.test(file)).map(({ file }) => `./${file}`);
+    return Buffer.byteLength(files.join('\0')) > MAX_STATIC_PATH_BYTES ? null : files;
+}
+
+function requireStaticCheckout(root, headSha) {
+    if (
+        gitOut(root, ['rev-parse', 'HEAD']).trim() !== headSha ||
+        gitOut(root, ['--no-optional-locks', 'status', '--porcelain', '--untracked-files=normal']).length
+    ) {
+        throw new UsageError('static checks with --head require that commit checked out with a clean working tree');
+    }
+    const hidden = gitOut(root, ['ls-files', '--sparse', '-v', '-z'])
+        .split('\0')
+        .some(entry => /^[a-zS] /.test(entry));
+    if (hidden) throw new UsageError('static checks with --head require a complete checkout without hidden index entries');
+    // A checkout can return to the same SHA. Check worktree metadata as well as content so that
+    // changing and restoring the Git checkout while queued or running cannot certify the earlier tree.
+    return ['HEAD', 'index']
+        .map(name => {
+            const file = gitOut(root, ['rev-parse', '--git-path', name]).trimEnd();
+            const stat = fs.statSync(path.resolve(root, file), { bigint: true, throwIfNoEntry: false });
+            return stat ? [stat.dev, stat.ino, stat.size, stat.mtimeNs, stat.ctimeNs].join(':') : 'missing';
+        })
+        .join('|');
+}
+
+function staticExecution(root, range, head, scope) {
+    const headSha = head ? (range?.headSha ?? resolveCommit(root, head, 'head')) : null;
+    const pinnedCheckout = headSha ? { headSha, fingerprint: requireStaticCheckout(root, headSha) } : null;
+    const files = scope === 'changed' ? staticFiles(range.changes) : null;
+    if (scope === 'changed' && files === null) console.log('Static scope widened to full: shared inputs, a file type change or the argument limit.');
+    return { files, pinnedCheckout };
+}
+
+function verifyStaticCheckout(root, checkout, phase) {
+    if (requireStaticCheckout(root, checkout.headSha) !== checkout.fingerprint)
+        throw new UsageError(`static checks with --head detected a checkout change during ${phase}`);
+}
+
 /** Suite texts, the reverse require graph of `.claude/` code and the suites that read hook registrations. */
 function buildIndex(root = REPO_ROOT) {
     const listed = gitOut(root, ['ls-files', '-z', '--cached', '--others', '--exclude-standard', '--', '.claude'])
@@ -262,7 +314,7 @@ function planScope({ scope, changes = [], index }) {
         }
         if (rule === 'none') continue;
         // Any JavaScript change can break lint or formatting, wherever it lives.
-        if (CODE_RE.test(file) || /^eslint/.test(file)) lanes.static = true;
+        if (CODE_RE.test(file) || STATIC_INPUT_RE.test(file)) lanes.static = true;
         if (rule === 'suite') {
             if (status === 'A' || status === 'D')
                 escalations.push({ file, reason: 'a suite was added or removed: the documented test totals need the full count guard' });
@@ -362,7 +414,7 @@ function loadLockLib(root) {
 }
 
 /** Run the selected lanes, admitted once for all of them. Resolves true when every lane passed. */
-async function runLanes(root, lanes, allSuiteNames) {
+async function runLanes(root, lanes, allSuiteNames, { files = null, pinnedCheckout = null } = {}) {
     const lockLib = loadLockLib(root);
     const children = new Set();
     if (lockLib) {
@@ -378,6 +430,12 @@ async function runLanes(root, lanes, allSuiteNames) {
     for (const lane of LANES) {
         const value = lanes[lane.id];
         if (!laneSelected(lanes, lane.id)) continue;
+        const isStatic = lane.id === 'static';
+        if (isStatic && pinnedCheckout) verifyStaticCheckout(root, pinnedCheckout, 'admission');
+        if (isStatic && files?.length === 0) {
+            results.push({ lane: lane.id, ok: true, skipped: 'no affected JS files' });
+            continue;
+        }
         if (lane.id === 'hook-suites' && value !== 'all') {
             for (const name of suiteRuns(value, allSuiteNames)) {
                 console.log(`\n[framework-ci] ${lane.title}: --filter=${name}`);
@@ -385,12 +443,18 @@ async function runLanes(root, lanes, allSuiteNames) {
             }
             continue;
         }
+        const argv = isStatic && files !== null ? [...lane.argv, '--', ...files] : lane.argv;
         console.log(`\n[framework-ci] ${lane.title}: node ${lane.argv.join(' ')}`);
-        results.push({ lane: lane.id, ...(await runNode(root, lane.argv, children)) });
+        const result = await runNode(root, argv, children);
+        if (isStatic && pinnedCheckout) verifyStaticCheckout(root, pinnedCheckout, 'execution');
+        if (isStatic && result.status === SCOPED_SKIP) results.push({ lane: lane.id, ok: true, skipped: 'no applicable JS files' });
+        else results.push({ lane: lane.id, ...result });
     }
     console.log('\n[framework-ci] Summary');
-    for (const result of results)
-        console.log(`  ${result.ok ? 'PASS' : 'FAIL'}  ${result.lane}  (${result.seconds}s${result.ok ? '' : `, exit ${result.status}`})`);
+    for (const result of results) {
+        if (result.skipped) console.log(`  SKIP  ${result.lane}  (${result.skipped})`);
+        else console.log(`  ${result.ok ? 'PASS' : 'FAIL'}  ${result.lane}  (${result.seconds}s${result.ok ? '' : `, exit ${result.status}`})`);
+    }
     if (results.length === 0) console.log('  nothing selected');
     return results.every(result => result.ok);
 }
@@ -410,7 +474,7 @@ function treeLine(root, workingTree, base) {
 }
 
 function parseArgs(argv) {
-    const options = { scope: 'changed', plan: false, json: false };
+    const options = { plan: false, json: false };
     for (const arg of argv) {
         const [key, ...rest] = arg.split('=');
         const value = rest.join('=');
@@ -419,7 +483,7 @@ function parseArgs(argv) {
         else if (arg === '--help' || arg === '-h') options.help = true;
         else if (key === '--scope' && (value === 'changed' || value === 'full')) options.scope = value;
         else if (key === '--base' && rest.length) options.base = value;
-        else if (key === '--head' && rest.length) options.head = value;
+        else if (key === '--head' && value) options.head = value;
         else if (key === '--github-output' && value) options.githubOutput = value;
         else if (key === '--github-summary' && value) options.githubSummary = value;
         else if (key === '--lane' && LANES.some(lane => lane.id === value)) options.lane = value;
@@ -427,8 +491,9 @@ function parseArgs(argv) {
         else throw new UsageError(`unknown or invalid argument: ${arg}`);
     }
     if (options.suites !== undefined && options.lane !== 'hook-suites') throw new UsageError('--suites is valid only with --lane=hook-suites');
-    if (options.lane && (options.plan || options.base || options.head))
-        throw new UsageError('--lane runs one planned lane; it takes no --plan, --base or --head');
+    if (options.lane && (options.plan || (options.lane !== 'static' && (options.base !== undefined || options.head !== undefined))))
+        throw new UsageError('--lane takes no --plan; only the static lane accepts --base or --head');
+    options.scope ??= options.lane === 'static' ? 'full' : 'changed';
     return options;
 }
 
@@ -454,13 +519,27 @@ function main(argv = process.argv.slice(2), root = REPO_ROOT) {
         console.log(fs.readFileSync(__filename, 'utf8').split('*/')[0]);
         return 0;
     }
+    if (options.lane === 'static') {
+        const range = options.scope === 'changed' ? collectChanges({ root, base: options.base, head: options.head }) : null;
+        const execution = staticExecution(root, range, options.head, options.scope);
+        if (range) console.log(`Static comparison: ${range.mergeBase} .. ${range.headSha}${options.head ? '' : ' plus working changes'}`);
+        if (execution.files?.length === 0) {
+            console.log('[framework-ci] SKIP static: no affected JS files');
+            return 0;
+        }
+        return runLanes(root, laneOnlyPlan(options, []), [], execution).then(ok => (ok ? 0 : 1));
+    }
     const index = buildIndex(root);
     const allSuiteNames = index.suites.map(suite => suite.name);
     if (options.lane) return runLanes(root, laneOnlyPlan(options, allSuiteNames), allSuiteNames).then(ok => (ok ? 0 : 1));
 
     const range = options.scope === 'full' ? null : collectChanges({ root, base: options.base, head: options.head });
     const plan = planScope({ scope: options.scope, changes: range ? range.changes : [], index });
-    if (options.githubOutput) fs.appendFileSync(options.githubOutput, `${githubOutputLines(plan).join('\n')}\n`);
+    if (options.githubOutput) {
+        const output = githubOutputLines(plan);
+        if (range) output.push(`static_base=${range.mergeBase}`);
+        fs.appendFileSync(options.githubOutput, `${output.join('\n')}\n`);
+    }
     if (options.githubSummary) fs.appendFileSync(options.githubSummary, `### framework-ci plan\n\n\`\`\`\n${describePlan(plan, range)}\n\`\`\`\n`);
     if (options.json) console.log(JSON.stringify({ ...plan, range: range && { ...range } }, null, 2));
     else console.log(`${treeLine(root, !options.head, options.head ? null : (options.base ?? safeDefaultBase(root)))}\n${describePlan(plan, range)}`);
@@ -469,7 +548,8 @@ function main(argv = process.argv.slice(2), root = REPO_ROOT) {
         console.log('::warning::No changes between base and head, so nothing was tested. Pass base=<sha>~1 for one commit, or scope=full.');
     }
     if (options.plan) return 0;
-    return runLanes(root, plan.lanes, allSuiteNames).then(ok => (ok ? 0 : 1));
+    const execution = plan.lanes.static ? staticExecution(root, range, options.head, plan.effectiveScope) : undefined;
+    return runLanes(root, plan.lanes, allSuiteNames, execution).then(ok => (ok ? 0 : 1));
 }
 
 module.exports = {
@@ -478,6 +558,7 @@ module.exports = {
     FULL_PATTERNS,
     fullLanes,
     collectChanges,
+    staticFiles,
     buildIndex,
     planScope,
     suiteRuns,

@@ -8,7 +8,7 @@ description: '[Code Quality] Use when a workflow step or the user asks for a foc
 
 **Goal:** Find real defects in the requested diff and, when requested, converge its fixes without losing coverage or quality.
 
-**Summary:** Triage every changed file and write a short plan → create review tasks, including the test review on every pass and domain entity quality when entities change → check connected behavior and applicable concerns → validate findings → report once or fix and freshly re-review. Choose review depth and delegation from risk and available context.
+**Summary:** Triage every changed file and write a short plan → create review tasks, including harness opportunities, test review on every pass and domain entity quality when entities change → check connected behavior and applicable concerns → validate findings → report once or fix and freshly re-review. Choose review depth and delegation from risk and available context.
 
 **Workflow:** Resolve scope → plan/tasks → review, with the whole-target `/why-review` rationale pass, the whole-target `/test-review` pass and a `/performance-review` pass when the change can affect performance → validate → review-only report or fix/re-review → final checks and recap.
 
@@ -31,6 +31,8 @@ Default scope is current working changes: `git status`, `git diff`, `git diff --
 Start from metadata and the stated task/plan/goal. Record intent, all target paths, risks, relevant rules, affected callers/tests and how coverage will be checked in `tmp/reports/changes-review-<run>.md`. Before review, read the run's deviation log (`tmp/workflow-runs/<runId>/skips.md`) when present. Decide inline work or authorized reviewers and group related flows as useful; the adaptive planning protocol owns guidance, without fixed file/line limits.
 
 ## Review concerns
+
+**Harness and lesson opportunities:** Invoke [harness-opportunities](../harness-opportunities/SKILL.md) on the same pinned target as a separate read-only task. Start it alongside correctness review when the host supports independent work and the scope warrants delegation. For a small review or a host without delegation, run the same task inline. Join all readers before any edits, carry the `Harness opportunities:` result into the report, and refresh affected conclusions after repairs. Only a named workflow caller with its own occurrence may take this duty via `--defer=harness-opportunities`. The standalone fixing owner may prepare drafts and routes approved enforcement through the owners named by that skill.
 
 For every applicable changed behavior, inspect correctness against intent, supported success/error paths, null/empty/boundary states, resource cleanup and async/concurrency concerns. Trace callers and contracts across affected boundaries. Judge responsibility, reuse, naming and maintainability against the project's conventions and actual architecture; absence of a textbook pattern is not a defect.
 
@@ -62,7 +64,7 @@ Report each finding with severity, reachable trigger, consequence, `file:line` a
 
 Review-only returns the validated report without source changes. Fix-loop follows `review-policy`: trace the owning cause, apply authorized fixes, then freshly review the whole updated target and affected interactions. Create an explicit re-review task even for a small fix. The fix-loop reference owns the conditional standalone documentation step and its handoff to the workflow caller. Update relevant specs/docs before the final pass so no terminal edit escapes review.
 
-`--defer=<duties>` may assign specialists, tests, entities or simplification to a named caller; read [references/caller mode](../workflow-review-changes/references/caller-mode.md) when using it. The mandatory whole-target `/why-review` call remains with this skill, including when a legacy caller passes `--defer=whole-target`. Every deferred duty needs an owner and evidence. The workflow passes `--fix-loop --loop-owner=caller` so all readers join its loop without concurrent writers.
+`--defer=<duties>` may assign specialists, tests, entities, harness opportunities or simplification to a named caller; read [references/caller mode](../workflow-review-changes/references/caller-mode.md) when using it. The mandatory whole-target `/why-review` call remains with this skill, including when a legacy caller passes `--defer=whole-target`. Every deferred duty needs an owner and evidence. The workflow passes `--fix-loop --loop-owner=caller` so all readers join its loop without concurrent writers.
 
 On a `workflow-review-changes` rerun, reconcile previous specialist evidence and fresh proof in the whole-target review. Apply the caller's [one-time occurrence rules](../workflow-review-changes/SKILL.md#fix-and-fresh-review) to nested specialist calls too. Check changed or newly affected coverage and return any required proof the current pass cannot establish.
 

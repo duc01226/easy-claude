@@ -2,9 +2,9 @@ metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
   last_updated: '2026-11-19'
-  total_skills: 110
+  total_skills: 111
   total_by_status:
-    active: 110
+    active: 111
     deprecated: 0
     experimental: 0
 categories:
@@ -365,6 +365,18 @@ skills:
       category: other
       has_scripts: false
       has_references: true
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: harness-opportunities
+      path: harness-opportunities/SKILL.md
+      description: '[Code Quality] Use when a workflow step or the user asks for harness
+        opportunities in a change. Classifies the diff and identifies worthwhile deterministic
+        guards or reusable lessons.'
+      category: other
+      has_scripts: false
+      has_references: false
       status: active
       deprecated_by: null
       deprecated_since: null

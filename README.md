@@ -20,7 +20,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->38<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->110<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->17<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->25<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from initiative capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->38<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->111<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->17<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->25<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from initiative capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -186,7 +186,7 @@ again after 150K tokens of growth or a compaction, and to every sub-agent; the w
 `workflow-route-inject.cjs` (the gate) and `workflow-catalog-inject.cjs` (the catalog). `CLAUDE.md` and `AGENTS.md` hold project information only. This design prevents
 context drift over long sessions.
 
-### Skills (<!-- COUNT:skills -->110<!-- /COUNT --> definitions)
+### Skills (<!-- COUNT:skills -->111<!-- /COUNT --> definitions)
 
 Markdown-based prompts with YAML frontmatter that guide AI behavior.
 
@@ -229,7 +229,7 @@ End-to-end process orchestration with step enforcement. The table below shows th
 
 ### Quality Gates & Review Skills
 
-Reviews are first-class skills you can run standalone, and several are chained automatically inside `workflow-review-changes` — the recommended gate before any commit. It starts `/changes-review` inline and a FULL-mode whole-target `/why-review` sub-agent in parallel behind an all-return barrier, validates the dimensional findings, runs the specialist reviewer batch, simplifies/fixes, then runs a final whole-target `/why-review` over the settled state before closing.
+Run review skills on their own or use `workflow-review-changes` for a complex pull request. The workflow starts `/changes-review` and `/harness-opportunities` on the same diff and waits for both reports before repairs. `/changes-review` calls `/why-review` for the whole target. The workflow adds applicable specialists and test review, validates findings, and re-reviews the branch after any fixes.
 
 | Review skill                      | Catches                                                                  |
 | --------------------------------- | ------------------------------------------------------------------------ |
@@ -427,6 +427,8 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=tests,scripts-t
 ```
 
 CI (`.github/workflows/ci.yml`) is manual only: merging to `main` or opening a pull request starts no runner. Dispatch it on Linux, macOS and Windows with `gh workflow run ci.yml -f scope=changed -f ref=<branch|sha|refs/pull/<n>/merge>` (only the lanes and hook suites the changes affect; add `-f base=<sha>~1` for one commit) or `-f scope=full` (every lane and the full hook aggregate). The pinned startup-install job runs on all three OSes in every run, whatever the scope. `node .claude/scripts/framework-ci.cjs` plans and runs the same lanes locally: `--scope=changed` (default, advisory), `--scope=full` (the gate before a pull request merges) and `--plan` to preview. The `ci-required` check passes only when every selected leg is green. The job layout is pinned by `.claude/hooks/tests/suites/startup-install.test.cjs` and `.claude/scripts/tests/framework-ci.test.cjs`, so change them together.
+
+The review skills also look for ways to prevent repeat failures. They classify the diff, propose mechanical checks or lessons where useful, and record the result in PR review evidence. Owner approval and proof are needed to activate a new check. For this repository, run `node .claude/scripts/framework-ci.cjs --lane=static --scope=changed --base=<pr-base>` for affected lint and formatting, or use `--lane=static --scope=full` for the whole tree. Read [harness opportunities](.claude/skills/harness-opportunities/SKILL.md) when assessing a change.
 
 Code quality checks run the same way locally, in the pre-commit hook and in CI: `npx eslint .` (existing violations are frozen in `eslint-suppressions.json`, so new code must be clean and the baseline only shrinks; after fixing frozen ones, run `npx eslint . --prune-suppressions`), `npx prettier --check "**/*.{cjs,mjs,js}"` and `npm audit --audit-level=high`. `npm install` sets up the check-only pre-commit hook (husky and lint-staged lint and format-check the staged JavaScript files; nothing is rewritten at commit).
 
