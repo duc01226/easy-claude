@@ -144,7 +144,7 @@ See [integration-test-reference.md](docs/project-reference/integration-test-refe
 
 | Kind        | Count                                       |
 | ----------- | ------------------------------------------- |
-| Skills      | <!-- COUNT:skills -->112<!-- /COUNT -->     |
+| Skills      | <!-- COUNT:skills -->113<!-- /COUNT -->     |
 | Hooks       | <!-- COUNT:hooks -->38<!-- /COUNT -->       |
 | Agents      | <!-- COUNT:agents -->25<!-- /COUNT -->      |
 | Workflows   | <!-- COUNT:workflows -->17<!-- /COUNT -->   |

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
-import { prependCodexCompatibilityNote, rewriteClaudeToolTermsForCodex } from '../compat-rewrite.mjs';
+import { buildSkillReferenceMap, prependCodexCompatibilityNote, rewriteClaudeToolTermsForCodex, rewriteSkillMentionsForCodex } from '../compat-rewrite.mjs';
 
 const require = createRequire(import.meta.url);
 const { readCanonicalProtocol } = require('../../lib/canonical-protocol.cjs');
@@ -103,4 +103,16 @@ test('a task-creation label and a task-creation mention are both rewritten to to
     const output = rewriteClaudeToolTermsForCodex('TaskCreate: "Review the change"\nUse TaskCreate before the first step.\n');
     // Then both carry the same words, and no second name for the concept appears.
     assert.equal(output, 'Todo tracking: "Review the change"\nUse todo tracking before the first step.\n');
+});
+
+// Intent: path segments whose basename matches a skill name must never be corrupted into `$skill` mentions.
+test('skill mention rewriting preserves file paths and placeholder paths while rewriting real slash commands', () => {
+    const map = buildSkillReferenceMap(['voiceover', 'plan']);
+    assert.equal(
+        rewriteSkillMentionsForCodex('--audio=tmp/voiceover/<run>/voiceover.wav and docs/<id>/plan.md and <dir>/voiceover/raw', map),
+        '--audio=tmp/voiceover/<run>/voiceover.wav and docs/<id>/plan.md and <dir>/voiceover/raw'
+    );
+    // Bare terminal placeholder paths (no file extension or trailing slash) must also stay intact.
+    assert.equal(rewriteSkillMentionsForCodex('out=<dir>/voiceover and save <run>/plan ', map), 'out=<dir>/voiceover and save <run>/plan ');
+    assert.equal(rewriteSkillMentionsForCodex('Use /voiceover. Or run `/plan`.\n> /voiceover\n', map), 'Use $voiceover. Or run `$plan`.\n> $voiceover\n');
 });

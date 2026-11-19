@@ -2,9 +2,9 @@ metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
   last_updated: '2026-11-19'
-  total_skills: 112
+  total_skills: 113
   total_by_status:
-    active: 112
+    active: 113
     deprecated: 0
     experimental: 0
 categories:
@@ -967,6 +967,20 @@ skills:
         investigate.'
       category: other
       has_scripts: false
+      has_references: true
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: voiceover
+      path: voiceover/SKILL.md
+      description: '[Document Processing] Use when generating neural voiceover narration
+        from a script or cues for videos, explainers, demos, or re-voicing existing
+        cuts on macOS and Windows. Free offline sherpa-onnx default (Kokoro EN + Piper
+        multilingual/Vietnamese) plus optional cloud studio providers; exports mastered
+        WAV and manifest.json.'
+      category: other
+      has_scripts: true
       has_references: true
       status: active
       deprecated_by: null

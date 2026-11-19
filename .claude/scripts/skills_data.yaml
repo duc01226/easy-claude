@@ -1029,6 +1029,19 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
+  description: '[Document Processing] Use when generating neural voiceover narration
+    from a script or cues for videos, explainers, demos, or re-voicing existing cuts
+    on macOS and Windows. Free offline sherpa-onnx default (Kokoro EN + Piper multilingual/Vietnamese)
+    plus optional cloud studio providers; exports mastered WAV and manifest.json.'
+  has_references: true
+  has_scripts: true
+  name: voiceover
+  path: voiceover/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
   description: '[Utilities] Use when a workflow step or the user asks for an HTML
     session wrap-up: work, changes, rationale, how it works, stale docs and lessons.'
   has_references: true
