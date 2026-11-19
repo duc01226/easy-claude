@@ -60,12 +60,15 @@ test('a pushed-branch rebase is pushed only with an explicit literal lease, and 
     for (const text of [source, codex]) {
         const rule = section(text, '**Pushed-branch update.**', '### Step 3');
         assert.match(rule, /Record `S` = `git rev-parse origin\/<branch>` before the rebase/);
-        assert.match(rule, /`git push --force-with-lease=<branch>:<S> origin <branch>`/);
+        assert.match(rule, /After Step 4 has reviewed the rebased branch, use the explicit-lease push in Step 7\.1 with that recorded SHA/);
+        const publication = section(text, '### Step 7', '### Step 8');
+        assert.match(publication, /Run \[affected-scope verification\]\(#affected-scope-verification\), then .*After a rebase of pushed commits/);
+        assert.match(publication, /`git push --force-with-lease=<branch>:<S> origin <branch>` with the literal SHA recorded in Step 2/);
         assert.match(rule, /Never a plain `--force` \/ `-f` or a `\+<refspec>`/);
-        assert.match(rule, /Lease refused → .*\*\*Blocker\*\*.*never retry with a weaker push/);
+        assert.match(publication, /A refused lease is a \*\*Blocker\*\*\..*never retry with a weaker push/);
         // A lease with an explicit value makes `--force-if-includes` a no-op (git-push docs), so the
         // procedure must not present it as a second safeguard.
-        assert.doesNotMatch(rule, /--force-if-includes/);
+        assert.doesNotMatch(rule + publication, /--force-if-includes/);
     }
 });
 
