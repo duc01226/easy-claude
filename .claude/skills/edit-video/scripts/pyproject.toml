@@ -23,9 +23,9 @@ cuda = [
     "nvidia-cudnn-cu12==9.*; sys_platform == 'win32'",
 ]
 align = [
-    # MMS_FA forced alignment. torchaudio 2.9 removed forced_align, so stay below it.
-    "torch>=2.1,<2.9",
-    "torchaudio>=2.1,<2.9",
+    # MMS_FA forced alignment is preserved in torchaudio 2.10+; >=2.11.1 supports torch>=2.11 and torch>=2.13 clears known torch CVEs.
+    "torch>=2.13",
+    "torchaudio>=2.11.1",
 ]
 
 [tool.uv]
