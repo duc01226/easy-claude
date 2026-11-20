@@ -68,7 +68,7 @@ workspace. Optional extras: `cuda` (Windows + NVIDIA) and `align` (torch for for
 `uv sync --project $S --extra <name> --inexact`. Installed as a plugin, `$S` is inside the plugin's versioned cache folder, so the
 environment (about 500 MB) is rebuilt after each plugin update; uv's cache makes that take seconds, but re-add any extras.
 
-Before using the optional `align` extra, read [the alignment dependency restriction](references/cutting.md#forced-alignment-alignpy): its retained legacy PyTorch stack has known security advisories. Use only the official fixed checkpoint and a cache you control; this restriction does not remediate the vulnerable dependency.
+Before using the optional `align` extra, read [the alignment checkpoint and dependency guidance](references/cutting.md#forced-alignment-alignpy): `align` requires `torch>=2.13` and `torchaudio>=2.11.1` (remediating `CVE-2026-24747`), and you must still use only the official fixed `MMS_FA` checkpoint URL and a cache you control (never load untrusted `.pt`/`.pth` checkpoints).
 
 **On a new machine, run `doctor.py` first.** It checks ffmpeg and its filters, CUDA, NVENC, Node, fonts and the
 Python packages, and says which parts of the pipeline will work. Everything runs on CPU; a GPU makes

@@ -56,7 +56,7 @@ Whisper word times are good enough to find words and useless for placing a cut b
 early, starts drift, a leading fragment can vanish, and a word whose second half was cut still transcribes whole.
 `align.py` aligns the known words to the audio with torchaudio's MMS_FA model, then reads the waveform:
 
-**Optional legacy dependency restriction:** the copied `align` extra pins torch/torchaudio 2.8 because the required forced-alignment API was removed in torchaudio 2.9. That stack has known PyTorch advisories, including [CVE-2026-24747](https://github.com/pytorch/pytorch/security/advisories/GHSA-63cw-57p8-fm3p) affecting malicious checkpoint loading. Only use the fixed official MMS_FA checkpoint and a cache you control; never substitute supplied checkpoints. This reduces exposure but does not fix the dependency. Upgrading the pair requires migrating and verifying the alignment API first. Ordinary media exploitability has not been established by this import review.
+**Alignment checkpoint & dependency note:** TorchAudio `2.10+` preserved `forced_align` and `torchaudio.pipelines.MMS_FA` (`get_model`, `get_tokenizer`, `get_aligner`), so the optional `align` extra now requires `torch>=2.13` and `torchaudio>=2.11.1`, remediating [CVE-2026-24747](https://github.com/pytorch/pytorch/security/advisories/GHSA-63cw-57p8-fm3p) and legacy `2.8.0` PyTorch advisories. Prebuilt macOS wheels require `macosx_14_0_arm64` or later. Only load the fixed official `MMS_FA` checkpoint from a cache you control; never substitute untrusted `.pt`/`.pth` checkpoints.
 
 ```
 uv run --project $S --extra align python $S/align.py <ws> c04_s01 head [--word 2] [--write]

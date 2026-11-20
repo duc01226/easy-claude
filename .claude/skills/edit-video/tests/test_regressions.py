@@ -12,16 +12,19 @@ import io
 import json
 import os
 from pathlib import Path
+import re
 import socket
 import subprocess
 import sys
 import tempfile
+import tomllib
 import types
 import unittest
 from unittest.mock import Mock, patch
 import urllib.request
 import runpy
 import shlex
+import warnings
 
 
 SCRIPTS = Path(os.environ.get("EDIT_VIDEO_TEST_SCRIPTS", Path(__file__).resolve().parents[1] / "scripts"))
@@ -683,6 +686,324 @@ class ModelAndGeometryContracts(OfflineCase):
         pyproject = (SCRIPTS / "pyproject.toml").read_text(encoding="utf-8")
         for forbidden in ("sherpa-onnx", "kokoro", "piper-tts", "edge-tts"):
             self.assertNotIn(forbidden, pyproject)
+
+
+class AlignmentContracts(OfflineCase):
+    _VERSION_RE = re.compile(r"^(\d+(?:\.\d+)*)(?:(a|alpha|b|beta|rc|c|\.dev|dev)(\d+))?(?:\.post(\d+))?$")
+    _CLAUSE_RE = re.compile(r"^(~=|==|!=|<=|>=|<|>)\s*(\S+)$")
+    _STAGE_RANK = {".dev": 0, "dev": 0, "a": 1, "alpha": 1, "b": 2, "beta": 2, "rc": 3, "c": 3, None: 4}
+
+    def _parse_pep440_version(self, package, raw):
+        self.assertIsInstance(raw, str)
+        text = raw.strip()
+        self.assertTrue(text, f"empty version for {package}")
+        self.assertNotIn("*", text, f"wildcard version forbidden for {package}: {raw!r}")
+        match = self._VERSION_RE.match(text)
+        self.assertIsNotNone(match, f"unparsed PEP 440 version for {package}: {raw!r}")
+        release_text, pre_tag, pre_num, post_num = match.groups()
+        raw_parts = tuple(int(part) for part in release_text.split("."))
+        self.assertTrue(1 <= len(raw_parts) <= 3, f"expected 1 to 3 release segments for {package}: {raw!r}")
+        padded = (raw_parts + (0, 0, 0))[:3]
+        stage_rank = self._STAGE_RANK[pre_tag]
+        stage_val = int(pre_num) if pre_num is not None else 0
+        post_val = int(post_num) if post_num is not None else -1
+        return {
+            "release": padded,
+            "raw_parts": raw_parts,
+            "order": (padded, stage_rank, stage_val, post_val),
+            "is_prerelease": stage_rank < 4,
+        }
+
+    def _assert_pep440_specifier(self, package, spec_str, min_release):
+        self.assertIsInstance(spec_str, str)
+        self.assertTrue(spec_str.strip(), f"empty specifier for {package}")
+        self.assertNotIn("*", spec_str, f"wildcard specifier forbidden for {package}: {spec_str!r}")
+        self.assertNotIn(";", spec_str, f"environment marker forbidden on align dependency {package}: {spec_str!r}")
+        clauses = [clause.strip() for clause in spec_str.split(",")]
+        self.assertTrue(clauses and all(clauses), f"malformed specifier clauses for {package}: {spec_str!r}")
+        min_order = (min_release, 4, 0, -1)
+        lower_bound = None
+        upper_bound = None
+        equals = set()
+        not_equals = set()
+        has_floor = False
+        for clause in clauses:
+            match = self._CLAUSE_RE.match(clause)
+            self.assertIsNotNone(match, f"unparsed specifier clause for {package}: {clause!r}")
+            op, ver_raw = match.groups()
+            ver = self._parse_pep440_version(package, ver_raw)
+            self.assertFalse(ver["is_prerelease"], f"pre-release bound forbidden for {package}: {clause!r}")
+            v = ver["order"]
+            if op in (">=", ">", "==", "~="):
+                has_floor = True
+                self.assertGreaterEqual(v, min_order, f"{package} floor {clause!r} is below {min_release}")
+            if op == ">=":
+                if lower_bound is None or v > lower_bound[0]:
+                    lower_bound = (v, True)
+            elif op == ">":
+                if lower_bound is None or v >= lower_bound[0]:
+                    lower_bound = (v, False)
+            elif op == "<=":
+                if upper_bound is None or v < upper_bound[0]:
+                    upper_bound = (v, True)
+            elif op == "<":
+                if upper_bound is None or v <= upper_bound[0]:
+                    upper_bound = (v, False)
+            elif op == "==":
+                equals.add(v)
+                if lower_bound is None or v > lower_bound[0]:
+                    lower_bound = (v, True)
+                if upper_bound is None or v < upper_bound[0]:
+                    upper_bound = (v, True)
+            elif op == "!=":
+                not_equals.add(v)
+            elif op == "~=":
+                raw_parts = ver["raw_parts"]
+                self.assertGreaterEqual(len(raw_parts), 2, f"~= requires >=2 segments for {package}: {clause!r}")
+                if lower_bound is None or v > lower_bound[0]:
+                    lower_bound = (v, True)
+                upper_parts = list(raw_parts[:-1])
+                upper_parts[-1] += 1
+                while len(upper_parts) < 3:
+                    upper_parts.append(0)
+                upper_v = (tuple(upper_parts[:3]), 4, 0, -1)
+                if upper_bound is None or upper_v <= upper_bound[0]:
+                    upper_bound = (upper_v, False)
+        self.assertTrue(has_floor and lower_bound is not None, f"{package} requires an explicit floor: {spec_str!r}")
+        self.assertGreaterEqual(lower_bound[0], min_order)
+        self.assertLessEqual(len(equals), 1, f"{package} has conflicting == clauses: {spec_str!r}")
+        if upper_bound is not None:
+            self.assertTrue(
+                upper_bound[0] > min_order or (upper_bound[0] == min_order and upper_bound[1]),
+                f"{package} upper cap blocks minimum floor {min_release}: {spec_str!r}",
+            )
+            self.assertTrue(
+                upper_bound[0] > lower_bound[0]
+                or (upper_bound[0] == lower_bound[0] and lower_bound[1] and upper_bound[1]),
+                f"{package} has unsatisfiable bounds: {spec_str!r}",
+            )
+            if upper_bound[0] == lower_bound[0] and lower_bound[1] and upper_bound[1]:
+                self.assertNotIn(lower_bound[0], not_equals, f"{package} pinned floor excluded by !=: {spec_str!r}")
+        self.assertFalse(equals & not_equals, f"{package} == contradicts !=: {spec_str!r}")
+
+    def test_EV13_align_extra_avoids_vulnerable_legacy_torch_pin(self):
+        required_floors = {"torch": (2, 13, 0), "torchaudio": (2, 11, 1)}
+        pyproject = tomllib.loads((SCRIPTS / "pyproject.toml").read_text(encoding="utf-8"))
+        align_deps = pyproject["project"]["optional-dependencies"]["align"]
+        parsed_manifest = {}
+        for entry in align_deps:
+            self.assertNotIn(";", entry, f"unexpected environment marker in align dependency: {entry!r}")
+            match = re.match(r"^([A-Za-z0-9_.-]+)\s*(.*)$", entry.strip())
+            self.assertIsNotNone(match, f"unparsed align dependency entry: {entry!r}")
+            pkg_name, spec_str = match.group(1).lower(), match.group(2).strip()
+            self.assertNotIn(pkg_name, parsed_manifest, f"duplicate align dependency: {pkg_name}")
+            parsed_manifest[pkg_name] = spec_str
+        self.assertEqual(set(parsed_manifest.keys()), set(required_floors.keys()))
+        for pkg_name, floor in required_floors.items():
+            self._assert_pep440_specifier(pkg_name, parsed_manifest[pkg_name], floor)
+
+        lock = tomllib.loads((SCRIPTS / "uv.lock").read_text(encoding="utf-8"))
+        packages = lock["package"]
+        root_pkg = next((pkg for pkg in packages if pkg.get("name") == "edit-video"), None)
+        self.assertIsNotNone(root_pkg, "edit-video root package missing from uv.lock")
+        requires_dist = root_pkg.get("metadata", {}).get("requires-dist", [])
+        lock_align_specs = {}
+        for req in requires_dist:
+            req_name = req.get("name", "").lower()
+            if req_name in required_floors:
+                self.assertEqual(req.get("marker"), "extra == 'align'", f"unexpected marker for {req_name}: {req}")
+                self.assertNotIn(req_name, lock_align_specs, f"duplicate requires-dist for {req_name}")
+                lock_align_specs[req_name] = req.get("specifier", "")
+            elif req.get("marker") == "extra == 'align'":
+                self.fail(f"unexpected package in align extra requires-dist: {req}")
+        self.assertEqual(set(lock_align_specs.keys()), set(required_floors.keys()))
+        for pkg_name, floor in required_floors.items():
+            self._assert_pep440_specifier(pkg_name, lock_align_specs[pkg_name], floor)
+
+        for pkg_name, floor in required_floors.items():
+            matching_pkgs = [pkg for pkg in packages if pkg.get("name") == pkg_name]
+            self.assertTrue(matching_pkgs, f"{pkg_name} missing from uv.lock [[package]] entries")
+            for pkg in matching_pkgs:
+                ver = self._parse_pep440_version(pkg_name, pkg.get("version", ""))
+                self.assertFalse(ver["is_prerelease"], f"{pkg_name} locked to pre-release {pkg.get('version')!r}")
+                self.assertGreaterEqual(
+                    ver["release"], floor, f"{pkg_name} locked version {pkg.get('version')!r} < {floor}"
+                )
+
+        for rejected in (
+            ">=2.1,<2.9",
+            "<2.9",
+            ">=2.12.9",
+            ">=2.13.0a1",
+            ">=2.13.0rc1",
+            ">=2.13.*",
+            ">=2.13; sys_platform == 'linux'",
+            "not-a-specifier",
+            ">=2.13,<2.13",
+            ">2.13,<=2.13",
+            "==2.13.0,!=2.13.0",
+            "==2.13.0,==2.14.0",
+            "~=2",
+        ):
+            with self.subTest(rejected=rejected), self.assertRaises(AssertionError):
+                self._assert_pep440_specifier("torch", rejected, (2, 13, 0))
+
+    def test_EV13_align_preserves_word_span_ratios_and_skips_non_letters(self):
+        m = self.module("align")
+        float32_sentinel = object()
+        m.np.float32 = float32_sentinel
+        events = []
+        sample_count = 32000  # 2.0 s at SR=16000 (non-1.0s so 1.0/em.size(1) != x.size(1)/em.size(1)/SR)
+        emission_frames = 50  # ratio = 32000 / 50 / 16000 = 0.04
+        dev_target = "cuda:1"
+        converted_audio = object()
+
+        class AudioDouble:
+            def astype(self_audio, dtype):
+                self.assertIs(dtype, float32_sentinel)
+                events.append("astype")
+                return converted_audio
+
+        class DeviceTensor:
+            def size(self_tensor, dim):
+                self.assertEqual(dim, 1)
+                return sample_count
+
+        device_tensor = DeviceTensor()
+
+        class UnsqueezedTensor:
+            def to(self_tensor, target):
+                self.assertEqual(target, dev_target)
+                events.append("to")
+                return device_tensor
+
+        class RawTensor:
+            def unsqueeze(self_tensor, dim):
+                self.assertEqual(dim, 0)
+                events.append("unsqueeze")
+                return UnsqueezedTensor()
+
+        def from_numpy(arr):
+            self.assertIs(arr, converted_audio)
+            events.append("from_numpy")
+            return RawTensor()
+
+        @contextlib.contextmanager
+        def inference_mode():
+            events.append("inference_enter")
+            try:
+                yield
+            finally:
+                events.append("inference_exit")
+
+        em0 = object()
+
+        class EmissionTensor:
+            def __getitem__(self_em, idx):
+                self.assertEqual(idx, 0)
+                return em0
+
+            def size(self_em, dim):
+                self.assertEqual(dim, 1)
+                return emission_frames
+
+        def mdl(tensor):
+            self.assertIs(tensor, device_tensor)
+            self.assertIn("inference_enter", events)
+            self.assertNotIn("inference_exit", events)
+            events.append("mdl_call")
+            return EmissionTensor(), None
+
+        tokenized = object()
+
+        def tok(words_to_align):
+            self.assertEqual(words_to_align, ["hello", "it's", "dogs"])
+            events.append("tok")
+            return tokenized
+
+        def aligner(emission, tokens):
+            self.assertIs(emission, em0)
+            self.assertIs(tokens, tokenized)
+            events.append("aligner")
+            return [
+                [types.SimpleNamespace(start=5, end=8), types.SimpleNamespace(start=8, end=12)],
+                [types.SimpleNamespace(start=15, end=18), types.SimpleNamespace(start=19, end=25)],
+                [types.SimpleNamespace(start=30, end=33), types.SimpleNamespace(start=33, end=40)],
+            ]
+
+        torch_stub = types.SimpleNamespace(from_numpy=from_numpy, inference_mode=inference_mode)
+        words = [
+            {"w": "’Hello,"},
+            {"w": "42"},
+            {"w": "It’s"},
+            {"w": "'"},
+            {"w": "’"},
+            {"w": "dogs’!"},
+        ]
+        t0 = 10.5
+        result = m.align(AudioDouble(), t0, words, (torch_stub, mdl, tok, aligner, dev_target))
+        self.assertEqual(
+            events,
+            ["astype", "from_numpy", "unsqueeze", "to", "inference_enter", "mdl_call", "inference_exit", "tok", "aligner"],
+        )
+        self.assertIsNone(result[1])
+        self.assertIsNone(result[3])
+        self.assertIsNone(result[4])
+        self.assertAlmostEqual(result[0][0], 10.5 + 5 * 0.04)
+        self.assertAlmostEqual(result[0][1], 10.5 + 12 * 0.04)
+        self.assertAlmostEqual(result[2][0], 10.5 + 15 * 0.04)
+        self.assertAlmostEqual(result[2][1], 10.5 + 25 * 0.04)
+        self.assertAlmostEqual(result[5][0], 10.5 + 30 * 0.04)
+        self.assertAlmostEqual(result[5][1], 10.5 + 40 * 0.04)
+
+        fail_torch = types.SimpleNamespace(
+            from_numpy=Mock(side_effect=AssertionError("from_numpy must not run on empty keep")),
+            inference_mode=Mock(side_effect=AssertionError("inference_mode must not run on empty keep")),
+        )
+        fail_mdl = Mock(side_effect=AssertionError("mdl must not run on empty keep"))
+        fail_tok = Mock(side_effect=AssertionError("tok must not run on empty keep"))
+        fail_aligner = Mock(side_effect=AssertionError("aligner must not run on empty keep"))
+        empty_words = [{"w": "42"}, {"w": "'"}, {"w": "’"}, {"w": "?!"}]
+        self.assertEqual(
+            m.align(AudioDouble(), t0, empty_words, (fail_torch, fail_mdl, fail_tok, fail_aligner, dev_target)),
+            [None, None, None, None],
+        )
+
+    def test_EV13_align_model_loads_mms_fa_bundle_and_device(self):
+        m = self.module("align")
+        for cuda_available, expected_dev in ((True, "cuda"), (False, "cpu")):
+            with self.subTest(cuda_available=cuda_available):
+                moved_model = object()
+                raw_model = types.SimpleNamespace(to=Mock(return_value=moved_model))
+                tokenizer_obj = object()
+                aligner_obj = object()
+                bundle = types.SimpleNamespace(
+                    get_model=Mock(return_value=raw_model),
+                    get_tokenizer=Mock(return_value=tokenizer_obj),
+                    get_aligner=Mock(return_value=aligner_obj),
+                )
+                torch_mod = types.ModuleType("torch")
+                torch_mod.cuda = types.SimpleNamespace(is_available=Mock(return_value=cuda_available))
+                torchaudio_mod = types.ModuleType("torchaudio")
+                torchaudio_mod.pipelines = types.SimpleNamespace(MMS_FA=bundle)
+                with patch.dict(sys.modules, {"torch": torch_mod, "torchaudio": torchaudio_mod}), \
+                     patch.object(warnings, "filterwarnings") as filter_mock:
+                    ret_torch, ret_mdl, ret_tok, ret_aligner, ret_dev = m.model()
+                self.assertIs(ret_torch, torch_mod)
+                self.assertIs(ret_mdl, moved_model)
+                self.assertIs(ret_tok, tokenizer_obj)
+                self.assertIs(ret_aligner, aligner_obj)
+                self.assertEqual(ret_dev, expected_dev)
+                torch_mod.cuda.is_available.assert_called_once_with()
+                bundle.get_model.assert_called_once_with(with_star=False)
+                raw_model.to.assert_called_once_with(expected_dev)
+                bundle.get_tokenizer.assert_called_once_with()
+                bundle.get_aligner.assert_called_once_with()
+                filter_mock.assert_called_once_with("ignore", message=".*forced_align has been deprecated.*")
+
+        with patch.dict(sys.modules, {"torch": None, "torchaudio": None}):
+            with self.assertRaisesRegex(SystemExit, r"align\.py needs the align extra"):
+                m.model()
 
 
 if __name__ == "__main__":
