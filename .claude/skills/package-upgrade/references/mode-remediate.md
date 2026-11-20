@@ -31,7 +31,7 @@ Write the report incrementally: create it at step 1 and append after each step.
 ### 1. Read the report into an advisory table
 
 - Read the run log, alert, issue or file. For a scheduled run, read the job output, not the auto-filed issue's summary alone.
-- Prefer machine-readable output: re-run the project's scanner with its JSON or SARIF option (ecosystem table, scanner rows) when the given input is prose.
+- Prefer machine-readable output: re-run the project's scanner with its JSON or SARIF option (ecosystem table, scanner rows) when the given input is prose. For OSV-Scanner, follow the **OSV-Scanner runbook** in `references/ecosystems.md`: use `--output-file` for machine output, and treat exit `127` (tool error) or `128` (no packages found) as a failed scan, never a clean one.
 - One row per advisory: identifier (CVE, GHSA, OSV id), severity, package@version, ecosystem and lock file, fixed version(s) if any, dev-only or runtime.
 - Record the scanner command and its configuration file, so step 7 runs the same check.
 
@@ -81,6 +81,7 @@ Skip this question only when the user already asked for the fix to be made; then
 ### 7. Re-scan
 
 - Run the project's scanner with the command and configuration recorded in step 1, against every lock it scans.
+- For OSV-Scanner, exit `0` is clean and `1` is findings; exit `127` or `128` is blocked, never a pass (runbook in `references/ecosystems.md`).
 - Only accepted entries may remain. Any other advisory returns to step 3 for that advisory. A new advisory introduced by the change is fixed the same way.
 - When several scanners are declared, each must pass.
 - An alert service that reads only the default branch (Dependabot alerts) cannot re-scan an unmerged change. Re-scan the lock with a lock-file scanner (OSV-Scanner or the manager's own audit, ecosystem table), and record that the alert closes after the fix merges.

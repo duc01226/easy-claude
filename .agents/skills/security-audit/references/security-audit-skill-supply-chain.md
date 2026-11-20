@@ -27,7 +27,8 @@ grep -rl --include=package.json -E '"(pre|post)?install"|"prepare"' node_modules
 
 **Vulnerability & reputation scan:**
 
-- [ ] Read the project's existing scanner result first: the CI or scheduled scan job, or the scanners declared in `docs/project-config.json` → `dependencySecurity.scanners`. Otherwise run, for every ecosystem the repository uses, the scanner rows of `.claude/skills/package-upgrade/references/ecosystems.md` (the one owner of per-ecosystem commands; do not keep a second list here).
+- [ ] Read the project's existing scanner result first: the CI or scheduled scan job, or the scanners declared in `docs/project-config.json` → `dependencySecurity.scanners`.
+- [ ] Otherwise run, for every ecosystem the repository uses, the scanner rows of `.claude/skills/package-upgrade/references/ecosystems.md` (the one owner of per-ecosystem commands; do not keep a second list here). When the project declares OSV-Scanner, or no declared or native scanner covers every ecosystem, use the **OSV-Scanner runbook** in the same file; an exit of `127` (tool error) or `128` (no packages found) is a blocked scan, never a clean one.
 
 - [ ] Typosquatting: new dependency names one edit away from popular packages (`lodahs`, `plain-crypto-js`)
 - [ ] Compromise signals: maintainer published many packages within seconds, `latest` dist-tag jumped majors abruptly, package repo link dead or code mismatch with GitHub source

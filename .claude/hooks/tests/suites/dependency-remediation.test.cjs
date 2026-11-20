@@ -278,6 +278,10 @@ const tests = [
         fn: () => {
             const text = ecosystems();
             assert.match(text, /Accessed: 20\d\d-\d\d-\d\d/, 'the table states its access date');
+            // OSV-Scanner is the cross-ecosystem scanner: its v2 runbook and exit-code handling stay with the table
+            assert.match(text, /### OSV-Scanner runbook/);
+            assert.match(text, /`128` = no packages found/);
+            assert.match(text, /\*\*Do not use `osv-scanner fix` as the remediation\.\*\*/);
             const rows = text.split('\n').filter(line => line.startsWith('|') && !/^\|\s*-/.test(line));
             const dataRows = rows.filter(line => !/^\|\s*(?:Package manager|Scanner|Manager)\s*\|/i.test(line));
             assert.ok(dataRows.length >= 8, 'the table covers several package managers and scanners');

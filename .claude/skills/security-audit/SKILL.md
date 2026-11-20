@@ -99,7 +99,7 @@ Resolve mode from `<scope>` arguments. When ambiguous, default to `changes` if d
 | ------------------ | ----------------------------------------------------------------- | --------------------------------------------------------------- |
 | `changes` (default) | Review uncommitted/branch changes                                 | D1, D2, D6, D7 (+ D3 if any manifest/lockfile changed, + D9 if CI files changed) |
 | `full`             | "audit the codebase/system", "full security review"               | ALL domains D1–D10                                              |
-| `deps`             | "check dependencies", "scan packages", after `npm install` issues | D3 (+ D2)                                                       |
+| `deps` | "check dependencies", "scan packages", "run OSV-Scanner", after `npm install` issues | D3 (+ D2)                                                       |
 | `vet <repo/pkg>`   | BEFORE installing/cloning/running any third-party repo or package | D4 (+ D3)                                                       |
 | `host`             | "is this server compromised", VPS audit, post-incident            | D5 (+ D2)                                                       |
 

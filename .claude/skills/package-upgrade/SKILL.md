@@ -50,7 +50,7 @@ description: '[Code Quality] Use when planning dependency upgrades or researchin
 Resolve once, before Phase 1 or remediation step 1:
 
 1. `docs/project-config.json` → optional `dependencySecurity` section (scanners with command, lock files and config file; accepted-entry policy; deadlines per severity; alert owner; scheduled-scan identity). Read it with `node .claude/scripts/project-context.cjs --section dependencySecurity`. An `Undeclared config section` error means the section is absent, which is valid: derive instead. Any other error means the config is malformed: repair it before relying on it.
-2. Without that section, derive from the repository: manifests and lock files present (match their names against [references/ecosystems.md](references/ecosystems.md)), scanner commands in CI workflows and package scripts, and existing suppression files.
+2. Without that section, derive from the repository: manifests and lock files present (match their names against [references/ecosystems.md](references/ecosystems.md)), scanner commands in CI workflows and package scripts, and existing suppression files. When several ecosystems are present or no native audit can run, use the **OSV-Scanner runbook** in the same file as the cross-ecosystem scan.
 3. `testing.commands.affected` in the same config, when declared, selects the tests a changed-file list reaches.
 4. Ask the user only for what neither source answers, such as which scanner decides "done". Never invent a scan result.
 
