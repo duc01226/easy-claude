@@ -460,7 +460,7 @@ current tooling per ecosystem at decision time:
 - **Checks are enforcing, not advisory**: a violation fails something. A warning stream nobody reads
   is not a harness. Where a check is newly introduced to a brownfield project, a **ratchet** (fail on
   new violations, tolerate the existing baseline) is the correct pattern — it is `PRESENT`, not
-  `PARTIAL`, because it prevents regression from day one.
+  `PARTIAL`, because it prevents regression from day one. This is regression prevention, not risk acceptance: read `.claude/docs/security-harness-catalog.md#brownfield-and-exceptions` when baselining security findings. Never silently accept live credentials or exploitable high-consequence paths; exact exceptions need evidence, a compensating control, responsible owner, expiry and revisit trigger.
 - **Strictest reasonable defaults**, loosened only deliberately and with a recorded reason. Every
   disabled rule should be explicable; a large silent suppression list is itself a finding.
 - **Fast feedback ordering**: cheap checks first (pre-commit/pre-push), expensive last (CI, scheduled).

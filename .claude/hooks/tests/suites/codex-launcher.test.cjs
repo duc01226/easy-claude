@@ -28,6 +28,7 @@ const path = require('path');
 const { spawnSync, execFileSync } = require('child_process');
 const { assertTrue, assertContains, assertEqual } = require('../lib/assertions.cjs');
 const { runCodexLauncher, makeHookTreeProject, removeTempDir } = require('../lib/hook-runner.cjs');
+const { fixtureGitEnvironment, withGitEnvironment, withFixtureEnvironment } = require('../lib/git-fixture.cjs');
 
 const HOOKS_DIR = path.resolve(__dirname, '..', '..');
 const CLAUDE_DIR = path.resolve(HOOKS_DIR, '..');
@@ -82,7 +83,7 @@ function writeFile(root, rel, content) {
 }
 
 function git(cwd, args) {
-    return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+    return execFileSync('git', args, { cwd, env: fixtureGitEnvironment(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
 }
 
 function initRepo(dir) {
@@ -178,33 +179,69 @@ const unitTests = [
 
 const launcherTests = [
     {
-        name: '[codex-launcher] TC-CXL-001 review-commit-gate under the Codex launcher blocks an unreviewed raw commit and allows read-only git',
+        name: '[codex-launcher] TC-CXL-001 real receipt gate allows reviewed content and denies missing or stale proof through the Codex launcher',
         skip: !GIT,
         fn: () => {
-            // Given a repository with a staged change and an empty review-receipt store
-            const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-launcher-gate-'));
+            // TechnicalSpec=git-environment-native-codex. A real host can supply transport config;
+            // the generated launcher retains it for classification without bypassing review proof.
+            const root = makeHookProject('gate');
             try {
-                const repo = path.join(root, 'repo');
-                const store = path.join(root, 'store');
-                fs.mkdirSync(repo);
-                fs.mkdirSync(store);
-                initRepo(repo);
-                writeFile(repo, 'file.txt', 'base\n');
-                git(repo, ['add', 'file.txt']);
-                git(repo, ['commit', '-q', '-m', 'base']);
-                writeFile(repo, 'file.txt', 'changed\n');
-                git(repo, ['add', 'file.txt']);
-                const env = { CK_REVIEW_RECEIPT_STORE: store };
-                // When Codex launches the gate on a raw `git commit` (Codex PreToolUse matcher: Bash)
-                const blocked = runCodexLauncher('review-commit-gate.cjs', bashCommit('git commit -m x', repo), { env });
-                // Then the gate's own policy block fires — not a crash exit
-                assertEqual(blocked.code, 2, `raw commit must block, stderr: ${blocked.stderr}`);
-                assertContains(blocked.stderr, '[BLOCKED] Commit refused — the exact commit candidate has no matching review fix-loop receipt.');
-                assertContains(blocked.stderr, 'Candidate fingerprint:');
-                // When the same launcher sees read-only git / Then it allows silently
-                const allowed = runCodexLauncher('review-commit-gate.cjs', bashCommit('git status', repo), { env });
-                assertEqual(allowed.code, 0, `read-only git must pass, stderr: ${allowed.stderr}`);
-                assertTrue(!allowed.stderr.includes('[BLOCKED]'), 'no block message on an allowed statement');
+                return withFixtureEnvironment(root, {}, () => {
+                    const repo = path.join(root, 'repo');
+                    const store = path.join(root, 'store');
+                    fs.mkdirSync(repo);
+                    fs.mkdirSync(store);
+                    initRepo(repo);
+                    writeFile(repo, '.gitignore', '/tmp/\n/temp/\n');
+                    writeFile(repo, 'file.txt', 'base\n');
+                    git(repo, ['add', '.gitignore', 'file.txt']);
+                    git(repo, ['commit', '-q', '-m', 'base']);
+                    writeFile(repo, 'file.txt', 'changed\n');
+                    git(repo, ['add', 'file.txt']);
+                    const env = { CK_REVIEW_RECEIPT_STORE: store };
+                    const launch = command => runCodexLauncher('review-commit-gate.cjs', bashCommit(command, repo), { cwd: root, env });
+                    // When Codex launches the gate on a raw `git commit` (Codex PreToolUse matcher: Bash)
+                    const blocked = launch('git commit -m x');
+                    // Then the gate's own policy block fires — not a crash exit
+                    assertEqual(blocked.code, 2, `raw commit must block, stderr: ${blocked.stderr}`);
+                    assertContains(blocked.stderr, '[BLOCKED] Commit refused — the exact commit candidate has no matching review fix-loop receipt.');
+                    assertContains(blocked.stderr, 'Candidate fingerprint:');
+                    const receipts = require(path.join(HOOKS_DIR, 'lib', 'review-receipt.cjs'));
+                    const snapshot = receipts.captureReviewTarget({ repository: repo, cwd: repo, target: 'staged' });
+                    assertEqual(snapshot.status, 'CHANGED', 'a real staged candidate is reviewed');
+                    receipts.issueReceipt({ repository: repo, snapshot, storeDir: store, scope: 'full-changeset', kind: 'changes-review' });
+                    const profile = { GIT_CONFIG_COUNT: '10' };
+                    const keys = [
+                        'credential.https://fixture.invalid.helper',
+                        'credential.https://fixture.invalid.useHttpPath',
+                        'http.https://fixture.invalid.proactiveAuth',
+                        'http.https://fixture.invalid.followRedirects',
+                        'credential.interactive'
+                    ];
+                    const values = ['!synthetic-helper-must-never-run', 'true', 'none', 'false', 'false'];
+                    for (let index = 0; index < 10; index++) {
+                        profile[`GIT_CONFIG_KEY_${index}`] = keys[index % keys.length];
+                        profile[`GIT_CONFIG_VALUE_${index}`] = values[index % values.length];
+                    }
+                    withGitEnvironment(profile, () => {
+                        const reviewed = launch('git commit -m x');
+                        assertEqual(reviewed.code, 0, `matching reviewed content must pass, stderr: ${reviewed.stderr}`);
+                        assertTrue(!reviewed.stderr.includes('[BLOCKED]'), 'valid receipt allows the native launch');
+                        assertTrue(
+                            !`${reviewed.stdout}${reviewed.stderr}`.includes('synthetic-helper-must-never-run'),
+                            'helper values never enter launcher output'
+                        );
+                        writeFile(repo, 'file.txt', 'changed after review\n');
+                        git(repo, ['add', 'file.txt']);
+                        const stale = launch('git commit -m x');
+                        assertEqual(stale.code, 2, 'a supported host profile does not make a stale receipt current');
+                        assertContains(stale.stderr, 'no matching review fix-loop receipt');
+                    });
+                    // When the same launcher sees read-only git / Then it allows silently
+                    const allowed = launch('git status');
+                    assertEqual(allowed.code, 0, `read-only git must pass, stderr: ${allowed.stderr}`);
+                    assertTrue(!allowed.stderr.includes('[BLOCKED]'), 'no block message on an allowed statement');
+                });
             } finally {
                 removeTemp(root);
             }

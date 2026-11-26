@@ -49,7 +49,7 @@ const {
     matchSkipReceipt,
     stagedBranchReviewBases,
     reviewGateMode,
-    currentBranch,
+    readCurrentBranch,
     hasAnyReceipt
 } = require('./lib/review-receipt.cjs');
 
@@ -406,6 +406,18 @@ function claimCommitExempt(descriptor, message) {
 }
 
 function blockMessage(repository, snapshot, descriptor, reason) {
+    if (snapshot?.status === 'ERROR') {
+        return [
+            '[BLOCKED] Commit refused — the exact candidate could not be computed safely.',
+            `Repository: ${repository}`,
+            `Candidate status: ERROR (${snapshot.errorCode || 'CANDIDATE_COMPUTATION_FAILED'})`,
+            `Reason: ${reason || snapshot.errorMessage || 'Candidate capture failed.'}`,
+            snapshot.errorCode === 'UNSUPPORTED_GIT_ENVIRONMENT'
+                ? 'Fix: use a supported host Git configuration. Resolve unsupported context overrides at their owner; keep credential values private. Review proof cannot repair an environment error.'
+                : 'Fix: resolve the candidate capture error, then capture and review the exact intended candidate.',
+            'No review or verification requirement was bypassed.'
+        ].join('\n');
+    }
     const fingerprint = snapshot?.fingerprint;
     const short = typeof fingerprint === 'string' ? `${fingerprint.slice(0, 12)}…` : 'unavailable';
     const shellQuote = value => `'${String(value).replace(/'/g, "'\\''")}'`;
@@ -726,6 +738,14 @@ function prStatements(command, cwd) {
 }
 
 function prBlockMessage(repository, base, reason) {
+    if (reason?.includes('UNSUPPORTED_GIT_ENVIRONMENT')) {
+        return [
+            '[BLOCKED] Pull request refused — the Git environment cannot be validated.',
+            `Repository: ${repository}`,
+            `Reason: ${reason}`,
+            'Fix the unsupported host Git context before reviewing the branch. Keep credential values private; do not bypass review.'
+        ].join('\n');
+    }
     const shellQuote = value => `'${String(value).replace(/'/g, "'\\''")}'`;
     return [
         '[BLOCKED] Pull request refused — reviewGate.mode is enforce and the branch has no whole-branch review receipt.',
@@ -820,7 +840,12 @@ function evaluatePullRequest(command, cwd, dependencies) {
         if (ghRepo) return block(repository, null, 'GH_REPO points gh at a repository this checkout cannot prove; run gh pr without it');
         if (headMoved)
             return block(repository, null, 'a Git step earlier in this command moves the branch; run gh pr as its own command once the branch is final');
-        const branch = (dependencies.currentBranch || currentBranch)(repository);
+        let branch;
+        try {
+            branch = (dependencies.currentBranch || readCurrentBranch)(repository);
+        } catch (error) {
+            return block(repository, null, `${error.code || 'BRANCH_UNAVAILABLE'}: ${error.message}`);
+        }
         if (parsed.error) return { code: 2, stderr: `${prBlockMessage(repository, null, parsed.error)}\n`, decision: 'block' };
         if (!branch)
             return { code: 2, stderr: `${prBlockMessage(repository, null, 'HEAD is detached; check out the pull request branch')}\n`, decision: 'block' };

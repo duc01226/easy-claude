@@ -23,7 +23,7 @@
  *
  * Verdicts: `ready` (every check proven, declined in the inventory or not applicable) · `gaps` (offer setup) ·
  * `declined` / `proposed` (a recorded, unexpired decision covers every current gap). The `runtime` and `verify`
- * rows are informational and never cause an offer.
+ * rows and security inventory declarations are informational and never cause an offer. Security is not assessed.
  *
  * Exit codes: 0 the check ran (the verdict is in the output) · 2 usage error (message on stderr).
  * Evidence paths use `/` on every OS; the root is canonicalized with realpath before any read.
@@ -82,6 +82,13 @@ const CORE_SENSORS = [
     }
 ];
 
+// Security declarations inform the audit/setup owner; they never expand the task-start offer.
+const SECURITY_SENSORS = [
+    { id: 'secrets', label: 'Secret scan' },
+    { id: 'dependencies', label: 'Dependency scan' },
+    { id: 'analysis', label: 'Security analysis' }
+];
+
 // Inventory Summary labels (`references/harness-inventory.md` in harness-setup) mapped to sensor ids.
 const INVENTORY_LABELS = {
     formatter: 'formatter',
@@ -89,10 +96,13 @@ const INVENTORY_LABELS = {
     'type check': 'typecheck',
     tests: 'tests',
     'verify command': 'verify',
-    runtime: 'runtime'
+    runtime: 'runtime',
+    ...Object.fromEntries(SECURITY_SENSORS.map(sensor => [sensor.label.toLowerCase(), sensor.id]))
 };
 const INVENTORY_STATUSES = ['proven', 'configured', 'missing', 'declined', 'n/a'];
 const RESOLVED = new Set(['proven', 'declined', 'n/a']);
+const SECURITY_STATUSES = new Set([...INVENTORY_STATUSES, 'failed', 'blocked', 'unverified', 'not-run']);
+const PLACEHOLDER_EVIDENCE = /^(?:[-—–…]|tbd|todo|unknown|none|n\/?a|not run|unverified)$/i;
 
 const JS_LINT = /^(?:\.eslintrc(?:\.(?:js|cjs|mjs|json|ya?ml))?|eslint\.config\.(?:js|cjs|mjs|ts|mts|cts)|biome\.jsonc?|\.oxlintrc\.json|oxlintrc\.json)$/;
 const JS_FORMAT = /^(?:\.prettierrc(?:\.(?:json5?|ya?ml|toml|js|cjs|mjs))?|prettier\.config\.(?:js|cjs|mjs|ts)|biome\.jsonc?|\.?dprint\.jsonc?)$/;
@@ -409,6 +419,10 @@ function readInventory(root, config) {
             if (['configured', 'derivable', 'none', 'not-applicable'].includes(status)) result.rows.runtime = { status, evidence: cells[2] || '' };
             continue;
         }
+        if (SECURITY_SENSORS.some(sensor => sensor.id === id)) {
+            result.rows[id] = { status: SECURITY_STATUSES.has(status) ? status : 'unverified', evidence: cells[2] || '' };
+            continue;
+        }
         if (INVENTORY_STATUSES.includes(status)) result.rows[id] = { status, evidence: cells[2] || '' };
     }
     return result;
@@ -511,6 +525,32 @@ function configEvidence(config) {
         linter: has('lint') ? 'testing.commands.lint' : has('lintFile') ? 'testing.commands.lintFile' : null,
         typecheck: has('typecheck') ? 'testing.commands.typecheck' : null,
         tests: testKey ? `testing.commands.${testKey}` : null
+    };
+}
+
+/** Inventory declarations only: no command execution, automatic risk acceptance or freshness claim. */
+function securityOf(inventory) {
+    const sensors = Object.fromEntries(
+        SECURITY_SENSORS.map(sensor => {
+            const row = inventory.rows[sensor.id];
+            const evidence = row?.evidence.replace(/[`*]/g, '').trim() || '';
+            const hasEvidence = Boolean(evidence) && !PLACEHOLDER_EVIDENCE.test(evidence);
+            return [
+                sensor.id,
+                {
+                    status: !row ? 'missing' : hasEvidence ? row.status : 'unverified',
+                    source: 'inventory',
+                    evidence: hasEvidence ? [`${inventory.path}: ${row.evidence}`] : [],
+                    ...(row ? { recordedStatus: row.status } : {})
+                }
+            ];
+        })
+    );
+    return {
+        informational: true,
+        assurance: 'not-assessed',
+        note: 'Recorded inventory claims only; no scanner ran and no evidence freshness was verified. Core readiness is not security approval.',
+        sensors
     };
 }
 
@@ -658,6 +698,7 @@ function detectReadiness(rootDir, options = {}) {
             ...(workspace.skippedPatterns ? { skippedPatterns: workspace.skippedPatterns } : {})
         },
         sensors,
+        security: securityOf(inventory),
         gaps,
         ownership,
         decision,
@@ -742,6 +783,11 @@ function humanReport(result) {
         lines.push(`  ${sensor.label}: ${entry.status}${entry.evidence.length ? ` — ${entry.evidence.join('; ')}` : ''}`);
     }
     for (const gap of result.gaps) lines.push(`  · ${gap.sensor} — why: ${gap.why}`, `    fix: ${gap.fix}`);
+    lines.push(`  Security (informational, not assessed): ${result.security.note}`);
+    for (const sensor of SECURITY_SENSORS) {
+        const entry = result.security.sensors[sensor.id];
+        lines.push(`    ${sensor.label}: ${entry.status}${entry.recordedStatus ? ' (recorded only)' : ''}`);
+    }
     lines.push(`  Runtime (informational): ${result.runtime.status} — ${result.runtime.evidence}`);
     if (result.ownership.teamOwned) lines.push(`  Team-owned: ${result.ownership.signals.join('; ')}`);
     return lines.join('\n') + '\n';

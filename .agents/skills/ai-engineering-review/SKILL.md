@@ -330,6 +330,7 @@ Before reporting ANY work done:
 - `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
 - `review-policy` — Review-only or a five-round fix loop with explicit extension and fresh post-fix evidence; deciding round eligibility, blocking findings or review state → .claude/skills/shared/protocols/review-policy.md
 - `review-principle-awareness` — Classify the change context first, then apply the current principles that fit it; starting any review → .claude/skills/shared/protocols/review-principle-awareness.md
+- `security-harness-gate` — Practical security controls with boundary proof, proportional CI checks and safe brownfield adoption; creating foundations or changing code, dependencies, data, execution or trust → .claude/skills/shared/protocols/security-harness-gate.md
 - `sequential-thinking-protocol` — Structured multi-step reasoning with revision, branch and hypothesis markers; planning, debugging or reviewing complex or ambiguous work → .claude/skills/shared/protocols/sequential-thinking-protocol.md
 - `severity-rubric` — One consequence-based Critical, High, Medium, Low scale for every finding and gate; classifying a finding or deciding whether a review round passes → .claude/skills/shared/protocols/severity-rubric.md
 - `source-test-drift-check` — When source behavior changes, reconcile the affected tests from evidence; code, fix, test or review work changes behavior → .claude/skills/shared/protocols/source-test-drift-check.md
@@ -493,3 +494,9 @@ Before reporting ANY work done:
 **MUST ATTENTION** Triage all targets, plan and create review/validation/fix/fresh re-review tasks first. Review-only reports without edits; fix-loop freshly reviews every repair under one fixing owner. Default cap five rounds: disclose deferred LOWs, ask and wait before a bounded extension for MEDIUM+ or failed required checks. Preserve scope, coverage and actual operation authority.
 
 <!-- /SYNC:review-policy:reminder -->
+
+<!-- SYNC:security-harness-gate:reminder -->
+
+**Security harness:** protect authority and secrets; prove controls at their boundary; keep checks proportionate (`SH-1`–`SH-8`). Reuse project tools and warranted local/CI/full checks. A baseline never silently accepts live secrets or exploitable risk; configured/skipped/unverified is not PASS. Read `.claude/docs/security-harness-catalog.md` for selection, cadence and exact expiring exceptions. Coding-agent containment applies without an AI product; AE/AF owns model-feature depth.
+
+<!-- /SYNC:security-harness-gate:reminder -->

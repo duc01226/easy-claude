@@ -13,6 +13,7 @@ const { normalizeEol } = createRequire(import.meta.url)('../../lib/extract-sync-
 const fsSync = createRequire(import.meta.url)('node:fs');
 const { execFileSync, spawnSync } = createRequire(import.meta.url)('node:child_process');
 const reviewReceipt = createRequire(import.meta.url)('../../../hooks/lib/review-receipt.cjs');
+const { fixtureGitEnvironment, withFixtureEnvironment } = createRequire(import.meta.url)('../../../hooks/tests/lib/git-fixture.cjs');
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..', '..', '..', '..');
@@ -148,15 +149,26 @@ function withReceiptFixture(fn) {
     fsSync.mkdirSync(repository);
     fsSync.mkdirSync(storeDir);
     try {
-        const git = args => execFileSync('git', args, { cwd: repository, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
-        git(['init', '-q']);
-        git(['config', 'user.email', 'harness-test@example.invalid']);
-        git(['config', 'user.name', 'Harness Test']);
-        fsSync.writeFileSync(path.join(repository, '.gitignore'), '/tmp/\n/temp/\n');
-        fsSync.writeFileSync(path.join(repository, 'file.txt'), 'base\n');
-        git(['add', '.gitignore', 'file.txt']);
-        git(['commit', '-q', '-m', 'fixture base']);
-        return fn({ repository, storeDir, git });
+        return withFixtureEnvironment(fixtureRoot, {}, () => {
+            const git = args =>
+                execFileSync('git', args, {
+                    cwd: repository,
+                    env: fixtureGitEnvironment(),
+                    encoding: 'utf8',
+                    stdio: ['ignore', 'pipe', 'pipe'],
+                    windowsHide: true
+                });
+            git(['init', '-q']);
+            git(['config', 'user.email', 'harness-test@example.invalid']);
+            git(['config', 'user.name', 'Harness Test']);
+            git(['config', 'commit.gpgsign', 'false']);
+            git(['config', 'core.hooksPath', path.join(repository, '.no-hooks')]);
+            fsSync.writeFileSync(path.join(repository, '.gitignore'), '/tmp/\n/temp/\n');
+            fsSync.writeFileSync(path.join(repository, 'file.txt'), 'base\n');
+            git(['add', '.gitignore', 'file.txt']);
+            git(['commit', '-q', '-m', 'fixture base']);
+            return fn({ repository, storeDir, git });
+        });
     } finally {
         fsSync.rmSync(fixtureRoot, { recursive: true, force: true });
     }

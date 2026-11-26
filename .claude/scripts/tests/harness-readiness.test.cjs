@@ -560,3 +560,111 @@ test('TC-GWF-087: readiness never gates a prompt; the first-prompt rule for proj
     const settings = fs.readFileSync(path.join(CLAUDE, 'settings.json'), 'utf8');
     assert.doesNotMatch(settings, /harness-readiness/);
 });
+
+test('TC-GWF-084: missing security declarations never masquerade as assurance or expand a ready core offer', t => {
+    // Invariant: core readiness is independent of security coverage; config names and runnable scripts prove no scan.
+    const root = makeProject(t, {
+        ...SOLO_JS,
+        '.gitleaks.toml': '[allowlist]\n',
+        'semgrep.yml': 'rules: []\n',
+        'docs/project-reference/harness-inventory.md': INVENTORY(PROVEN_ROWS),
+        'package.json': { name: 'shop', scripts: { security: 'node should-never-run.js' } },
+        'should-never-run.js': "require('fs').writeFileSync('executed', 'unsafe');\n"
+    });
+    const before = treeSnapshot(root);
+    const result = check(root);
+    assert.equal(result.verdict, 'ready');
+    assert.equal(result.offer, false);
+    assert.equal(result.security.informational, true);
+    assert.equal(result.security.assurance, 'not-assessed');
+    assert.match(result.security.note, /no scanner ran/);
+    assert.match(result.security.note, /not security approval/);
+    assert.deepEqual(Object.keys(result.security.sensors), ['secrets', 'dependencies', 'analysis']);
+    for (const sensor of Object.values(result.security.sensors)) {
+        assert.equal(sensor.status, 'missing');
+        assert.deepEqual(sensor.evidence, []);
+    }
+    assert.deepEqual(check(root).security, result.security);
+    assert.deepEqual(treeSnapshot(root), before, 'discovery must not execute commands or write state');
+    const human = run(root);
+    assert.equal(human.status, 0, human.stderr);
+    assert.match(human.stdout, /Security \(informational, not assessed\)/);
+    assert.match(human.stdout, /Secret scan: missing/);
+});
+
+test('TC-GWF-084: every supported recorded security outcome remains visible without accepting risk', t => {
+    // Property: for every recorded security status, the original core verdict/offer is unchanged.
+    const allowed = ['proven', 'configured', 'missing', 'declined', 'n/a', 'failed', 'blocked', 'unverified', 'not-run'];
+    const root = makeProject(t, SOLO_JS);
+    for (const status of allowed) {
+        write(
+            root,
+            'docs/project-reference/harness-inventory.md',
+            INVENTORY([
+                ...PROVEN_ROWS,
+                ['Secret scan', status, 'security-policy.md: recorded outcome and owner'],
+                ['Dependency scan', status, 'security-policy.md: exact inventory scope'],
+                ['Security analysis', status, 'security-policy.md: supported rules and result']
+            ])
+        );
+        const result = check(root);
+        assert.equal(result.verdict, 'ready', status);
+        assert.equal(result.offer, false, status);
+        assert.equal(result.security.assurance, 'not-assessed');
+        const human = run(root);
+        assert.equal(human.status, 0, human.stderr);
+        for (const label of ['Secret scan', 'Dependency scan', 'Security analysis'])
+            assert.ok(human.stdout.includes(`${label}: ${status} (recorded only)`), `${label}: recorded outcome must remain visible`);
+        for (const sensor of Object.values(result.security.sensors)) {
+            assert.equal(sensor.status, status);
+            assert.equal(sensor.recordedStatus, status);
+            assert.equal(sensor.source, 'inventory');
+            assert.match(sensor.evidence[0], /^docs\/project-reference\/harness-inventory\.md: security-policy\.md:/);
+        }
+    }
+});
+
+test('TC-GWF-084: blank and placeholder security evidence cannot establish a proven or exempt check', t => {
+    // Boundary counter-case: claiming proven/declined/N/A with an empty or placeholder reason is unverified.
+    const root = makeProject(t, SOLO_JS);
+    for (const evidence of ['', ' ', '—', '-', '…', '`TBD`', '**unknown**', 'none', 'N/A', 'not run', 'unverified']) {
+        write(
+            root,
+            'docs/project-reference/harness-inventory.md',
+            INVENTORY([...PROVEN_ROWS, ['Secret scan', 'proven', evidence], ['Dependency scan', 'n/a', evidence], ['Security analysis', 'declined', evidence]])
+        );
+        const result = check(root);
+        for (const sensor of Object.values(result.security.sensors)) {
+            assert.equal(sensor.status, 'unverified', JSON.stringify(evidence));
+            assert.deepEqual(sensor.evidence, []);
+        }
+        assert.equal(result.offer, false, 'an incomplete security declaration cannot repeatedly solicit setup');
+    }
+});
+
+test('TC-GWF-084: security claims use the selected inventory and reject unsupported statuses and unrelated sections', t => {
+    const root = makeProject(t, {
+        ...SOLO_JS,
+        'docs/project-config.json': { project: { name: 'shop' }, docsRoots: { projectReference: { path: 'handbook/reference' } } },
+        'docs/project-reference/harness-inventory.md': INVENTORY([['Secret scan', 'proven', 'wrong-root evidence']]),
+        'handbook/reference/harness-inventory.md':
+            INVENTORY([
+                ...PROVEN_ROWS,
+                ['Secret scan', 'approved-automatically', 'policy.md: unsupported acceptance'],
+                ['Dependency scan', 'failed', 'policy.md: scan exit 2']
+            ]) + '\n| Security analysis | proven | outside Summary |\n'
+    });
+    const result = check(root);
+    assert.equal(result.config, 'valid');
+    assert.equal(result.security.sensors.secrets.status, 'unverified');
+    assert.equal(result.security.sensors.dependencies.status, 'failed');
+    assert.match(result.security.sensors.dependencies.evidence[0], /^handbook\/reference\/harness-inventory\.md:/);
+    assert.equal(result.security.sensors.analysis.status, 'missing');
+    assert.equal(result.offer, false);
+    // A known failed security result also cannot remove an existing core gap or cover it via a security-only decline.
+    write(root, 'handbook/reference/harness-inventory.md', INVENTORY([['Secret scan', 'declined', 'policy.md: owner decision']]));
+    const gaps = check(root);
+    assert.equal(gaps.verdict, 'gaps');
+    assert.equal(gaps.offer, true);
+    assert.deepEqual(gaps.gaps.map(gap => gap.sensor).sort(), [...CORE].sort());
+});

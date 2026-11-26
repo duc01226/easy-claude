@@ -208,6 +208,7 @@ Activate the `workflow-big-feature` workflow. Run `$start-workflow workflow-big-
 - `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
 - `measured-capacity-engineering` — Model demand, reduce measured work safely and prove capacity before scaling; planning, building, testing or reviewing hot paths, caches or capacity → .claude/skills/shared/protocols/measured-capacity-engineering.md
 - `scale-ready-foundation` — Scale-ready foundation and brownfield fit; running greenfield init or a big feature → .claude/skills/shared/protocols/scale-ready-foundation.md
+- `security-harness-gate` — Practical security controls with boundary proof, proportional CI checks and safe brownfield adoption; creating foundations or changing code, dependencies, data, execution or trust → .claude/skills/shared/protocols/security-harness-gate.md
 - `session-goal-ledger` — Keep the original goal and every user prompt of the session; running a long or multi-prompt session → .claude/skills/shared/protocols/session-goal-ledger.md
 - `subagent-return-contract` — Sub-agents return a structured envelope and a report path, never an inline report; spawning a sub-agent → .claude/skills/shared/protocols/subagent-return-contract.md
 - `verify-last-order` — Build all phases and write tests, review statically, then verify once with a mutation check; planning or running any code-changing task → .claude/skills/shared/protocols/verify-last-order.md
@@ -248,3 +249,9 @@ Activate the `workflow-big-feature` workflow. Run `$start-workflow workflow-big-
 - **IMPORTANT MUST ATTENTION** every task passes `.claude/skills/shared/releasable-task-contract.md`; apply `SYNC:scale-ready-foundation` before the first plan; brownfield gaps become owned opportunities or explicit blockers, never silent refactors.
 - **IMPORTANT MUST ATTENTION** research that runs is confirmed with the user once, and a business case gets one go/no-go confirmation; every claim cites `file:line` or source evidence, confidence >80% to act.
 - **IMPORTANT MUST ATTENTION** tests name the invariant they guard and fail when it breaks; changed behavior is proven by tests that ran green in this run.
+
+<!-- SYNC:security-harness-gate:reminder -->
+
+**Security harness:** protect authority and secrets; prove controls at their boundary; keep checks proportionate (`SH-1`–`SH-8`). Reuse project tools and warranted local/CI/full checks. A baseline never silently accepts live secrets or exploitable risk; configured/skipped/unverified is not PASS. Read `.claude/docs/security-harness-catalog.md` for selection, cadence and exact expiring exceptions. Coding-agent containment applies without an AI product; AE/AF owns model-feature depth.
+
+<!-- /SYNC:security-harness-gate:reminder -->

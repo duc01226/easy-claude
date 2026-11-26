@@ -115,6 +115,7 @@ Recommended: XS/S → inline `/investigate` or engine scope resolution; L/XL →
 
 - `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
 - `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
+- `security-harness-gate` — Practical security controls with boundary proof, proportional CI checks and safe brownfield adoption; creating foundations or changing code, dependencies, data, execution or trust → .claude/skills/shared/protocols/security-harness-gate.md
 - `session-goal-ledger` — Keep the original goal and every user prompt of the session; running a long or multi-prompt session → .claude/skills/shared/protocols/session-goal-ledger.md
 - `subagent-return-contract` — Sub-agents return a structured envelope and a report path, never an inline report; spawning a sub-agent → .claude/skills/shared/protocols/subagent-return-contract.md
 - `workflow-registry-binding` — Read the workflow registry entry and the workflow skill together, since they must agree; executing or editing a workflow → .claude/skills/shared/protocols/workflow-registry-binding.md
@@ -151,3 +152,9 @@ Recommended: XS/S → inline `/investigate` or engine scope resolution; L/XL →
 | "Fix it during the audit" | Repair reports only; route source fixes to follow-up owners. |
 
 **Protocols in force (digest; the guide entries above point to the full text):** Nested Task Creation · Incremental Persistence · Sub-Agent Return Contract · Session Goal Ledger · Workflow Registry Binding.
+
+<!-- SYNC:security-harness-gate:reminder -->
+
+**Security harness:** protect authority and secrets; prove controls at their boundary; keep checks proportionate (`SH-1`–`SH-8`). Reuse project tools and warranted local/CI/full checks. A baseline never silently accepts live secrets or exploitable risk; configured/skipped/unverified is not PASS. Read `.claude/docs/security-harness-catalog.md` for selection, cadence and exact expiring exceptions. Coding-agent containment applies without an AI product; AE/AF owns model-feature depth.
+
+<!-- /SYNC:security-harness-gate:reminder -->

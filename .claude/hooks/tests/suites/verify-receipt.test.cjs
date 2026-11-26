@@ -8,6 +8,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawn, spawnSync, execFileSync } = require('node:child_process');
 const { runHook } = require('../lib/hook-runner.cjs');
+const { fixtureGitEnvironment, withFixtureEnvironment } = require('../lib/git-fixture.cjs');
 
 const LIB_DIR = path.resolve(__dirname, '../../lib');
 const VERIFY = path.join(LIB_DIR, 'verify-receipt.cjs');
@@ -33,7 +34,7 @@ const GIT = (() => {
 })();
 
 function git(cwd, args) {
-    return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+    return execFileSync('git', args, { cwd, env: fixtureGitEnvironment(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
 }
 
 // A detached grandchild that inherits stdout keeps the command's output pipe open after its parent exits.
@@ -91,26 +92,19 @@ function fixture(fn) {
     const store = path.join(root, 'store');
     const temp = path.join(root, 'ostmp');
     for (const dir of [repo, store, temp]) fs.mkdirSync(dir);
-    const saved = Object.fromEntries(['CK_REVIEW_RECEIPT_STORE', ...TEMP_VARS].map(name => [name, process.env[name]]));
-    process.env.CK_REVIEW_RECEIPT_STORE = store;
-    for (const name of TEMP_VARS) process.env[name] = temp;
-    const cleanup = () => {
-        for (const [name, value] of Object.entries(saved)) {
-            if (value === undefined) delete process.env[name];
-            else process.env[name] = value;
+    return withFixtureEnvironment(root, { CK_REVIEW_RECEIPT_STORE: store, ...Object.fromEntries(TEMP_VARS.map(name => [name, temp])) }, () => {
+        const cleanup = () => fs.rmSync(root, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
+        let result;
+        try {
+            result = fn({ root, repo, store, temp });
+        } catch (error) {
+            cleanup();
+            throw error;
         }
-        fs.rmSync(root, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
-    };
-    let result;
-    try {
-        result = fn({ root, repo, store, temp });
-    } catch (error) {
+        if (result && typeof result.then === 'function') return Promise.resolve(result).finally(cleanup);
         cleanup();
-        throw error;
-    }
-    if (result && typeof result.then === 'function') return result.finally(cleanup);
-    cleanup();
-    return result;
+        return result;
+    });
 }
 
 /** A repository with the fixture tools, a project config and one base commit. */

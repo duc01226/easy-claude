@@ -7,6 +7,7 @@ const os = require('node:os');
 const Module = require('node:module');
 const path = require('node:path');
 const { spawnSync, execFileSync } = require('node:child_process');
+const { fixtureGitEnvironment, withGitEnvironment, withFixtureEnvironment } = require('../lib/git-fixture.cjs');
 
 const LIB = path.resolve(__dirname, '../../lib/review-receipt.cjs');
 const HOOK = path.resolve(__dirname, '../../review-commit-gate.cjs');
@@ -32,20 +33,24 @@ function fixture(fn) {
     const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'review-gate-test-')));
     try {
         for (const dir of ['repo-a', 'repo-b', 'store']) fs.mkdirSync(path.join(root, dir));
-        return fn({ root, repoA: path.join(root, 'repo-a'), repoB: path.join(root, 'repo-b'), store: path.join(root, 'store') });
+        return withFixtureEnvironment(root, {}, () =>
+            fn({ root, repoA: path.join(root, 'repo-a'), repoB: path.join(root, 'repo-b'), store: path.join(root, 'store') })
+        );
     } finally {
         fs.rmSync(root, { recursive: true, force: true });
     }
 }
 
 function git(cwd, args) {
-    return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+    return execFileSync('git', args, { cwd, env: fixtureGitEnvironment(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
 }
 
 function makeRepo(dir) {
     git(dir, ['init', '-q']);
     git(dir, ['config', 'user.email', 'test@example.com']);
     git(dir, ['config', 'user.name', 'Test']);
+    git(dir, ['config', 'commit.gpgsign', 'false']);
+    git(dir, ['config', 'core.hooksPath', path.join(dir, '.no-hooks')]);
     fs.writeFileSync(path.join(dir, '.gitignore'), '/tmp/\n/temp/\n');
     fs.writeFileSync(path.join(dir, 'file.txt'), 'base\n');
     git(dir, ['add', '.gitignore', 'file.txt']);
@@ -846,9 +851,25 @@ const tests = [
             assert.match(message, /exact descriptor for the snapshot and commit/i);
             assert.doesNotMatch(message, /review-receipt\.cjs skip --reason=/, 'do not recommend the worktree-only skip wrapper');
 
-            const unsupported = gate().blockMessage(descriptor.repository, { status: 'ERROR', errorCode: 'UNSUPPORTED' }, null, 'unsupported commit context');
+            const unsupported = gate().blockMessage(descriptor.repository, null, null, 'unsupported commit context');
             assert.match(unsupported, /no supported exact commit descriptor/i);
             assert.doesNotMatch(unsupported, /issue --kind=skip/, 'unsupported contexts cannot be given a candidate-free skip path');
+
+            for (const [errorCode, recovery] of [
+                ['CANDIDATE_COMPUTATION_FAILED', /resolve the candidate capture error/i],
+                ['UNSUPPORTED_GIT_ENVIRONMENT', /use a supported host Git configuration/i]
+            ]) {
+                const failed = gate().blockMessage(descriptor.repository, { status: 'ERROR', errorCode }, descriptor, 'synthetic capture failure');
+                assert.match(failed, /exact candidate could not be computed safely/i);
+                assert.ok(failed.includes(`ERROR (${errorCode})`), 'capture failures preserve their exact cause');
+                assert.match(failed, /Reason: synthetic capture failure/);
+                assert.match(failed, recovery);
+                assert.doesNotMatch(
+                    failed,
+                    /has no matching review|issue --kind=skip|no supported exact commit descriptor/i,
+                    'capture failures require repair before review or any descriptor-bound skip'
+                );
+            }
         }
     },
     {
@@ -1208,21 +1229,6 @@ const tests = [
                 makeRepo(fx.repoA);
                 const api = receipt();
                 fs.writeFileSync(path.join(fx.repoA, 'file.txt'), 'changed\n');
-                const withEnv = (vars, fn) => {
-                    const prev = {};
-                    for (const k of Object.keys(vars)) {
-                        prev[k] = process.env[k];
-                        process.env[k] = vars[k];
-                    }
-                    try {
-                        return fn();
-                    } finally {
-                        for (const k of Object.keys(vars)) {
-                            if (prev[k] === undefined) delete process.env[k];
-                            else process.env[k] = prev[k];
-                        }
-                    }
-                };
                 const container = {
                     GIT_CONFIG_COUNT: '3',
                     GIT_CONFIG_KEY_0: 'credential.interactive',
@@ -1233,7 +1239,7 @@ const tests = [
                     GIT_CONFIG_VALUE_2: 'ssh://git@github.com/'
                 };
                 assert.equal(
-                    withEnv(container, () => snapshot(api, fx.repoA)).status,
+                    withGitEnvironment(container, () => snapshot(api, fx.repoA)).status,
                     'CHANGED',
                     'the cloud container proxy config must not block candidate capture'
                 );
@@ -1243,7 +1249,7 @@ const tests = [
                     ['core.hooksPath only', { GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'core.hooksPath', GIT_CONFIG_VALUE_0: '/tmp/x' }],
                     ['GIT_CONFIG_PARAMETERS alongside', { ...container, GIT_CONFIG_PARAMETERS: "'core.worktree=/x'" }]
                 ]) {
-                    const s = withEnv(bad, () => snapshot(api, fx.repoA));
+                    const s = withGitEnvironment(bad, () => snapshot(api, fx.repoA));
                     assert.equal(s.status, 'ERROR', `${label} must fail closed`);
                     assert.equal(s.errorCode, 'UNSUPPORTED_GIT_ENVIRONMENT', `${label} error code`);
                 }

@@ -10,7 +10,7 @@
  *
  * Coverage:
  *   BFS-001 — `architectureRules.enforcedBy` is optional and closed; `tool` and `config` are required.
- *   BFS-002 — brownfield ratchet rules: never a red tree, the baseline only shrinks, the hook writes
+ *   BFS-002 — brownfield ratchet rules: historical debt stays green; security is separate, the baseline only shrinks, the hook writes
  *             nothing, no mass rewrite, and an unknown repository shape is proposed, never applied.
  *   BFS-003 — config placement decided for single-package, npm/Yarn and pnpm workspaces and unknown shapes.
  *   BFS-004 — the native-baseline table covers JS/TS, Python, a compiled stack, and the command-level fallback.
@@ -93,13 +93,21 @@ const tests = [
         }
     },
     {
-        name: '[brownfield-setup] BFS-002 the brownfield path never turns the tree red and only ratchets down',
+        name: '[brownfield-setup] BFS-002 historical debt ratchets while security risks and unproven controls retain explicit treatment',
         fn: () => {
             const text = skill('linter-setup', 'references', 'brownfield-ratchet.md');
             includesAll(
                 text,
                 [
-                    "**Never make the existing tree red.** Every new check lands with a frozen baseline of today's violations and fails only on new ones.",
+                    "**Never make the existing tree red for historical style/correctness debt.** Every new check lands with a frozen baseline of today's violations and fails only on new ones.",
+                    '**Security risk is separate.**',
+                    'Live credentials, authorization bypass, malicious components and exploitable high-consequence paths',
+                    'a regression baseline cannot silently accept them',
+                    'static analysis, secret scan, dependency scan',
+                    'Use the statuses defined by the inventory owner.',
+                    'select `failed`, `blocked`, `unverified` and `not-run` for proof, remediation or explicit owner escalation',
+                    'preserve the recorded outcome',
+                    'never turn unavailable/failed evidence into a clean result or silently baseline security risk',
                     '**The baseline only shrinks (ratchet).**',
                     'Never add an entry to make a change pass',
                     '**Keep what the project already runs.**',

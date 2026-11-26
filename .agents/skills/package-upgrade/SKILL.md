@@ -119,6 +119,7 @@ State overall confidence (High 90–100%, Medium 70–89%, Low below 70%) with e
 
 - `dependency-fix-at-owner` — Fix a vulnerable dependency at the package that decides its version, research every moved version and prove it with a re-scan; fixing, upgrading or accepting a vulnerable or outdated dependency → .claude/skills/shared/protocols/dependency-fix-at-owner.md
 - `evidence-based-reasoning` — Ground every material claim in file:line, config or source evidence, with stated confidence; making any claim, finding or recommendation → .claude/skills/shared/protocols/evidence-based-reasoning.md
+- `security-harness-gate` — Practical security controls with boundary proof, proportional CI checks and safe brownfield adoption; creating foundations or changing code, dependencies, data, execution or trust → .claude/skills/shared/protocols/security-harness-gate.md
 - `source-test-drift-check` — When source behavior changes, reconcile the affected tests from evidence; code, fix, test or review work changes behavior → .claude/skills/shared/protocols/source-test-drift-check.md
 
 <!-- PROTOCOL-GUIDES:END -->
@@ -148,3 +149,9 @@ State overall confidence (High 90–100%, Medium 70–89%, Low below 70%) with e
 - **MUST ATTENTION** research every package the lock difference moves, not only declared packages; cite a source for each.
 - **MUST ATTENTION** an accepted entry needs a reason, an owner and an expiry; reachability lowers priority only.
 - **MUST ATTENTION** Git operations stay with `commit` / `pull-request`; external actions need explicit authority each.
+
+<!-- SYNC:security-harness-gate:reminder -->
+
+**Security harness:** protect authority and secrets; prove controls at their boundary; keep checks proportionate (`SH-1`–`SH-8`). Reuse project tools and warranted local/CI/full checks. A baseline never silently accepts live secrets or exploitable risk; configured/skipped/unverified is not PASS. Read `.claude/docs/security-harness-catalog.md` for selection, cadence and exact expiring exceptions. Coding-agent containment applies without an AI product; AE/AF owns model-feature depth.
+
+<!-- /SYNC:security-harness-gate:reminder -->

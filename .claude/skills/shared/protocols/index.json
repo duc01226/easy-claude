@@ -85,12 +85,12 @@
       "group": "universal",
       "summary": "Failure modes to avoid on every task",
       "when": "delivered by the universal hook",
-      "chars": 4637,
+      "chars": 4983,
       "file": ".claude/skills/shared/protocols/ai-mistake-prevention.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/ai-mistake-prevention.md",
-          "chars": 4637
+          "chars": 4983
         }
       ]
     },
@@ -239,12 +239,12 @@
       "group": "design",
       "summary": "Consolidated essential working and discovery contract",
       "when": "concise universal delivery",
-      "chars": 8936,
+      "chars": 8949,
       "file": ".claude/skills/shared/protocols/concise-agent-core.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/concise-agent-core.md",
-          "chars": 8936
+          "chars": 8949
         }
       ]
     },
@@ -491,12 +491,12 @@
       "group": "design",
       "summary": "Seven engineering-foundation dimensions judged by project profile",
       "when": "creating or reviewing how a project is built, run, tested or checked",
-      "chars": 8968,
+      "chars": 9000,
       "file": ".claude/skills/shared/protocols/engineering-foundation-gate.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/engineering-foundation-gate.md",
-          "chars": 8968
+          "chars": 9000
         }
       ]
     },
@@ -1145,6 +1145,20 @@
         {
           "file": ".claude/skills/shared/protocols/scenario-stress-eval.md",
           "chars": 3404
+        }
+      ]
+    },
+    {
+      "tag": "security-harness-gate",
+      "group": "design",
+      "summary": "Practical security controls with boundary proof, proportional CI checks and safe brownfield adoption",
+      "when": "creating foundations or changing code, dependencies, data, execution or trust",
+      "chars": 4219,
+      "file": ".claude/skills/shared/protocols/security-harness-gate.md",
+      "parts": [
+        {
+          "file": ".claude/skills/shared/protocols/security-harness-gate.md",
+          "chars": 4219
         }
       ]
     },

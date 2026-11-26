@@ -100,7 +100,7 @@ Resolve mode from `<scope>` arguments. When ambiguous, default to `changes` if d
 
 | Mode               | Trigger                                                           | Domains                                                         |
 | ------------------ | ----------------------------------------------------------------- | --------------------------------------------------------------- |
-| `changes` (default) | Review uncommitted/branch changes                                 | D1, D2, D6, D7 (+ D3 if any manifest/lockfile changed, + D9 if CI files changed) |
+| `changes` (default) | Review uncommitted/branch changes                                 | D1, D2, D6, D7 (+ D3 for manifests/locks, + D8 for infra/config, + D9 for CI, + D10 for model/prompt/agent/tool/retrieval/memory or agent-policy changes) |
 | `full`             | "audit the codebase/system", "full security review"               | ALL domains D1–D10                                              |
 | `deps` | "check dependencies", "scan packages", "run OSV-Scanner", after `npm install` issues | D3 (+ D2)                                                       |
 | `vet <repo/pkg>`   | BEFORE installing/cloning/running any third-party repo or package | D4 (+ D3)                                                       |
@@ -203,13 +203,14 @@ public async Task<Order> Get(string id)
 
 ### D2 — Secrets & Credential Hygiene (ALWAYS RUN)
 
-- [ ] Grep scope for hardcoded secrets:
+- [ ] Prefer the project's secret scanner in its documented redacting mode; redact values before output enters tool/model context. If unavailable, list candidate filenames only:
 
 ```bash
-rg -n -i "(password|passwd|secret|apikey|api_key|token|connectionstring)\s*[:=]" {configured-source-and-config-roots} | rg -v "(example|sample|placeholder|YOUR_|xxx|<.*>)"
-rg -n "(sk_live_|ghp_|github_pat_|AKIA[0-9A-Z]{16}|xox[baprs]-|-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY)" {configured-source-and-config-roots}
+rg --files-with-matches -i "(password|passwd|secret|apikey|api_key|token|connectionstring)\s*[:=]" {configured-source-and-config-roots}
+rg --files-with-matches "(sk_live_|ghp_|github_pat_|AKIA[0-9A-Z]{16}|xox[baprs]-|-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY)" {configured-source-and-config-roots}
 ```
 
+- [ ] Never dump matching lines or read candidate secret values into agent context. Obtain rule/path/line identity from redacted scanner diagnostics; a filename hit is a triage candidate, and no grep hit is only limited coverage.
 - [ ] `.env`, `appsettings.*.json` with real credentials, `*.pfx/*.pem` keys: in `.gitignore` AND not already in git history (`git log --diff-filter=A -- .env "*.pem"`); leaked-in-history = rotate, not just delete
 - [ ] CI logs / build output don't echo secrets; secrets injected via secret store, not committed config
 - [ ] `.npmrc` auth tokens, `~/.aws/credentials`, kube configs not committed
@@ -251,7 +252,7 @@ rg -n "(sk_live_|ghp_|github_pat_|AKIA[0-9A-Z]{16}|xox[baprs]-|-----BEGIN (RSA |
 
 ### D8 — Infrastructure & Configuration
 
-**[BLOCKING]** Read [references/security-audit-skill-infrastructure.md](references/security-audit-skill-infrastructure.md) when D8 is in scope (`full`), in full before auditing this domain; it holds the exposure, default-credential, TLS/HSTS, CORS, container, backup-isolation and error-page checks.
+**[BLOCKING]** Read [references/security-audit-skill-infrastructure.md](references/security-audit-skill-infrastructure.md) when D8 is in scope (`full` or relevant infrastructure/configuration changes), in full before auditing this domain; it holds the exposure, default-credential, TLS/HSTS, CORS, container, backup-isolation and error-page checks.
 
 ### D9 — CI/CD & Build Pipeline
 
@@ -259,7 +260,7 @@ rg -n "(sk_live_|ghp_|github_pat_|AKIA[0-9A-Z]{16}|xox[baprs]-|-----BEGIN (RSA |
 
 ### D10 — AI / LLM & Agent Workflow Security
 
-**[BLOCKING]** Read [references/security-audit-skill-ai-agent.md](references/security-audit-skill-ai-agent.md) when D10 is in scope (`full` audits only), in full before auditing this domain; it holds the prompt-injection, MCP/tool provenance, least-privilege agent credential, AI-generated-code review, install-vetting and output-to-shell checks plus the AI-surface route to the AI engineering gate, which applies only when the audit target contains a model call, prompt, agent, tool/MCP, retrieval or eval.
+**[BLOCKING]** Read [references/security-audit-skill-ai-agent.md](references/security-audit-skill-ai-agent.md) when D10 is in scope (`full` or relevant AI/tool/agent-policy changes), in full before auditing this domain; it holds the prompt-injection, MCP/tool provenance, least-privilege agent credential, AI-generated-code review, install-vetting and output-to-shell checks plus the AI-surface route to the AI engineering gate, which applies only when the audit target contains a model call, prompt, agent, tool/MCP, retrieval or eval.
 
 ---
 
@@ -375,6 +376,7 @@ Read [references/security-audit-skill-fix-loop.md](references/security-audit-ski
 - `review-decision-autonomy` — Choose supported review decisions and ask before extending the round budget; running any review or audit skill or mode → .claude/skills/shared/protocols/review-decision-autonomy.md
 - `review-policy` — Review-only or a five-round fix loop with explicit extension and fresh post-fix evidence; deciding round eligibility, blocking findings or review state → .claude/skills/shared/protocols/review-policy.md
 - `review-principle-awareness` — Classify the change context first, then apply the current principles that fit it; starting any review → .claude/skills/shared/protocols/review-principle-awareness.md
+- `security-harness-gate` — Practical security controls with boundary proof, proportional CI checks and safe brownfield adoption; creating foundations or changing code, dependencies, data, execution or trust → .claude/skills/shared/protocols/security-harness-gate.md
 - `severity-rubric` — One consequence-based Critical, High, Medium, Low scale for every finding and gate; classifying a finding or deciding whether a review round passes → .claude/skills/shared/protocols/severity-rubric.md
 - `source-test-drift-check` — When source behavior changes, reconcile the affected tests from evidence; code, fix, test or review work changes behavior → .claude/skills/shared/protocols/source-test-drift-check.md
 - `sub-agent-selection` — Pick the sub-agent type from the routing guide; choosing which sub-agent to spawn → .claude/skills/shared/protocols/sub-agent-selection.md
@@ -505,3 +507,9 @@ Read [references/security-audit-skill-fix-loop.md](references/security-audit-ski
 **MUST ATTENTION** Triage all targets, plan and create review/validation/fix/fresh re-review tasks first. Review-only reports without edits; fix-loop freshly reviews every repair under one fixing owner. Default cap five rounds: disclose deferred LOWs, ask and wait before a bounded extension for MEDIUM+ or failed required checks. Preserve scope, coverage and actual operation authority.
 
 <!-- /SYNC:review-policy:reminder -->
+
+<!-- SYNC:security-harness-gate:reminder -->
+
+**Security harness:** protect authority and secrets; prove controls at their boundary; keep checks proportionate (`SH-1`–`SH-8`). Reuse project tools and warranted local/CI/full checks. A baseline never silently accepts live secrets or exploitable risk; configured/skipped/unverified is not PASS. Read `.claude/docs/security-harness-catalog.md` for selection, cadence and exact expiring exceptions. Coding-agent containment applies without an AI product; AE/AF owns model-feature depth.
+
+<!-- /SYNC:security-harness-gate:reminder -->
