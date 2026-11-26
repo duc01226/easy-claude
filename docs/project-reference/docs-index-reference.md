@@ -15,7 +15,7 @@ Read this index when locating the authoritative document for a project question 
 - Resolve configured roots; regenerate category globs into a normalized unique-path union.
 - Compare broad `docs/**/*.md` results with the category union and expose every remainder.
 - Verify relationships and lookup paths; keep every path real, unique, and traceable to the current tree.
-- Index <!-- COUNT:markdown:authored -->638<!-- /COUNT --> unique authored Markdown files across 14 categories; `docs/` contains <!-- COUNT:markdown:docs -->73<!-- /COUNT --> files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
+- Index <!-- COUNT:markdown:authored -->640<!-- /COUNT --> unique authored Markdown files across 14 categories; `docs/` contains <!-- COUNT:markdown:docs -->73<!-- /COUNT --> files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
 
 ## Contents
 
@@ -45,7 +45,7 @@ Read this index when locating the authoritative document for a project question 
 
 ## Documentation System
 
-<!-- COUNT:markdown:authored -->638<!-- /COUNT --> unique authored markdown files across 14 indexed categories. Last scanned: 2026-10-22. Benchmark inventory/navigation impact verified: 2026-10-27.
+<!-- COUNT:markdown:authored -->640<!-- /COUNT --> unique authored markdown files across 14 indexed categories. Last scanned: 2026-10-22. Benchmark inventory/navigation impact verified: 2026-10-27.
 
 **Relocatable roots.** Resolve these configurable roots before running their category globs:
 
@@ -70,8 +70,8 @@ The **Reproducible scope** column states each glob relative to its category's ro
 | Knowledge Reports      |              2 | `docs/knowledge/**/*.md`                                                             |
 | Knowledge Packs        | <!-- COUNT:markdown:knowledge-packs -->3<!-- /COUNT --> | `*.md` in the packs directory named by `knowledge-base-reference.md` (default `docs/knowledge-base/`) |
 | Project Protocols      |              1 | `*.md` in the protocols directory named by `skill-protocols-reference.md` (default `docs/project-protocols/`) |
-| Framework Docs         |             45 | `.claude/docs/**/*.md`                                                                |
-| Skill Markdown         | <!-- COUNT:markdown:skills -->517<!-- /COUNT --> | `rg --files .claude/skills -g '*.md'`                                                 |
+| Framework Docs         |             46 | `.claude/docs/**/*.md`                                                                |
+| Skill Markdown         | <!-- COUNT:markdown:skills -->518<!-- /COUNT --> | `rg --files .claude/skills -g '*.md'`                                                 |
 
 The unique total is the normalized union returned by `rg --files` for Root-Level Docs, all `docs/**/*.md`, Framework Docs, and Skill Markdown. Design System is nested inside Project Reference, so its count is informative rather than additive. For this inventory, the authored/tracked scope includes generated protocol projections deliberately published as reader-facing documentation; Codex/OpenCode mirrors are excluded. Ignored dependency artifacts such as skill-local `.venv/` files are excluded.
 
@@ -161,14 +161,14 @@ easy-claude/
 │   │   └── stageshow-and-reusable-agent-skills.md
 │   ├── knowledge-base/                            # project knowledge packs + generated index.json; each pack is listed in knowledge-base-reference.md
 │   └── templates/                                 # 1 Feature Spec template
-├── .claude/docs/                                  # 45 framework docs
-│   ├── 27 direct Markdown files (includes README.md)
+├── .claude/docs/                                  # 46 framework docs
+│   ├── 28 direct Markdown files (includes README.md)
 │   ├── agents/                                    # 2
 │   ├── configuration/                             # 5
 │   ├── hooks/                                     # 3
 │   ├── skills/                                    # 2
 │   └── team-artifacts/templates/                  # 6
-└── .claude/skills/                                # <!-- COUNT:markdown:skills -->517<!-- /COUNT --> authored/tracked markdown assets
+└── .claude/skills/                                # <!-- COUNT:markdown:skills -->518<!-- /COUNT --> authored/tracked markdown assets
 ```
 
 Absent whitelist branches: Operations only.
@@ -272,6 +272,7 @@ Read `docs/project-config.json` first for any project question or task — paths
 | Project Reference | a task touches subject knowledge — a domain rule, regulation or chosen practice; lists project and framework knowledge packs | `knowledge-base-reference.md` |
 | Design System          | reusing skill-local visual assets or checking design ownership                                                                                                                     | `design-system/README.md`                                                                                   |
 | Framework Docs         | generating, planning, or reviewing any user-facing surface — journey-first UX process (`UX-1`–`UX-11`), read before `design-knowledge.md`                                          | `.claude/docs/ux-journey-process.md`                                                                        |
+| Framework Docs | choosing practical security controls, securing CI/agent boundaries or handling brownfield exceptions | `.claude/docs/security-harness-catalog.md` |
 | Skill Markdown         | generating a screenshot demo video for changes, a commit, PR or user journey, covering every relevant E2E case | `.claude/skills/e2e-demo/SKILL.md` |
 | Skill Markdown         | planning, building, changing or reviewing an AI feature (model calls, prompts, agents, tools, retrieval, evals) — only when the change has an AI surface; read this ONE file first | `.claude/skills/shared/protocols/ai-engineering-gate.md` (planning: `ai-feature-framing-gate.md` beside it) |
 | Skill Markdown | converting a wireframe image into a design spec — read after the design-spec entrypoint journey/context gates | `.claude/skills/design-spec/references/wireframe.md` |

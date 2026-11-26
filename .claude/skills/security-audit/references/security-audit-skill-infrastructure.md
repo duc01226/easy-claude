@@ -1,6 +1,6 @@
 # Security audit — D8 Infrastructure & Configuration
 
-> Read when D8 is in scope (`full`).
+> Read when D8 is in scope (`full` or relevant infrastructure/configuration changes).
 
 - [ ] Local-only infrastructure endpoints bind to loopback unless intentionally public; configured data stores, brokers, caches, search services, and admin UIs exposed to the internet are Critical
 - [ ] Default/dev credentials (`guest/guest`, `postgres/postgres`, `sa/...`) NEVER in staging/prod; flag any non-dev config carrying them

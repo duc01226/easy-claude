@@ -4,7 +4,8 @@ Read this when `$linter-setup` runs on a project that already has source code (S
 
 **Rules first:**
 
-- **Never make the existing tree red.** Every new check lands with a frozen baseline of today's violations and fails only on new ones. A check that fails on day one gets switched off, which is worse than no check.
+- **Security risk is separate.** Read `.claude/docs/security-harness-catalog.md#brownfield-and-exceptions` when baselining security findings. Live credentials, authorization bypass, malicious components and exploitable high-consequence paths require containment/remediation or explicit owner escalation; a regression baseline cannot silently accept them.
+- **Never make the existing tree red for historical style/correctness debt.** Every new check lands with a frozen baseline of today's violations and fails only on new ones. A check that fails on day one gets switched off, which is worse than no check.
 - **The baseline only shrinks (ratchet).** Prune entries that now pass in a deliberate step. Never add an entry to make a change pass; the only growth is the consented commit that adopts a new rule.
 - **Keep what the project already runs.** Inventory existing sensors first and research only the missing or unproven categories. Replacing a tool the team already uses needs the user's yes.
 - **No mass rewrite in the setup commit.** Auto-fix and reformat of existing files are offered as their own consented commit, so the setup change stays reviewable.
@@ -12,9 +13,9 @@ Read this when `$linter-setup` runs on a project that already has source code (S
 
 ## Step B1 — Inventory what is already there
 
-Before any research, list each category's current state with evidence (`path:line` or the command): formatter, linter, type check, static analysis, dependency scan, architecture boundaries, restricted APIs, pre-commit hook, CI gate. Read manifests and their scripts, tool config files, hook folders, CI files, and the project config's `formatting.command` and `testing.commands` (`lint`, `lintFile`, `typecheck`, `build`, `verify`, `affected`). Use the inventory format owned by `$harness-setup` (its `references/harness-inventory.md`), so the result can be saved as the project's harness inventory.
+Before any research, list each category's current state with evidence (`path:line` or the command): formatter, linter, type check, static analysis, secret scan, dependency scan, architecture boundaries, restricted APIs, pre-commit hook, CI gate. Read manifests and their scripts, tool config files, hook folders, CI files, and the project config's `formatting.command` and `testing.commands` (`lint`, `lintFile`, `typecheck`, `build`, `verify`, `affected`). Use the inventory format owned by `$harness-setup` (its `references/harness-inventory.md`), so the result can be saved as the project's harness inventory.
 
-Give each category its inventory status (`proven`, `configured`, `missing`, `declined` or `n/a`, defined there). Research and ask only for `missing` ones and `configured` ones that are not yet proven (not in the hook or CI, or failing without a baseline); a `declined` category is offered again only when the user asks.
+Use the statuses defined by the inventory owner. Research and ask for `missing` categories and `configured` ones that are not yet proven (not in the hook or CI, or failing without a baseline). For security rows, select `failed`, `blocked`, `unverified` and `not-run` for proof, remediation or explicit owner escalation; preserve the recorded outcome and never turn unavailable/failed evidence into a clean result or silently baseline security risk. A `declined` category is offered again only when the user asks; preserve its reason and SH-7 risk treatment.
 
 ## Step B2 — Decide where the config lives
 

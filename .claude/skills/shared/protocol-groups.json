@@ -425,6 +425,10 @@
     "design": {
       "description": "Architecture and code design quality, engineering foundations and UI/UX design.",
       "tags": {
+        "security-harness-gate": {
+          "summary": "Practical security controls with boundary proof, proportional CI checks and safe brownfield adoption",
+          "when": "creating foundations or changing code, dependencies, data, execution or trust"
+        },
         "measured-capacity-engineering": {
           "summary": "Model demand, reduce measured work safely and prove capacity before scaling",
           "when": "planning, building, testing or reviewing hot paths, caches or capacity",

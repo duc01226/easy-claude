@@ -224,7 +224,7 @@ Every workflow states the goal it must reach and the quality results a finished 
 - **AC-GWF-33** — **Given** every check proven, declined or not applicable in the committed harness inventory **When** the run starts **Then** the step is skipped at triage after one local check that reads only the project config, the inventory and the manifests, runs no tool, uses no network and finishes in under a second; running it again gives the same answer and changes nothing
 - **AC-GWF-34** — **Given** a team-owned repository **When** checks are missing **Then** the setup is proposed in writing and nothing in the repository is written
 - **AC-GWF-35** — **Given** the user said "not now", or a proposal was made **When** later runs start **Then** no offer appears while that answer covers every gap, for seven days on that machine; a new gap or an expired answer brings the offer back
-- **AC-GWF-36** — **Given** any gap **When** it is reported **Then** it names the check, why the project is worse without it and the step that fixes it; whether the app can be started is reported for information and never causes an offer; a monorepo is read through its workspace packages up to a fixed bound, and a stack the check does not recognise is never reported ready
+- **AC-GWF-36** — **Given** any gap **When** it is reported **Then** it names the check, why the project is worse without it and the step that fixes it; whether the app can be started and recorded security-check outcomes are reported for information and never cause an offer or establish security approval; a monorepo is read through its workspace packages up to a fixed bound, and a stack the check does not recognise is never reported ready
 - **AC-GWF-37** — **Given** a bug fix in a project with no test project **When** the regression-test step runs **Then** it offers to set up a test runner, or writes the regression test with a runner the project can already execute and records who owns creating a test project; it never stops at "create one yourself"
 - **AC-GWF-38** — **Given** a direct answer, a single skill, a custom-simple route or a follow-up inside a running session **When** work starts **Then** no readiness offer appears (a documented gap), and the first-prompt rule for projects without a config is unchanged
 
@@ -439,7 +439,7 @@ IF an outcome gate is no phase's exit, or its phase and the phases before it hol
 
 ### BR-GWF-21: Readiness is checked at the start of three catalog workflows [HARD]
 
-**Statement:** The feature, bug-fix and spec-supplied workflows open with an optional readiness step. Its run condition is the readiness check's answer: the step runs only when a formatter, linter, type check or test check is missing or not yet proven and no recorded answer still covers it. The check reads only the project config, the committed harness inventory and the manifests (workspace packages up to a fixed bound), never the whole tree; it runs no tool, uses no network, writes nothing and finishes in under a second, so a ready project pays for one check and nothing else. Two committed records are the durable proof: the harness inventory, where proven, declined and not applicable settle a check, and the verify baseline, where a check's declared command is proven while the baseline records that exact command. A command declared as not applicable settles its check too. A run that takes the step ends in exactly one of three outcomes: **proven** (set up after one plain-language yes, each tool still chosen by the user), **proposed** (a team-owned repository: the proposal is written in the conversation and nothing in the repository is written) or **declined** (the answer is recorded on the user's machine for seven days and covers only the gaps it named). Every gap says why it matters and how to fix it; whether the app can be started is reported for information only. The step never gates a prompt: a direct answer, a single skill, a custom-simple route and a follow-up inside a running session get no offer — a documented gap, revisited when routing measurements show most first tasks bypass the catalog workflows — and the first-prompt rule for projects without a config (BR-PCI-01) is unchanged. The first-slice mode of the spec-supplied workflow carries no readiness step, because the new-product workflow that hands it off has just set up the harness.
+**Statement:** The feature, bug-fix and spec-supplied workflows open with an optional readiness step. Its run condition is the readiness check's answer: the step runs only when a formatter, linter, type check or test check is missing or not yet proven and no recorded answer still covers it. The check reads only the project config, the committed harness inventory and the manifests (workspace packages up to a fixed bound), never the whole tree; it runs no tool, uses no network, writes nothing and finishes in under a second, so a ready project pays for one check and nothing else. Two committed records are the durable proof: the harness inventory, where proven, declined and not applicable settle a core check, and the verify baseline, where a check's declared command is proven while the baseline records that exact command. A command declared as not applicable settles its check too. A run that takes the step ends in exactly one of three outcomes: **proven** (set up after one plain-language yes, each tool still chosen by the user), **proposed** (a team-owned repository: the proposal is written in the conversation and nothing in the repository is written) or **declined** (the answer is recorded on the user's machine for seven days and covers only the gaps it named). Every gap says why it matters and how to fix it; whether the app can be started is reported for information only. Recorded secret, dependency and security-analysis outcomes are also informational: they cannot add or remove a setup offer, settle a core gap or establish current security approval. Missing declarations remain missing; unsupported outcomes or blank or placeholder evidence remain unverified. The check uses the selected inventory, executes no scan and verifies no evidence freshness. The step never gates a prompt: a direct answer, a single skill, a custom-simple route and a follow-up inside a running session get no offer — a documented gap, revisited when routing measurements show most first tasks bypass the catalog workflows — and the first-prompt rule for projects without a config (BR-PCI-01) is unchanged. The first-slice mode of the spec-supplied workflow carries no readiness step, because the new-product workflow that hands it off has just set up the harness.
 
 | Readiness check reports | Team-owned | A recorded answer covers every gap and has not expired | Outcome |
 | --- | --- | --- | --- |
@@ -3007,61 +3007,71 @@ boundaryCounterCase: 'expiry one second ago → offer again'
 
 ---
 
-#### TC-GWF-084: Every gap says why it matters and how to fix it; the runtime row informs and never offers [P1]
+#### TC-GWF-084: Gap explanations and informational runtime and security outcomes preserve the setup decision [P1]
 
-**Objective:** Prove that each gap names its check, the harm of its absence and the step that fixes it, that an unproven check says how it becomes proven, that the runtime row takes each of its four values, and that two projects differing only in the runtime row get the same verdict.
+**Objective:** Prove that each missing or unproven check explains its harm and remedy, and that runtime and recorded security outcomes never change the core setup decision or claim fresh security assurance.
 
-**Business Intent / Invariant Guarded:** A novice learns why a check matters, and runtime readiness never adds an offer (BR-GWF-21).
+**Business Intent / Invariant Guarded:** A novice learns why a check matters; informational outcomes cannot solicit setup, hide a core gap or stand in for security approval (BR-GWF-21).
 
 **Traces:** AC-GWF-36 / BR-GWF-21
 
 **Preconditions:**
 
-- Fixtures for each runtime value and for missing and unproven checks
+- Projects with missing or unproven core checks and each of the four runtime outcomes
+- Projects with ready core checks, absent security declarations, supported recorded outcomes, unsupported outcomes and incomplete evidence
+- A project whose selected inventory is relocated and whose unrelated sections contain misleading declarations
 
-**Real-World Reachability:** Every readiness offer.
+**Real-World Reachability:** Every readiness check, including a project with no security proof.
 
-**Demo Flow:** Read the gaps and the runtime row of each fixture.
+**Demo Flow:** Compare the gap explanations, informational outcomes and setup decision across otherwise equivalent projects.
 
 ```gherkin
-Given a project with every check missing
+Given a project with missing or proven core checks
 When the readiness check reports
-Then each gap says why it matters and names the fixing step
-And the runtime row is configured, derivable, none or not applicable by its evidence
-And the runtime row never changes the verdict
+Then each gap explains why it matters and names the fixing step
+And runtime and recorded security outcomes do not change the setup decision
+And missing security declarations remain missing
+And unsupported outcomes or blank or placeholder evidence remain unverified
+And the report distinguishes recorded claims from current security approval
+And no repository command runs and no project state changes
 ```
 
 **Expected Result:**
 
-| Dimension               | Expectation |
-| ----------------------- | ----------- |
-| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
-| **System behavior**     | Explains each gap |
+| Dimension | Expectation |
+| --- | --- |
+| **UI** | Not applicable — no screen; the observable surface is command output |
+| **System behavior** | Explains gaps and keeps runtime and security outcomes informational; reads only the selected inventory summary |
 | **Business data state** | No change |
-| **Data shown on UI**    | Why and fix per gap; the runtime row |
+| **Data shown on UI** | Why and fix per gap; runtime outcome; security outcome, recorded evidence and explicit absence of current security assessment |
 
 **Acceptance Criteria:**
 
-- ✅ Why and fix on every gap
-- ❌ A runtime change alters the offer
+- ✅ Why and fix on every gap; supported recorded outcomes retain their meaning and selected evidence location
+- ✅ Blank or placeholder security evidence and unsupported outcomes remain unverified
+- ✅ An existing core gap remains open regardless of security outcomes
+- ❌ A runtime or security change alters the offer, executes a scan or claims current security approval
 
 **Test Data:**
 
 ```yaml
-inputDomain: 'missing, unproven and four runtime cases'
-invariant: 'runtime is informational'
-boundaryCounterCase: 'same project with and without a start script → same verdict'
+inputDomain: 'missing or unproven core checks; four runtime outcomes; absent, proven, configured, missing, declined, not applicable, failed, blocked, unverified and not-run security outcomes; unsupported outcomes; empty and placeholder evidence; relocated inventory'
+invariant: 'runtime and recorded security outcomes are informational; core readiness implies no security approval'
+boundaryCounterCase: 'same core checks with failed, exempt, proven or incomplete security declarations → same core verdict and offer'
 ```
 
 **Edge Cases:**
 
 - A library with no entry point is not applicable, not none
+- A scanner configuration or runnable security command is not execution proof
+- A declaration outside the selected inventory summary cannot supply evidence
+- A security-only decline cannot settle a missing core check
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: operation/scripts/harness-readiness]`
 > **Related Behaviors:** `operation/scripts/harness-readiness`
-> **CoveredBy:** `.claude/scripts/tests/harness-readiness.test.cjs::TC-GWF-084` · **Status:** Implemented — evidence: `.claude/scripts/tests/harness-readiness.test.cjs` (written with the change; passed at the change's targeted verify)
+> **CoveredBy:** `.claude/scripts/tests/harness-readiness.test.cjs::TC-GWF-084` · **Status:** Implemented — assertions cover the stated outcomes; current execution evidence belongs to the verification result, not the declaration.
 
 ---
 

@@ -189,33 +189,63 @@ function writeRecord(ctx, kind, fingerprint, record) {
 const FORBIDDEN_GIT_ENV =
     /^(?:GIT_(?:INDEX_FILE|DIR|WORK_TREE|COMMON_DIR|OBJECT_DIRECTORY|ALTERNATE_OBJECT_DIRECTORIES|REPLACE_REF_BASE|NO_REPLACE_OBJECTS|PREFIX|CEILING_DIRECTORIES|DISCOVERY_ACROSS_FILESYSTEM|NAMESPACE|ATTR_NOSYSTEM|ATTR_SOURCE|SHALLOW_FILE|INDEX_VERSION|LITERAL_PATHSPECS|GLOB_PATHSPECS|NOGLOB_PATHSPECS|ICASE_PATHSPECS)|GIT_CONFIG(?:_|$))/i;
 
-// Command-scoped config (GIT_CONFIG_COUNT with KEY_n/VALUE_n pairs) that a host
-// injects for remote access — e.g. a cloud container's GitHub proxy — cannot
-// change what a commit contains. It is accepted only when the set is well
-// formed and EVERY key is one of these; any other key (core.worktree, filters,
-// hooksPath, ...) still fails closed, as do GIT_CONFIG_GLOBAL/SYSTEM/NOSYSTEM/
-// PARAMETERS. The capture itself still runs with the pairs stripped.
+// A closed transport-only compatibility contract, not trust in helper commands or remote URLs.
+// Validate the complete host context BEFORE stripping it: discarding an unknown index/filter/etc.
+// could compare different content from the eventual commit. All admitted pairs are then removed
+// before local capture/discovery Git; helpers and authentication values never reach those children.
 const INJECTED_GIT_CONFIG_ENV = /^GIT_CONFIG_(?:COUNT|KEY_\d+|VALUE_\d+)$/i;
-const CONTENT_NEUTRAL_CONFIG_KEY = /^(?:credential\.interactive|url\.[^\s]+\.(?:insteadof|pushinsteadof))$/i;
+const CONTENT_NEUTRAL_CONFIG_KEY =
+    /^(?:credential\.interactive|url\.[^\s]+\.(?:insteadof|pushinsteadof)|credential\.https?:\/\/[^\s]+\.(?:helper|usehttppath)|http\.https?:\/\/[^\s]+\.(?:proactiveauth|followredirects))$/i;
 
-function contentNeutralInjectedConfig(env) {
-    const count = env.GIT_CONFIG_COUNT;
-    if (typeof count !== 'string' || !/^[1-9]\d?$/.test(count)) return false;
-    const expected = new Set(['GIT_CONFIG_COUNT']);
-    for (let i = 0; i < Number(count); i++) expected.add(`GIT_CONFIG_KEY_${i}`).add(`GIT_CONFIG_VALUE_${i}`);
-    const present = Object.keys(env).filter(name => INJECTED_GIT_CONFIG_ENV.test(name));
-    if (present.length !== expected.size || present.some(name => !expected.has(name))) return false;
-    for (let i = 0; i < Number(count); i++) {
-        const key = env[`GIT_CONFIG_KEY_${i}`];
-        if (typeof key !== 'string' || !CONTENT_NEUTRAL_CONFIG_KEY.test(key)) return false;
+/** Safe metadata only: KEY strings may themselves contain URL credentials. Never echo them. */
+function gitEnvironmentIssue(env = process.env) {
+    const names = Object.keys(env);
+    const unsupported = names.find(name => FORBIDDEN_GIT_ENV.test(name) && !INJECTED_GIT_CONFIG_ENV.test(name));
+    if (unsupported) {
+        const prefix = FORBIDDEN_GIT_ENV.exec(unsupported)[0].toUpperCase();
+        const variable = /^GIT_CONFIG_(?:GLOBAL|SYSTEM|NOSYSTEM|PARAMETERS)$/i.test(unsupported)
+            ? unsupported.toUpperCase()
+            : prefix === 'GIT_CONFIG_'
+              ? 'GIT_CONFIG_*'
+              : prefix;
+        return { variable, reason: 'This Git context override is not supported for exact-content capture.' };
     }
-    return true;
+    const carriers = new Map();
+    for (const name of names.filter(name => INJECTED_GIT_CONFIG_ENV.test(name))) {
+        const canonical = name.toUpperCase();
+        if (carriers.has(canonical)) return { variable: 'GIT_CONFIG_*', reason: 'Duplicate environment field aliases are ambiguous.' };
+        carriers.set(canonical, env[name]);
+    }
+    if (carriers.size === 0) return null;
+    const count = carriers.get('GIT_CONFIG_COUNT');
+    if (typeof count !== 'string' || /\s/.test(count) || !/^(?:|0|[1-9]\d?)$/.test(count)) {
+        return { variable: 'GIT_CONFIG_COUNT', reason: 'Use a complete canonical vector with zero to 99 pairs.' };
+    }
+    const total = Number(count);
+    const expected = new Set(['GIT_CONFIG_COUNT']);
+    for (let i = 0; i < total; i++) expected.add(`GIT_CONFIG_KEY_${i}`).add(`GIT_CONFIG_VALUE_${i}`);
+    if (carriers.size !== expected.size || [...carriers.keys()].some(name => !expected.has(name))) {
+        return { variable: 'GIT_CONFIG_COUNT', reason: 'The declared pair count and indexed fields do not match.' };
+    }
+    for (let i = 0; i < total; i++) {
+        const key = carriers.get(`GIT_CONFIG_KEY_${i}`);
+        if (typeof key !== 'string' || typeof carriers.get(`GIT_CONFIG_VALUE_${i}`) !== 'string') {
+            return { variable: `GIT_CONFIG_KEY_${i}`, reason: 'Each declared pair requires string key and value fields.' };
+        }
+        if (/[\s\p{Cc}]/u.test(key) || !CONTENT_NEUTRAL_CONFIG_KEY.test(key)) {
+            return { variable: `GIT_CONFIG_KEY_${i}`, reason: `Pair ${i} is not a supported transport-only setting; its key and value are redacted.` };
+        }
+    }
+    return null;
 }
 
 function gitEnvironmentError(env) {
-    const vars = env || {};
-    const neutral = contentNeutralInjectedConfig(vars);
-    return Object.keys(vars).find(name => FORBIDDEN_GIT_ENV.test(name) && !(neutral && INJECTED_GIT_CONFIG_ENV.test(name))) || null;
+    return gitEnvironmentIssue(env || {})?.variable || null;
+}
+
+function requireSupportedGitEnvironment() {
+    const issue = gitEnvironmentIssue();
+    if (issue) throw Object.assign(new Error(`UNSUPPORTED_GIT_ENVIRONMENT: ${issue.variable}. ${issue.reason}`), { code: 'UNSUPPORTED_GIT_ENVIRONMENT' });
 }
 
 function gitEnvironmentWithoutContext(env = process.env) {
@@ -461,8 +491,7 @@ function captureReviewTarget(options = {}) {
         repository = canonicalDirectory(sourceRepository);
         cwd = canonicalDirectory(sourceCwd);
         if (!pathIsInside(repository, cwd)) throw Object.assign(new Error('Effective cwd must be inside the repository'), { code: 'CWD_OUTSIDE_REPOSITORY' });
-        const unsafeVariable = gitEnvironmentError(process.env);
-        if (unsafeVariable) throw Object.assign(new Error(`Unsupported ambient Git context: ${unsafeVariable}`), { code: 'UNSUPPORTED_GIT_ENVIRONMENT' });
+        requireSupportedGitEnvironment();
         const cleanEnv = gitEnvironmentWithoutContext(process.env);
         const run = (args, extra = {}) => runGit(exec, repository, args, cleanEnv, extra);
 
@@ -969,21 +998,41 @@ function clearReceipts(options) {
 
 function resolveRepository(cwd, exec = execFileSync) {
     try {
-        if (gitEnvironmentError(process.env)) return null;
-        const out = runGit(exec, cwd, ['rev-parse', '--show-toplevel'], gitEnvironmentWithoutContext(process.env)).trim();
-        return out || null;
+        return requireRepository(cwd, exec);
     } catch (_) {
         return null;
     }
 }
 
+/** Checked discovery for reporting boundaries; the legacy convenience wrapper keeps its null contract. */
+function requireRepository(cwd, exec = execFileSync) {
+    requireSupportedGitEnvironment();
+    try {
+        const out = runGit(exec, cwd, ['rev-parse', '--show-toplevel'], gitEnvironmentWithoutContext(process.env)).trim();
+        if (out) return out;
+    } catch {
+        // Do not put arbitrary Git stderr or environment values into the diagnostic.
+    }
+    throw Object.assign(new Error('Not inside a resolvable Git repository'), { code: 'REPOSITORY_UNAVAILABLE' });
+}
+
 /** The checked-out branch name, or null on a detached HEAD or any Git error. */
 function currentBranch(repository, exec = execFileSync) {
     try {
-        if (gitEnvironmentError(process.env)) return null;
-        return runGit(exec, repository, ['symbolic-ref', '--quiet', '--short', 'HEAD'], gitEnvironmentWithoutContext(process.env)).trim() || null;
+        return readCurrentBranch(repository, exec);
     } catch (_) {
         return null;
+    }
+}
+
+/** Null means a detached HEAD only; unsupported context and other Git faults retain their cause. */
+function readCurrentBranch(repository, exec = execFileSync) {
+    requireSupportedGitEnvironment();
+    try {
+        return runGit(exec, repository, ['symbolic-ref', '--quiet', '--short', 'HEAD'], gitEnvironmentWithoutContext(process.env)).trim() || null;
+    } catch (error) {
+        if (error.status === 1) return null;
+        throw Object.assign(new Error('Cannot determine the current Git branch safely'), { code: 'BRANCH_UNAVAILABLE' });
     }
 }
 
@@ -1103,8 +1152,8 @@ function publishReviewStatus(options = {}) {
     if (!policy.enabled) return refuse('reviewGate.status.enabled is not true in the project config; nothing was published');
     const pr = typeof options.pr === 'number' ? String(options.pr) : options.pr;
     if (typeof pr !== 'string' || !PR_NUMBER_PATTERN.test(pr)) return refuse('--pr=<pull request number> is required');
-    const unsafeVariable = gitEnvironmentError(process.env);
-    if (unsafeVariable) return refuse(`unsupported ambient Git context: ${unsafeVariable}`);
+    const issue = gitEnvironmentIssue();
+    if (issue) return refuse(`UNSUPPORTED_GIT_ENVIRONMENT: ${issue.variable}. ${issue.reason}`);
     const run = args => runGit(exec, repository, args, gitEnvironmentWithoutContext(process.env));
 
     const slug =
@@ -1220,8 +1269,7 @@ function runCli(argv) {
         throw new Error('Use --staged only with --target=branch and without --descriptor-json');
     }
     const storeDir = process.env.CK_REVIEW_RECEIPT_STORE || undefined;
-    const repository = resolveRepository(process.cwd());
-    if (!repository) throw new Error('Not inside a resolvable Git repository');
+    const repository = requireRepository(process.cwd());
     const base = { repository, ...(storeDir ? { storeDir } : {}) };
     let descriptor = flags['descriptor-json'] === undefined ? undefined : JSON.parse(flags['descriptor-json']);
     if (flags.target === 'branch' && descriptor === undefined) {
@@ -1289,6 +1337,7 @@ module.exports = {
     canonicalDirectory,
     receiptStoreDirectory,
     gitEnvironmentError,
+    gitEnvironmentIssue,
     gitEnvironmentWithoutContext,
     captureReviewTarget,
     candidateFingerprint,
@@ -1305,7 +1354,9 @@ module.exports = {
     reviewGateMode,
     publishReviewStatus,
     currentBranch,
-    resolveRepository
+    readCurrentBranch,
+    resolveRepository,
+    requireRepository
 };
 
 if (require.main === module) {

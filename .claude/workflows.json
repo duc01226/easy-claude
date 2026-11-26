@@ -1853,8 +1853,8 @@
           "args": "--report-only",
           "role": "optional",
           "applicability": {
-            "when": "The product handles identities, authorization, secrets, money or PII, or exposes a network surface.",
-            "skipReason": "No identity, authorization, secret, money, PII or network-exposed surface exists, such as a local single-user tool."
+            "when": "The product handles identity, authorization, secrets, money or sensitive data, exposes a network surface, or includes untrusted input, filesystem/process execution, dependencies, build/release or agent/tool trust boundaries.",
+            "skipReason": "Evidence shows no identity, sensitive data, network, untrusted-input, filesystem/process, dependency, build/release or agent/tool trust boundary; record the inspected scope."
           }
         },
         {
@@ -3613,8 +3613,8 @@
           "args": "--fix-loop --loop-owner=caller",
           "role": "optional",
           "applicability": {
-            "when": "The diff touches authentication, authorization, secrets, input handling, external data, dependency manifests, CI/infra, PII or money paths \u2014 or any file the triage cannot rule out as security-neutral.",
-            "skipReason": "Triage proves the diff security-neutral (docs, comments, pure internal refactor with no input, auth, secret, dependency or infra surface); record the evidence."
+            "when": "The diff touches authentication, authorization, secrets, input handling, external data, dependency manifests, CI/infra, agent/tool/prompt/retrieval policies, PII or money paths \u2014 or any file the triage cannot rule out as security-neutral.",
+            "skipReason": "Triage proves the diff security-neutral (docs, comments, pure internal refactor with no input, auth, secret, dependency, infra or agent/tool/prompt-policy surface); record the evidence."
           }
         },
         {
@@ -3845,8 +3845,8 @@
               "args": "--review-only",
               "role": "optional",
               "applicability": {
-                "when": "The diff touches authentication, authorization, secrets, input handling, external data, dependency manifests, CI/infra, PII or money paths \u2014 or any file the triage cannot rule out as security-neutral.",
-                "skipReason": "Triage proves the diff security-neutral (docs, comments, pure internal refactor with no input, auth, secret, dependency or infra surface); record the evidence."
+                "when": "The diff touches authentication, authorization, secrets, input handling, external data, dependency manifests, CI/infra, agent/tool/prompt/retrieval policies, PII or money paths \u2014 or any file the triage cannot rule out as security-neutral.",
+                "skipReason": "Triage proves the diff security-neutral (docs, comments, pure internal refactor with no input, auth, secret, dependency, infra or agent/tool/prompt-policy surface); record the evidence."
               }
             },
             {
@@ -4023,8 +4023,8 @@
               "args": "--fix-loop --loop-owner=caller",
               "role": "optional",
               "applicability": {
-                "when": "The diff touches authentication, authorization, secrets, input handling, external data, dependency manifests, CI/infra, PII or money paths \u2014 or any file the triage cannot rule out as security-neutral.",
-                "skipReason": "Triage proves the diff security-neutral (docs, comments, pure internal refactor with no input, auth, secret, dependency or infra surface); record the evidence."
+                "when": "The diff touches authentication, authorization, secrets, input handling, external data, dependency manifests, CI/infra, agent/tool/prompt/retrieval policies, PII or money paths \u2014 or any file the triage cannot rule out as security-neutral.",
+                "skipReason": "Triage proves the diff security-neutral (docs, comments, pure internal refactor with no input, auth, secret, dependency, infra or agent/tool/prompt-policy surface); record the evidence."
               }
             },
             {

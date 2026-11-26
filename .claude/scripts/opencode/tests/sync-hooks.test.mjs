@@ -3,10 +3,16 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { createRequire } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { buildHooksConfig, checkOpencodeHooks, extractHookPath, materializeOpencodeHooks, pruneLegacyNotification, renderPlugin } from '../sync-hooks.mjs';
+
+const require = createRequire(import.meta.url);
+const { fixtureGitEnvironment, withGitEnvironment, withFixtureEnvironment } = require('../../../hooks/tests/lib/git-fixture.cjs');
+const receiptApi = require('../../../hooks/lib/review-receipt.cjs');
+const HAS_GIT = spawnSync('git', ['--version'], { env: fixtureGitEnvironment(), encoding: 'utf8', windowsHide: true }).status === 0;
 
 const HOOK_SCRIPTS = {
     'block.cjs': [
@@ -401,6 +407,79 @@ test('generated bridge blocks PreToolUse via exit code 2', async () => {
         await removeProject(root);
     }
 });
+
+test(
+    '[TechnicalSpec=git-environment-native-opencode] real receipt gate allows reviewed content and denies missing or stale proof through the bridge',
+    { skip: !HAS_GIT },
+    async () => {
+        const root = await createProject({
+            hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [{ type: 'command', command: hookCommand('review-commit-gate.cjs') }] }] }
+        });
+        try {
+            await withFixtureEnvironment(root, { CK_REVIEW_RECEIPT_STORE: path.join(root, 'store') }, async () => {
+                // Copy the real gate and dependency owners, as the existing real-policy bridge case does.
+                const canonical = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+                await fs.cp(path.join(canonical, 'hooks', 'lib'), path.join(root, '.claude', 'hooks', 'lib'), { recursive: true });
+                await fs.cp(path.join(canonical, 'scripts', 'lib'), path.join(root, '.claude', 'scripts', 'lib'), { recursive: true });
+                await fs.copyFile(path.join(canonical, 'hooks', 'review-commit-gate.cjs'), path.join(root, '.claude', 'hooks', 'review-commit-gate.cjs'));
+                const git = args =>
+                    execFileSync('git', args, {
+                        cwd: root,
+                        env: fixtureGitEnvironment(),
+                        encoding: 'utf8',
+                        stdio: ['ignore', 'pipe', 'pipe'],
+                        windowsHide: true
+                    });
+                git(['init', '-q']);
+                git(['config', 'user.name', 'Fixture']);
+                git(['config', 'user.email', 'fixture@example.invalid']);
+                git(['config', 'commit.gpgsign', 'false']);
+                git(['config', 'core.hooksPath', path.join(root, '.no-hooks')]);
+                await fs.writeFile(path.join(root, '.gitignore'), '/.claude/\n/.opencode/\n/tmp/\n/temp/\n/store/\n');
+                await fs.writeFile(path.join(root, 'file.txt'), 'base\n');
+                git(['add', '.gitignore', 'file.txt']);
+                git(['commit', '-q', '-m', 'base']);
+                await fs.writeFile(path.join(root, 'file.txt'), 'reviewed\n');
+                git(['add', 'file.txt']);
+                const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+                const hooks = await (await loadBridge(pluginPath))({ directory: root });
+                const before = () =>
+                    hooks['tool.execute.before'](
+                        { tool: 'bash', sessionID: 'receipt-host', callID: 'receipt-commit' },
+                        { args: { command: 'git commit -m x' } }
+                    );
+                await assert.rejects(before(), /no matching review fix-loop receipt/, 'the real gate denies missing evidence');
+                const snapshot = receiptApi.captureReviewTarget({ repository: root, cwd: root, target: 'staged' });
+                assert.equal(snapshot.status, 'CHANGED');
+                receiptApi.issueReceipt({ repository: root, snapshot, scope: 'full-changeset', kind: 'changes-review' });
+                const profile = {
+                    GIT_CONFIG_COUNT: '4',
+                    GIT_CONFIG_KEY_0: 'credential.https://fixture.invalid.helper',
+                    GIT_CONFIG_VALUE_0: '!synthetic-helper-must-never-run',
+                    GIT_CONFIG_KEY_1: 'credential.https://fixture.invalid.useHttpPath',
+                    GIT_CONFIG_VALUE_1: 'true',
+                    GIT_CONFIG_KEY_2: 'http.https://fixture.invalid.proactiveAuth',
+                    GIT_CONFIG_VALUE_2: 'none',
+                    GIT_CONFIG_KEY_3: 'http.https://fixture.invalid.followRedirects',
+                    GIT_CONFIG_VALUE_3: 'false'
+                };
+                await withGitEnvironment(profile, async () => {
+                    await before();
+                    // A stale receipt still denies through the SAME real bridge after the content changes.
+                    await fs.writeFile(path.join(root, 'file.txt'), 'changed after review\n');
+                    git(['add', 'file.txt']);
+                    await assert.rejects(before(), /no matching review fix-loop receipt/);
+                    await hooks['tool.execute.before'](
+                        { tool: 'bash', sessionID: 'receipt-host', callID: 'receipt-read' },
+                        { args: { command: 'git status' } }
+                    );
+                });
+            });
+        } finally {
+            await removeProject(root);
+        }
+    }
+);
 
 test('generated bridge leaves non-matching tools untouched and rewrites matching args', async () => {
     const root = await createProject();

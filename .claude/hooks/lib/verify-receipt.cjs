@@ -949,8 +949,7 @@ async function runCli(argv) {
     const flags = parseArgs(argv.slice(1));
     const unknown = Object.keys(flags).filter(flag => !ALLOWED_FLAGS[command].includes(flag));
     if (unknown.length) throw new Error(`${command} does not take --${unknown.join(', --')}`);
-    const repository = receipts.resolveRepository(process.cwd());
-    if (!repository) throw new Error('Not inside a resolvable Git repository');
+    const repository = receipts.requireRepository(process.cwd());
     const storeDir = process.env.CK_REVIEW_RECEIPT_STORE || undefined;
     const base = { repository, ...(storeDir ? { storeDir } : {}) };
     if (command === 'plan') {

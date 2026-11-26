@@ -16,6 +16,42 @@ CLAUDE.md                # Project instructions at repo root (read by Claude)
 
 ---
 
+## Contents
+
+- [Overview](#overview)
+- [Configuration Files](#configuration-files)
+- [settings.json](#settingsjson)
+- [settings.local.json](#settingslocaljson)
+- [.ck.json](#ckjson)
+- [Context delivery profile](#context-delivery-profile)
+- [Experience verification](#experience-verification)
+- [Team work tracking](#team-work-tracking)
+- [Per-file convention injection](#per-file-convention-injection)
+- [Framework runtime mode](#framework-runtime-mode)
+- [Commit review selection](#commit-review-selection)
+- [Review gate (`reviewGate.mode`)](#review-gate-reviewgatemode)
+- [Review status (`reviewGate.status`)](#review-status-reviewgatestatus)
+- [Verify receipt (`reviewGate.verify`)](#verify-receipt-reviewgateverify)
+- [Workflow route mode (per person)](#workflow-route-mode-per-person)
+- [Workflow activation tiers](#workflow-activation-tiers)
+- [Just-in-time path rules](#just-in-time-path-rules)
+- [Startup dependency installation](#startup-dependency-installation)
+- [Decision support (runtime, per developer)](#decision-support-runtime-per-developer)
+- [Skill auto-trigger (runtime, per developer)](#skill-auto-trigger-runtime-per-developer)
+- [workflows.json](#workflowsjson)
+- [.mcp.json](#mcpjson)
+- [opencode.json (recommended defaults)](#opencodejson-recommended-defaults)
+- [Quick Configuration Guide](#quick-configuration-guide)
+- [Configuration Inheritance](#configuration-inheritance)
+- [Environment Variables](#environment-variables)
+- [Permission Configuration](#permission-configuration)
+- [Hook Configuration](#hook-configuration)
+- [Common Customizations](#common-customizations)
+- [Troubleshooting](#troubleshooting)
+- [Related Documentation](#related-documentation)
+- [Closing reminders](#closing-reminders)
+- [Frontend reuse reminder](#frontend-reuse-reminder)
+
 ## Configuration Files
 
 ### settings.json
@@ -520,6 +556,12 @@ Both are a bounded speedbump against forgetting, not a security boundary: the st
 ```json
 { "reviewGate": { "mode": "enforce" } }
 ```
+
+**Git environment compatibility.** Exact-content capture validates the inherited Git context before creating a local Git child. Complete indexed `GIT_CONFIG_COUNT` vectors support zero/empty or 1 to 99 pairs: `credential.interactive`, URL rewrites (`insteadOf`/`pushInsteadOf`), and HTTP(S)-URL-scoped credential `helper`/`useHttpPath` and HTTP `proactiveAuth`/`followRedirects`. Every pair must match; unknown settings, duplicate aliases, malformed vectors, alternate indexes/worktrees/object stores and config-file redirects remain refused. This support does not authorize a credential helper or remote operation: accepted context is removed before snapshot and discovery Git runs.
+
+On `UNSUPPORTED_GIT_ENVIRONMENT`, resolve the unsupported configuration at its owner, then retry capture. The diagnostic names a variable or pair index and keeps keys, URL scopes and values private. Review and verify CLIs preserve this cause rather than reporting a missing repository or detached branch. A receipt or skip cannot repair a capture error.
+
+Use the platform-neutral read-only preflight `node .claude/hooks/lib/review-receipt.cjs snapshot --target=staged` in the actual host environment before a long verification run. Test-only Git environment isolation belongs to `.claude/hooks/tests/lib/git-fixture.cjs`; never copy its blanket scrub into a production launcher, where unknown context must remain visible to validation.
 
 ### Review status (`reviewGate.status`)
 

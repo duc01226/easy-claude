@@ -111,6 +111,8 @@ Present created/updated guides via `ask user question tool`: "Feedforward guides
 
 ## Phase C — Computational Feedback Sensors
 
+Read `.claude/docs/security-harness-catalog.md` when selecting security controls. Inventory Secret scan, Dependency scan and Security analysis, plus applicable CI/IaC/container/AI checks; reuse existing tools. Record scope/cadence/owner/budget and actual evidence, including failed/unverified results. Task-start security rows are informational; the owning setup/review gate decides enforcement. Security exceptions follow SH-7, never silent blanket baselines.
+
 Confirm `/linter-setup` outputs by checking the root linter config (e.g., `.eslintrc`, `pyproject.toml`, `.editorconfig`), pre-commit hook config (e.g., `.husky/`, `.pre-commit-config.yaml`), and CI quality gate. If any is missing, invoke `/linter-setup` before continuing. Output confirmation with file paths.
 
 ---
@@ -194,6 +196,7 @@ Present inventory to user for review via `ask user question tool`.
 - `engineering-foundation-gate` — Seven engineering-foundation dimensions judged by project profile; creating or reviewing how a project is built, run, tested or checked → .claude/skills/shared/protocols/engineering-foundation-gate.md
 - `harness-setup` — Agent quality harness: feedforward guides and feedback sensors; setting up an agent quality harness → .claude/skills/shared/protocols/harness-setup.md
 - `measured-capacity-engineering` — Model demand, reduce measured work safely and prove capacity before scaling; planning, building, testing or reviewing hot paths, caches or capacity → .claude/skills/shared/protocols/measured-capacity-engineering.md
+- `security-harness-gate` — Practical security controls with boundary proof, proportional CI checks and safe brownfield adoption; creating foundations or changing code, dependencies, data, execution or trust → .claude/skills/shared/protocols/security-harness-gate.md
 - `test-architecture-execution-contract` — Testability as an architecture condition: required test types and execution modes; setting up or reviewing a test architecture → .claude/skills/shared/protocols/test-architecture-execution-contract.md
 - `test-review-gate` — Every review of a change reviews its tests per layer through one owner; reviewing a change, a branch, a pull request or a commit, or the tests of one → .claude/skills/shared/protocols/test-review-gate.md
 
@@ -271,3 +274,9 @@ Present inventory to user for review via `ask user question tool`.
 | "CLAUDE.md exists, harness already done"         | CLAUDE.md is a feedforward guide to ENHANCE, never a signal to skip phases.               |
 
 **IMPORTANT MUST ATTENTION** BLOCK on `/linter-setup` before any phase · NEVER auto-decide harness content (`ask user question tool`-gate) · require profile-fit intent evidence, NEVER a universal mutation tool or line-coverage % gate.
+
+<!-- SYNC:security-harness-gate:reminder -->
+
+**Security harness:** protect authority and secrets; prove controls at their boundary; keep checks proportionate (`SH-1`–`SH-8`). Reuse project tools and warranted local/CI/full checks. A baseline never silently accepts live secrets or exploitable risk; configured/skipped/unverified is not PASS. Read `.claude/docs/security-harness-catalog.md` for selection, cadence and exact expiring exceptions. Coding-agent containment applies without an AI product; AE/AF owns model-feature depth.
+
+<!-- /SYNC:security-harness-gate:reminder -->

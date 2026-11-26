@@ -7,4 +7,7 @@
 - [ ] Third-party actions/plugins pinned by commit SHA, not floating tags
 - [ ] Secrets scoped per-job/environment minimum; not exposed to PR builds from forks; never echoed to logs
 - [ ] Build artifacts: integrity verified between build and deploy; deploy creds not reachable from build steps that run third-party code
+- [ ] Minimum default/job token permissions; scoped short-lived OIDC/workload identity where supported with intended issuer/audience/subject and repository/workflow/environment trust.
+- [ ] Untrusted builds cannot poison privileged caches or promote unchecked artifacts; verify exact release identity and separate build execution from deploy credentials.
+- [ ] Cheap merge checks and periodic full scans have owners/budgets; unavailable scans are not clean results. Review scanner suppressions and trust-root changes.
 - [ ] Branch protection on default branches; force-push restricted

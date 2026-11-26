@@ -8,7 +8,7 @@ Read this when you write, update or read a project's harness inventory: `/harnes
 - **Detecting writes nothing.** Detection only reads files and runs no tool. `/harness-setup` writes the file as part of the setup the user asked for; any other caller (`/project-init`, `/linter-setup`) asks the user before creating or changing it.
 - **Every row cites evidence** (`path:line`, a config key or a command). Unknown is a gap, never a pass.
 - **Living document.** Update a row whenever a sensor is added, proven, baselined or declined.
-- **The task-start readiness check reads the Summary.** `.claude/scripts/harness-readiness.cjs` takes the first two columns (Sensor, Status) of the Summary table: `proven`, `declined` and `n/a` settle a check, so keep the sensor names and status words exactly as in the Detection table.
+- **The task-start readiness check reads the Summary.** `.claude/scripts/harness-readiness.cjs` reads the Summary table: `proven`, `declined` and `n/a` settle only the four core checks (formatter, linter, type check, tests). Security rows also require the Evidence column, remain informational and never affect the setup offer. Keep sensor names and status words exactly as in the Detection table.
 
 ## Contents
 
@@ -28,8 +28,12 @@ Read this when you write, update or read a project's harness inventory: `/harnes
 | CI quality gate         | `.github/workflows/`, `.gitlab-ci.yml`, `azure-pipelines.yml`, `Jenkinsfile`, `bitbucket-pipelines.yml`                                       | same                                                     |
 | Architecture boundaries | `architectureRules.layerBoundaries` and `architectureRules.enforcedBy` in the project config                                                  | same                                                     |
 | Restricted APIs         | ban rules in the linter config (see `/linter-setup` → Restricted APIs)                                                                        | same                                                     |
+| Secret scan             | committed secret-scanner rule/command and observed staged/history result | same; security rows also allow `failed`, `blocked`, `unverified`, `not-run` |
+| Security analysis       | suitable security rules and observed coverage/result | same as Secret scan |
 | Dependency scan         | scanner config, CI step, `dependencySecurity`                                                                                                 | same                                                     |
 | Runtime                 | see below                                                                                                                                     | `configured` · `derivable` · `none` · `not-applicable`   |
+
+**Security rows.** Read `.claude/docs/security-harness-catalog.md#inventory-and-evidence` when recording these controls. Evidence is required even for `declined`/`n/a`; an empty or placeholder cell is unverified. Record command/tool version/rules, scope, cadence, human/team owner, last observed revision/date/result, measured budget and exact exception reference in the same inventory. Recorded proof is not current security assurance; failed/unavailable checks and expired exceptions stay visible. Security baselines follow SH-7. Readiness reports these rows informationally without changing the core setup offer.
 
 Status meanings: `proven` = it ran and passed, or failed only on baselined entries, with the evidence named; `configured` = the config exists but no run is recorded, or it is not wired into the pre-commit hook or CI; `missing` = nothing found; `declined` = the user said no (record the date and their reason, so nobody asks again unprompted); `n/a` = evidence shows the category does not fit this project (for example, no second module for boundaries).
 
@@ -55,6 +59,9 @@ Stack: {detected stack}
 | Sensor    | Status                                           | Evidence                  | Command                | Baseline                        | Next step           |
 | --------- | ------------------------------------------------ | ------------------------- | ---------------------- | ------------------------------- | ------------------- |
 | Formatter | {status}                                         | {path:line or config key} | `{command}`            | {file, `command-level` or none} | {offer, owner or —} |
+| Secret scan | {status} | {observed scope/result or reason} | `{command}` | {exact exception or none} | {owner, cadence, last revision/date, budget} |
+| Dependency scan | {status} | {observed scope/result or reason} | `{command}` | {exact exception or none} | {owner, cadence, last revision/date, budget} |
+| Security analysis | {status} | {observed scope/result or reason} | `{command}` | {exact exception or none} | {owner, cadence, last revision/date, budget} |
 | Linter    | …                                                | …                         | …                      | …                               | …                   |
 | Runtime   | {configured / derivable / none / not-applicable} | {evidence}                | `{start command or —}` | —                               | —                   |
 

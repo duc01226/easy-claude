@@ -20,10 +20,10 @@ description: '[Quality] Use when a workflow step or the user asks for linters, f
 **Summary:**
 
 - **Purpose:** Research the current ecosystem per detected stack, let the user choose tools, then configure strict-by-default checks; NEVER hardcode quality-tool recommendations.
-- **Ordered path (no skip/reorder):** (1) detect stack/profile; (2) research seven categories with QUERY TEMPLATES, score top 3, present 2–3 via `ask user question tool`; (3) install/configure strict settings, document rule purpose, update `.gitignore`, ALWAYS emit `.editorconfig`; (4) wire staged-files-only <30s formatter→linter→type-check hook and document `README.md`; (5) mirror format→lint→type→static→dep-scan in CI with coverage diagnostic-only; (6) prove the hook blocks an INTENTIONAL violation; (7) ask whether to continue to `/harness-setup`.
+- **Ordered path (no skip/reorder):** (1) detect stack/profile; (2) research the applicable categories with QUERY TEMPLATES, score top 3, present 2–3 via `ask user question tool`; (3) install/configure strict settings, document rule purpose, update `.gitignore`, ALWAYS emit `.editorconfig`; (4) wire staged-files-only <30s formatter→linter→type-check hook and document `README.md`; (5) mirror format→lint→type→static→dep-scan in CI with coverage diagnostic-only; (6) prove the hook blocks an INTENTIONAL violation; (7) ask whether to continue to `/harness-setup`.
 - **Gates:** Track each step/sub-skill with status + evidence; use `ask user question tool` for unknown stack/CI fields, tool choices, or loosening; keep local/CI commands, config, and versions identical; line coverage stays diagnostic-only; architecture fitness is `N/A` without declared dependency directions.
 - **Output/context:** Root tool configs, pre-commit config, CI quality gate, `.editorconfig`, and README setup; invoked after `/scaffold`, before `/harness-setup`.
-- **Existing projects (brownfield):** inventory what already runs, add only the missing checks, and land each with a frozen baseline that only shrinks, so the existing tree never turns red — read `references/brownfield-ratchet.md`.
+- **Existing projects (brownfield):** inventory what already runs, add only the missing checks, and ratchet historical style/correctness debt with a shrinking baseline; security risk follows SH-7 — read `references/brownfield-ratchet.md`.
 
 **Output:** Config files at project root + pre-commit hook config + CI quality gate step + `.editorconfig`.
 
@@ -84,6 +84,7 @@ For each tech stack layer detected, research these TOOL CATEGORIES using the que
 | **Formatter**            | Eliminate style debates, enforce consistent code shape             | `"{language} opinionated code formatter {year}"`             |
 | **Type Checker**         | Catch type errors without runtime — strongest computational sensor | `"{language} static type checker {year}"`                    |
 | **Static Analyzer**      | Deep bug patterns, complexity, dead code, security CWEs            | `"{language} static analysis SAST tool {year}"`              |
+| **Secret Scanner**       | Prevent credentials entering source/history and generated artifacts | `"{language} secret scanning staged CI redact {year}"` |
 | **Dependency Scanner**   | Known CVEs in dependencies — supply chain security                 | `"{language} dependency vulnerability scanner {year}"`       |
 | **Architecture Fitness** | Enforce module boundaries, dependency direction                    | `"{language} architecture linting module boundaries {year}"` |
 | **Restricted APIs**      | Ban a raw API the project wraps or forbids; the error names the wrapper to use | `"{language} {linter} ban import or function call rule {year}"` |
@@ -209,6 +210,8 @@ Generate:
 
 ## CI Quality Gate Configuration
 
+Read `.claude/docs/security-harness-catalog.md` when configuring security checks: preserve native exit failures, test synthetic violations, scan introduced history for secrets and keep periodic full inventory/source coverage with an owner and budget. Choose suitable security analysis and conditional CI/IaC/container checks; an unsupported/empty scan is not PASS. Security exceptions follow SH-7 rather than blanket baseline tolerance.
+
 Detect CI provider/tooling from repository files:
 
 - `.github/workflows/` → GitHub Actions
@@ -267,6 +270,7 @@ After all config files generated, verify MUST ATTENTION each item:
 > **Protocol guides** — Apply each protocol only when its read-when condition holds. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `engineering-foundation-gate` — Seven engineering-foundation dimensions judged by project profile; creating or reviewing how a project is built, run, tested or checked → .claude/skills/shared/protocols/engineering-foundation-gate.md
+- `security-harness-gate` — Practical security controls with boundary proof, proportional CI checks and safe brownfield adoption; creating foundations or changing code, dependencies, data, execution or trust → .claude/skills/shared/protocols/security-harness-gate.md
 
 <!-- PROTOCOL-GUIDES:END -->
 
@@ -291,7 +295,7 @@ After all config files generated, verify MUST ATTENTION each item:
 
 **IMPORTANT MUST ATTENTION Goal:** Install a strict, stack-appropriate quality sensor layer—linter, formatter, type checker, static/dependency/architecture analysis, pre-commit, and CI—so every code change is checked locally and in CI with zero divergence before reaching main.
 
-**IMPORTANT MUST ATTENTION Main steps (in order — no skip/reorder):** (1) detect stack/profile → (2) research seven categories with QUERY TEMPLATES, score top 3, present 2–3 via `ask user question tool` → (3) install/configure strict settings, document rule purpose, update `.gitignore`, ALWAYS emit `.editorconfig` → (4) wire staged-files-only <30s formatter→linter→type-check hook and document `README.md` → (5) mirror format→lint→type→static→dep-scan in CI with coverage diagnostic-only → (6) prove the hook blocks an INTENTIONAL violation → (7) ask whether to continue to `/harness-setup`.
+**IMPORTANT MUST ATTENTION Main steps (in order — no skip/reorder):** (1) detect stack/profile → (2) research the applicable categories with QUERY TEMPLATES, score top 3, present 2–3 via `ask user question tool` → (3) install/configure strict settings, document rule purpose, update `.gitignore`, ALWAYS emit `.editorconfig` → (4) wire staged-files-only <30s formatter→linter→type-check hook and document `README.md` → (5) mirror format→lint→type→static→dep-scan in CI with coverage diagnostic-only → (6) prove the hook blocks an INTENTIONAL violation → (7) ask whether to continue to `/harness-setup`.
 
 **IMPORTANT MUST ATTENTION Gates:** Track each step/sub-skill with status + evidence; use `ask user question tool` for unknown stack/CI fields, tool choices, or loosening; keep local/CI commands, config, and versions identical; line coverage stays diagnostic-only; architecture fitness is `N/A` without declared dependency directions.
 
@@ -330,3 +334,9 @@ After all config files generated, verify MUST ATTENTION each item:
 **IMPORTANT MUST ATTENTION** CI gate must match pre-commit hooks — zero divergence between local and CI checks.
 
 **[TASK-PLANNING]** Before acting, analyze task scope and break it into small todo tasks using `TaskCreate`.
+
+<!-- SYNC:security-harness-gate:reminder -->
+
+**Security harness:** protect authority and secrets; prove controls at their boundary; keep checks proportionate (`SH-1`–`SH-8`). Reuse project tools and warranted local/CI/full checks. A baseline never silently accepts live secrets or exploitable risk; configured/skipped/unverified is not PASS. Read `.claude/docs/security-harness-catalog.md` for selection, cadence and exact expiring exceptions. Coding-agent containment applies without an AI product; AE/AF owns model-feature depth.
+
+<!-- /SYNC:security-harness-gate:reminder -->

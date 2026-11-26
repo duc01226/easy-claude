@@ -23,6 +23,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { execFileSync, spawnSync } = require('node:child_process');
+const { fixtureGitEnvironment, withFixtureEnvironment } = require('../lib/git-fixture.cjs');
 
 const HOOKS_DIR = path.resolve(__dirname, '..', '..');
 const LIB = path.join(HOOKS_DIR, 'lib', 'prevention-record.cjs');
@@ -38,36 +39,38 @@ const GIT = (() => {
 })();
 
 function git(cwd, args) {
-    return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+    return execFileSync('git', args, { cwd, env: fixtureGitEnvironment(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
 }
 
 /** A throwaway repository with `.gitignore` ignoring tmp/, a guard file and one base commit. */
 function withRepo(fn, { gitRepo = true } = {}) {
     const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'prevention-record-test-')));
-    const repo = path.join(root, 'repo');
-    fs.mkdirSync(path.join(repo, 'src'), { recursive: true });
-    fs.writeFileSync(path.join(repo, '.gitignore'), '/tmp/\n');
-    fs.writeFileSync(path.join(repo, 'src', 'order-state.test.js'), '// guard\n');
-    if (gitRepo) {
-        git(repo, ['init', '-q']);
-        git(repo, ['config', 'user.email', 'test@example.com']);
-        git(repo, ['config', 'user.name', 'Test']);
-        git(repo, ['config', 'commit.gpgsign', 'false']);
-        git(repo, ['config', 'core.hooksPath', path.join(repo, '.no-hooks')]);
-        git(repo, ['add', '-A']);
-        git(repo, [C_WORD, '-q', '-m', 'base']);
-    }
-    const cleanup = () => fs.rmSync(root, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
-    let result;
-    try {
-        result = fn(repo);
-    } catch (error) {
+    return withFixtureEnvironment(root, {}, () => {
+        const repo = path.join(root, 'repo');
+        fs.mkdirSync(path.join(repo, 'src'), { recursive: true });
+        fs.writeFileSync(path.join(repo, '.gitignore'), '/tmp/\n');
+        fs.writeFileSync(path.join(repo, 'src', 'order-state.test.js'), '// guard\n');
+        if (gitRepo) {
+            git(repo, ['init', '-q']);
+            git(repo, ['config', 'user.email', 'test@example.com']);
+            git(repo, ['config', 'user.name', 'Test']);
+            git(repo, ['config', 'commit.gpgsign', 'false']);
+            git(repo, ['config', 'core.hooksPath', path.join(repo, '.no-hooks')]);
+            git(repo, ['add', '-A']);
+            git(repo, [C_WORD, '-q', '-m', 'base']);
+        }
+        const cleanup = () => fs.rmSync(root, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
+        let result;
+        try {
+            result = fn(repo);
+        } catch (error) {
+            cleanup();
+            throw error;
+        }
+        if (result && typeof result.then === 'function') return Promise.resolve(result).finally(cleanup);
         cleanup();
-        throw error;
-    }
-    if (result && typeof result.then === 'function') return result.finally(cleanup);
-    cleanup();
-    return result;
+        return result;
+    });
 }
 
 const guarded = (extra = {}) => ({

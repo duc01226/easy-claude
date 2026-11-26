@@ -1359,4 +1359,100 @@ const tests = [
     }
 ];
 
+const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
+const { isFrameworkRepo } = require('../lib/framework-repo-guard.cjs');
+
+tests.push({
+    name: 'Security policy reaches direct lifecycle calls through the existing design hook and a readable fallback',
+    skip: !isFrameworkRepo(REPO_ROOT),
+    fn: () => {
+        // Technical integration contract: adding security policy must not require a new hook or lose direct-call delivery.
+        const names = [
+            'plan',
+            'scaffold',
+            'linter-setup',
+            'harness-setup',
+            'security-audit',
+            'ai-engineering-review',
+            'feature-implement',
+            'fix',
+            'changes-review',
+            'code-quality-review',
+            'production-readiness-review',
+            'package-upgrade',
+            'workflow-greenfield-init',
+            'workflow-big-feature',
+            'workflow-architecture-audit',
+            'workflow-review-changes'
+        ];
+        const tag = 'security-harness-gate';
+        const relative = `${PROTOCOLS_DIR}/${tag}.md`;
+        const body = fs.readFileSync(path.join(REPO_ROOT, relative), 'utf8');
+        for (let n = 1; n <= 8; n += 1) assert.ok(body.includes(`SH-${n}`), `missing security clause SH-${n}`);
+        for (const name of names) {
+            const text = fs.readFileSync(path.join(REPO_ROOT, '.claude', 'skills', name, 'SKILL.md'), 'utf8');
+            assert.ok(delivery.declaredTags(text).includes(tag), `${name}: missing fallback guide`);
+            assert.ok(text.includes(relative), `${name}: fallback path missing`);
+            assert.ok(text.includes(`<!-- SYNC:${tag}:reminder -->`), `${name}: reminder missing`);
+            const result = delivery.planDelivery({ hook_event_name: 'PostToolUse', tool_name: 'Skill', tool_input: { skill: name } }, 'design', {
+                projectRoot: REPO_ROOT,
+                host: 'claude'
+            });
+            assert.ok(result.tags.includes(tag), `${name}: direct call lost security policy`);
+            assert.ok(result.text.length <= BIN, `${name}: delivery exceeds hook budget`);
+        }
+        const universal = fs.readFileSync(path.join(REPO_ROOT, PROTOCOLS_DIR, 'ai-mistake-prevention.md'), 'utf8');
+        assert.ok(universal.includes(relative), 'ordinary coding-agent work lost the security fallback');
+    }
+});
+
+tests.push({
+    name: 'Security harness policy preserves containment, proportional checks, exact exceptions and truthful evidence',
+    skip: !isFrameworkRepo(REPO_ROOT),
+    fn: () => {
+        // Pins guard the portable security contract, not model obedience or scanner effectiveness.
+        const body = fs.readFileSync(path.join(REPO_ROOT, PROTOCOLS_DIR, 'security-harness-gate.md'), 'utf8').replace(/\r\n/g, '\n');
+        const rules = [
+            'Unknown is not N/A',
+            'Enforce authorization outside the model',
+            'Revoke/rotate a real exposure',
+            'all introduced commits',
+            'Isolate untrusted CI code',
+            'minimum job permissions',
+            'periodic full inventory/source checks',
+            'Add no network scanner/install to prompt/edit hooks',
+            'Coding-agent containment applies even without an AI product',
+            'Prompts, filters, model judges and local receipts are not security boundaries',
+            'a baseline is not risk acceptance',
+            'exact rule/advisory and artifact',
+            'compensating control, owner, expiry and revisit trigger',
+            'agents cannot accept their own risk',
+            'recorded proof is not fresh assurance',
+            'skipped/empty selections are not PASS'
+        ];
+        for (const rule of rules) assert.ok(body.includes(rule), `Security rule lost: ${rule}`);
+        const audit = fs.readFileSync(path.join(REPO_ROOT, '.claude/skills/security-audit/SKILL.md'), 'utf8');
+        const secrets = audit.split('### D2 — Secrets & Credential Hygiene (ALWAYS RUN)')[1]?.split('### D3')[0];
+        assert.ok(secrets, 'Secrets audit domain missing');
+        assert.ok(secrets.includes('redact values before output enters tool/model context'), 'Redact scanner diagnostics before agent context');
+        assert.ok(secrets.includes('Never dump matching lines or read candidate secret values'), 'Do not disclose candidate values during triage');
+        const secretSearches = secrets.split('\n').filter(line => line.startsWith('rg '));
+        assert.ok(secretSearches.length >= 2, 'Both secret fallback searches must be guarded');
+        for (const command of secretSearches) {
+            assert.match(command, /^rg --files-with-matches\b/, 'Secret fallback must list filenames only');
+            assert.doesNotMatch(command, /\s\|(?:\s|$)/, 'Do not pipe raw secret matches to another command');
+        }
+        const changes = audit.split('\n').find(line => line.startsWith('| `changes`'));
+        assert.match(changes, /D8 for infra\/config/);
+        assert.match(changes, /D10 for model\/prompt\/agent\/tool\/retrieval\/memory or agent-policy/);
+        const workflows = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, '.claude/workflows.json'), 'utf8'));
+        const { resolveWorkflowManifest } = require('../../../scripts/lib/workflow-manifest.cjs');
+        const manifest = resolveWorkflowManifest(workflows, 'workflow-greenfield-init', { rootDir: REPO_ROOT });
+        const security = manifest.occurrences.find(step => step.id === 'architecture-security-review');
+        assert.ok(security, 'foundation security review lost');
+        for (const surface of ['filesystem/process', 'dependencies', 'build/release', 'agent/tool'])
+            assert.ok(security.applicability.when.includes(surface), `Local foundation trust boundary lost: ${surface}`);
+    }
+});
+
 module.exports = { name: 'protocol-delivery', tests };

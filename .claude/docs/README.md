@@ -124,6 +124,8 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 
 **Tip:** Load smaller docs first. Reference larger docs only when needed.
 
+Read [security-harness-catalog.md](security-harness-catalog.md) when creating/auditing a project foundation, selecting security checks, configuring CI/release or handling security exceptions. It routes the shared SH gate, cheap/CI/full cadence and coding-agent/AI controls.
+
 ## Core Pattern References
 
 Unprefixed filenames resolve inside the project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path.

@@ -36,3 +36,5 @@ Read this when `/harness-setup --mode=readiness` runs: as the optional first ste
 | Decision record | `tmp/claude-temp/.harness-readiness-decision` | local and untracked, so recording it writes nothing the team owns |
 
 Routes that start no catalog workflow (a direct answer, a single skill, a custom-simple route, a mid-session follow-up) get no readiness offer; that is a recorded gap, not an oversight.
+
+Security discovery is informational: inspect `security` in the readiness result and read `.claude/docs/security-harness-catalog.md#inventory-and-evidence` for relevant gaps. Core `ready` does not mean security approval; security rows alone trigger no new setup offer or repeat question. No scanner/repository command runs during discovery.
