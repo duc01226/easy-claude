@@ -204,7 +204,7 @@ The default-on hook shares one reminder record across prompt and pre-tool events
 
 ### Quality-skill reminder
 
-The prompt hook delivers the canonical `SYNC:quality-skill-routing:reminder` digest on genuine UserPromptSubmit. The digest includes `brainstorm` for product and feature ideation. Successful delivery starts the refresh window for the main conversation or a sub-agent scope.
+The prompt hook delivers the canonical `SYNC:quality-skill-routing:reminder` digest on genuine UserPromptSubmit. The digest includes `brainstorm` for product and feature ideation, `prompt-enhance` for enhancing, compressing or expanding prompts, docs or skills, and `code-simplifier` for clearer, maintainable code without behavior changes. Successful delivery starts the refresh window for the main conversation or a sub-agent scope.
 
 The first tool result in a scope with no current delivery sends both the skill digest and `SYNC:long-run-protocols:reminder`. The latter recalls the existing goal, evidence, investigation and authority rules. The next eligible tool result refreshes both when either configured threshold is reached. The defaults are **60 minutes or about 250,000 tokens of transcript growth**, whichever comes first. The time cap also works without a transcript. A changed digest or a compaction without a confirmed compatible bundle restore re-arms the hook. A successful compatible restore starts the window at its recorded delivery time. Only eligible tool events can deliver context. Read [../configuration/README.md](../configuration/README.md#advisory-prompt-routers) when configuring the thresholds or turning the reminder off.
 

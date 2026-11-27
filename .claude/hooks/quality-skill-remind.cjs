@@ -40,10 +40,10 @@ const ENV_SWITCH = 'CK_QUALITY_SKILL_REMINDER';
 // Used only when the canonical file cannot be read, so the reminder is never empty. Must equal the
 // canonical `SYNC:quality-skill-routing:reminder` body (parity asserted by the hook suite).
 const FALLBACK_BODY = [
-    '**Common skills:** `investigate`, `brainstorm`, `plan`, `grill` (decision interview), `learn`, `docs-manager`.',
+    '**Common skills:** `investigate`, `brainstorm`, `plan`, `grill`, `learn`, `docs-manager`, `prompt-enhance`, `code-simplifier`.',
     '- UI → `ui-design`, `design-spec`, `work-item --mode=mockup`.',
     '- Review → `why-review`, `changes-review` (diff or simple pull request), `workflow-review-changes` (complex). PR → `pull-request`.',
-    "- tests → `test-review` (coverage and quality of a change's tests), `test`, `e2e-test`, `integration-test`, `performance-test`.",
+    '- tests → `test-review` (coverage and quality), `test`, `e2e-test`, `integration-test`, `performance-test`.',
     '- `performance-review` for bottlenecks. `investigate --mode=debug` before `fix` (or `workflow-bugfix` for a non-trivial bug), never an ad hoc patch or a workaround.'
 ].join('\n');
 const FALLBACK_PROTOCOLS = [
