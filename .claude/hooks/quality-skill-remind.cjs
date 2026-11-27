@@ -49,6 +49,7 @@ const FALLBACK_BODY = [
 const FALLBACK_PROTOCOLS = [
     '**Shared protocols for long runs**',
     '- Recheck the original goal, latest user instructions and current checkpoint before changing direction.',
+    '- Preserve real outcomes and checks; correct or optimize flawed/costly checks only with evidence, equivalent protection and honest gap reporting.',
     '- Verify the result against observable success criteria before closing. Tests should prove the intended behavior.',
     '- Trace failures to their source, test or environment cause before fixing.',
     '- Stay within user authority and project conventions. Keep required review, tests and spec or doc updates in scope.'

@@ -1,9 +1,9 @@
 {
   "version": 6,
-  "policyVersion": "d58c5d6f8ea090e6f308fcec82890b8de1e0175e8b3c9e48136554c55c817bda",
+  "policyVersion": "cbcd6ed45fa55e1a36054358f4081e5b1c4e45b9a15e8dca80789f482e8213b9",
   "sourceHashes": {
     "universal-1": "dfc0605fdce45f2064f405f4f997ad2c07c772e78c3d5925226a988276d1ee28",
-    "universal-2": "f22db74514be969427a101d52c49baa4c0be1c98e6c58b62899aa5478f3a7fe6",
+    "universal-2": "aedefcc3140aa8420ee8029cda2d0f02347f0a4e701f580a1ecae326a3563ce0",
     "universal-3": "41fdaf3823b742fd6665cb96b1d38ad6bf08916b5fa97a3c201cc8faa298e769",
     "universal-4": "19c26f376c0b10dbe27a79e52abfb363d8fb94c71bd52533180fb46a73ac7006",
     "route": "46422fdacf61e11928a242baf5170b8d56abe1f5652d1cb524554b971ce3e994",
@@ -492,19 +492,29 @@
       "destination": null
     },
     {
+      "id": "universal-2:5",
+      "source": "universal-2",
+      "line": 5,
+      "sha256": "90251d700fffe6d36d68802bf78c8163df244a82a6519fc5cf518a78f9ea0a11",
+      "disposition": "defer",
+      "destination": ".claude/skills/shared/protocols/ai-mistake-prevention.md",
+      "readWhen": "changing tests, harness sensors, lint or other checks, or diagnosing a failure",
+      "note": "The concise profile directly reads the same full owner for failure/check work; the shared tool-result reminder repeats evidence, equivalent protection and honest gap reporting."
+    },
+    {
       "disposition": "defer",
       "destination": ".claude/skills/shared/protocols/ai-mistake-prevention.md",
       "readWhen": "before code, dependency, tool or CI trust changes",
       "note": "The concise Security bullet requires the full security-harness-gate before trust changes; Authority separately rejects repository/tool authorization.",
-      "id": "universal-2:5",
-      "source": "universal-2",
-      "line": 5,
-      "sha256": "15d425158ee77f313689eeb476bd98ab1ad69317fec2a79f03d384a2b42de6cf"
-    },
-    {
       "id": "universal-2:6",
       "source": "universal-2",
       "line": 6,
+      "sha256": "15d425158ee77f313689eeb476bd98ab1ad69317fec2a79f03d384a2b42de6cf"
+    },
+    {
+      "id": "universal-2:7",
+      "source": "universal-2",
+      "line": 7,
       "sha256": "803aff7afcd4044ca0e597174640d09aa031bad914c5713df65db1e2f6dc1e1b",
       "disposition": "merge",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
@@ -517,9 +527,9 @@
       ]
     },
     {
-      "id": "universal-2:7",
+      "id": "universal-2:8",
       "source": "universal-2",
-      "line": 7,
+      "line": 8,
       "sha256": "c8a8a96170afa55e9171b342f9c1158e4aacc63b66deb8eff013500b8947efed",
       "disposition": "merge",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
@@ -533,9 +543,9 @@
       ]
     },
     {
-      "id": "universal-2:8",
+      "id": "universal-2:9",
       "source": "universal-2",
-      "line": 8,
+      "line": 9,
       "sha256": "e81cfe2383096f92073f70a96e0f2fe4e31c2531396799d452e91e072efefbe0",
       "disposition": "merge",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
@@ -549,9 +559,9 @@
       ]
     },
     {
-      "id": "universal-2:9",
+      "id": "universal-2:10",
       "source": "universal-2",
-      "line": 9,
+      "line": 10,
       "sha256": "6e6d8459f420d8e98006b3e80fa492e30be5f384027436ab5c21e6f4339ce9c3",
       "disposition": "merge",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
@@ -564,9 +574,9 @@
       "note": "The rationale investigation is stated, and the concise core reports rather than copies a workaround; the rule that a justifying comment is a claim to verify is taken from the source."
     },
     {
-      "id": "universal-2:10",
+      "id": "universal-2:11",
       "source": "universal-2",
-      "line": 10,
+      "line": 11,
       "sha256": "1ab23bbd49a39fc732300e7fc9c1a0d0c9630c50bf5e87b0c08baeea816308a0",
       "disposition": "merge",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
@@ -579,9 +589,9 @@
       ]
     },
     {
-      "id": "universal-2:11",
+      "id": "universal-2:12",
       "source": "universal-2",
-      "line": 11,
+      "line": 12,
       "sha256": "6db602d9724f3cb69bbbf36f74d8fec7b88fa3c3620eb2d3e63f5242bfe2da73",
       "disposition": "defer",
       "destination": ".claude/skills/shared/protocols/ai-mistake-prevention.md",
@@ -589,9 +599,9 @@
       "note": "The concise text keeps fair testing of the premise and names why-review for formal rationale audits; the adversarial review method is read from the source."
     },
     {
-      "id": "universal-2:12",
+      "id": "universal-2:13",
       "source": "universal-2",
-      "line": 12,
+      "line": 13,
       "sha256": "3d52e60e676c601811e007456422fee6fe1820e8e08c0990c9838e49e79bc19b",
       "disposition": "merge",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",
@@ -605,9 +615,9 @@
       ]
     },
     {
-      "id": "universal-2:13",
+      "id": "universal-2:14",
       "source": "universal-2",
-      "line": 13,
+      "line": 14,
       "sha256": "484d3713c915b5a1558b331b7b775b7ab3ac6b13896143cee458c32f45b6bab7",
       "disposition": "defer",
       "destination": ".claude/skills/shared/protocols/ai-mistake-prevention.md",
@@ -615,9 +625,9 @@
       "note": "The concise trigger row keeps the platform-behavior and security-boundary cue and names this file as the owner to load."
     },
     {
-      "id": "universal-2:14",
+      "id": "universal-2:15",
       "source": "universal-2",
-      "line": 14,
+      "line": 15,
       "sha256": "d7c1bb2d20fb8a74e32bb27012d3caccae46ed79dbc9ca5cfe1e1e0427b2ee65",
       "disposition": "merge",
       "destination": ".claude/skills/shared/protocols/concise-agent-core.md",

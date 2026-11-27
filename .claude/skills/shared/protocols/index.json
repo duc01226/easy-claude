@@ -85,12 +85,12 @@
       "group": "universal",
       "summary": "Failure modes to avoid on every task",
       "when": "delivered by the universal hook",
-      "chars": 4983,
+      "chars": 5453,
       "file": ".claude/skills/shared/protocols/ai-mistake-prevention.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/ai-mistake-prevention.md",
-          "chars": 4983
+          "chars": 5453
         }
       ]
     },
@@ -239,12 +239,12 @@
       "group": "design",
       "summary": "Consolidated essential working and discovery contract",
       "when": "concise universal delivery",
-      "chars": 8949,
+      "chars": 8935,
       "file": ".claude/skills/shared/protocols/concise-agent-core.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/concise-agent-core.md",
-          "chars": 8949
+          "chars": 8935
         }
       ]
     },

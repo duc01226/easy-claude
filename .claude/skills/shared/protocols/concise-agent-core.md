@@ -34,7 +34,7 @@ Load specialized procedures when their trigger applies:
 | Trigger | Owner to load |
 | --- | --- |
 | A skill is selected | Registered `SKILL.md`; configured `skill-protocols-reference.md` and matching bodies. Overlays are additive, cannot waive gates, and use exact > glob > `*` matching. Read `.claude/skills/project-skill-protocol/references/registry.md` when resolving body paths, malformed entries or conflicts. Reject unsafe paths; report/skip missing or malformed matched bodies; surface contradictions. An absent index or no match means no overlay. |
-| Failure diagnosis | Project investigation/test references and the registered `investigate`, `fix` or relevant test skill; preserve root-cause and test-integrity rules above. |
+| Failure/check work | Read `.claude/skills/shared/protocols/ai-mistake-prevention.md`; use project references and registered `investigate`, `fix` or test skill. |
 | Scripts, launchers or filesystem behavior change | Matching path rules and `.claude/skills/shared/protocols/ai-mistake-prevention.md`; verify platform behavior and keep security boundaries. |
 | Framework source or projections change | `.claude/skills/shared/sync-inline-versions.md` and registered `sync-codex` skill; regenerate after final source changes, verify parity, preserve unmanaged root text and report overflow. Do not sync when no framework source changed. |
 | Design, build or review | Use relevant project docs and skills. For affected trust, state, dependency, or resource boundaries, first read `.claude/docs/system-design-qa.md`. |

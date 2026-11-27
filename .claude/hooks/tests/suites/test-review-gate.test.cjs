@@ -364,10 +364,11 @@ const tests = [
             // Given the delivered routing protocol and its reminder
             const canonical = read(SKILLS, 'shared', 'sync-inline-versions.md');
             assert.match(canonical, /- \*\*Tests:\*\* `test-review` reviews the tests of a change/);
-            assert.match(canonical, /tests → `test-review` \(coverage and quality of a change's tests\), `test`/);
+            // The compact gloss keeps coverage and quality; the full routing assertion above owns "tests of a change".
+            assert.match(canonical, /tests → `test-review` \(coverage and quality\), `test`/);
             // Load the hook itself: a fallback that no longer parses fails here, not only in its own suite
             const { FALLBACK_BODY } = require(path.join(CLAUDE, 'hooks', 'quality-skill-remind.cjs'));
-            assert.match(FALLBACK_BODY, /tests → `test-review` \(coverage and quality of a change's tests\)/);
+            assert.match(FALLBACK_BODY, /tests → `test-review` \(coverage and quality\)/);
             // The hub keeps the description form and length every skill description follows
             const description = /^description: '([^']*)'$/m.exec(hub());
             assert.ok(description && description[1].startsWith('[Testing] Use when a workflow step or the user asks for '), 'step-skill description form');
