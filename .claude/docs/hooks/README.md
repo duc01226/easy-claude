@@ -204,9 +204,13 @@ The default-on hook shares one reminder record across prompt and pre-tool events
 
 ### Quality-skill reminder
 
-The prompt hook delivers the canonical `SYNC:quality-skill-routing:reminder` digest on genuine UserPromptSubmit. The digest includes `brainstorm` for product and feature ideation. Successful delivery starts the refresh window for the main conversation or a sub-agent scope.
+The prompt hook delivers the canonical `SYNC:quality-skill-routing:reminder` digest on genuine UserPromptSubmit. The digest includes `brainstorm` for product and feature ideation, `prompt-enhance` for enhancing, compressing or expanding prompts, docs or skills, and `code-simplifier` for clearer, maintainable code without behavior changes. Successful delivery starts the refresh window for the main conversation or a sub-agent scope.
 
 The first tool result in a scope with no current delivery sends both the skill digest and `SYNC:long-run-protocols:reminder`. The latter recalls the existing goal, evidence, investigation and authority rules. The next eligible tool result refreshes both when either configured threshold is reached. The defaults are **60 minutes or about 250,000 tokens of transcript growth**, whichever comes first. The time cap also works without a transcript. A changed digest or a compaction without a confirmed compatible bundle restore re-arms the hook. A successful compatible restore starts the window at its recorded delivery time. Only eligible tool events can deliver context. Read [../configuration/README.md](../configuration/README.md#advisory-prompt-routers) when configuring the thresholds or turning the reminder off.
+
+The shared goal-integrity principle reaches both context profiles and the long-run reminder: solve the intended task, preserve meaningful tests, harness sensors and lint, and report unverified or incomplete work honestly. Correct a check with evidence it is wrong, or optimize it from measured cost versus value; retain equivalent protection and verify actual behavior. Reduced protection requires explicit owner approval. This is advisory guidance; it changes no enforcement or permissions.
+
+The principle addresses documented evaluation tampering and misleading success signals ([METR](https://metr.org/blog/2025-06-05-recent-reward-hacking/), [Anthropic](https://www.anthropic.com/research/emergent-misalignment-reward-hacking)), while allowing evidence-backed corrections when a grader rejects a valid solution ([Anthropic's evaluation guidance](https://www.anthropic.com/research/demystifying-evals-for-ai-agents)). These sources motivate the rule; prompt guidance alone does not establish prevention.
 
 ### Failure investigation reminder
 

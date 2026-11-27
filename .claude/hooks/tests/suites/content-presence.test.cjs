@@ -2381,6 +2381,34 @@ module.exports = {
                 ];
                 const missing = rules.filter(([, text, re]) => !re.test(text)).map(([owner, , re]) => `${owner}: ${re}`);
                 assertTrue(missing.length === 0, `root-cause / no-workaround rules lost:\n  ${missing.join('\n  ')}`);
+                // Goal integrity protects real outcomes across tests, harness sensors and lint; legitimate
+                // check corrections/optimizations require evidence and equivalent protection, not a blanket ban on edits.
+                for (const rule of [
+                    /Solve the intended task, not the score/,
+                    /tests, harness sensors or lint/,
+                    /hardcode evaluator answers/,
+                    /hide failures/,
+                    /unverified success/,
+                    /evidence it is wrong/,
+                    /measured runtime\/cost/,
+                    /equivalent verification/,
+                    /recheck real behavior/,
+                    /Reduced protection needs explicit owner approval/
+                ]) {
+                    assertTrue(rule.test(mistakes), `goal-integrity rule lost: ${rule}`);
+                }
+                const concise = protocol('concise-agent-core');
+                assertTrue(
+                    /Failure\/check work \| Read `\.claude\/skills\/shared\/protocols\/ai-mistake-prevention\.md`/.test(concise),
+                    'the concise profile retrieves the same goal-integrity owner when changing checks'
+                );
+                const longRun = readFile(path.join(SKILLS_DIR, 'shared', 'sync-inline-versions.md'));
+                assertTrue(
+                    /Preserve real outcomes and checks; correct or optimize flawed\/costly checks only with evidence, equivalent protection and honest gap reporting/.test(
+                        longRun
+                    ),
+                    'tool-result refresh retains check integrity and the evidence-backed correction/optimization exception'
+                );
             }
         },
         {

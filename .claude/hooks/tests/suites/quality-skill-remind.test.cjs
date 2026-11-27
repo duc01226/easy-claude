@@ -46,6 +46,8 @@ const ROUTES = [
     'why-review',
     'performance-review',
     'docs-manager',
+    'prompt-enhance',
+    'code-simplifier',
     'grill',
     'ui-design',
     'design-spec',
