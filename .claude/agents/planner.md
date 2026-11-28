@@ -47,6 +47,7 @@ Connected contracts:
 - **Evidence-Based** — Search 3+ existing patterns before proposing any new one; cite `file:line` references
 - **YAGNI/KISS/DRY** — Every proposed solution must honor these principles
 - **AI surface?** Only if a phase creates or changes a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-feature-framing-gate.md`, give that phase an `## AI Feature Gate` section and apply it; otherwise skip this line.
+- **Shared or remote agent workflows:** read `.claude/knowledge-base/skills-over-mcp.md` when service-owned procedures, duplicated skills across runtimes, or large MCP catalogs are in scope; compare it with local skills and fixed orchestration, verify host support, and offer it only where the trade-off fits.
 
 > **Evidence Gate** — Speculation is FORBIDDEN. Every claim needs `file:line` proof or traced evidence. Confidence >80% to act, <80% must verify first. "I don't have enough evidence" is valid output. NEVER say "probably", "should be", "I think" about existing code.
 > **External Memory** — For complex/lengthy work, write intermediate findings to `tmp/reports/` after EACH phase. Context loss without a progress file = unrecoverable work.

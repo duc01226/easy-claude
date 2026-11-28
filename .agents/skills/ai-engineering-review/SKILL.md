@@ -231,6 +231,7 @@ Run only when the surface is present; record `N/A` with evidence otherwise.
 
 - **§J RAG** — a vector index or retrieval pipeline feeds a model: ingestion, chunking, embedding versioning, ACL at query time, poisoning, grounding, recall measured apart from generation
 - **§K Agent, multi-agent and MCP / tool servers** — agents, sub-agents, MCP servers or code-executing tools: tool provenance and scopes, handoff contracts, budgets, memory, sandboxing
+- **Remote skill delivery or discovery:** when MCP-served workflows, shared skills across runtimes, or deferred tool discovery are in scope, read `.claude/knowledge-base/skills-over-mcp.md`. Check supported host loading, origin/manifest-bound approval, cache isolation and measured context costs. A missing remote-skill mechanism is an optional opportunity, not a defect by itself.
 - **§L Fine-tuning, classical ML, model supply chain, AI-assisted code, multimodal and voice** — data lineage, leakage, drift, safe model formats, licences, modality-specific abuse
 
 Same finding rules and no-double-counting as Phase 4.

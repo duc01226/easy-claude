@@ -1,6 +1,6 @@
 ---
 name: plan
-version: 2.0.0
+version: 2.0.1
 description: '[Planning] Use when a workflow step or the user asks for implementation planning. --mode=review supports review-only or --fix-loop; validate interviews, execute implements. --mode=ci plans CI fixes; --mode=cro plans conversion optimization.'
 disable-model-invocation: false
 ---
@@ -168,6 +168,7 @@ List phase waves only when `PAR` phases have proven disjoint write sets. Otherwi
 - **Domain entity/value object/aggregate (feedforward):** when planned work may create or update domain data, behavior or write/load paths, read [the shared entity-quality contract](../domain-analysis/references/entity-quality.md). Record applicable decisions, invariant owners and proof obligations in the plan/checklist before implementation; material unresolved choices block their phase. No relevant surface → evidence-backed N/A; do not load the detail.
 - **User-facing UI:** apply the configured UX/design authority and bind relevant states/accessibility criteria to acceptance evidence; do not redesign settled project conventions.
 - **AI surface?** Only if a phase creates or changes a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-feature-framing-gate.md`, give that phase an `## AI Feature Gate` section and apply it; otherwise skip this line.
+- **Shared or remote agent workflows:** when service-owned procedures, duplicated skills across runtimes, or large MCP catalogs are in scope, read `.claude/knowledge-base/skills-over-mcp.md`. Offer Skills over MCP where it fits, compare local skills and fixed orchestration, and verify the exact host/SDK support; adoption and token savings are not assumed.
 - **Framework/mirror work:** name canonical owners and the generated sync/verify action.
 - **Supplied spec:** preserve the supplied baseline. Put proposed behavior outside it under `Proposed additions — owner approval required`; never silently plan it as accepted scope.
 

@@ -69,6 +69,7 @@ Connected contracts:
 > - `.claude/docs/ai-engineering-review-checklist.md` — the review procedure: §0 context, evidence rules and the P0–P4 map; sweeps §A–§L; plan questions §M; test questions §N; report shape §O; triage §P
 > - `.claude/docs/ai-engineering-calibration.md` — worked true-positive and false-positive cases; read it when a finding's existence or severity is unclear
 > - `.claude/docs/ai-engineering-knowledge.md` — the deep catalog, addressed by section letter when a check needs its rationale
+> - Read `.claude/knowledge-base/skills-over-mcp.md` when reviewing MCP-served workflows, shared skills across runtimes or deferred tool discovery; distinguish host loading/approval, origin and cache isolation, and measured savings. Treat non-adoption as an optional opportunity unless a governing requirement says otherwise.
 > - The project's own AI policy: `docs/project-config.json`, the docs index, accepted ADRs, declared provider, risk-tier and compliance decisions. Record `Project policy read: <paths>` or `none found (checked: <paths>)`.
 >
 > A missing knowledge doc is not a blocker — rely on the checklist and cite its section.

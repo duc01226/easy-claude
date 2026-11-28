@@ -208,6 +208,69 @@
       "hash": "0dbc3dae7dfa93a5"
     },
     {
+      "id": "skills-over-mcp",
+      "title": "Skills over MCP — portable workflows with verified lazy loading",
+      "description": "Use when planning or reviewing remote agents, MCP tools, shared agent workflows, or on-demand skill and tool discovery",
+      "kind": "technology",
+      "review": "unreviewed",
+      "reviewed": "2026-11-28",
+      "labels": [
+        "unreviewed"
+      ],
+      "sourceKinds": [
+        "web-address"
+      ],
+      "file": ".claude/knowledge-base/skills-over-mcp.md",
+      "body": null,
+      "triggers": {
+        "prompt": [],
+        "intent": [],
+        "skills": [
+          "ai-engineering-review",
+          "tech-stack-research"
+        ],
+        "agents": [
+          "ai-engineering-reviewer",
+          "researcher"
+        ]
+      },
+      "clauses": [
+        {
+          "id": "KB-SMCP-1",
+          "heading": "KB-SMCP-1 Status and evidence"
+        },
+        {
+          "id": "KB-SMCP-2",
+          "heading": "KB-SMCP-2 When to offer it"
+        },
+        {
+          "id": "KB-SMCP-3",
+          "heading": "KB-SMCP-3 Discovery and loading"
+        },
+        {
+          "id": "KB-SMCP-4",
+          "heading": "KB-SMCP-4 Trust and execution"
+        },
+        {
+          "id": "KB-SMCP-5",
+          "heading": "KB-SMCP-5 Caching, updates and dynamic catalogs"
+        },
+        {
+          "id": "KB-SMCP-6",
+          "heading": "KB-SMCP-6 Context and tool search"
+        },
+        {
+          "id": "KB-SMCP-7",
+          "heading": "KB-SMCP-7 Implementation seams"
+        },
+        {
+          "id": "KB-SMCP-8",
+          "heading": "KB-SMCP-8 Evaluation and revisit triggers"
+        }
+      ],
+      "hash": "29182c2f54886720"
+    },
+    {
       "id": "writing-knowledge-packs",
       "title": "Writing good knowledge packs",
       "description": "Use when drafting, importing, updating or reviewing a knowledge pack",
